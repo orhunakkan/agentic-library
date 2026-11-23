@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
+import { cn } from '~/client/lib/cn'
 import type { Cadence, PlanState } from '~/shared/billing/billing'
 import {
   BACK_TO_READING,
@@ -25,9 +26,9 @@ import { useCheckout } from './use-checkout'
 
 const linkClass = 'font-medium text-accent underline-offset-2 hover:underline'
 
-function LegalLinks({ className }: { className?: string }) {
+function LegalLinks({ className }: { className: string }) {
   return (
-    <p className={className ?? 'text-[14px] text-muted'}>
+    <p className={cn('text-[14px] text-muted', className)}>
       <Link to="/terms" className={linkClass} data-testid="pro-terms">
         Terms
       </Link>
@@ -151,7 +152,7 @@ function BuyPro({ state, onPro }: { state: PlanState; onPro: (state: PlanState) 
           )}
         </div>
         <p className="mt-6 text-[14px] leading-relaxed text-muted">{PAYMENT_NOTE}</p>
-        <LegalLinks className="mt-3 text-[14px] text-muted" />
+        <LegalLinks className="mt-3" />
       </article>
     </>
   )
@@ -174,7 +175,7 @@ export function ProPage({ initial }: { initial: PlanState }) {
           <h2 className="font-display text-[22px] font-bold text-ink">Pro</h2>
           <Features />
         </article>
-        <LegalLinks className="mt-6 text-[14px] text-muted" />
+        <LegalLinks className="mt-6" />
       </>
     )
   }
@@ -183,20 +184,18 @@ export function ProPage({ initial }: { initial: PlanState }) {
       <div className="mt-6">
         {welcome && <Welcome />}
         <PaidStatus subscription={state.subscription} />
-        <LegalLinks className="mt-6 text-[14px] text-muted" />
+        <LegalLinks className="mt-6" />
       </div>
     )
   }
-  if (state.plan === 'pro' && !welcome) {
-    const line = planLine(state.source)
-    return (
-      <p className="mt-6 text-[16px] text-ink" data-testid="plan-line">
-        {line.before}
-        <strong>{line.name}</strong>
-        {line.after}
-      </p>
-    )
-  }
-  if (state.plan === 'pro') return <Welcome />
-  return <BuyPro state={state} onPro={turnedPro} />
+  if (state.plan !== 'pro') return <BuyPro state={state} onPro={turnedPro} />
+  if (welcome) return <Welcome />
+  const line = planLine(state.source)
+  return (
+    <p className="mt-6 text-[16px] text-ink" data-testid="plan-line">
+      {line.before}
+      <strong>{line.name}</strong>
+      {line.after}
+    </p>
+  )
 }

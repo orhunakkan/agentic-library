@@ -177,7 +177,7 @@ export async function storeChapter(
 
 export type FinishResult = 'ok' | 'missing' | 'incomplete'
 
-export function wordsInPages(pages: readonly string[]): number {
+function wordsInPages(pages: readonly string[]): number {
   return pages.reduce((n, page) => {
     const text = page.replace(/<[^>]*>/g, ' ').trim()
     return n + (text ? text.split(/\s+/).length : 0)

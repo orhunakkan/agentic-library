@@ -3,7 +3,7 @@ import { lookup as dnsLookup, type LookupAddress } from 'node:dns'
 import http, { type IncomingMessage } from 'node:http'
 import https from 'node:https'
 import { isIP, type LookupFunction } from 'node:net'
-import type { Readable } from 'node:stream'
+import type { Readable, Transform } from 'node:stream'
 import zlib from 'node:zlib'
 import { isTestHost, parseArticleUrl } from '../../shared/articles/article-url.ts'
 import { MAX_PAGE_BYTES, MAX_PICTURE_BYTES, type WebFetchProblem } from '../../shared/articles/contract.ts'
@@ -126,17 +126,17 @@ function statusProblem(status: number): WebFetchProblem | null {
   return 'unavailable'
 }
 
+function decoderFor(encoding: string): Transform | null {
+  if (encoding === 'gzip' || encoding === 'x-gzip') return zlib.createGunzip()
+  if (encoding === 'deflate') return zlib.createInflate()
+  if (encoding === 'br') return zlib.createBrotliDecompress()
+  return null
+}
+
 function decoded(response: IncomingMessage): Readable | null {
   const encoding = (response.headers['content-encoding'] ?? 'identity').trim().toLowerCase()
   if (encoding === 'identity' || encoding === '') return response
-  const decoder =
-    encoding === 'gzip' || encoding === 'x-gzip'
-      ? zlib.createGunzip()
-      : encoding === 'deflate'
-        ? zlib.createInflate()
-        : encoding === 'br'
-          ? zlib.createBrotliDecompress()
-          : null
+  const decoder = decoderFor(encoding)
   if (!decoder) return null
   response.on('error', (error) => decoder.destroy(error))
   return response.pipe(decoder)

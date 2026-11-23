@@ -10,7 +10,7 @@ import type { RenderedMarkdown } from '../../shared/github-repos/md-node.ts'
 import { MB } from '../../shared/import/limits.ts'
 import type { ParsedTree, TreeEntry } from './github-parse.ts'
 import { highlight, languageFor, withinHighlightCaps } from './highlight.ts'
-import { renderMarkdown } from './markdown.ts'
+import { renderMarkdown, resolvePath } from './markdown.ts'
 
 export const VIEW_MAX_BYTES = 1 * MB
 export const PICTURE_MAX_BYTES = 5 * MB
@@ -273,15 +273,7 @@ async function fileFromBytes(
 
 export function resolveLink(linkPath: string, target: string): string | null {
   if (target.startsWith('/')) return null
-  const parts = parentOf(linkPath).split('/').filter(Boolean)
-  for (const segment of target.split('/')) {
-    if (segment === '' || segment === '.') continue
-    if (segment === '..') {
-      if (!parts.length) return null
-      parts.pop()
-    } else parts.push(segment)
-  }
-  return parts.join('/') || null
+  return resolvePath(parentOf(linkPath), target) || null
 }
 
 export async function renderFolder(

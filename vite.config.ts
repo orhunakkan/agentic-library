@@ -68,11 +68,7 @@ function runCodeEngines(): Plugin {
         }
         const path = fileURLToPath(new URL(`./node_modules/${found.package}/${found.file}`, import.meta.url))
         stat(path).then((info) => {
-          const type = pathname.endsWith('.json')
-            ? 'application/json'
-            : pathname.endsWith('.zip')
-              ? 'application/zip'
-              : ''
+          const type = engineContentType(pathname)
           res.writeHead(200, {
             ...(type ? { 'content-type': type } : {}),
             ...headersFor(pathname),
@@ -84,6 +80,12 @@ function runCodeEngines(): Plugin {
       })
     },
   }
+}
+
+function engineContentType(pathname: string): string {
+  if (pathname.endsWith('.json')) return 'application/json'
+  if (pathname.endsWith('.zip')) return 'application/zip'
+  return ''
 }
 
 function prerenderEnv() {

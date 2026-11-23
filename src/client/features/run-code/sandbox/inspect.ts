@@ -103,14 +103,11 @@ export function inspect(value: unknown): string {
         descriptor = Object.getOwnPropertyDescriptor(object, key)
       } catch {}
       if (!descriptor?.enumerable) continue
-      const shown =
-        descriptor.get || descriptor.set
-          ? descriptor.get && descriptor.set
-            ? '[Getter/Setter]'
-            : descriptor.get
-              ? '[Getter]'
-              : '[Setter]'
-          : format(descriptor.value, seen, depth + 1)
+      let shown: string
+      if (descriptor.get && descriptor.set) shown = '[Getter/Setter]'
+      else if (descriptor.get) shown = '[Getter]'
+      else if (descriptor.set) shown = '[Setter]'
+      else shown = format(descriptor.value, seen, depth + 1)
       out.push(`${keyOf(key)}: ${shown}`)
     }
     return out

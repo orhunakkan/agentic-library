@@ -312,12 +312,12 @@ function TranslatePro() {
 
 function TranslateBody({ lookup, currentHref }: { lookup: LookupState; currentHref: string }) {
   const { setup, to } = lookup
-  if (setup === null)
-    return (
-      <p data-testid="lookup-loading" className="py-2 text-r-muted">
-        Translating…
-      </p>
-    )
+  const translating = (
+    <p data-testid="lookup-loading" className="py-2 text-r-muted">
+      Translating…
+    </p>
+  )
+  if (setup === null) return translating
   if (!setup.signedIn) return <SignedOut currentHref={currentHref} />
   if (!setup.pro) return <TranslatePro />
   if (!setup.hasKey) return <NoKey />
@@ -328,12 +328,7 @@ function TranslateBody({ lookup, currentHref }: { lookup: LookupState; currentHr
       </p>
     )
   const translation = lookup.store.translation(to, translationText(lookup.target, lookup.term))
-  if (!translation || translation.status === 'loading')
-    return (
-      <p data-testid="lookup-loading" className="py-2 text-r-muted">
-        Translating…
-      </p>
-    )
+  if (!translation || translation.status === 'loading') return translating
   if (!translation.ok)
     return (
       <TranslateFailure

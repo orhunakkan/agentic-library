@@ -6,6 +6,7 @@ import { BackLink } from '~/client/components/BackLink'
 import { BookCover } from '~/client/components/BookCover'
 import { useToast } from '~/client/components/Toast'
 import { Button, Notice } from '~/client/features/account/ui'
+import { DELETE_NOTE } from '~/client/features/articles/article-messages'
 import {
   ChooseImageButton,
   CoverChooser,
@@ -451,10 +452,10 @@ export function useCoverActions(page: DetailsPage) {
 
 export type CoverActions = ReturnType<typeof useCoverActions>
 
-function FindButton({ actions, buttonRef }: { actions: CoverActions; buttonRef?: React.Ref<HTMLButtonElement> }) {
+function FindButton({ actions }: { actions: CoverActions }) {
   return (
     <button
-      ref={buttonRef}
+      ref={actions.findButton}
       type="button"
       className={chooserButton}
       aria-expanded={actions.panel}
@@ -505,7 +506,7 @@ export function CoverAndDetails({ page, actions }: { page: DetailsPage; actions:
             busy={actions?.busy}
             error={actions?.error}
           >
-            {actions && !page.article && <FindButton actions={actions} buttonRef={actions.findButton} />}
+            {actions && !page.article && <FindButton actions={actions} />}
             {!actions && (
               <p className="text-[14.5px] font-medium text-ink">
                 {page.article
@@ -539,7 +540,6 @@ export function CoverAndDetails({ page, actions }: { page: DetailsPage; actions:
 }
 
 const DELETE_TEXT = 'Deleted books are removed at once. Nightly backups keep a copy for up to 14 days.'
-const DELETE_ARTICLE_TEXT = 'Deleted articles are removed at once. Nightly backups keep a copy for up to 14 days.'
 
 export function DeleteBook({ page, text }: { page: DetailsPage; text?: string }) {
   const article = Boolean(page.article)
@@ -553,7 +553,7 @@ export function DeleteBook({ page, text }: { page: DetailsPage; text?: string })
           Delete<span className="sr-only"> {page.title}</span>
         </Button>
       </form>
-      <p className="mt-4 text-[13.5px] text-muted">{text ?? (article ? DELETE_ARTICLE_TEXT : DELETE_TEXT)}</p>
+      <p className="mt-4 text-[13.5px] text-muted">{text ?? (article ? DELETE_NOTE : DELETE_TEXT)}</p>
     </section>
   )
 }

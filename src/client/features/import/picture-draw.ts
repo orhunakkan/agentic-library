@@ -21,6 +21,11 @@ export function canvasOf(width: number, height: number): Canvas {
   return canvas
 }
 
+export function canvasBlob(canvas: Canvas, type: OutputType, quality?: number): Promise<Blob | null> {
+  if ('convertToBlob' in canvas) return canvas.convertToBlob({ type, quality })
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
+}
+
 async function encode(source: Source, width: number, height: number, type: OutputType, quality: number) {
   const canvas = canvasOf(width, height)
   const context = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null
@@ -33,8 +38,7 @@ async function encode(source: Source, width: number, height: number, type: Outpu
   context.imageSmoothingQuality = 'high'
   context.drawImage(source, 0, 0, width, height)
   try {
-    if ('convertToBlob' in canvas) return await canvas.convertToBlob({ type, quality })
-    return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality))
+    return await canvasBlob(canvas, type, quality)
   } catch {
     return null
   }

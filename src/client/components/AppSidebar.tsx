@@ -20,7 +20,7 @@ import { AccountMenu, SignInLink } from './AccountMenu'
 import { AppLink } from './AppLink'
 import { useCommandPalette } from './CommandPalette'
 import { BrandLink } from './Logo'
-import { activeMainItem, isCollectionActive } from './nav-state'
+import { activeMainItem, isCollectionActive, type MainItem } from './nav-state'
 import { ThemeToggle } from './ThemeToggle'
 
 export type NavData = Awaited<ReturnType<typeof getNavData>>
@@ -60,6 +60,14 @@ export function SearchButton({ className, onOpen }: { className?: string; onOpen
     </button>
   )
 }
+
+const VIEWER_ITEMS = [
+  { href: '/account/books', key: 'my-books', label: 'My books', icon: LibraryBig },
+  { href: '/account/articles', key: 'articles', label: 'Articles', icon: Newspaper },
+  { href: '/account/highlights', key: 'highlights', label: 'Highlights', icon: Highlighter },
+  { href: '/account/stats', key: 'stats', label: 'Stats', icon: ChartNoAxesColumn },
+  { href: '/account/repos', key: 'repos', label: 'Repositories', icon: FolderGit2 },
+] as const satisfies readonly { href: string; key: MainItem; label: string; icon: LucideIcon }[]
 
 const searchFilter = (search: unknown) => {
   const filter = (search as Record<string, unknown> | undefined)?.filter
@@ -102,55 +110,19 @@ export function SidebarContent({
             Listen
           </NavItem>
         )}
-        {viewer && (
-          <>
+        {viewer &&
+          VIEWER_ITEMS.map((item) => (
             <NavItem
-              href="/account/books"
-              navKey="my-books"
-              active={main === 'my-books'}
+              key={item.key}
+              href={item.href}
+              navKey={item.key}
+              active={main === item.key}
               onNavigate={onNavigate}
-              icon={LibraryBig}
+              icon={item.icon}
             >
-              My books
+              {item.label}
             </NavItem>
-            <NavItem
-              href="/account/articles"
-              navKey="articles"
-              active={main === 'articles'}
-              onNavigate={onNavigate}
-              icon={Newspaper}
-            >
-              Articles
-            </NavItem>
-            <NavItem
-              href="/account/highlights"
-              navKey="highlights"
-              active={main === 'highlights'}
-              onNavigate={onNavigate}
-              icon={Highlighter}
-            >
-              Highlights
-            </NavItem>
-            <NavItem
-              href="/account/stats"
-              navKey="stats"
-              active={main === 'stats'}
-              onNavigate={onNavigate}
-              icon={ChartNoAxesColumn}
-            >
-              Stats
-            </NavItem>
-            <NavItem
-              href="/account/repos"
-              navKey="repos"
-              active={main === 'repos'}
-              onNavigate={onNavigate}
-              icon={FolderGit2}
-            >
-              Repositories
-            </NavItem>
-          </>
-        )}
+          ))}
       </nav>
 
       <section aria-labelledby={`${id}-collections`}>
@@ -235,9 +207,8 @@ export function SidebarContent({
 
 const itemClass = (active: boolean) =>
   cn(
-    'flex h-11 items-center rounded-xl px-3 text-[15px] transition',
+    'flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] transition',
     active ? 'bg-panel font-semibold text-ink' : 'font-medium text-body hover:bg-panel/60 hover:text-ink',
-    'gap-3',
   )
 
 function NavItem({

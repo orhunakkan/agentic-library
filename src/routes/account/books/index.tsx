@@ -54,13 +54,12 @@ function BooksScreen() {
     void forgetUnlistedCopies(listed ? listed.split(' ') : [])
   }, [listed])
 
-  const imported = async (id: string, cover?: 'type' | 'small' | 'unavailable') => {
-    await navigate({
+  const imported = (id: string, cover?: 'type' | 'small' | 'unavailable') =>
+    navigate({
       to: '/account/books/$id',
       params: { id },
       search: { status: 'imported', ...(cover ? { cover } : {}) },
     })
-  }
 
   return (
     <AccountPage

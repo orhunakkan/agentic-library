@@ -6,8 +6,12 @@ export function chapterPageText(html: string): string {
   return decodeEntities(html.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' '))
 }
 
+export function pagedBlockText(block: Block): string {
+  return block.content.map((i) => (i.type === 'footnoteRef' ? '' : i.text)).join('')
+}
+
 export function pagedPageText(blocks: readonly Block[]): string {
-  return blocks.map((b) => b.content.map((i) => (i.type === 'footnoteRef' ? '' : i.text)).join('')).join('')
+  return blocks.map(pagedBlockText).join('')
 }
 
 export interface BookPage {

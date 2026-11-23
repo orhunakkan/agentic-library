@@ -37,15 +37,18 @@ export function parseSrcset(value: string): SrcsetCandidate[] {
   return out
 }
 
-export function chooseCandidate(candidates: readonly SrcsetCandidate[]): string | null {
-  if (!candidates.length) return null
-  const widths = candidates.filter((c) => c.width !== null)
-  if (widths.length) {
-    const sorted = [...widths].sort((a, b) => (a.width as number) - (b.width as number))
-    const fitting = sorted.filter((c) => (c.width as number) <= PICTURE_MAX_CHOSEN_WIDTH)
-    return (fitting.at(-1) ?? sorted[0])?.url ?? null
-  }
-  const sorted = [...candidates].sort((a, b) => (a.density ?? 1) - (b.density ?? 1))
-  const fitting = sorted.filter((c) => (c.density ?? 1) <= 2)
+function largestWithin(
+  candidates: readonly SrcsetCandidate[],
+  size: (c: SrcsetCandidate) => number,
+  max: number,
+): string | null {
+  const sorted = [...candidates].sort((a, b) => size(a) - size(b))
+  const fitting = sorted.filter((c) => size(c) <= max)
   return (fitting.at(-1) ?? sorted[0])?.url ?? null
+}
+
+export function chooseCandidate(candidates: readonly SrcsetCandidate[]): string | null {
+  const widths = candidates.filter((c) => c.width !== null)
+  if (widths.length) return largestWithin(widths, (c) => c.width as number, PICTURE_MAX_CHOSEN_WIDTH)
+  return largestWithin(candidates, (c) => c.density ?? 1, 2)
 }

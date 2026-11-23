@@ -295,20 +295,18 @@ function walk(items: readonly Item[], notesOf: ReadonlySet<PdfLine>): Walk {
     lists = []
   }
   const flushHeading = () => {
-    if (heading) {
-      const text = heading.text.join(' ').replace(/\s+/g, ' ').trim()
-      const { entry } = heading
-      if (text) {
-        if (entry.kind === 'chapter') elements.push({ type: 'title', text, ...at(entry) })
-        else
-          elements.push({
-            type: 'block',
-            block: { type: 'heading', level: entry.kind === 'h3' ? 3 : 4, runs: [{ text }] },
-            ...at(entry),
-          })
-      }
-      heading = null
-    }
+    if (!heading) return
+    const text = heading.text.join(' ').replace(/\s+/g, ' ').trim()
+    const { entry } = heading
+    heading = null
+    if (!text) return
+    if (entry.kind === 'chapter') elements.push({ type: 'title', text, ...at(entry) })
+    else
+      elements.push({
+        type: 'block',
+        block: { type: 'heading', level: entry.kind === 'h3' ? 3 : 4, runs: [{ text }] },
+        ...at(entry),
+      })
   }
   const flushNote = () => {
     if (note) {

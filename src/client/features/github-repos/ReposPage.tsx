@@ -313,7 +313,7 @@ export function ReposPage({ state }: { state: ReposState }) {
         <ReposList key={state.repos.map((r) => `${r.id}@${r.checkedAt}`).join()} initial={state.repos} />
       ) : (
         <Notice kind="error" data-testid="repos-error">
-          {state.state === 'signed_out' ? repoProblemText('signed_out') : repoProblemText('failed')}
+          {repoProblemText(state.state === 'signed_out' ? 'signed_out' : 'failed')}
         </Notice>
       )}
     </AccountPage>

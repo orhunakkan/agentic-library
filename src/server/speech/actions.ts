@@ -144,7 +144,8 @@ export const handleSpeak = (request: Request, options: SpeechOptions = {}) =>
       )
       if (!result.ok) {
         logError('read aloud speech', `ElevenLabs answered ${result.status} (${result.code})`)
-        return fail(UPSTREAM_STATUS[result.code] ?? 502, UPSTREAM_STATUS[result.code] ? result.code : 'failed')
+        const status = UPSTREAM_STATUS[result.code]
+        return status ? fail(status, result.code) : fail(502, 'failed')
       }
       await recordUsage(db, userId, spoken.say.length, now)
       const words = spoken.words

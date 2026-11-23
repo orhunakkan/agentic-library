@@ -22,7 +22,7 @@ export function paintPages(
   active: string | null,
   flash: string | null,
 ): { key: string; range: Range }[] {
-  const ranges: { key: string; range: Range; item: Paintable }[] = []
+  const ranges: PaintedRange[] = []
   for (const { page, items } of pages) {
     for (const item of items) {
       const range = item.place && rangeFor(page, item.place.start, item.place.end)
@@ -30,33 +30,42 @@ export function paintPages(
     }
   }
   ranges.sort((a, b) => b.item.createdAt.localeCompare(a.item.createdAt))
-  if (canPaint()) {
-    clearPaint()
-    const byColour = new Map<string, Highlight>()
-    let rank = 0
-    for (const { range, item } of [...ranges].reverse()) {
-      const name = `hl-${item.color}`
-      let highlight = byColour.get(name)
-      if (!highlight) {
-        highlight = new Highlight()
-        byColour.set(name, highlight)
-      }
-      highlight.add(range)
-      highlight.priority = ++rank
-    }
-    for (const [name, highlight] of byColour) CSS.highlights.set(name, highlight)
-    const extra = (name: string, keep: (key: string, item: Paintable) => boolean, priority: number) => {
-      const picked = ranges.filter((r) => keep(r.key, r.item)).map((r) => r.range)
-      if (!picked.length) return
-      const highlight = new Highlight(...picked)
-      highlight.priority = priority
-      CSS.highlights.set(name, highlight)
-    }
-    extra('hl-note', (_key, item) => item.note !== null, rank + 1)
-    extra('hl-active', (key) => key === active, rank + 2)
-    extra('hl-flash', (key) => key === flash, rank + 3)
-  }
+  paint(ranges, active, flash)
   return ranges.map(({ key, range }) => ({ key, range }))
+}
+
+interface PaintedRange {
+  key: string
+  range: Range
+  item: Paintable
+}
+
+function paint(ranges: readonly PaintedRange[], active: string | null, flash: string | null): void {
+  if (!canPaint()) return
+  clearPaint()
+  const byColour = new Map<string, Highlight>()
+  let rank = 0
+  for (const { range, item } of [...ranges].reverse()) {
+    const name = `hl-${item.color}`
+    let highlight = byColour.get(name)
+    if (!highlight) {
+      highlight = new Highlight()
+      byColour.set(name, highlight)
+    }
+    highlight.add(range)
+    highlight.priority = ++rank
+  }
+  for (const [name, highlight] of byColour) CSS.highlights.set(name, highlight)
+  const extra = (name: string, keep: (key: string, item: Paintable) => boolean, priority: number) => {
+    const picked = ranges.filter((r) => keep(r.key, r.item)).map((r) => r.range)
+    if (!picked.length) return
+    const highlight = new Highlight(...picked)
+    highlight.priority = priority
+    CSS.highlights.set(name, highlight)
+  }
+  extra('hl-note', (_key, item) => item.note !== null, rank + 1)
+  extra('hl-active', (key) => key === active, rank + 2)
+  extra('hl-flash', (key) => key === flash, rank + 3)
 }
 
 export function hitTest(ranges: readonly { key: string; range: Range }[], x: number, y: number): string | null {

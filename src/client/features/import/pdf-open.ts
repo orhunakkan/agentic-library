@@ -7,7 +7,7 @@ import { extractPdf, pdfOpenError } from '~/shared/import/pdf/extract'
 import { layoutPdf } from '~/shared/import/pdf/layout'
 import { pdfMetadata } from '~/shared/import/pdf/metadata'
 import type { Box, PdfLayoutReport, PdfOverrides, PdfSource, PdfStyle, Region } from '~/shared/import/pdf/types'
-import { type Canvas, canvasOf } from './picture-draw'
+import { type Canvas, canvasBlob, canvasOf } from './picture-draw'
 
 export type PdfProgress =
   | { stage: 'reading'; done: number; total: number }
@@ -43,10 +43,7 @@ const WHITE = '#ffffff'
 type Context = OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D
 
 async function toBytes(canvas: Canvas, type: 'image/png' | 'image/jpeg', quality?: number): Promise<Uint8Array> {
-  const blob =
-    'convertToBlob' in canvas
-      ? await canvas.convertToBlob({ type, quality })
-      : await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality))
+  const blob = await canvasBlob(canvas, type, quality)
   if (!blob) throw new Error('the canvas could not be read back')
   return new Uint8Array(await blob.arrayBuffer())
 }

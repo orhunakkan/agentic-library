@@ -22,7 +22,7 @@ export function sessionCookieName(secure = getConfig().cookieSecure): string {
   return secure ? '__Host-session' : 'session'
 }
 
-export function readCookie(headers: Headers, name: string): string | undefined {
+function readCookie(headers: Headers, name: string): string | undefined {
   for (const part of (headers.get('cookie') ?? '').split(';')) {
     const eq = part.indexOf('=')
     if (eq > 0 && part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim()

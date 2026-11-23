@@ -29,11 +29,13 @@ export function resolveStyles(styles: readonly PdfStyle[], rules: readonly Style
   return resolved
 }
 
+function withoutPicture(block: BookBlock): BookBlock[] {
+  if (block.type !== 'image') return [block]
+  return block.caption ? [{ ...block, image: 0 }] : []
+}
+
 export function withoutPictures(chapters: readonly DraftChapter[]): DraftChapter[] {
-  return chapters.map((c) => ({
-    title: c.title,
-    blocks: c.blocks.flatMap((b): BookBlock[] => (b.type !== 'image' ? [b] : b.caption ? [{ ...b, image: 0 }] : [])),
-  }))
+  return chapters.map((c) => ({ title: c.title, blocks: c.blocks.flatMap(withoutPicture) }))
 }
 
 export async function readPdf(file: Buffer, options: PdfOptions, title: string): Promise<RenderedChapter[]> {

@@ -49,9 +49,6 @@ export function ListeningBookmarks({ book }: { book: string }) {
 
   const kind = bookmarkKind(player.now)
   const mine = api.items.filter((b) => b.kind === kind)
-  const found = mine.filter(isFound)
-  const missing = mine.filter((b) => !isFound(b))
-  const message = 'mt-3 text-[14.5px] leading-relaxed text-muted'
 
   return (
     <section
@@ -63,65 +60,92 @@ export function ListeningBookmarks({ book }: { book: string }) {
       <h2 id={`${id}-title`} className="font-display text-[16px] font-semibold text-ink">
         Bookmarks in this book
       </h2>
-      {api.state === 'signed_out' ? (
-        <div className="mt-3 space-y-3 text-[14.5px]">
-          <p className="text-body" data-testid="player-bookmarks-signed-out">
-            Sign in to bookmark moments.
-          </p>
-          <Link
-            to="/login"
-            search={{ next: pathname }}
-            onClick={() => player.setExpanded(false)}
-            data-testid="player-bookmarks-sign-in"
-            className="inline-flex h-11 items-center rounded-full bg-accent-fill px-5 text-[14.5px] font-semibold text-on-accent transition hover:brightness-105"
-          >
-            Sign in
-          </Link>
-        </div>
-      ) : api.state === 'loading' && mine.length === 0 ? (
-        <p className={message} data-testid="player-bookmarks-loading">
-          Loading your bookmarks…
-        </p>
-      ) : api.state === 'unavailable' && mine.length === 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-[14.5px]">
-          <p className="text-body" data-testid="player-bookmarks-error">
-            Your bookmarks couldn’t be loaded.
-          </p>
-          <button
-            type="button"
-            onClick={api.retry}
-            data-testid="player-bookmarks-retry"
-            className="inline-flex h-11 items-center rounded-full border border-line px-4 font-medium text-ink transition hover:bg-panel"
-          >
-            Retry
-          </button>
-        </div>
-      ) : mine.length === 0 ? (
-        <p className={message} data-testid="player-bookmarks-empty">
-          No bookmarks yet. Press Bookmark to mark a moment.
-        </p>
-      ) : (
-        <>
-          {found.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {found.map((item) => (
-                <Row key={item.key} item={item} api={api} />
-              ))}
-            </ul>
-          )}
-          {missing.length > 0 && (
-            <div className="mt-5">
-              <h3 className="mb-2 text-[13.5px] font-semibold text-ink">No longer found</h3>
-              <ul className="space-y-2">
-                {missing.map((item) => (
-                  <Row key={item.key} item={item} api={api} />
-                ))}
-              </ul>
-            </div>
-          )}
-        </>
-      )}
+      <BookmarksBody api={api} mine={mine} pathname={pathname} onSignIn={() => player.setExpanded(false)} />
     </section>
+  )
+}
+
+const MESSAGE = 'mt-3 text-[14.5px] leading-relaxed text-muted'
+
+function BookmarksBody({
+  api,
+  mine,
+  pathname,
+  onSignIn,
+}: {
+  api: AudioBookmarksApi
+  mine: AudioBookmarkItem[]
+  pathname: string
+  onSignIn: () => void
+}) {
+  if (api.state === 'signed_out')
+    return (
+      <div className="mt-3 space-y-3 text-[14.5px]">
+        <p className="text-body" data-testid="player-bookmarks-signed-out">
+          Sign in to bookmark moments.
+        </p>
+        <Link
+          to="/login"
+          search={{ next: pathname }}
+          onClick={onSignIn}
+          data-testid="player-bookmarks-sign-in"
+          className="inline-flex h-11 items-center rounded-full bg-accent-fill px-5 text-[14.5px] font-semibold text-on-accent transition hover:brightness-105"
+        >
+          Sign in
+        </Link>
+      </div>
+    )
+  if (api.state === 'loading' && mine.length === 0)
+    return (
+      <p className={MESSAGE} data-testid="player-bookmarks-loading">
+        Loading your bookmarks…
+      </p>
+    )
+  if (api.state === 'unavailable' && mine.length === 0)
+    return (
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-[14.5px]">
+        <p className="text-body" data-testid="player-bookmarks-error">
+          Your bookmarks couldn’t be loaded.
+        </p>
+        <button
+          type="button"
+          onClick={api.retry}
+          data-testid="player-bookmarks-retry"
+          className="inline-flex h-11 items-center rounded-full border border-line px-4 font-medium text-ink transition hover:bg-panel"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  if (mine.length === 0)
+    return (
+      <p className={MESSAGE} data-testid="player-bookmarks-empty">
+        No bookmarks yet. Press Bookmark to mark a moment.
+      </p>
+    )
+
+  const found = mine.filter(isFound)
+  const missing = mine.filter((b) => !isFound(b))
+  return (
+    <>
+      {found.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {found.map((item) => (
+            <Row key={item.key} item={item} api={api} />
+          ))}
+        </ul>
+      )}
+      {missing.length > 0 && (
+        <div className="mt-5">
+          <h3 className="mb-2 text-[13.5px] font-semibold text-ink">No longer found</h3>
+          <ul className="space-y-2">
+            {missing.map((item) => (
+              <Row key={item.key} item={item} api={api} />
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
   )
 }
 

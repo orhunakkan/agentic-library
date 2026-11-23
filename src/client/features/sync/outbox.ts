@@ -15,8 +15,12 @@ export type OutboxItem = ReadingWrite | ListeningWrite | SettingsWrite | TimeWri
 
 type Group = 'reading' | 'listening' | 'settings' | 'time'
 
-const groupOf = (item: OutboxItem): Group =>
-  'values' in item ? 'settings' : 'seconds' in item ? 'time' : 'kind' in item ? 'listening' : 'reading'
+function groupOf(item: OutboxItem): Group {
+  if ('values' in item) return 'settings'
+  if ('seconds' in item) return 'time'
+  if ('kind' in item) return 'listening'
+  return 'reading'
+}
 const keyOf = (item: OutboxItem) => ('values' in item ? itemKey('settings') : itemKey(item))
 
 export const SEND_AFTER_MS: Record<Group, number> = {

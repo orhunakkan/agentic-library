@@ -22,7 +22,7 @@ import { getConfig } from './config.ts'
 import { checkCurrentPassword } from './current-password.ts'
 import { type Db, getDb, isDatabaseConfigured } from './db.ts'
 import { handleEmailForm } from './email/actions.ts'
-import { readForm } from './json-body.ts'
+import { formField, readForm } from './json-body.ts'
 import { parsePasskeyId } from './passkeys/input.ts'
 import { removePasskey } from './passkeys/store.ts'
 import { hashPassword, passwordProblem } from './passwords.ts'
@@ -34,11 +34,6 @@ import { checkSignIn, finishSignIn } from './sign-in.ts'
 import { signedInForm } from './signed-in.ts'
 import { checkKey as checkElevenLabsKey, elevenLabsKeyProblem } from './speech/elevenlabs.ts'
 import { normalizeUsername, setAiModel, setPasswordHash, setSpeechModel } from './users.ts'
-
-const field = (form: FormData, name: string) => {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
 
 function loginError(code: 'invalid' | 'unavailable', next: string) {
   const query = new URLSearchParams({ error: code })
@@ -62,11 +57,11 @@ export async function startSession(db: Db, request: Request, userId: number): Pr
 export async function handleLogin(request: Request): Promise<Response> {
   if (!isSameOrigin(request.headers, getConfig().appOrigin)) return forbidden()
   const form = await readForm(request)
-  const next = safeNext(form && field(form, 'next'))
+  const next = safeNext(form && formField(form, 'next'))
   if (!form || !isDatabaseConfigured()) return loginError(form ? 'unavailable' : 'invalid', next)
 
-  const username = normalizeUsername(field(form, 'username')).slice(0, 64)
-  const password = field(form, 'password')
+  const username = normalizeUsername(formField(form, 'username')).slice(0, 64)
+  const password = formField(form, 'password')
   const ip = requestIp(request)
   const db = getDb()
   try {
@@ -101,13 +96,13 @@ export const handleAccount = (request: Request) =>
   signedInForm(request, { log: 'account', next: '/account' }, async ({ session, db, form }) => {
     const ip = requestIp(request)
     const current = hashToken(readSessionToken(request.headers) as string)
-    switch (field(form, 'intent')) {
+    switch (formField(form, 'intent')) {
       case 'change-password': {
-        const password = field(form, 'password')
-        if (password !== field(form, 'confirm')) return seeOther('/account?error=mismatch#password')
+        const password = formField(form, 'password')
+        if (password !== formField(form, 'confirm')) return seeOther('/account?error=mismatch#password')
         const problem = passwordProblem(password, session.username)
         if (problem) return seeOther(`/account?error=policy&reason=${problem}#password`)
-        if (!(await checkCurrentPassword(db, session, field(form, 'current'), ip, 'change password')))
+        if (!(await checkCurrentPassword(db, session, formField(form, 'current'), ip, 'change password')))
           return seeOther('/account?error=current#password')
         await setPasswordHash(db, session.userId, await hashPassword(password))
         const ended = await endUserAccess(db, session.userId, { keep: current, via: 'password change', ip })
@@ -120,13 +115,13 @@ export const handleAccount = (request: Request) =>
         return seeOther('/account?status=signed-out-others#sessions')
       }
       case 'token-revoke': {
-        const id = field(form, 'token')
+        const id = formField(form, 'token')
         if (isTokenId(id) && (await revokeAccessToken(db, session.userId, id)))
           await recordEvent(db, 'token.revoked', { userId: session.userId, ip, detail: { id, via: 'account page' } })
         return seeOther('/account?status=token-revoked#access-tokens')
       }
       case 'delete-account': {
-        if (!(await checkCurrentPassword(db, session, field(form, 'current'), ip, 'delete account')))
+        if (!(await checkCurrentPassword(db, session, formField(form, 'current'), ip, 'delete account')))
           return seeOther('/account?error=delete-current#delete')
         const result = await deleteAccount(db, session.userId, { ip, detail: { via: 'account page' } })
         if (result === 'last_admin') return seeOther('/account?error=last-admin#delete')
@@ -134,7 +129,7 @@ export const handleAccount = (request: Request) =>
         return seeOther('/login?status=account-deleted', { 'set-cookie': clearSessionCookie() })
       }
       case 'passkey-remove': {
-        const id = parsePasskeyId(field(form, 'passkey'))
+        const id = parsePasskeyId(formField(form, 'passkey'))
         if (id && (await removePasskey(db, session.userId, id)))
           await recordEvent(db, 'passkey.removed', { userId: session.userId, ip, detail: { via: 'account' } })
         return seeOther('/account?status=passkey-removed#passkeys')
@@ -192,17 +187,17 @@ export function handleApiKeys(request: Request, options: ApiKeysOptions = {}): P
   const page = '/account/api-keys'
   const back = (provider: string, query: string) => seeOther(`${page}?${query}&provider=${provider}#${provider}`)
   const failed = (form: FormData) => {
-    const intent = field(form, 'intent')
+    const intent = formField(form, 'intent')
     if (intent === 'model') return seeOther(`${page}?error=failed#model`)
     if (intent === 'speech-model') return speechModelBack('error=failed')
-    return back(field(form, 'provider'), 'error=failed')
+    return back(formField(form, 'provider'), 'error=failed')
   }
   return signedInForm(request, { log: 'api keys', next: page, failed }, async ({ session, db, form }) => {
-    const intent = field(form, 'intent')
+    const intent = formField(form, 'intent')
     const ip = requestIp(request)
-    if (intent === 'model') return saveModel(db, session.userId, ip, field(form, 'model'))
-    if (intent === 'speech-model') return saveSpeechModel(db, session.userId, ip, field(form, 'model'))
-    const provider = field(form, 'provider') as Provider
+    if (intent === 'model') return saveModel(db, session.userId, ip, formField(form, 'model'))
+    if (intent === 'speech-model') return saveSpeechModel(db, session.userId, ip, formField(form, 'model'))
+    const provider = formField(form, 'provider') as Provider
     if (!PROVIDERS.includes(provider)) return seeOther(`${page}?error=invalid`)
     const recent = await eventTimes(
       db,
@@ -215,7 +210,7 @@ export function handleApiKeys(request: Request, options: ApiKeysOptions = {}): P
     switch (intent) {
       case 'save': {
         if (provider === 'elevenlabs' && !canUse(session.plan, 'elevenlabs')) return back(provider, 'error=pro')
-        const key = field(form, 'key').trim()
+        const key = formField(form, 'key').trim()
         const check = await checkProviderKey(provider, key, options)
         if ('problem' in check) return back(provider, `error=${check.problem}`)
         if (check.result === 'rejected' || check.result === 'permission') {

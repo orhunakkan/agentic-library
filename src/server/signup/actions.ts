@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import type { SignupMode } from '../../shared/signup/signup.ts'
 import { startSession } from '../account-actions.ts'
 import { ipEventTimes, recordEvent } from '../audit.ts'
 import { forbidden, requestIp, seeOther, sessionForRequest } from '../auth.ts'
@@ -158,11 +159,17 @@ export type SignupPage =
   | { state: 'signed-in'; username: string }
   | { state: 'ready'; kind: SignupKind; email: string | null }
 
+const NO_TOKEN_STATE: Record<SignupMode, 'off' | 'invite-only' | 'request'> = {
+  off: 'off',
+  invite: 'invite-only',
+  open: 'request',
+}
+
 export async function signupPage(request: Request, token: string | undefined): Promise<SignupPage> {
   const session = await sessionForRequest(request)
   if (session) return { state: 'signed-in', username: session.username }
   const mode = isDatabaseConfigured() ? getConfig().signup : 'off'
-  if (token === undefined) return { state: mode === 'off' ? 'off' : mode === 'invite' ? 'invite-only' : 'request' }
+  if (token === undefined) return { state: NO_TOKEN_STATE[mode] }
   if (mode === 'off') return { state: 'closed' }
   if (!isWellFormedToken(token)) return { state: 'invalid' }
   try {

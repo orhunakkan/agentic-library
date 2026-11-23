@@ -15,8 +15,10 @@ export const AUDIO_HEADERS = {
   'cache-control': 'private, no-store',
 } as const
 
-const notFound = () =>
-  new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain', ...AUDIO_HEADERS } })
+const audioText = (status: number, text: string) =>
+  new Response(text, { status, headers: { 'content-type': 'text/plain', ...AUDIO_HEADERS } })
+
+const notFound = () => audioText(404, 'Not found')
 
 const missingLogged = new Set<string>()
 
@@ -42,6 +44,6 @@ export async function serveAudio(request: Request, id: string, number: string): 
     return rangeResponse(request, path, info.size, { 'content-type': file.mediaType, ...AUDIO_HEADERS })
   } catch (error) {
     logError('audiobook serve', error)
-    return new Response('Unavailable', { status: 503, headers: { 'content-type': 'text/plain', ...AUDIO_HEADERS } })
+    return audioText(503, 'Unavailable')
   }
 }

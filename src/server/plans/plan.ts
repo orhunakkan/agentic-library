@@ -12,7 +12,7 @@ export function proSql(db: Db) {
   return db`(u.role = 'admin' or u.pro_granted_at is not null or ${paidSql(db)})`
 }
 
-export function paidSql(db: Db) {
+function paidSql(db: Db) {
   return db`exists (select 1 from subscriptions s where s.user_id = u.id
     and s.status = any(${PRO_STATUSES as unknown as string[]}::text[]))`
 }

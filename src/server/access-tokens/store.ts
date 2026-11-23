@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { recordEvent } from '../audit.ts'
 import type { Db, Pool } from '../db.ts'
 import { planFor, proSql } from '../plans/plan.ts'
-import { SESSION_IDLE, type SessionUser } from '../sessions.ts'
+import { deleteUserSessions, SESSION_IDLE, type SessionUser } from '../sessions.ts'
 import type { Role } from '../users.ts'
 
 export const MAX_ACCESS_TOKENS = 10
@@ -133,12 +133,10 @@ export async function endUserAccess(
   userId: number,
   { keep, via, ip = null }: { keep?: Buffer; via: RevokeVia; ip?: string | null },
 ): Promise<AccessEnded> {
-  const sessions = keep
-    ? await db`delete from sessions where user_id = ${userId} and token_hash <> ${keep}`
-    : await db`delete from sessions where user_id = ${userId}`
+  const sessionsEnded = await deleteUserSessions(db, userId, keep)
   const tokens = await db<{ id: string }[]>`delete from access_tokens where user_id = ${userId} returning id`
   for (const { id } of tokens) await recordEvent(db, 'token.revoked', { userId, ip, detail: { id, via } })
-  return { sessionsEnded: sessions.count, tokensEnded: tokens.length }
+  return { sessionsEnded, tokensEnded: tokens.length }
 }
 
 export function endedDetail({ sessionsEnded, tokensEnded }: AccessEnded): {

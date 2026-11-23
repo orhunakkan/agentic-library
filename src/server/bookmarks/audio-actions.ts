@@ -10,8 +10,7 @@ import { type BookPage, pageIndexOf } from '~/shared/highlights/page-text'
 import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson } from '../auth.ts'
 import { findAudio, findBook } from '../book-ref/book.ts'
-import type { BookRef } from '../book-ref/ref.ts'
-import { refFor } from '../book-ref/ref.ts'
+import { type BookRef, refFor } from '../book-ref/ref.ts'
 import type { Pool } from '../db.ts'
 import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import type { BookmarkErrorCode } from './actions.ts'
@@ -74,7 +73,7 @@ export const handleAudioBookmarkChange = (request: Request, id: string) =>
     {
       log: 'audio bookmark change',
       before: () => (isUuid(id) ? undefined : fail(404, 'not_found')),
-      parse: (value) => parseAudioBookmarkChange(value) || null,
+      parse: parseAudioBookmarkChange,
     },
     async ({ session, db }) =>
       (await deleteAudioBookmark(db, session.userId, id)) ? noStoreJson(200, { ok: true }) : fail(404, 'not_found'),

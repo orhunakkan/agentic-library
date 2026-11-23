@@ -80,13 +80,12 @@ export function sniffImage(bytes: Uint8Array): ImageInfo | null {
 export type CoverCheck = { ok: true; info: ImageInfo } | { ok: false; problem: 'type' | 'small' | 'large' }
 
 export function checkCoverImage(bytes: Uint8Array): CoverCheck {
-  const info = sniffImage(bytes)
-  if (!info || (info.type !== 'image/jpeg' && info.type !== 'image/png')) return { ok: false, problem: 'type' }
-  if (bytes.length > MAX_COVER_BYTES) return { ok: false, problem: 'large' }
-  if (info.width > COVER_MAX_STORED_WIDTH || info.height > COVER_MAX_STORED_HEIGHT)
-    return { ok: false, problem: 'large' }
-  if (info.width < COVER_MIN_SIDE || info.height < COVER_MIN_SIDE) return { ok: false, problem: 'small' }
-  return { ok: true, info }
+  return checkPicture(bytes, {
+    maxBytes: MAX_COVER_BYTES,
+    maxWidth: COVER_MAX_STORED_WIDTH,
+    maxHeight: COVER_MAX_STORED_HEIGHT,
+    minSide: COVER_MIN_SIDE,
+  })
 }
 
 export function fitWithin(
@@ -107,13 +106,25 @@ export type BookImageCheck =
   | { ok: true; info: ImageInfo & { type: 'image/jpeg' | 'image/png' } }
   | { ok: false; problem: 'type' | 'small' | 'large' }
 
-export function checkBookImage(bytes: Uint8Array): BookImageCheck {
+function checkPicture(
+  bytes: Uint8Array,
+  limits: { maxBytes: number; maxWidth: number; maxHeight: number; minSide: number },
+): BookImageCheck {
   const info = sniffImage(bytes)
   if (!info || (info.type !== 'image/jpeg' && info.type !== 'image/png')) return { ok: false, problem: 'type' }
-  if (bytes.length > MAX_IMAGE_BYTES) return { ok: false, problem: 'large' }
-  if (info.width > IMAGE_MAX_WIDTH || info.height > IMAGE_MAX_HEIGHT) return { ok: false, problem: 'large' }
-  if (info.width < IMAGE_MIN_SIDE || info.height < IMAGE_MIN_SIDE) return { ok: false, problem: 'small' }
+  if (bytes.length > limits.maxBytes) return { ok: false, problem: 'large' }
+  if (info.width > limits.maxWidth || info.height > limits.maxHeight) return { ok: false, problem: 'large' }
+  if (info.width < limits.minSide || info.height < limits.minSide) return { ok: false, problem: 'small' }
   return { ok: true, info: { ...info, type: info.type } }
+}
+
+export function checkBookImage(bytes: Uint8Array): BookImageCheck {
+  return checkPicture(bytes, {
+    maxBytes: MAX_IMAGE_BYTES,
+    maxWidth: IMAGE_MAX_WIDTH,
+    maxHeight: IMAGE_MAX_HEIGHT,
+    minSide: IMAGE_MIN_SIDE,
+  })
 }
 
 export function outputTypeFor(source: ImageType | 'image/svg+xml'): 'image/png' | 'image/jpeg' {

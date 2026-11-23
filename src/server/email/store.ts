@@ -48,7 +48,7 @@ export async function addressState(db: Db, userId: number): Promise<AddressState
   }
 }
 
-export async function tokenTimes(db: Db, userId: number, purpose: TokenPurpose, since: Date): Promise<Date[]> {
+async function tokenTimes(db: Db, userId: number, purpose: TokenPurpose, since: Date): Promise<Date[]> {
   const rows = await db<{ created_at: Date }[]>`
     select created_at from email_tokens
     where user_id = ${userId} and purpose = ${purpose} and created_at > ${since}::timestamptz`

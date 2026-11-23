@@ -60,6 +60,11 @@ export async function readForm(request: Request, maxBytes?: number): Promise<For
   }
 }
 
+export function formField(form: FormData, name: string): string {
+  const value = form.get(name)
+  return typeof value === 'string' ? value : ''
+}
+
 export type BytesBody = { ok: true; bytes: Uint8Array; type: string } | { ok: false; reason: JsonBodyProblem }
 
 export async function readBytesBody(request: Request, maxBytes: number, types: readonly string[]): Promise<BytesBody> {

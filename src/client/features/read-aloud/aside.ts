@@ -1,3 +1,4 @@
+import { primarySubtag } from '~/shared/read-aloud/cloud'
 import type { FolioVoice } from '~/shared/read-aloud/folio-voices'
 import { CLOUD_VOICE_PREFIX } from './cloud-speaker'
 import { MAX_FAILURES } from './controller'
@@ -62,8 +63,6 @@ interface Run {
   handlers: AsideHandlers
 }
 
-const baseLang = (lang: string) => lang.replace(/_/g, '-').split('-')[0]?.toLowerCase() ?? lang
-
 export function createAside(deps: AsideDeps): Aside {
   let run: Run | null = null
 
@@ -74,7 +73,7 @@ export function createAside(deps: AsideDeps): Aside {
     ])
     const ranked = rankVoices(voices, lang, { privateBook, locale: deps.locale })
     const local = deps.localSpeaker ? rankLocalVoices(downloaded, lang, deps.locale) : []
-    const remembered = rememberedVoice(deps.storage, baseLang(lang), privateBook)
+    const remembered = rememberedVoice(deps.storage, primarySubtag(lang), privateBook)
     const skippedCloud = remembered?.startsWith(CLOUD_VOICE_PREFIX) === true
     return { voice: pickVoice([...local, ...ranked], skippedCloud ? undefined : remembered), skippedCloud }
   }

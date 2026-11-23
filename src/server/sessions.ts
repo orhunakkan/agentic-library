@@ -4,7 +4,7 @@ import type { Db } from './db.ts'
 import { planFor, proSql } from './plans/plan.ts'
 import type { Role } from './users.ts'
 
-export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
+const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
 export const SESSION_IDLE = '7 days'
 const TOUCH_EVERY = '10 minutes'
 

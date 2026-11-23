@@ -54,25 +54,26 @@ function isSense(value: unknown): value is Sense {
   )
 }
 
-export function wordAnswerOf(body: Json): WordAnswer | undefined {
-  if (body.state === 'not-found')
-    return body.searchUrl === undefined || isText(body.searchUrl) ? (body as WordAnswer) : undefined
-  if (body.state === 'ambiguous') return isText(body.title) && isText(body.url) ? (body as WordAnswer) : undefined
-  if (body.state !== 'found' || !isText(body.url)) return undefined
+function isWordAnswer(body: Json): boolean {
+  if (body.state === 'not-found') return body.searchUrl === undefined || isText(body.searchUrl)
+  if (body.state === 'ambiguous') return isText(body.title) && isText(body.url)
+  if (body.state !== 'found' || !isText(body.url)) return false
   if (body.source === 'dictionary')
-    return isText(body.term) &&
+    return (
+      isText(body.term) &&
       isText(body.language) &&
       isText(body.languageName) &&
       typeof body.otherLanguage === 'boolean' &&
       Array.isArray(body.senses) &&
       body.senses.every(isSense)
-      ? (body as WordAnswer)
-      : undefined
+    )
   if (body.source === 'wikipedia')
     return isText(body.title) && isText(body.extract) && (body.description === null || isText(body.description))
-      ? (body as WordAnswer)
-      : undefined
-  return undefined
+  return false
+}
+
+export function wordAnswerOf(body: Json): WordAnswer | undefined {
+  return isWordAnswer(body) ? (body as WordAnswer) : undefined
 }
 
 async function send<T, P extends string>(

@@ -440,6 +440,8 @@ const containsBlock = (nodes: readonly MdNode[]): boolean =>
 
 const isBlank = (node: MdNode) => node.t === 'text' && node.v.trim() === ''
 
+const isTablePart = (tag: string) => tag === 'table' || tag === 'tr' || TABLE_SECTIONS.has(tag)
+
 function tableChildren(tag: MdTag, children: MdNode[]): MdNode[] {
   if (tag === 'tr') return children.filter((c) => c.t === 'el' && (c.tag === 'td' || c.tag === 'th'))
   if (TABLE_SECTIONS.has(tag)) {
@@ -509,10 +511,10 @@ function straighten(nodes: MdNode[], parent: string, inParagraph: boolean): MdNo
     if (tag === 'p' && containsBlock(node.c)) tag = 'div'
     const nowInParagraph = inParagraph || tag === 'p'
     let children = straighten(node.c, tag, nowInParagraph)
-    if (tag === 'table' || tag === 'tr' || TABLE_SECTIONS.has(tag)) children = tableChildren(tag, children)
+    if (isTablePart(tag)) children = tableChildren(tag, children)
     out.push({ ...node, tag, c: children })
   }
-  return parent === 'table' || parent === 'tr' || TABLE_SECTIONS.has(parent) ? out.filter((n) => !isBlank(n)) : out
+  return isTablePart(parent) ? out.filter((n) => !isBlank(n)) : out
 }
 
 export async function renderMarkdown(text: string, context: MarkdownContext): Promise<RenderedMarkdown> {

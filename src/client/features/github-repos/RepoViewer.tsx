@@ -359,7 +359,7 @@ export function RepoViewer({ data, path }: { data: Ready; path: string }) {
     repo.owner,
     repo.name,
     repo.commit,
-    isFile ? path : data.target.kind === 'folder' ? path : '',
+    isFile || data.target.kind === 'folder' ? path : '',
     isFile ? 'blob' : 'tree',
   )
   const tree = <RepoTree repoId={repo.id} state={state} currentPath={path} onToggle={(p) => void toggle(p)} />
@@ -479,14 +479,7 @@ export function RepoViewer({ data, path }: { data: Ready; path: string }) {
 
 export function RepoUnavailable({ state }: { state: Exclude<RepoViewState, Ready> }) {
   const router = useRouter()
-  const problem: RepoProblem =
-    state.state === 'busy'
-      ? 'busy'
-      : state.state === 'limited'
-        ? 'limited'
-        : state.state === 'signed_out'
-          ? 'signed_out'
-          : 'unavailable'
+  const problem: RepoProblem = state.state === 'not_found' ? 'unavailable' : state.state
   return (
     <main id="main" className="mx-auto w-full max-w-[720px] px-4 pt-12 md:px-8 md:pt-16">
       <p className="eyebrow text-accent">

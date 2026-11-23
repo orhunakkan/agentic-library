@@ -1,20 +1,16 @@
 import { isReservedSignupName, USERNAME_PATTERN } from '../../shared/signup/signup.ts'
 import { isObject, only } from '../ask/input.ts'
 import { parseEmail } from '../email/input.ts'
+import { formField } from '../json-body.ts'
 import { normalizeUsername } from '../users.ts'
 
 export const MAX_FIELD = 1024
 
-const field = (form: FormData, name: string) => {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
-
 export function parseSignupRequest(form: FormData): { email: string | null; honeypot: boolean } {
-  const raw = field(form, 'email')
+  const raw = formField(form, 'email')
   return {
     email: raw.length > MAX_FIELD ? null : parseEmail(raw),
-    honeypot: field(form, 'website').trim() !== '',
+    honeypot: formField(form, 'website').trim() !== '',
   }
 }
 
@@ -27,10 +23,10 @@ export interface SignupFinish {
 
 export function parseSignupFinish(form: FormData): SignupFinish | null {
   const values = {
-    token: field(form, 'token'),
-    username: field(form, 'username'),
-    password: field(form, 'password'),
-    confirm: field(form, 'confirm'),
+    token: formField(form, 'token'),
+    username: formField(form, 'username'),
+    password: formField(form, 'password'),
+    confirm: formField(form, 'confirm'),
   }
   if (Object.values(values).some((v) => v.length > MAX_FIELD)) return null
   return { ...values, username: normalizeUsername(values.username) }

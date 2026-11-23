@@ -168,7 +168,7 @@ const PADDLE_API_BASES: Record<PaddleEnv, string> = {
 const TOKEN_PREFIX: Record<PaddleEnv, string> = { sandbox: 'test_', production: 'live_' }
 const KEY_ENV = /^pdl_(sdbx|live)_/
 
-export function parseBilling(env: Env, credential: (name: string) => string | null): BillingConfig | null {
+function parseBilling(env: Env, credential: (name: string) => string | null): BillingConfig | null {
   const values = {
     PADDLE_ENV: env.PADDLE_ENV?.trim(),
     PADDLE_CLIENT_TOKEN: env.PADDLE_CLIENT_TOKEN?.trim(),
@@ -248,7 +248,7 @@ function parseMail(env: Env, credential: (name: string) => string | null, appOri
   }
 }
 
-export function parseArticleTestHosts(value: string | undefined, appOrigin: string): string[] {
+function parseArticleTestHosts(value: string | undefined, appOrigin: string): string[] {
   const hosts = (value ?? '')
     .split(',')
     .map((h) => h.trim().toLowerCase())

@@ -34,7 +34,7 @@ export const handleInviteChange = (request: Request, id: string) =>
     {
       log: 'users page revoke invite',
       before: (gate) => adminOnly(gate) ?? (isUuid(id) ? undefined : fail(404, 'not_found')),
-      parse: (value) => parseInviteChange(value) || null,
+      parse: parseInviteChange,
     },
     async ({ session, db }) => {
       if ((await revokeInvite(db, id)) === 'missing') return fail(404, 'not_found')

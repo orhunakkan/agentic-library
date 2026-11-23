@@ -14,10 +14,10 @@ const MAX_BODY_BYTES = 2 * 1024
 export type BookmarkErrorCode = 'signed_out' | 'not_found' | 'invalid' | 'quota' | 'failed'
 
 const bookmarks = signedInEndpoints<BookmarkErrorCode>({ maxBytes: MAX_BODY_BYTES })
+const { fail } = bookmarks
 
 export const handleBookmarkCreate = (request: Request) =>
   bookmarks.post(request, { log: 'bookmark create', parse: parseBookmarkCreate }, async ({ session, db, input }) => {
-    const { fail } = bookmarks
     const book = await findBook(db, session.userId, input.book, 'text')
     if (!book) return fail(404, 'not_found')
     const pages = await book.pages()
@@ -39,11 +39,9 @@ export const handleBookmarkChange = (request: Request, id: string) =>
     request,
     {
       log: 'bookmark change',
-      before: () => (isUuid(id) ? undefined : bookmarks.fail(404, 'not_found')),
-      parse: (value) => parseBookmarkChange(value) || null,
+      before: () => (isUuid(id) ? undefined : fail(404, 'not_found')),
+      parse: parseBookmarkChange,
     },
     async ({ session, db }) =>
-      (await deleteBookmark(db, session.userId, id))
-        ? noStoreJson(200, { ok: true })
-        : bookmarks.fail(404, 'not_found'),
+      (await deleteBookmark(db, session.userId, id)) ? noStoreJson(200, { ok: true }) : fail(404, 'not_found'),
   )

@@ -330,13 +330,7 @@ function SavedKey({
           </summary>
           <KeyForm provider={provider} label={`New ${name} API key`} invalid={invalid} />
         </details>
-        <form method="post" action="/account/api-keys">
-          <input type="hidden" name="intent" value="delete" />
-          <input type="hidden" name="provider" value={provider} />
-          <Button variant="danger" data-testid="api-keys-delete" data-key={provider}>
-            Delete
-          </Button>
-        </form>
+        <DeleteKeyForm provider={provider} />
       </div>
     </>
   )
@@ -349,14 +343,20 @@ function SavedKeyToDelete({ saved }: { saved: NonNullable<KeyEntry['saved']> }) 
       <p className="min-w-0 flex-1 font-mono text-[14.5px] text-ink" data-testid="saved-key">
         …{saved.last4}
       </p>
-      <form method="post" action="/account/api-keys">
-        <input type="hidden" name="intent" value="delete" />
-        <input type="hidden" name="provider" value="elevenlabs" />
-        <Button variant="danger" data-testid="api-keys-delete" data-key="elevenlabs">
-          Delete
-        </Button>
-      </form>
+      <DeleteKeyForm provider="elevenlabs" />
     </div>
+  )
+}
+
+function DeleteKeyForm({ provider }: { provider: Provider }) {
+  return (
+    <form method="post" action="/account/api-keys">
+      <input type="hidden" name="intent" value="delete" />
+      <input type="hidden" name="provider" value={provider} />
+      <Button variant="danger" data-testid="api-keys-delete" data-key={provider}>
+        Delete
+      </Button>
+    </form>
   )
 }
 

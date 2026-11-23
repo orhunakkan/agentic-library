@@ -1,6 +1,6 @@
 import { privateBookId } from '~/shared/content/private-book'
 import type { PagePosition } from '~/shared/highlights/page-text'
-import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
+import { primarySubtag, type SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import { ENGINE_BYTES, type FolioVoice, folioVoicesFor } from '~/shared/read-aloud/folio-voices'
 import { chapterIntro } from '~/shared/read-aloud/sentences'
 import type { SpeechBook, SpeechChapter, SpeechChapterData } from '~/shared/read-aloud/speech-text'
@@ -184,9 +184,26 @@ const sameCursor = (a: Cursor | null, b: Cursor | null) =>
 const hasNextChapter = (chapter: Pick<SpeechChapter, 'index' | 'chapterCount'>) =>
   chapter.index + 1 < chapter.chapterCount
 
-const voiceKey = (lang: string) => lang.replace(/_/g, '-').split('-')[0]?.toLowerCase() ?? lang
-
 const NO_LOCAL: LocalState = { voices: [], offer: false, slow: false, removable: 0 }
+
+export const closedState = (rate: number): ReadAloudState => ({
+  book: null,
+  chapter: null,
+  page: null,
+  utterance: null,
+  status: 'paused',
+  following: true,
+  rate,
+  voice: null,
+  voices: [],
+  cloudVoices: 'off',
+  cloudModel: null,
+  engine: 'device',
+  local: NO_LOCAL,
+  problem: null,
+  fraction: 0,
+  minutesLeft: 0,
+})
 
 const cloudVoicesOf = (answer: SpeechVoicesState, lang: string): CloudVoices => {
   switch (answer.state) {
@@ -207,24 +224,7 @@ const cloudVoicesOf = (answer: SpeechVoicesState, lang: string): CloudVoices => 
 
 export function createReadAloud(deps: ControllerDeps): ReadAloud {
   const now = deps.now ?? Date.now
-  const closed = (): ReadAloudState => ({
-    book: null,
-    chapter: null,
-    page: null,
-    utterance: null,
-    status: 'paused',
-    following: true,
-    rate: readSpeed(deps.storage),
-    voice: null,
-    voices: [],
-    cloudVoices: 'off',
-    cloudModel: null,
-    engine: 'device',
-    local: NO_LOCAL,
-    problem: null,
-    fraction: 0,
-    minutesLeft: 0,
-  })
+  const closed = () => closedState(readSpeed(deps.storage))
   let state = closed()
   let download: { id: string; percent: number; controller: AbortController } | null = null
   let slow = false
@@ -315,7 +315,8 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   const localStateFor = (lang: string, downloaded: readonly FolioVoice[]): LocalState => {
     if (!deps.voiceStore) return NO_LOCAL
     const ready = new Set(downloaded.map((v) => v.id))
-    const voices = folioVoicesFor(lang, deps.locale).map(
+    const folioVoices = folioVoicesFor(lang, deps.locale)
+    const voices = folioVoices.map(
       (v): LocalVoiceState => ({
         id: v.id,
         voice: folioVoiceLike(v),
@@ -324,9 +325,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         bytes: v.bytes + (downloaded.length > 0 ? 0 : ENGINE_BYTES),
       }),
     )
-    const removable = folioVoicesFor(lang, deps.locale)
-      .filter((v) => ready.has(v.id))
-      .reduce((n, v) => n + v.bytes, 0)
+    const removable = folioVoices.filter((v) => ready.has(v.id)).reduce((n, v) => n + v.bytes, 0)
     const offer =
       voices.length > 0 && voices.every((v) => v.state !== 'ready') && !download && !offerDismissed(deps.storage)
     return { voices, offer, slow, removable }
@@ -379,7 +378,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   }
 
   const choiceKey = () =>
-    state.book ? voiceChoiceKey(voiceKey(state.book.language), privateBookId(state.book.slug) !== null) : null
+    state.book ? voiceChoiceKey(primarySubtag(state.book.language), privateBookId(state.book.slug) !== null) : null
 
   const hasCloudChoice = () => Object.values(readVoices(deps.storage)).some((uri) => uri.startsWith(CLOUD_VOICE_PREFIX))
 
@@ -626,7 +625,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         close({ kind: 'no-voice', language: languageName(language) })
         return
       }
-      const remembered = rememberedVoice(deps.storage, voiceKey(language), privateBook)
+      const remembered = rememberedVoice(deps.storage, primarySubtag(language), privateBook)
       let voice = pickVoice([...local, ...ranked], remembered)
       if (remembered?.startsWith(CLOUD_VOICE_PREFIX) && deps.cloudSpeaker) {
         const answer = await cloud
@@ -811,7 +810,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
           download = null
           const like = folioVoiceLike(folio)
           if (outcome === 'ok') {
-            const base = voiceKey(state.book?.language ?? folio.lang)
+            const base = primarySubtag(state.book?.language ?? folio.lang)
             rememberVoice(deps.storage, voiceChoiceKey(base, false), like.voiceURI)
             rememberVoice(deps.storage, voiceChoiceKey(base, true), like.voiceURI)
           }
@@ -840,11 +839,12 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         .catch(() => {})
         .then(async () => {
           const key = choiceKey()
+          const base = primarySubtag(language)
           for (const v of voices) {
             const uri = folioVoiceLike(v).voiceURI
             if (key) forgetVoice(deps.storage, key, uri)
-            forgetVoice(deps.storage, voiceChoiceKey(voiceKey(language), false), uri)
-            forgetVoice(deps.storage, voiceChoiceKey(voiceKey(language), true), uri)
+            forgetVoice(deps.storage, voiceChoiceKey(base, false), uri)
+            forgetVoice(deps.storage, voiceChoiceKey(base, true), uri)
           }
           if (mine !== session) return
           const downloaded = await downloadedVoices()

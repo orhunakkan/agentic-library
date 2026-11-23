@@ -5,6 +5,7 @@ import {
   type AskPromptView,
   checkPrompt,
   instructionLength,
+  PROMPT_INSTRUCTION_MAX,
   type PromptFields,
 } from '~/shared/ask-prompts/prompts'
 import type { PromptResult } from './ask-prompts-client'
@@ -125,7 +126,7 @@ export function PromptForm({
         {length >= COUNTER_FROM && (
           <p
             className={
-              length > 2_000
+              length > PROMPT_INSTRUCTION_MAX
                 ? 'mt-1 text-[13px] font-medium text-red-700 dark:text-red-300'
                 : 'mt-1 text-[13px] text-muted'
             }

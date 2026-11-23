@@ -177,6 +177,11 @@ type Refreshed =
   | { ok: false; problem: 'limited' }
   | (Problem & { problem: 'busy' | 'unavailable' | 'too-large' | 'not-found' | 'empty' })
 
+function refToResolve(row: RepoRow, defaultBranch: string): string {
+  if (row.ref === null) return defaultBranch
+  return row.refKind === 'branch' ? `heads/${row.ref}` : row.ref
+}
+
 async function refreshRepo(
   db: Db,
   request: Request,
@@ -205,8 +210,7 @@ async function refreshRepo(
       description: info.value.description,
     }
   }
-  const asked = row.ref === null ? facts.defaultBranch : row.refKind === 'branch' ? `heads/${row.ref}` : row.ref
-  const head = await resolveRef(facts.owner, facts.name, asked, options)
+  const head = await resolveRef(facts.owner, facts.name, refToResolve(row, facts.defaultBranch), options)
   let commit: string
   if (head.ok) commit = head.value
   else if (head.problem === 'empty' && row.ref === null) commit = EMPTY_COMMIT
@@ -300,14 +304,14 @@ export const reposState = (request: Request): Promise<ReposState> =>
     repos: (await listRepos(db, session.userId)).map(toRepoView),
   }))
 
-type Opened = { ok: true; userId: number; row: RepoRow } | { ok: false; state: RepoReadProblem }
+type Opened = { ok: true; row: RepoRow } | { ok: false; state: RepoReadProblem }
 
 async function openRepo(db: Db, userId: number, id: string): Promise<Opened> {
   if (!isRepoId(id)) return { ok: false, state: { state: 'not_found' } }
   const row = await findRepo(db, userId, id)
   if (!row) return { ok: false, state: { state: 'not_found' } }
   if (takeView(userId)) return { ok: false, state: { state: 'limited' } }
-  return { ok: true, userId, row }
+  return { ok: true, row }
 }
 
 async function targetOf(
@@ -345,10 +349,10 @@ export function repoViewState(
     const opened = await openRepo(db, session.userId, id)
     if (!opened.ok) return opened.state
     let { row } = opened
-    await markOpened(db, opened.userId, row.id)
+    await markOpened(db, session.userId, row.id)
     let refreshed: { changed: boolean } | null = null
     if (Date.now() - row.checkedAt.getTime() > STALE_MS) {
-      const result = await refreshRepo(db, request, opened.userId, row, options)
+      const result = await refreshRepo(db, request, session.userId, row, options)
       if (result.ok) {
         row = result.row
         refreshed = { changed: result.changed }

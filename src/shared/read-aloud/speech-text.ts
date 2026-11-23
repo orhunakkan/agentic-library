@@ -2,7 +2,7 @@ import type { PlayerBook } from '../content/book-page.ts'
 import { decodeEntities } from '../content/html-text.ts'
 import { chapterPageHref, pagedHref, pageLabel } from '../content/navigation.ts'
 import type { Block, BookContent } from '../content/schema.ts'
-import type { PagePosition } from '../highlights/page-text.ts'
+import { type PagePosition, pagedBlockText } from '../highlights/page-text.ts'
 
 export type SpeechBlockKind = 'text' | 'heading' | 'code'
 
@@ -103,7 +103,7 @@ export function pagedPageBlocks(blocks: readonly Block[]): SpeechPageText {
   const spans: SpeechBlock[] = []
   for (const block of blocks) {
     const start = text.length
-    text += block.content.map((i) => (i.type === 'footnoteRef' ? '' : i.text)).join('')
+    text += pagedBlockText(block)
     if (text.length > start)
       spans.push({ start, end: text.length, kind: block.type === 'heading' ? 'heading' : 'text' })
   }

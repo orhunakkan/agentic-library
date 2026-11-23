@@ -16,12 +16,15 @@ const staticCacheHeaders: ServerMiddleware = async (request, next) => {
     ...(response.ok ? (headersFor(pathname) ?? {}) : {}),
   }
   if (!Object.keys(headers).length) return response
+  const set = (target: Headers) => {
+    for (const [name, value] of Object.entries(headers)) target.set(name, value)
+  }
   try {
-    for (const [name, value] of Object.entries(headers)) response.headers.set(name, value)
+    set(response.headers)
     return response
   } catch {
     const copy = new Response(response.body, response)
-    for (const [name, value] of Object.entries(headers)) copy.headers.set(name, value)
+    set(copy.headers)
     return copy
   }
 }

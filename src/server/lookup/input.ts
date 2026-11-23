@@ -1,8 +1,7 @@
-import { cleanText } from '../../shared/import/blocks.ts'
 import type { WordSource } from '../../shared/lookup/contract.ts'
 import { isTranslateLanguage, type TranslateLanguage } from '../../shared/lookup/languages.ts'
 import { collapse, lookupTerm, PASSAGE_MAX } from '../../shared/lookup/term.ts'
-import { isObject, only } from '../ask/input.ts'
+import { clean, isObject, only } from '../ask/input.ts'
 import { isBookSlug } from '../book-ref/ref.ts'
 
 const RAW_TERM_MAX = 200
@@ -22,8 +21,6 @@ export interface TranslateInput {
 }
 
 const length = (text: string) => [...text].length
-
-const clean = (text: string) => cleanText(text, true).trim()
 
 export function parseWordInput(value: unknown): WordInput | null {
   if (!isObject(value) || !only(value, ['book', 'term', 'source'])) return null

@@ -18,7 +18,7 @@ import { sweepSessions } from './sessions.ts'
 import { sweepSignupTokens } from './signup/store.ts'
 import { findUserByUsername, isValidUsername, setPasswordHash, type User } from './users.ts'
 
-export const MAX_PASSWORD_FIELD = 1024
+const MAX_PASSWORD_FIELD = 1024
 
 export type SignInRefusal = 'ip blocked' | 'username locked' | 'invalid'
 
@@ -80,7 +80,7 @@ export async function finishSignIn(
   sweepAfterSignIn(db)
 }
 
-export function sweepAfterSignIn(db: Db): void {
+function sweepAfterSignIn(db: Db): void {
   void Promise.all([
     sweepAttempts(db),
     sweepSessions(db),

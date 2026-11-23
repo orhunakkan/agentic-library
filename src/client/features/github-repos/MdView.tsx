@@ -37,10 +37,10 @@ function renderNode(node: MdNode, context: Context): ReactNode {
         <input type="checkbox" checked={node.checked} disabled readOnly aria-label="Task" data-testid="repo-md-task" />
       )
     case 'code': {
-      const lang = context.run ? fenceLang(node.lang) : null
-      if (!lang || !context.run) return <CodeFence code={node.code} lang={node.lang} />
-      const n = ++context.fences.count
       const { run } = context
+      const lang = run ? fenceLang(node.lang) : null
+      if (!run || !lang) return <CodeFence code={node.code} lang={node.lang} />
+      const n = ++context.fences.count
       return (
         <div className="relative">
           <CodeFence code={node.code} lang={node.lang} runnable />

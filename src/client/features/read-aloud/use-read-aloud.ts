@@ -10,7 +10,7 @@ import { getSpeechVoices } from '~/server/account-functions'
 import { getSpeechChapter } from '~/server/functions'
 import { type Aside, createAside, forwardAside } from './aside'
 import { type AudioLike, createCloudSpeaker } from './cloud-speaker'
-import { createReadAloud, type FetchResult, type ReadAloud, type ReadAloudState } from './controller'
+import { closedState, createReadAloud, type FetchResult, type ReadAloud, type ReadAloudState } from './controller'
 import { createLocalSpeaker } from './local-speaker'
 import type { DownloadNotice } from './messages'
 import { createEngine, type WorkerLike } from './piper/engine'
@@ -25,24 +25,7 @@ import { wordMark } from './word-mark'
 
 export type ReadAloudApi = Omit<ReadAloud, 'state'> & ReadAloudState & { supported: boolean; aside: Aside }
 
-const IDLE: ReadAloudState = {
-  book: null,
-  chapter: null,
-  page: null,
-  utterance: null,
-  status: 'paused',
-  following: true,
-  rate: 1,
-  voice: null,
-  voices: [],
-  cloudVoices: 'off',
-  cloudModel: null,
-  engine: 'device',
-  local: { voices: [], offer: false, slow: false, removable: 0 },
-  problem: null,
-  fraction: 0,
-  minutesLeft: 0,
-}
+const IDLE = closedState(1)
 
 const queueSaved = (book: string, saved: Omit<SavedPosition, 'v'> | null) =>
   syncOutbox.add(voiceItem(browserStorage(), book, saved, Date.now()))

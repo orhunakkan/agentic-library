@@ -637,8 +637,11 @@ export function folioVoicesFor(lang: string, locale?: string): FolioVoice[] {
 
 export const folioVoice = (id: string): FolioVoice | null => FOLIO_VOICES.find((v) => v.id === id) ?? null
 
-const extension = (file: FolioVoiceFile) =>
-  file.path.endsWith('.onnx') ? 'onnx' : file.path.endsWith('.onnx.json') ? 'json' : 'md'
+function extension(file: FolioVoiceFile): string {
+  if (file.path.endsWith('.onnx')) return 'onnx'
+  if (file.path.endsWith('.onnx.json')) return 'json'
+  return 'md'
+}
 
 export const voiceUrl = (file: FolioVoiceFile, id: string) =>
   `/voices/${id}.${file.sha256.slice(0, 12)}.${extension(file)}`

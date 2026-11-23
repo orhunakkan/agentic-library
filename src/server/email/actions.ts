@@ -3,7 +3,7 @@ import { ipEventTimes, recordEvent } from '../audit.ts'
 import { forbidden, loginHref, requestIp, seeOther, sessionForRequest } from '../auth.ts'
 import { getConfig } from '../config.ts'
 import { getDb, type Pool } from '../db.ts'
-import { readForm } from '../json-body.ts'
+import { formField, readForm } from '../json-body.ts'
 import { mailAvailable, sendMail } from '../mail/mail.ts'
 import { addressChangedNotice, confirmMessage, passwordResetNotice, resetMessage } from '../mail/messages.ts'
 import { hashPassword, passwordProblem } from '../passwords.ts'
@@ -28,11 +28,6 @@ import {
   resetPassword,
   supersedeTokens,
 } from './store.ts'
-
-const field = (form: FormData, name: string) => {
-  const value = form.get(name)
-  return typeof value === 'string' ? value : ''
-}
 
 const section = (query = '') => seeOther(`/account${query ? `?${query}` : ''}#email`)
 
@@ -71,11 +66,11 @@ export async function handleEmailForm(
 ): Promise<Response> {
   if (!mailAvailable()) return section()
   const db = getDb()
-  switch (field(form, 'intent')) {
+  switch (formField(form, 'intent')) {
     case 'email-add': {
-      const email = parseEmail(field(form, 'email'))
+      const email = parseEmail(formField(form, 'email'))
       if (!email) return section('error=email-invalid')
-      if (!(await checkPassword(field(form, 'current')))) return section('error=email-current')
+      if (!(await checkPassword(formField(form, 'current')))) return section('error=email-current')
       const user = await findUserById(db, session.userId)
       if (user?.email && sameAddress(user.email, email) && !user.emailBouncedAt) return section('error=email-same')
       return sendConfirmation(session, email, ip, false)
@@ -86,7 +81,7 @@ export async function handleEmailForm(
       return sendConfirmation(session, pending.email, ip, true)
     }
     default: {
-      const pendingOnly = field(form, 'pending') === '1'
+      const pendingOnly = formField(form, 'pending') === '1'
       if (await removeAddress(db, session.userId, { pendingOnly }))
         await recordEvent(db, 'email.removed', {
           userId: session.userId,
@@ -126,7 +121,7 @@ export async function confirmPage(request: Request, token: string | undefined): 
 export async function handleConfirmEmail(request: Request): Promise<Response> {
   if (!isSameOrigin(request.headers, getConfig().appOrigin)) return forbidden()
   const form = await readForm(request)
-  const token = form ? field(form, 'token') : ''
+  const token = form ? formField(form, 'token') : ''
   if (!mailAvailable() || !isWellFormedToken(token)) return seeOther('/confirm-email')
   const page = `/confirm-email?token=${token}`
   const session = await sessionForRequest(request)
@@ -204,7 +199,7 @@ export async function handleForgotPassword(request: Request): Promise<Response> 
   if (!isSameOrigin(request.headers, getConfig().appOrigin)) return forbidden()
   if (!mailAvailable()) return seeOther('/forgot-password')
   const form = await readForm(request)
-  const input = form ? field(form, 'identifier').trim() : ''
+  const input = form ? formField(form, 'identifier').trim() : ''
   if (!input || input.length > 254) return seeOther('/forgot-password?error=invalid')
   const ip = requestIp(request)
   try {
@@ -242,15 +237,15 @@ export async function resetPage(token: string | undefined): Promise<ResetPage> {
 export async function handleResetPassword(request: Request): Promise<Response> {
   if (!isSameOrigin(request.headers, getConfig().appOrigin)) return forbidden()
   const form = await readForm(request)
-  const token = form ? field(form, 'token') : ''
+  const token = form ? formField(form, 'token') : ''
   if (!form || !mailAvailable() || !isWellFormedToken(token)) return seeOther('/reset-password')
   const page = `/reset-password?token=${token}`
-  const password = field(form, 'password')
+  const password = formField(form, 'password')
   try {
     const db = getDb()
     const live = await findLiveResetToken(db, hashToken(token))
     if (!live) return seeOther(page)
-    if (password !== field(form, 'confirm')) return seeOther(`${page}&error=mismatch`)
+    if (password !== formField(form, 'confirm')) return seeOther(`${page}&error=mismatch`)
     const problem = passwordProblem(password, live.username)
     if (problem) return seeOther(`${page}&error=policy&reason=${problem}`)
     const done = await resetPassword(db, {
