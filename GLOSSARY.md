@@ -19,3 +19,21 @@ _Avoid_: user book, uploaded book, my book
 **Book slug**:
 The name of a book in links and references: `u-<id>` for a private book, a lowercase hyphenated name for a catalogue book.
 _Avoid_: book id, book key
+
+**Position**:
+Where in a book someone is: a page of a chapter, or a printed page.
+_Avoid_: location, place (a place is a highlight's span of text on a page)
+
+## Listening
+
+**Read aloud**:
+Spoken playback of a text book, produced by a voice as you listen.
+_Avoid_: speech, voice (as the playback source), TTS
+
+**Audiobook**:
+Recorded audio of a book, played in episodes.
+_Avoid_: audio, episode (as the playback source)
+
+**Voice**:
+One text-to-speech voice that read aloud can speak with.
+_Avoid_: speaker, narrator
