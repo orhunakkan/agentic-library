@@ -14,7 +14,11 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ### Tests
 
-`pnpm test:db` uses `DATABASE_URL`, or else local Postgres at `127.0.0.1:5432/agentic_test` (`tests/test-databases.ts`). E2e runs only in CI. Work goes straight to `main` with no PRs, so watch the push's run with `gh run watch`.
+`pnpm test:db` uses `DATABASE_URL`, or else local Postgres at `127.0.0.1:5432/agentic_test` (`tests/test-databases.ts`). E2e runs only in CI.
+
+### Branches
+
+One person works on this repo, so all work is committed on `main` and pushed straight to `origin main`, with no branches or pull requests. A commit closes its issue with `Closes #<n>`. After pushing, watch CI with `gh run watch`, because e2e runs only there.
 
 ### Coding standards
 

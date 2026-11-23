@@ -1,4 +1,7 @@
-// fails `pnpm typecheck`. Each @ts-expect-error below fails the check if that requirement is ever made optional.
+/**
+ * The shared primitives require their test ids in their types, so leaving one out
+ * fails `pnpm typecheck`. Each @ts-expect-error below fails the check if that requirement is ever made optional.
+ */
 
 import type { ComponentProps } from 'react'
 import { describe, expectTypeOf, it } from 'vitest'

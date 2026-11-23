@@ -1,6 +1,6 @@
 # Coding standards
 
-Read during review. Each rule is a judgement call that no check enforces. Mechanical rules live as checks instead: architectural seams in `tests/seams.test.ts`, the Node-run import shape in `tests/node-imports.test.ts`, formatting and lint in `biome.json`.
+Read during review. Each rule is a judgement call that no check enforces. Mechanical rules live as checks instead: architectural seams in `tests/seams.test.ts`, the Node-run import shape in `tests/node-imports.test.ts`, comments written as `/** … */` in `tests/comments.test.ts`, formatting and lint in `biome.json`.
 
 ## Ask a module's own question
 

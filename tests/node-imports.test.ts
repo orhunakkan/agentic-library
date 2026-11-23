@@ -2,9 +2,11 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-// Node runs scripts/**/*.ts itself, with type stripping and no bundler: the `~/` alias and
-// extensionless relative paths resolve only under Vite and Vitest, so they fail at run time.
-// Every module a script reaches must import with a relative path that names its `.ts` file.
+/**
+ * Node runs the scripts folder's .ts files itself, with type stripping and no bundler: the `~/` alias and
+ * extensionless relative paths resolve only under Vite and Vitest, so they fail at run time.
+ * Every module a script reaches must import with a relative path that names its `.ts` file.
+ */
 
 const ROOT = resolve(import.meta.dirname, '..')
 const SPECIFIER =
