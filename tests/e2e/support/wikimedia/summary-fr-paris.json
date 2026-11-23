@@ -1,0 +1,12 @@
+{
+  "type": "standard",
+  "title": "Paris",
+  "lang": "fr",
+  "description": "capitale et ville la plus peuplée de France",
+  "extract": "Paris est la capitale de la France et le chef-lieu de la région Île-de-France. Elle est située au centre du bassin qui porte son nom, sur une boucle de la Seine, entre les confluents avec la Marne et l'Oise. Ville mondiale, elle compte parmi les métropoles les plus importantes d'Europe.",
+  "content_urls": {
+    "desktop": {
+      "page": "https://fr.wikipedia.org/wiki/Paris"
+    }
+  }
+}

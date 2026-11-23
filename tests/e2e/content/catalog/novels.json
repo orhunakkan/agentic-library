@@ -1,0 +1,54 @@
+{
+  "collection": {
+    "slug": "novels",
+    "title": "Classic novels",
+    "kind": "chapter",
+    "tone": "default",
+    "order": 1,
+    "tagline": "1 series · 1 book"
+  },
+  "series": [
+    {
+      "slug": "jane-austen",
+      "title": "Jane Austen",
+      "description": "Sharp, funny novels of manners from Regency England: families, money and marriage, and the people who see through all three.",
+      "featuredLabel": "novels",
+      "collectionSlug": "novels"
+    }
+  ],
+  "books": [
+    {
+      "id": "98d324ba-304a-5235-9666-3dd7140f49eb",
+      "slug": "pride-and-prejudice",
+      "title": "Pride and Prejudice",
+      "author": "Jane Austen",
+      "seriesSlug": "jane-austen",
+      "order": 1,
+      "shortDescription": "When the wealthy Mr. Bingley takes Netherfield Park, Mrs. Bennet sets out to marry one of her five daughters to him. Her second daughter, Elizabeth, takes against his proud friend Mr. Darcy at their first meeting, and the misjudgements on both sides take the whole novel to undo. Jane Austen’s most loved book, first published in 1813.",
+      "language": "en-GB",
+      "tagline": "First impressions, and how wrong they can be",
+      "kind": "chapter",
+      "cover": {
+        "background": [
+          "#12301f",
+          "#2f6a46"
+        ],
+        "ink": "#f5eedb",
+        "motif": "rings"
+      },
+      "coverImage": {
+        "file": "pride-and-prejudice.jpg",
+        "type": "image/jpeg",
+        "width": 1400,
+        "height": 2100,
+        "hash": "54deba603b28f37713fa827321e105253cfe5038b9d138022f94bab3b46b062e"
+      },
+      "chapterCount": 61,
+      "source": {
+        "name": "Standard Ebooks",
+        "url": "https://standardebooks.org/ebooks/jane-austen/pride-and-prejudice",
+        "license": "Public domain (CC0 edition)"
+      }
+    }
+  ]
+}

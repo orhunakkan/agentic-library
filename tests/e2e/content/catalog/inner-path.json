@@ -1,0 +1,48 @@
+{
+  "collection": {
+    "slug": "inner-path",
+    "title": "The Inner Path",
+    "tagline": "1 book · page-by-page reading",
+    "kind": "paged",
+    "tone": "warm",
+    "order": 0
+  },
+  "series": [
+    {
+      "slug": "inner-path",
+      "title": "The Inner Path",
+      "description": "Classic writings of Islamic spirituality in early English translations: Al-Ghazzali’s search for certainty and the mystic poetry of Rūmī, Sadi and Jāmī. Each volume is set out page by page, with notes and a glossary of unfamiliar words.",
+      "collectionSlug": "inner-path"
+    }
+  ],
+  "books": [
+    {
+      "id": "05def7db-80d8-5ef1-a3d6-5a480cd8a75a",
+      "slug": "confessions-of-al-ghazzali",
+      "title": "The Confessions of Al-Ghazzali",
+      "author": "Al-Ghazzali",
+      "seriesSlug": "inner-path",
+      "order": 1,
+      "shortDescription": "Al-Ghazzali’s own account of his crisis of doubt, his testing of theology, philosophy and esoteric teaching, and his turn to the Sufi path. Translated by Claud Field (1909).",
+      "language": "en",
+      "tagline": "A scholar’s search for certainty",
+      "kind": "paged",
+      "cover": {
+        "background": [
+          "#4a0f0f",
+          "#7a1f1a"
+        ],
+        "ink": "#e9c77b",
+        "motif": "arch"
+      },
+      "chapterCount": 9,
+      "startPage": 7,
+      "endPage": 50,
+      "source": {
+        "name": "Project Gutenberg",
+        "url": "https://www.gutenberg.org/ebooks/58977",
+        "license": "Public domain in the USA"
+      }
+    }
+  ]
+}

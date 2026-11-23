@@ -1,0 +1,214 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+
+interface Seam {
+  name: string
+  pattern: RegExp
+  under: string[]
+  allowed: Record<string, string>
+}
+
+const SEAMS: Seam[] = [
+  {
+    name: 'a private book id is read from a slug only where routing needs it (#70)',
+    pattern: /\bprivateBookId\(/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/repository.ts': 'defines it',
+      'src/server/functions.ts': "the reader's routes",
+      'src/server/private-reading.ts': "the reader's private book",
+      'src/server/read-aloud.ts': "read aloud's chapter routing",
+      'src/server/content-images.ts': 'public files of a private book',
+      'src/server/downloads/handler.ts': 'downloads',
+    },
+  },
+  {
+    name: 'the catalogue is searched for a book only by repository.ts (#70)',
+    pattern: /\.books\.(find|some)\(/,
+    under: ['src/server'],
+    allowed: {},
+  },
+  {
+    name: "an owned book's ready check is written only where books are stored and in book-ref (#70)",
+    pattern: /status = 'ready'/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/user-books.ts': 'private books themselves',
+      'src/server/audiobooks/store.ts': 'an audiobook import',
+      'src/server/book-details/store.ts': "a book's details",
+      'src/server/book-images/store.ts': "a book's pictures",
+      'src/server/book-ref/book.ts': 'the one 404 rule (ownedBook, onReadableBook)',
+    },
+  },
+  {
+    name: "no feature imports highlights' store or input; the book reference is book-ref's (#70)",
+    pattern: /['"][^'"]*highlights\/(store|input)(\.ts)?['"]/,
+    under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
+    allowed: {},
+  },
+  {
+    name: "a book no longer in the library is named only by book-ref's labels (#70)",
+    pattern: /no longer in the library/,
+    under: ['src/server'],
+    allowed: { 'src/server/book-ref/book.ts': 'labelsFor' },
+  },
+  {
+    name: 'only the gate checks who is signed in on a JSON endpoint (#71)',
+    pattern: /if \(!who\.ok\)/,
+    under: ['src/server'],
+    allowed: { 'src/server/signed-in.ts': 'the gate' },
+  },
+  {
+    name: 'only the gate and the signed-out passkey sign-in read a JSON body themselves (#71)',
+    pattern: /\b(PROBLEM_STATUS|readJsonBody)\b/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/json-body.ts': 'defines them',
+      'src/server/signed-in.ts': 'the gate',
+      'src/server/passkeys/sign-in.ts': 'signed out, so outside the gate',
+    },
+  },
+  {
+    name: "a handler's error answer comes from its gate group, not a local fail (#71)",
+    pattern: /const fail\b[^\n]*noStoreJson/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/signed-in.ts': 'the gate',
+      'src/server/passkeys/sign-in.ts': 'signed out, so outside the gate',
+    },
+  },
+  {
+    name: 'the session lookups are called only through the gate (#71)',
+    pattern: /\b(signedInCaller|apiCaller)\b/,
+    under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
+    allowed: { 'src/server/auth.ts': 'defines them', 'src/server/signed-in.ts': 'the gate' },
+  },
+  {
+    name: "only the form gate sends a signed-in form's signed-out reader to sign in (#76)",
+    pattern: /seeOther\(loginHref\(/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/signed-in.ts': 'the gate',
+      'src/server/email/actions.ts':
+        'confirming an address: the way back names the token in its form, and a broken link answers before the session',
+    },
+  },
+  {
+    name: 'a form post checks its origin itself only where it is posted signed out (#76)',
+    pattern: /\bisSameOrigin\(/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/security.ts': 'defines it',
+      'src/server/auth.ts': "the gates' callers",
+      'src/server/account-actions.ts': 'sign-in and sign-out',
+      'src/server/email/actions.ts': 'forgot and reset password, and confirming an address (above)',
+      'src/server/signup/actions.ts': 'sign-up',
+      'src/server/passkeys/sign-in.ts': 'passkey sign-in',
+    },
+  },
+  {
+    name: 'only the form gate and the signed-out forms read a form body (#76)',
+    pattern: /\breadForm\(/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/json-body.ts': 'defines it',
+      'src/server/signed-in.ts': 'the gate, with its cap',
+      'src/server/account-actions.ts': 'sign-in',
+      'src/server/email/actions.ts': 'forgot and reset password, and confirming an address (above)',
+      'src/server/signup/actions.ts': 'sign-up',
+    },
+  },
+  {
+    name: "why the Reader's route changed lives in navigation-intent.ts, never in module state (#72)",
+    pattern: /^(export )?(let|var) /m,
+    under: [
+      'src/client/features/reader/Reader.tsx',
+      'src/client/features/reader/ScrollColumn.tsx',
+      'src/client/features/reader/scroll-column.ts',
+      'src/client/features/reader/navigation-intent.ts',
+    ],
+    allowed: {},
+  },
+  {
+    name: 'only media-session.ts sets the lock screen, from what plays now (#77)',
+    pattern: /\b(mediaSession|MediaMetadata)\b/,
+    under: ['src/client', 'src/shared', 'src/routes'],
+    allowed: { 'src/client/features/player/media-session.ts': 'the lock screen' },
+  },
+  {
+    name: 'nothing reads or writes the retired starter book columns, users.starter_book_at and user_books.starter (#80)',
+    pattern: /\bstarter_book_at\b|\bstarter\b/,
+    under: ['src/server', 'scripts'],
+    allowed: {},
+  },
+  {
+    name: 'a lowercase UUID is checked only by isUuid in src/shared/uuid.ts (#85)',
+    pattern: /\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}/,
+    under: ['src'],
+    allowed: {
+      'src/shared/uuid.ts': 'defines isUuid',
+      'src/server/sync/input.ts': 'accepts uppercase too (the i flag), so it is not the same check',
+      'src/shared/content/private-book.ts': "PRIVATE_SLUG, a different pattern: 'u-' and a UUID",
+    },
+  },
+]
+
+function withoutComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1')
+}
+
+function sourcesUnder(path: string): string[] {
+  const isTest = (file: string) => /\.test\.tsx?$/.test(file)
+  if (/\.tsx?$/.test(path)) return isTest(path) ? [] : [path]
+  return readdirSync(path, { recursive: true, encoding: 'utf8' })
+    .map((name) => `${path}/${name.replaceAll('\\', '/')}`)
+    .filter((file) => /\.tsx?$/.test(file) && !isTest(file))
+}
+
+function seamProblems(seam: Seam, read: (path: string) => string, files: string[]): string[] {
+  const matching = files.filter((file) => seam.pattern.test(withoutComments(read(file))))
+  const strays = matching.filter((file) => !(file in seam.allowed)).map((file) => `${file} matches`)
+  const stale = Object.keys(seam.allowed)
+    .filter((file) => !matching.includes(file))
+    .map((file) => `${file} is allowed but no longer matches: take it off the list`)
+  return [...strays, ...stale]
+}
+
+describe('withoutComments', () => {
+  it('drops line and block comments and keeps URLs in strings', () => {
+    const source = [
+      '/** A book no longer in the library. */',
+      "const a = 'https://example.test' // no longer in the library",
+      '  // if (!who.ok)',
+      "const b = 'x'",
+    ].join('\n')
+    const code = withoutComments(source)
+    expect(code).not.toMatch(/no longer in the library|who\.ok/)
+    expect(code).toContain("'https://example.test'")
+    expect(code).toContain("const b = 'x'")
+  })
+})
+
+describe('seamProblems', () => {
+  const seam: Seam = { name: 'x', pattern: /\bfind\(/, under: [], allowed: { 'a.ts': 'home' } }
+  const sources: Record<string, string> = { 'a.ts': 'find(1)', 'b.ts': 'find(2)', 'c.ts': '// find(3)' }
+  const read = (path: string) => sources[path] ?? ''
+
+  it('names a file that matches without being allowed, and ignores a match in a comment', () => {
+    expect(seamProblems(seam, read, ['a.ts', 'b.ts', 'c.ts'])).toEqual(['b.ts matches'])
+  })
+
+  it('names an allowed file that no longer matches', () => {
+    expect(seamProblems(seam, read, ['c.ts'])).toEqual(['a.ts is allowed but no longer matches: take it off the list'])
+  })
+})
+
+describe('the source tree', () => {
+  const read = (path: string) => readFileSync(path, 'utf8')
+
+  it.each(SEAMS.map((seam) => [seam.name, seam] as const))('%s', (_name, seam) => {
+    const files = seam.under.flatMap(sourcesUnder)
+    expect(files.length).toBeGreaterThan(0)
+    expect(seamProblems(seam, read, files)).toEqual([])
+  })
+})

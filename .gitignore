@@ -1,0 +1,13 @@
+node_modules/
+.env
+.claude/settings.local.json
+.claude/worktrees/
+.playwright-mcp/
+.cache/
+dist/
+.output/
+.tanstack/
+test-results/
+playwright-report/
+/coverage/
+.mail/

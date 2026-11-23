@@ -1,0 +1,12 @@
+{
+  "type": "standard",
+  "title": "Hertfordshire",
+  "lang": "en",
+  "description": "County of England",
+  "extract": "Hertfordshire is a ceremonial county in the East of England. It borders Bedfordshire to the north-west, Cambridgeshire to the north-east, Essex to the east, Greater London to the south and Buckinghamshire to the west. The largest settlement is Watford.",
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/Hertfordshire"
+    }
+  }
+}

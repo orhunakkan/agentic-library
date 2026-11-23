@@ -1,0 +1,37 @@
+{
+  "en": [
+    {
+      "partOfSpeech": "Verb",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt19\" typeof=\"mw:Transclusion\"></span> To <a rel=\"mw:WikiLink\" href=\"/wiki/imply\" title=\"imply\">imply</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/require\" title=\"require\">require</a>, or <a rel=\"mw:WikiLink\" href=\"/wiki/invoke\" title=\"invoke\">invoke</a>."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt24\" typeof=\"mw:Transclusion\"></span> To <a rel=\"mw:WikiLink\" href=\"/wiki/settle\" title=\"settle\">settle</a> or <a rel=\"mw:WikiLink\" href=\"/wiki/fix\" title=\"fix\">fix</a> <a rel=\"mw:WikiLink\" href=\"/wiki/inalienably\" title=\"inalienably\">inalienably</a> on a person or thing, or on a person and his descendants or a certain line of <a rel=\"mw:WikiLink\" href=\"/wiki/descendants\" title=\"descendants\">descendants</a>; -- said especially of an estate; to <a rel=\"mw:WikiLink\" href=\"/wiki/bestow\" title=\"bestow\">bestow</a> as a <a rel=\"mw:WikiLink\" href=\"/wiki/heritage\" title=\"heritage\">heritage</a>."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt29\" typeof=\"mw:Transclusion\"></span> To appoint hereditary possessor."
+        }
+      ]
+    },
+    {
+      "partOfSpeech": "Noun",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "That which is entailed.\n\n<ol><li>An <a rel=\"mw:WikiLink\" href=\"/wiki/estate\" title=\"estate\">estate</a> in fee entailed, or <a rel=\"mw:WikiLink\" href=\"/wiki/limited\" title=\"limited\">limited</a> in descent to a particular <a rel=\"mw:WikiLink\" href=\"/wiki/class\" title=\"class\">class</a> of <a rel=\"mw:WikiLink\" href=\"/wiki/issue\" title=\"issue\">issue</a>.</li>\n<li>The <a rel=\"mw:WikiLink\" href=\"/wiki/rule\" title=\"rule\">rule</a> by which the <a rel=\"mw:WikiLink\" href=\"/wiki/descent\" title=\"descent\">descent</a> is <a rel=\"mw:WikiLink\" href=\"/wiki/fixed\" title=\"fixed\">fixed</a>.\n</li></ol>"
+        },
+        {
+          "definition": "An <a rel=\"mw:WikiLink\" href=\"/wiki/estate\" title=\"estate\">estate</a> in fee entailed, or <a rel=\"mw:WikiLink\" href=\"/wiki/limited\" title=\"limited\">limited</a> in descent to a particular <a rel=\"mw:WikiLink\" href=\"/wiki/class\" title=\"class\">class</a> of <a rel=\"mw:WikiLink\" href=\"/wiki/issue\" title=\"issue\">issue</a>."
+        },
+        {
+          "definition": "The <a rel=\"mw:WikiLink\" href=\"/wiki/rule\" title=\"rule\">rule</a> by which the <a rel=\"mw:WikiLink\" href=\"/wiki/descent\" title=\"descent\">descent</a> is <a rel=\"mw:WikiLink\" href=\"/wiki/fixed\" title=\"fixed\">fixed</a>."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt88\" typeof=\"mw:Transclusion\"></span> Delicately <a rel=\"mw:WikiLink\" href=\"/wiki/carved\" title=\"carved\">carved</a> <a rel=\"mw:WikiLink\" href=\"/wiki/ornamental\" title=\"ornamental\">ornamental</a> work; <a rel=\"mw:WikiLink\" href=\"/wiki/intaglio\" title=\"intaglio\">intaglio</a>."
+        }
+      ]
+    }
+  ]
+}

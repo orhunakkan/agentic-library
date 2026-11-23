@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+pnpm exec biome check --staged --no-errors-on-unmatched
+pnpm typecheck
+pnpm exec vitest run tests/ --coverage.enabled=false

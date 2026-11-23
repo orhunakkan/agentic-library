@@ -1,0 +1,48 @@
+{
+  "collection": {
+    "slug": "classics",
+    "title": "Classics of Wisdom",
+    "kind": "chapter",
+    "tone": "default",
+    "order": 2,
+    "tagline": "1 series · 1 book"
+  },
+  "series": [
+    {
+      "slug": "poetry-of-the-spirit",
+      "title": "Poetry of the Spirit",
+      "description": "Three much-loved books of devotional and reflective verse, from medieval Persia to twentieth-century Bengal and Lebanon. Best read slowly, a few pages at a time.",
+      "featuredLabel": "poetry",
+      "collectionSlug": "classics"
+    }
+  ],
+  "books": [
+    {
+      "id": "7987d091-7905-53e6-af7b-daf2a83b4a96",
+      "slug": "the-prophet",
+      "title": "The Prophet",
+      "author": "Kahlil Gibran",
+      "seriesSlug": "poetry-of-the-spirit",
+      "order": 1,
+      "shortDescription": "Before sailing home, the prophet Almustafa answers the townspeople’s questions about love, work, children, freedom, death and more. Twenty-six short prose poems framed by his arrival and farewell.",
+      "language": "en",
+      "tagline": "Sermons in poetic prose",
+      "kind": "chapter",
+      "cover": {
+        "background": [
+          "#231a45",
+          "#5b3f8e"
+        ],
+        "ink": "#f1e6ff",
+        "motif": "star"
+      },
+      "chapterCount": 28,
+      "audioDurationMs": 5250000,
+      "source": {
+        "name": "Standard Ebooks",
+        "url": "https://standardebooks.org/ebooks/kahlil-gibran/the-prophet",
+        "license": "Public domain (CC0 1.0 for Standard Ebooks’ work)"
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "type": "standard",
+  "title": "Chaise",
+  "lang": "en",
+  "description": "Two-wheeled horse-drawn carriage",
+  "extract": "A chaise, sometimes called shay, is a light two-wheeled carriage for one or two people. It may also have a folding hood. The coachmaker William Felton (1796) considered chaises to be a family of vehicles which included all two-wheel one-horse vehicles such as gigs and whiskies. A similar carriage pulled by two-horses is identified as a curricle.",
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/Chaise"
+    }
+  }
+}

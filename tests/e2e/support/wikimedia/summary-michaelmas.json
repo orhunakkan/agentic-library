@@ -1,0 +1,12 @@
+{
+  "type": "standard",
+  "title": "Michaelmas",
+  "lang": "en",
+  "description": "Christian festival",
+  "extract": "Michaelmas, also known as the Feast of Saints Michael, Gabriel and Raphael, the Feast of the Archangels, and the Feast of Saint Michael and All Angels, is a Christian festival observed in many Western Christian liturgical calendars on 29 September, and on 8 November in the Eastern Christian traditions. Michaelmas has been one of the four quarter days of the English and Irish financial, judicial and academic year.",
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/Michaelmas"
+    }
+  }
+}

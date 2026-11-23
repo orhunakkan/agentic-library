@@ -1,0 +1,6 @@
+allowBuilds:
+  protobufjs: false
+
+auditConfig:
+  ignoreGhsas:
+    - GHSA-fc5q-39xc-vjpf

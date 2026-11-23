@@ -1,0 +1,13 @@
+{
+  "numFound": 1,
+  "q": "isbn:9780141439518",
+  "docs": [
+    {
+      "author_name": ["Jane Austen"],
+      "cover_i": 14348537,
+      "first_publish_year": 1813,
+      "key": "/works/OL66554W",
+      "title": "Pride and Prejudice"
+    }
+  ]
+}

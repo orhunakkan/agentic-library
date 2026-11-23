@@ -1,0 +1,12 @@
+{
+  "type": "disambiguation",
+  "title": "Bennet",
+  "lang": "en",
+  "description": "Topics referred to by the same term",
+  "extract": "Bennet may refer to:",
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/Bennet"
+    }
+  }
+}

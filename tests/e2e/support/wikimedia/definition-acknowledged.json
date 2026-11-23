@@ -1,0 +1,25 @@
+{
+  "en": [
+    {
+      "partOfSpeech": "Adjective",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "Generally <a rel=\"mw:WikiLink\" href=\"/wiki/accepted\" title=\"accepted\">accepted</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/recognized\" title=\"recognized\">recognized</a> or <a rel=\"mw:WikiLink\" href=\"/wiki/admitted\" title=\"admitted\">admitted</a>."
+        }
+      ]
+    },
+    {
+      "partOfSpeech": "Verb",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "<span class=\"form-of-definition use-with-mention\" about=\"#mwt22\" typeof=\"mw:Transclusion\"><span class=\"inflection-of-conjoined\">simple <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#past_tense\" title=\"Appendix:Glossary\">past</a></span> and <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#past_tense\" title=\"Appendix:Glossary\">past</a> <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#participle\" title=\"Appendix:Glossary\">participle</a> of <span class=\"form-of-definition-link\"><i class=\"Latn mention\" lang=\"en\"><a rel=\"mw:WikiLink\" href=\"/wiki/acknowledg#English\" title=\"acknowledg\">acknowledg</a></i></span></span>"
+        },
+        {
+          "definition": "<span class=\"form-of-definition use-with-mention\" about=\"#mwt23\" typeof=\"mw:Transclusion\"><span class=\"inflection-of-conjoined\">simple <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#past_tense\" title=\"Appendix:Glossary\">past</a></span> and <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#past_tense\" title=\"Appendix:Glossary\">past</a> <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#participle\" title=\"Appendix:Glossary\">participle</a> of <span class=\"form-of-definition-link\"><i class=\"Latn mention\" lang=\"en\"><a rel=\"mw:WikiLink\" href=\"/wiki/acknowledge#English\" title=\"acknowledge\">acknowledge</a></i></span></span>"
+        }
+      ]
+    }
+  ]
+}

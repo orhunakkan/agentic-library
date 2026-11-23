@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, unit tests, audit
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_RUNNER }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec biome ci .
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        env:
+          CHANGE_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: |
+          if [ -f coverage/unit/summary.txt ]; then
+            { echo '### Unit coverage (src/shared, src/client)'; echo '```'; cat coverage/unit/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          node scripts/coverage/changed-lines.ts coverage/unit/lcov.info "$CHANGE_RANGE" 'unit' | tee -a "$GITHUB_STEP_SUMMARY"
+      - run: pnpm audit
+
+  e2e:
+    name: Build and end-to-end tests
+    needs: checks
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_RUNNER }}
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: agentic_test
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agentic_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      HOME: /root
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/agentic_test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:db
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        env:
+          CHANGE_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: |
+          if [ -f coverage/server/summary.txt ]; then
+            { echo '### Server coverage (src/server)'; echo '```'; cat coverage/server/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
+          node scripts/coverage/changed-lines.ts coverage/server/lcov.info "$CHANGE_RANGE" 'server' | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/cache@v6
+        with:
+          path: .cache/voices
+          key: folio-voices-${{ hashFiles('src/shared/read-aloud/folio-voices.ts') }}
+          restore-keys: folio-voices-
+      - run: pnpm voices:fetch en_GB-cori-medium
+      - run: pnpm e2e
+      - run: pnpm smoke:dev
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  deploy-dev:
+    name: Deploy to dev
+    needs: e2e
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.CI_RUNNER }}
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    steps:
+      - run: sudo -n /usr/local/bin/agentic-library-deploy dev "$GITHUB_SHA"
+      - run: |
+          echo "Dev is now $GITHUB_SHA: https://dev.agenticlibrary.app" >> "$GITHUB_STEP_SUMMARY"
+          echo "To promote it: gh workflow run deploy-prod.yml -f sha=$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

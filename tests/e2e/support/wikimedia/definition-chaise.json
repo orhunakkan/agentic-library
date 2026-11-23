@@ -1,0 +1,30 @@
+{
+  "en": [
+    {
+      "partOfSpeech": "Noun",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "An open, horse-drawn <a rel=\"mw:WikiLink\" href=\"/wiki/carriage\" title=\"carriage\">carriage</a> for one or two people, usually with one horse and two wheels."
+        },
+        {
+          "definition": "A <a rel=\"mw:WikiLink\" href=\"/wiki/chaise_longue\" title=\"chaise longue\">chaise longue</a>."
+        },
+        {
+          "definition": "A <a rel=\"mw:WikiLink\" href=\"/wiki/post_chaise\" title=\"post chaise\">post chaise</a>."
+        }
+      ]
+    }
+  ],
+  "fr": [
+    {
+      "partOfSpeech": "Noun",
+      "language": "French",
+      "definitions": [
+        {
+          "definition": "<a rel=\"mw:WikiLink\" href=\"/wiki/chair\" title=\"chair\">chair</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/seat\" title=\"seat\">seat</a>"
+        }
+      ]
+    }
+  ]
+}

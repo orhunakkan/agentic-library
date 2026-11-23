@@ -1,0 +1,46 @@
+{
+  "en": [
+    {
+      "partOfSpeech": "Adverb",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt17\" typeof=\"mw:Transclusion\"></span> <span class=\"Latn\" lang=\"en\" about=\"#mwt18\" typeof=\"mw:Transclusion\"><a rel=\"mw:WikiLink\" href=\"/wiki/nevertheless#English\" title=\"nevertheless\">Nevertheless</a></span>; <a rel=\"mw:WikiLink\" href=\"/wiki/yet\" title=\"yet\">yet</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/still\" title=\"still\">still</a>; <a rel=\"mw:WikiLink\" href=\"/wiki/in_spite_of\" title=\"in spite of\">in spite of</a> that."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt27\" typeof=\"mw:Transclusion\"></span> In <a rel=\"mw:WikiLink\" href=\"/wiki/contrast\" title=\"contrast\">contrast</a>."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt30\" typeof=\"mw:Transclusion\"></span> <span class=\"Latn\" lang=\"en\" about=\"#mwt31\" typeof=\"mw:Transclusion\"><a rel=\"mw:WikiLink\" href=\"/wiki/regardless_of#English\" title=\"regardless of\">Regardless of</a></span> <a rel=\"mw:WikiLink\" href=\"/wiki/how\" title=\"how\">how</a>; <a rel=\"mw:WikiLink\" href=\"/wiki/no_matter\" title=\"no matter\">no matter</a> <a rel=\"mw:WikiLink\" href=\"/wiki/how\" title=\"how\">how</a>"
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt37\" typeof=\"mw:Transclusion\"></span> <span class=\"Latn\" lang=\"en\" about=\"#mwt38\" typeof=\"mw:Transclusion\"><a rel=\"mw:WikiLink\" href=\"/wiki/regardless_of#English\" title=\"regardless of\">Regardless of</a></span> <a rel=\"mw:WikiLink\" href=\"/wiki/how\" title=\"how\">how</a>; <a rel=\"mw:WikiLink\" href=\"/wiki/regardless_of\" title=\"regardless of\">regardless of</a> the way in which."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt44\" typeof=\"mw:Transclusion\"></span> In any <a rel=\"mw:WikiLink\" href=\"/wiki/way\" title=\"way\">way</a> in which; <a rel=\"mw:WikiLink\" href=\"/wiki/how\" title=\"how\">how</a>."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt47\" typeof=\"mw:Transclusion\"></span> In any way that one likes or chooses; in a haphazard or spontaneous way."
+        },
+        {
+          "definition": ""
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\"></span> <a rel=\"mw:WikiLink\" href=\"/wiki/how\" title=\"how\">How</a> <a rel=\"mw:WikiLink\" href=\"/wiki/ever\" title=\"ever\">ever</a>: <span class=\"use-with-mention\">an emphatic form of <i><b><a rel=\"mw:WikiLink\" href=\"/wiki/how#English\" title=\"how\">how</a></b></i>, used to ask in what manner</span>."
+        },
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt56\" typeof=\"mw:Transclusion\"></span> <a rel=\"mw:WikiLink\" href=\"/wiki/in_any_case\" title=\"in any case\">In any case</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/at_any_rate\" title=\"at any rate\">at any rate</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/at_all_events\" title=\"at all events\">at all events</a>."
+        }
+      ]
+    },
+    {
+      "partOfSpeech": "Conjunction",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "<span class=\"usage-label-sense\" about=\"#mwt184\" typeof=\"mw:Transclusion\"></span> <span class=\"Latn\" lang=\"en\" about=\"#mwt185\" typeof=\"mw:Transclusion\"><a rel=\"mw:WikiLink\" href=\"/wiki/but#English\" title=\"but\">But</a></span>, <a rel=\"mw:WikiLink\" href=\"/wiki/yet\" title=\"yet\">yet</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/though\" title=\"though\">though</a>, <a rel=\"mw:WikiLink\" href=\"/wiki/although\" title=\"although\">although</a>."
+        }
+      ]
+    }
+  ]
+}

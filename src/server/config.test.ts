@@ -1,0 +1,481 @@
+import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { ConfigError, kekId, parseConfig } from './config'
+
+const KEK = Buffer.alloc(32, 7).toString('base64')
+const KEK2 = Buffer.alloc(32, 9).toString('base64')
+const PROD = {
+  NODE_ENV: 'production',
+  DATABASE_URL: 'postgres://agentic_prod@/agentic_prod?host=/var/run/postgresql',
+  KEK,
+  APP_ORIGIN: 'https://agenticlibrary.app',
+}
+const noFiles = () => null
+
+describe('parseConfig', () => {
+  it('reads a complete production configuration', () => {
+    const config = parseConfig(PROD, noFiles)
+    expect(config.production).toBe(true)
+    expect(config.databaseUrl).toBe(PROD.DATABASE_URL)
+    expect(config.kek?.key).toHaveLength(32)
+    expect(config.kek?.id).toBe(kekId(Buffer.alloc(32, 7)))
+    expect(config.kekPrevious).toBeNull()
+    expect(config.appOrigin).toBe('https://agenticlibrary.app')
+    expect(config.cookieSecure).toBe(true)
+    expect(config.anthropicApiBase).toBe('https://api.anthropic.com')
+    expect(config.elevenLabsApiBase).toBe('https://api.elevenlabs.io')
+  })
+
+  it('stops production when a required value is missing', () => {
+    for (const name of ['DATABASE_URL', 'KEK', 'APP_ORIGIN'] as const) {
+      const env = { ...PROD, [name]: undefined }
+      expect(() => parseConfig(env, noFiles), name).toThrow(ConfigError)
+      expect(() => parseConfig(env, noFiles), name).toThrow(name)
+    }
+  })
+
+  it('rejects malformed values', () => {
+    expect(() => parseConfig({ ...PROD, KEK: Buffer.alloc(16).toString('base64') }, noFiles)).toThrow(/32 bytes/)
+    expect(() => parseConfig({ ...PROD, KEK: 'not base64 at all!' }, noFiles)).toThrow(/32 bytes/)
+    expect(() => parseConfig({ ...PROD, APP_ORIGIN: 'https://agenticlibrary.app/library' }, noFiles)).toThrow(/origin/)
+    expect(() => parseConfig({ ...PROD, APP_ORIGIN: 'agenticlibrary.app' }, noFiles)).toThrow(/origin/)
+    expect(() => parseConfig({ ...PROD, DATABASE_URL: 'mysql://x' }, noFiles)).toThrow(/postgres/)
+    expect(() => parseConfig({ ...PROD, COOKIE_SECURE: 'yes' }, noFiles)).toThrow(/COOKIE_SECURE/)
+    expect(() => parseConfig({ ...PROD, KEK_PREVIOUS: KEK }, noFiles)).toThrow(/same key/)
+  })
+
+  it('prefers the systemd credential over the KEK variable, and trims its newline', () => {
+    const files: Record<string, string> = { '/run/creds/kek': `${KEK2}\n`, '/run/creds/kek_previous': `${KEK}\n` }
+    const config = parseConfig({ ...PROD, KEK: undefined, CREDENTIALS_DIRECTORY: '/run/creds' }, (path) => {
+      return files[path.replaceAll('\\', '/')] ?? null
+    })
+    expect(config.kek?.id).toBe(kekId(Buffer.alloc(32, 9)))
+    expect(config.kekPrevious?.id).toBe(kekId(Buffer.alloc(32, 7)))
+  })
+
+  it('lets `vite dev` run without a database or KEK', () => {
+    const config = parseConfig({ PORT: '3000' }, noFiles)
+    expect(config.production).toBe(false)
+    expect(config.databaseUrl).toBeNull()
+    expect(config.kek).toBeNull()
+    expect(config.appOrigin).toBe('http://localhost:3000')
+  })
+
+  it('reads the e2e settings', () => {
+    const config = parseConfig(
+      {
+        COOKIE_SECURE: 'false',
+        APP_ORIGIN: 'http://127.0.0.1:3100',
+        ANTHROPIC_API_BASE: 'http://127.0.0.1:3100/test-anthropic/',
+        ELEVENLABS_API_BASE: 'http://127.0.0.1:3100/test-elevenlabs//',
+      },
+      noFiles,
+    )
+    expect(config.cookieSecure).toBe(false)
+    expect(config.anthropicApiBase).toBe('http://127.0.0.1:3100/test-anthropic')
+    expect(config.elevenLabsApiBase).toBe('http://127.0.0.1:3100/test-elevenlabs')
+    expect(() => parseConfig({ ELEVENLABS_API_BASE: 'ftp://elevenlabs.example' }, noFiles)).toThrow(
+      /ELEVENLABS_API_BASE/,
+    )
+  })
+})
+
+describe('Open Library settings', () => {
+  it('default to Open Library’s own addresses and no contact', () => {
+    const config = parseConfig({}, noFiles)
+    expect(config.openLibraryBase).toBe('https://openlibrary.org')
+    expect(config.openLibraryCoversBase).toBe('https://covers.openlibrary.org')
+    expect(config.openLibraryContact).toBeNull()
+  })
+
+  it('take an override, trailing slashes trimmed, and a contact', () => {
+    const config = parseConfig(
+      {
+        OPEN_LIBRARY_BASE: 'http://127.0.0.1:3100/test-open-library/api/',
+        OPEN_LIBRARY_COVERS_BASE: 'http://127.0.0.1:3100/test-open-library/covers//',
+        OPEN_LIBRARY_CONTACT: ' owner@example.com ',
+      },
+      noFiles,
+    )
+    expect(config.openLibraryBase).toBe('http://127.0.0.1:3100/test-open-library/api')
+    expect(config.openLibraryCoversBase).toBe('http://127.0.0.1:3100/test-open-library/covers')
+    expect(config.openLibraryContact).toBe('owner@example.com')
+  })
+
+  it('refuse a bad base or contact', () => {
+    expect(() => parseConfig({ OPEN_LIBRARY_BASE: 'ftp://example.com' }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ OPEN_LIBRARY_COVERS_BASE: 'not a url' }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ OPEN_LIBRARY_CONTACT: 'a'.repeat(101) }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ OPEN_LIBRARY_CONTACT: 'me; +https://evil' }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ OPEN_LIBRARY_CONTACT: `me${String.fromCharCode(10)}x` }, noFiles)).toThrow(ConfigError)
+  })
+})
+
+describe('Wikimedia settings', () => {
+  it('default to Wiktionary and Wikipedia themselves and no contact', () => {
+    const config = parseConfig({}, noFiles)
+    expect(config.wiktionaryBase).toBe('https://en.wiktionary.org')
+    expect(config.wikipediaBase).toBe('https://{lang}.wikipedia.org')
+    expect(config.wikimediaContact).toBeNull()
+  })
+
+  it('take an override, trailing slashes trimmed, and a contact', () => {
+    const config = parseConfig(
+      {
+        WIKTIONARY_BASE: 'http://127.0.0.1:3100/test-wikimedia/wiktionary/',
+        WIKIPEDIA_BASE: 'http://127.0.0.1:3100/test-wikimedia/wikipedia/{lang}/',
+        WIKIMEDIA_CONTACT: 'owner@example.com',
+      },
+      noFiles,
+    )
+    expect(config.wiktionaryBase).toBe('http://127.0.0.1:3100/test-wikimedia/wiktionary')
+    expect(config.wikipediaBase).toBe('http://127.0.0.1:3100/test-wikimedia/wikipedia/{lang}')
+    expect(config.wikimediaContact).toBe('owner@example.com')
+  })
+
+  it('refuse a Wikipedia base without {lang} once, a bad base and a bad contact', () => {
+    expect(() => parseConfig({ WIKIPEDIA_BASE: 'https://en.wikipedia.org' }, noFiles)).toThrow(/\{lang\} once/)
+    expect(() => parseConfig({ WIKIPEDIA_BASE: 'https://{lang}.wikipedia.org/{lang}' }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ WIKIPEDIA_BASE: 'ftp://{lang}.wikipedia.org' }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ WIKTIONARY_BASE: 'not a url' }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ WIKIMEDIA_CONTACT: 'me; +https://evil' }, noFiles)).toThrow(/WIKIMEDIA_CONTACT/)
+  })
+})
+
+describe('GitHub settings', () => {
+  const TOKEN = `github_pat_${'A1_'.repeat(10)}`
+
+  it('default to GitHub itself and no token', () => {
+    const config = parseConfig({}, noFiles)
+    expect(config.githubApiBase).toBe('https://api.github.com')
+    expect(config.githubRawBase).toBe('https://raw.githubusercontent.com')
+    expect(config.githubToken).toBeNull()
+  })
+
+  it('take overrides, and a token from the variable or the github_token credential first', () => {
+    const config = parseConfig(
+      {
+        GITHUB_API_BASE: 'http://127.0.0.1:3100/test-github/api/',
+        GITHUB_RAW_BASE: 'http://127.0.0.1:3100/x',
+        GITHUB_TOKEN: TOKEN,
+      },
+      noFiles,
+    )
+    expect(config.githubApiBase).toBe('http://127.0.0.1:3100/test-github/api')
+    expect(config.githubRawBase).toBe('http://127.0.0.1:3100/x')
+    expect(config.githubToken).toBe(TOKEN)
+    const fromCredential = parseConfig({ GITHUB_TOKEN: 'ignored', CREDENTIALS_DIRECTORY: '/run/creds' }, (path) =>
+      path === '/run/creds/github_token' ? `${TOKEN}\n` : null,
+    )
+    expect(fromCredential.githubToken).toBe(TOKEN)
+  })
+
+  it('refuse a malformed token and a bad base', () => {
+    expect(() => parseConfig({ GITHUB_TOKEN: 'ghp_classic0123456789012345678901' }, noFiles)).toThrow(/github_pat_/)
+    expect(() => parseConfig({ GITHUB_TOKEN: 'github_pat_short' }, noFiles)).toThrow(ConfigError)
+    expect(() => parseConfig({ GITHUB_API_BASE: 'ftp://x' }, noFiles)).toThrow(ConfigError)
+  })
+})
+
+describe('mail settings', () => {
+  const KEY = 're_test_0123456789abcdef'
+  const SECRET = `whsec_${Buffer.alloc(24, 3).toString('base64')}`
+  const RESEND = {
+    ...PROD,
+    MAIL_TRANSPORT: 'resend',
+    MAIL_FROM: 'Folio <no-reply@agenticlibrary.app>',
+    RESEND_API_KEY: KEY,
+  }
+
+  it('are off by default', () => {
+    const config = parseConfig(PROD, noFiles)
+    expect(config.mail).toBeNull()
+    expect(config.mailWebhookKey).toBeNull()
+  })
+
+  it('read Resend, with the default base', () => {
+    expect(parseConfig(RESEND, noFiles).mail).toEqual({
+      transport: 'resend',
+      from: 'Folio <no-reply@agenticlibrary.app>',
+      apiKey: KEY,
+      apiBase: 'https://api.resend.com',
+    })
+    expect(parseConfig({ ...RESEND, RESEND_API_BASE: 'http://127.0.0.1:9/resend/' }, noFiles).mail).toMatchObject({
+      apiBase: 'http://127.0.0.1:9/resend',
+    })
+    expect(parseConfig({ ...RESEND, MAIL_FROM: ' no-reply@Agenticlibrary.app ' }, noFiles).mail?.from).toBe(
+      'no-reply@agenticlibrary.app',
+    )
+    expect(parseConfig({ ...RESEND, MAIL_FROM: 'Folio dev  <no-reply@agenticlibrary.app>' }, noFiles).mail?.from).toBe(
+      'Folio dev <no-reply@agenticlibrary.app>',
+    )
+  })
+
+  it('refuse Resend without a key or MAIL_FROM, or with a malformed key', () => {
+    expect(() => parseConfig({ ...RESEND, RESEND_API_KEY: undefined }, noFiles)).toThrow(/RESEND_API_KEY/)
+    expect(() => parseConfig({ ...RESEND, MAIL_FROM: undefined }, noFiles)).toThrow(/MAIL_FROM/)
+    expect(() => parseConfig({ ...RESEND, RESEND_API_KEY: 'sk_live_abc' }, noFiles)).toThrow(/re_/)
+    expect(() => parseConfig({ ...RESEND, RESEND_API_KEY: 're_has space' }, noFiles)).toThrow(/re_/)
+    expect(() => parseConfig({ ...RESEND, RESEND_API_KEY: `re_${'a'.repeat(198)}` }, noFiles)).toThrow(/200/)
+    expect(() => parseConfig({ ...RESEND, MAIL_TRANSPORT: 'smtp' }, noFiles)).toThrow(/MAIL_TRANSPORT/)
+  })
+
+  it('refuse a bad MAIL_FROM', () => {
+    for (const from of [
+      'Folio',
+      'Folio <no-reply@localhost>',
+      '"Folio" <no-reply@agenticlibrary.app>',
+      '<no-reply@agenticlibrary.app>',
+      `${'F'.repeat(61)} <no-reply@agenticlibrary.app>`,
+      'Fo\u0007lio <no-reply@agenticlibrary.app>',
+      'Folio <a@b.co> <c@d.co>',
+    ])
+      expect(() => parseConfig({ ...RESEND, MAIL_FROM: from }, noFiles), from).toThrow(/MAIL_FROM/)
+  })
+
+  it('read capture on localhost only, with .mail by default', () => {
+    const local = { MAIL_TRANSPORT: 'capture', MAIL_FROM: 'Folio <no-reply@folio.test>' }
+    expect(parseConfig(local, noFiles).mail).toEqual({
+      transport: 'capture',
+      from: 'Folio <no-reply@folio.test>',
+      dir: '.mail',
+    })
+    expect(
+      parseConfig({ ...local, APP_ORIGIN: 'http://127.0.0.1:3100', MAIL_CAPTURE_DIR: '/tmp/mail' }, noFiles).mail,
+    ).toMatchObject({ dir: '/tmp/mail' })
+    expect(() => parseConfig({ ...local, APP_ORIGIN: 'https://dev.agenticlibrary.app' }, noFiles)).toThrow(/localhost/)
+    expect(() => parseConfig({ ...PROD, ...local }, noFiles)).toThrow(/localhost/)
+  })
+
+  it('decode the webhook secret, and refuse one without whsec_ or too short', () => {
+    expect(parseConfig({ ...RESEND, RESEND_WEBHOOK_SECRET: SECRET }, noFiles).mailWebhookKey).toEqual(
+      Buffer.alloc(24, 3),
+    )
+    expect(() => parseConfig({ ...RESEND, RESEND_WEBHOOK_SECRET: SECRET.slice(6) }, noFiles)).toThrow(/whsec_/)
+    const short = `whsec_${Buffer.alloc(15, 3).toString('base64')}`
+    expect(() => parseConfig({ ...RESEND, RESEND_WEBHOOK_SECRET: short }, noFiles)).toThrow(/16 bytes/)
+    expect(() => parseConfig({ ...RESEND, RESEND_WEBHOOK_SECRET: 'whsec_not base64!' }, noFiles)).toThrow(/whsec_/)
+  })
+
+  it('read the key and the secret from systemd credentials first', () => {
+    const files: Record<string, string> = {
+      '/run/creds/kek': `${KEK}\n`,
+      '/run/creds/resend_api_key': 're_from_the_file\n',
+      '/run/creds/resend_webhook_secret': `${SECRET}\n`,
+    }
+    const config = parseConfig(
+      { ...RESEND, KEK: undefined, RESEND_API_KEY: 're_from_the_variable', CREDENTIALS_DIRECTORY: '/run/creds' },
+      (path) => files[path.replaceAll('\\', '/')] ?? null,
+    )
+    expect(config.mail).toMatchObject({ apiKey: 're_from_the_file' })
+    expect(config.mailWebhookKey).toEqual(Buffer.alloc(24, 3))
+  })
+})
+
+describe('sign-up settings', () => {
+  const MAIL = { MAIL_TRANSPORT: 'resend', MAIL_FROM: 'no-reply@agenticlibrary.app', RESEND_API_KEY: 're_test_key' }
+
+  it('are invite only by default, so a deploy changes nothing', () => {
+    expect(parseConfig(PROD, noFiles).signup).toBe('invite')
+    expect(parseConfig({ ...PROD, SIGNUP: '  ' }, noFiles).signup).toBe('invite')
+  })
+
+  it('read off, invite and open in any case', () => {
+    expect(parseConfig({ ...PROD, SIGNUP: 'off' }, noFiles).signup).toBe('off')
+    expect(parseConfig({ ...PROD, SIGNUP: 'INVITE' }, noFiles).signup).toBe('invite')
+    expect(parseConfig({ ...PROD, ...MAIL, SIGNUP: ' Open ', SITE_CONTACT: 'a@example.org' }, noFiles).signup).toBe(
+      'open',
+    )
+  })
+
+  it('refuse anything else', () => {
+    expect(() => parseConfig({ ...PROD, SIGNUP: 'yes' }, noFiles)).toThrow(/SIGNUP must be off, invite or open/)
+  })
+
+  it('refuse open sign-up without mail, which mails its links', () => {
+    expect(() => parseConfig({ ...PROD, SIGNUP: 'open' }, noFiles)).toThrow(/MAIL_TRANSPORT/)
+  })
+})
+
+describe('the privacy contact', () => {
+  const MAIL = { MAIL_TRANSPORT: 'resend', MAIL_FROM: 'no-reply@agenticlibrary.app', RESEND_API_KEY: 're_test_key' }
+
+  it('is unset by default', () => {
+    expect(parseConfig(PROD, noFiles).siteContact).toBeNull()
+  })
+
+  it('reads an address or an https: page', () => {
+    expect(parseConfig({ ...PROD, SITE_CONTACT: ' Privacy@Example.ORG ' }, noFiles).siteContact).toEqual({
+      kind: 'email',
+      value: 'Privacy@example.org',
+    })
+    expect(parseConfig({ ...PROD, SITE_CONTACT: 'https://example.org/contact' }, noFiles).siteContact).toEqual({
+      kind: 'url',
+      value: 'https://example.org/contact',
+    })
+  })
+
+  it('refuses anything else', () => {
+    for (const value of [
+      'http://example.org/contact',
+      'javascript:alert(1)',
+      `https://example.org/${'x'.repeat(181)}`,
+      'not@an address',
+      'https://exa mple.org',
+    ])
+      expect(() => parseConfig({ ...PROD, SITE_CONTACT: value }, noFiles), value).toThrow(/SITE_CONTACT must be/)
+  })
+
+  it('is needed before production opens sign-up, and only then', () => {
+    expect(() => parseConfig({ ...PROD, ...MAIL, SIGNUP: 'open' }, noFiles)).toThrow(/SITE_CONTACT/)
+    expect(parseConfig({ ...PROD, ...MAIL, SIGNUP: 'open', SITE_CONTACT: 'a@example.org' }, noFiles).signup).toBe(
+      'open',
+    )
+    expect(parseConfig({ ...PROD, SIGNUP: 'invite' }, noFiles).siteContact).toBeNull()
+    const dev = { APP_ORIGIN: 'http://localhost:3000', MAIL_TRANSPORT: 'capture', MAIL_FROM: 'no-reply@folio.test' }
+    expect(parseConfig({ ...dev, SIGNUP: 'open' }, noFiles).signup).toBe('open')
+  })
+})
+
+describe('the Folio voice’s files', () => {
+  it('default to .cache/voices under the working directory', () => {
+    expect(parseConfig(PROD, noFiles).voicesDir).toBe(resolve('.cache/voices'))
+  })
+
+  it('read VOICES_DIR, resolved', () => {
+    expect(parseConfig({ ...PROD, VOICES_DIR: ' /opt/agentic-library/voices ' }, noFiles).voicesDir).toBe(
+      '/opt/agentic-library/voices',
+    )
+    expect(parseConfig({ ...PROD, VOICES_DIR: 'voices' }, noFiles).voicesDir).toBe(resolve('voices'))
+  })
+})
+
+describe('the audiobooks’ directory', () => {
+  it('is off when AUDIOBOOKS_DIR is unset', () => {
+    expect(parseConfig(PROD, noFiles).audiobooksDir).toBeNull()
+    expect(parseConfig({ ...PROD, AUDIOBOOKS_DIR: ' ' }, noFiles).audiobooksDir).toBeNull()
+  })
+
+  it('takes an absolute path and refuses a relative one', () => {
+    expect(
+      parseConfig({ ...PROD, AUDIOBOOKS_DIR: ' /var/lib/agentic-library/dev-audiobooks/ ' }, noFiles).audiobooksDir,
+    ).toBe('/var/lib/agentic-library/dev-audiobooks')
+    expect(() => parseConfig({ ...PROD, AUDIOBOOKS_DIR: 'audiobooks' }, noFiles)).toThrow(/absolute path/)
+  })
+})
+
+describe('billing settings', () => {
+  const BILLING = {
+    PADDLE_ENV: 'sandbox',
+    PADDLE_CLIENT_TOKEN: 'test_0123456789abcdef',
+    PADDLE_PRICE_MONTHLY: 'pri_01monthly',
+    PADDLE_PRICE_YEARLY: 'pri_01yearly',
+    PADDLE_PRICE_FOUNDING: 'pri_01founding',
+    PADDLE_API_KEY: 'pdl_sdbx_apikey_0123456789abcdefghij',
+    PADDLE_WEBHOOK_SECRET: 'pdl_ntfset_0123456789abcdef',
+  }
+
+  it('are off when none is set', () => {
+    expect(parseConfig(PROD, noFiles).billing).toBeNull()
+    expect(parseConfig({ ...PROD, PADDLE_API_BASE: 'http://127.0.0.1:1/x' }, noFiles).billing).toBeNull()
+  })
+
+  it('are on when all are set, with the API base from PADDLE_ENV', () => {
+    expect(parseConfig({ ...PROD, ...BILLING }, noFiles).billing).toEqual({
+      env: 'sandbox',
+      apiBase: 'https://sandbox-api.paddle.com',
+      apiKey: BILLING.PADDLE_API_KEY,
+      webhookSecret: BILLING.PADDLE_WEBHOOK_SECRET,
+      clientToken: BILLING.PADDLE_CLIENT_TOKEN,
+      prices: { monthly: 'pri_01monthly', yearly: 'pri_01yearly', founding: 'pri_01founding' },
+    })
+    const live = parseConfig(
+      {
+        ...PROD,
+        ...BILLING,
+        PADDLE_ENV: 'production',
+        PADDLE_CLIENT_TOKEN: 'live_0123456789abcdef',
+        PADDLE_API_KEY: 'pdl_live_apikey_0123456789abcdefghij',
+      },
+      noFiles,
+    ).billing
+    expect(live?.apiBase).toBe('https://api.paddle.com')
+    expect(
+      parseConfig({ ...PROD, ...BILLING, PADDLE_API_BASE: 'http://127.0.0.1:3100/test-paddle/' }, noFiles).billing
+        ?.apiBase,
+    ).toBe('http://127.0.0.1:3100/test-paddle')
+  })
+
+  it('read the secrets from the systemd credentials first', () => {
+    const files: Record<string, string> = {
+      '/run/creds/paddle_api_key': 'a-paddle-key-from-a-credential-file\n',
+      '/run/creds/paddle_webhook_secret': 'pdl_ntfset_fromthecredential\n',
+    }
+    const billing = parseConfig(
+      { ...PROD, ...BILLING, PADDLE_API_KEY: undefined, CREDENTIALS_DIRECTORY: '/run/creds' },
+      (path) => files[path.replaceAll('\\', '/')] ?? null,
+    ).billing
+    expect(billing?.apiKey).toBe('a-paddle-key-from-a-credential-file')
+    expect(billing?.webhookSecret).toBe('pdl_ntfset_fromthecredential')
+  })
+
+  it('refuse a partial set, naming what is missing', () => {
+    for (const name of Object.keys(BILLING)) {
+      const env = { ...PROD, ...BILLING, [name]: undefined }
+      expect(() => parseConfig(env, noFiles), name).toThrow(ConfigError)
+      expect(() => parseConfig(env, noFiles), name).toThrow(name)
+    }
+    expect(() => parseConfig({ ...PROD, PADDLE_ENV: 'sandbox' }, noFiles)).toThrow(/half set up/)
+  })
+
+  it('refuse settings for the other environment', () => {
+    expect(() => parseConfig({ ...PROD, ...BILLING, PADDLE_CLIENT_TOKEN: 'live_0123456789abcdef' }, noFiles)).toThrow(
+      /other environment/,
+    )
+    expect(() =>
+      parseConfig(
+        { ...PROD, ...BILLING, PADDLE_ENV: 'production', PADDLE_CLIENT_TOKEN: 'test_0123456789abcdef' },
+        noFiles,
+      ),
+    ).toThrow(/other environment/)
+    expect(() =>
+      parseConfig({ ...PROD, ...BILLING, PADDLE_API_KEY: 'pdl_live_apikey_0123456789abcdefghij' }, noFiles),
+    ).toThrow(/other environment/)
+  })
+
+  it('refuse malformed values', () => {
+    const bad = (extra: Record<string, string>) => () => parseConfig({ ...PROD, ...BILLING, ...extra }, noFiles)
+    expect(bad({ PADDLE_ENV: 'live' })).toThrow(/sandbox or production/)
+    expect(bad({ PADDLE_CLIENT_TOKEN: 'test_' })).toThrow(/PADDLE_CLIENT_TOKEN/)
+    expect(bad({ PADDLE_PRICE_YEARLY: 'price_1' })).toThrow(/PADDLE_PRICE_YEARLY/)
+    expect(bad({ PADDLE_PRICE_FOUNDING: 'pri_01yearly' })).toThrow(/must differ/)
+    expect(bad({ PADDLE_API_KEY: 'short' })).toThrow(/API key/)
+    expect(bad({ PADDLE_API_KEY: 'a key with spaces in it, long enough' })).toThrow(/API key/)
+    expect(bad({ PADDLE_WEBHOOK_SECRET: 'short' })).toThrow(/webhook secret/)
+    expect(bad({ PADDLE_API_BASE: 'ftp://paddle.example' })).toThrow(/PADDLE_API_BASE/)
+  })
+})
+
+describe('ARTICLE_TEST_HOSTS', () => {
+  it('is empty unless set', () => expect(parseConfig({}, noFiles).articleTestHosts).toEqual([]))
+  it('reads host:port pairs on localhost', () => {
+    const config = parseConfig(
+      { APP_ORIGIN: 'http://localhost:3100', ARTICLE_TEST_HOSTS: ' 127.0.0.1:3100, A.test:80 ,' },
+      noFiles,
+    )
+    expect(config.articleTestHosts).toEqual(['127.0.0.1:3100', 'a.test:80'])
+    expect(
+      parseConfig({ APP_ORIGIN: 'http://127.0.0.1:3000', ARTICLE_TEST_HOSTS: 'x:1' }, noFiles).articleTestHosts,
+    ).toEqual(['x:1'])
+  })
+  it('stops a server that isn’t on localhost, and a malformed entry', () => {
+    expect(() => parseConfig({ ...PROD, ARTICLE_TEST_HOSTS: '127.0.0.1:3100' }, noFiles)).toThrow(
+      /only runs on localhost/,
+    )
+    expect(() =>
+      parseConfig({ APP_ORIGIN: 'https://dev.agenticlibrary.app', ARTICLE_TEST_HOSTS: '127.0.0.1:1' }, noFiles),
+    ).toThrow(/only runs on localhost/)
+    expect(() => parseConfig({ ARTICLE_TEST_HOSTS: '127.0.0.1' }, noFiles)).toThrow(/host:port/)
+    expect(() => parseConfig({ ARTICLE_TEST_HOSTS: 'http://a:1' }, noFiles)).toThrow(/host:port/)
+  })
+})

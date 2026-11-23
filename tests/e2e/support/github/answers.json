@@ -1,0 +1,125 @@
+{
+  "_comment": "Trimmed copies of GitHub's answers, asked without a token on 2026-11-21 (step 0 of roadmap/github-repositories.md), except rateLimited, which is GitHub's documented shape (spending the hour's 60 calls to see it wasn't worth it). github-parse.test.ts checks the parser reads them; tests/e2e/support/github-stub.ts serves answers of the same shapes.",
+  "repo": {
+    "status": 200,
+    "body": {
+      "id": 1158722119,
+      "name": "agent-skills",
+      "full_name": "addyosmani/agent-skills",
+      "private": false,
+      "visibility": "public",
+      "default_branch": "main",
+      "description": "Production-grade engineering skills for AI coding agents.",
+      "html_url": "https://github.com/addyosmani/agent-skills",
+      "archived": false,
+      "size": 2001,
+      "owner": {
+        "login": "addyosmani",
+        "id": 110953,
+        "type": "User"
+      }
+    }
+  },
+  "repoMissing": {
+    "status": 404,
+    "body": {
+      "message": "Not Found",
+      "documentation_url": "https://docs.github.com/rest/repos/repos#get-a-repository",
+      "status": "404"
+    }
+  },
+  "repoRenamed": {
+    "status": 301,
+    "location": "https://api.github.com/repositories/70107786",
+    "body": {
+      "message": "Moved Permanently",
+      "url": "https://api.github.com/repositories/70107786",
+      "documentation_url": "https://docs.github.com/rest/guides/best-practices-for-using-the-rest-api#follow-redirects"
+    }
+  },
+  "commitSha": {
+    "status": 200,
+    "contentType": "application/vnd.github.sha; charset=utf-8",
+    "etag": "\"8c99fa36d90068c82d547f7c12a9d67a3e95f4ee\"",
+    "body": "8c99fa36d90068c82d547f7c12a9d67a3e95f4ee"
+  },
+  "commitNotModified": {
+    "status": 304
+  },
+  "commitUnknownRef": {
+    "status": 422,
+    "body": {
+      "message": "No commit found for SHA: no-such-branch-xyz",
+      "documentation_url": "https://docs.github.com/rest/commits/commits#get-a-commit",
+      "status": "422"
+    }
+  },
+  "commitEmptyRepository": {
+    "status": 409,
+    "body": {
+      "message": "Git Repository is empty.",
+      "documentation_url": "https://docs.github.com/rest/commits/commits#get-a-commit",
+      "status": "409"
+    }
+  },
+  "tree": {
+    "status": 200,
+    "body": {
+      "sha": "8c99fa36d90068c82d547f7c12a9d67a3e95f4ee",
+      "url": "https://api.github.com/repos/addyosmani/agent-skills/git/trees/8c99fa36d90068c82d547f7c12a9d67a3e95f4ee",
+      "truncated": false,
+      "tree": [
+        {
+          "path": ".opencode/skills",
+          "mode": "120000",
+          "type": "blob",
+          "sha": "7fc7d9f7be858ee62e454c529b3f8deddd83e1d2",
+          "size": 10,
+          "url": "https://api.github.com/repos/addyosmani/agent-skills/git/blobs/7fc7d9f7be858ee62e454c529b3f8deddd83e1d2"
+        },
+        {
+          "path": "README.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "cd4b32384d2222c3fe7f51856ddfed33a7765fd8",
+          "size": 26537,
+          "url": "https://api.github.com/repos/addyosmani/agent-skills/git/blobs/cd4b32384d2222c3fe7f51856ddfed33a7765fd8"
+        },
+        {
+          "path": "skills",
+          "mode": "040000",
+          "type": "tree",
+          "sha": "ec483fe230357577780ab2332ebb287d24a36986",
+          "url": "https://api.github.com/repos/addyosmani/agent-skills/git/trees/ec483fe230357577780ab2332ebb287d24a36986"
+        },
+        {
+          "path": "skills/accessibility-engineering",
+          "mode": "040000",
+          "type": "tree",
+          "sha": "51875fe630f551e6edc8213c47d7fd7cc9a81c1f",
+          "url": "https://api.github.com/repos/addyosmani/agent-skills/git/trees/51875fe630f551e6edc8213c47d7fd7cc9a81c1f"
+        },
+        {
+          "path": "skills/accessibility-engineering/SKILL.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "eaaf72b3d89336232b33d01895bfafddaf74f39c",
+          "size": 7562,
+          "url": "https://api.github.com/repos/addyosmani/agent-skills/git/blobs/eaaf72b3d89336232b33d01895bfafddaf74f39c"
+        }
+      ]
+    }
+  },
+  "rateLimited": {
+    "status": 403,
+    "headers": {
+      "x-ratelimit-limit": "60",
+      "x-ratelimit-remaining": "0",
+      "x-ratelimit-reset": "1795246953"
+    },
+    "body": {
+      "message": "API rate limit exceeded for 203.0.113.7. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)",
+      "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"
+    }
+  }
+}

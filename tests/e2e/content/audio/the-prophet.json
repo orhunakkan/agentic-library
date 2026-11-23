@@ -1,0 +1,259 @@
+{
+  "bookSlug": "the-prophet",
+  "credit": "LibriVox — Phil Chenevert",
+  "sourceUrl": "https://librivox.org/the-prophet-by-kahlil-gibran-2/",
+  "episodes": [
+    {
+      "id": "ep_1",
+      "slug": "the-coming-of-the-ship",
+      "title": "The Coming of the Ship",
+      "number": 1,
+      "durationMs": 484000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_01_gibran_64kb.mp3",
+      "chapterRef": "the-coming-of-the-ship"
+    },
+    {
+      "id": "ep_2",
+      "slug": "on-love",
+      "title": "On Love",
+      "number": 2,
+      "durationMs": 207000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_02_gibran_64kb.mp3",
+      "chapterRef": "on-love"
+    },
+    {
+      "id": "ep_3",
+      "slug": "on-marriage",
+      "title": "On Marriage",
+      "number": 3,
+      "durationMs": 97000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_03_gibran_64kb.mp3",
+      "chapterRef": "on-marriage"
+    },
+    {
+      "id": "ep_4",
+      "slug": "on-children",
+      "title": "On Children",
+      "number": 4,
+      "durationMs": 90000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_04_gibran_64kb.mp3",
+      "chapterRef": "on-children"
+    },
+    {
+      "id": "ep_5",
+      "slug": "on-giving",
+      "title": "On Giving",
+      "number": 5,
+      "durationMs": 223000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_05_gibran_64kb.mp3",
+      "chapterRef": "on-giving"
+    },
+    {
+      "id": "ep_6",
+      "slug": "on-eating-and-drinking",
+      "title": "On Eating and Drinking",
+      "number": 6,
+      "durationMs": 123000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_06_gibran_64kb.mp3",
+      "chapterRef": "on-eating-and-drinking"
+    },
+    {
+      "id": "ep_7",
+      "slug": "on-work",
+      "title": "On Work",
+      "number": 7,
+      "durationMs": 231000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_07_gibran_64kb.mp3",
+      "chapterRef": "on-work"
+    },
+    {
+      "id": "ep_8",
+      "slug": "on-joy-and-sorrow",
+      "title": "On Joy and Sorrow",
+      "number": 8,
+      "durationMs": 118000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_08_gibran_64kb.mp3",
+      "chapterRef": "on-joy-and-sorrow"
+    },
+    {
+      "id": "ep_9",
+      "slug": "on-houses",
+      "title": "On Houses",
+      "number": 9,
+      "durationMs": 223000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_09_gibran_64kb.mp3",
+      "chapterRef": "on-houses"
+    },
+    {
+      "id": "ep_10",
+      "slug": "on-clothes",
+      "title": "On Clothes",
+      "number": 10,
+      "durationMs": 88000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_10_gibran_64kb.mp3",
+      "chapterRef": "on-clothes"
+    },
+    {
+      "id": "ep_11",
+      "slug": "on-buying-and-selling",
+      "title": "On Buying and Selling",
+      "number": 11,
+      "durationMs": 118000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_11_gibran_64kb.mp3",
+      "chapterRef": "on-buying-and-selling"
+    },
+    {
+      "id": "ep_12",
+      "slug": "on-crime-and-punishment",
+      "title": "On Crime and Punishment",
+      "number": 12,
+      "durationMs": 301000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_12_gibran_64kb.mp3",
+      "chapterRef": "on-crime-and-punishment"
+    },
+    {
+      "id": "ep_13",
+      "slug": "on-laws",
+      "title": "On Laws",
+      "number": 13,
+      "durationMs": 157000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_13_gibran_64kb.mp3",
+      "chapterRef": "on-laws"
+    },
+    {
+      "id": "ep_14",
+      "slug": "on-freedom",
+      "title": "On Freedom",
+      "number": 14,
+      "durationMs": 183000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_14_gibran_64kb.mp3",
+      "chapterRef": "on-freedom"
+    },
+    {
+      "id": "ep_15",
+      "slug": "on-reason-and-passion",
+      "title": "On Reason and Passion",
+      "number": 15,
+      "durationMs": 150000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_15_gibran_64kb.mp3",
+      "chapterRef": "on-reason-and-passion"
+    },
+    {
+      "id": "ep_16",
+      "slug": "on-pain",
+      "title": "On Pain",
+      "number": 16,
+      "durationMs": 89000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_16_gibran_64kb.mp3",
+      "chapterRef": "on-pain"
+    },
+    {
+      "id": "ep_17",
+      "slug": "on-self-knowledge",
+      "title": "On Self-Knowledge",
+      "number": 17,
+      "durationMs": 99000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_17_gibran_64kb.mp3",
+      "chapterRef": "on-self-knowledge"
+    },
+    {
+      "id": "ep_18",
+      "slug": "on-teaching",
+      "title": "On Teaching",
+      "number": 18,
+      "durationMs": 93000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_18_gibran_64kb.mp3",
+      "chapterRef": "on-teaching"
+    },
+    {
+      "id": "ep_19",
+      "slug": "on-friendship",
+      "title": "On Friendship",
+      "number": 19,
+      "durationMs": 125000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_19_gibran_64kb.mp3",
+      "chapterRef": "on-friendship"
+    },
+    {
+      "id": "ep_20",
+      "slug": "on-talking",
+      "title": "On Talking",
+      "number": 20,
+      "durationMs": 100000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_20_gibran_64kb.mp3",
+      "chapterRef": "on-talking"
+    },
+    {
+      "id": "ep_21",
+      "slug": "on-time",
+      "title": "On Time",
+      "number": 21,
+      "durationMs": 104000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_21_gibran_64kb.mp3",
+      "chapterRef": "on-time"
+    },
+    {
+      "id": "ep_22",
+      "slug": "on-good-and-evil",
+      "title": "On Good and Evil",
+      "number": 22,
+      "durationMs": 179000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_22_gibran_64kb.mp3",
+      "chapterRef": "on-good-and-evil"
+    },
+    {
+      "id": "ep_23",
+      "slug": "on-prayer",
+      "title": "On Prayer",
+      "number": 23,
+      "durationMs": 153000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_23_gibran_64kb.mp3",
+      "chapterRef": "on-prayer"
+    },
+    {
+      "id": "ep_24",
+      "slug": "on-pleasure",
+      "title": "On Pleasure",
+      "number": 24,
+      "durationMs": 220000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_24_gibran_64kb.mp3",
+      "chapterRef": "on-pleasure"
+    },
+    {
+      "id": "ep_25",
+      "slug": "on-beauty",
+      "title": "On Beauty",
+      "number": 25,
+      "durationMs": 180000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_25_gibran_64kb.mp3",
+      "chapterRef": "on-beauty"
+    },
+    {
+      "id": "ep_26",
+      "slug": "on-religion",
+      "title": "On Religion",
+      "number": 26,
+      "durationMs": 152000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_26_gibran_64kb.mp3",
+      "chapterRef": "on-religion"
+    },
+    {
+      "id": "ep_27",
+      "slug": "on-death",
+      "title": "On Death",
+      "number": 27,
+      "durationMs": 137000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_27_gibran_64kb.mp3",
+      "chapterRef": "on-death"
+    },
+    {
+      "id": "ep_28",
+      "slug": "the-farewell",
+      "title": "The Farewell",
+      "number": 28,
+      "durationMs": 826000,
+      "audioUrl": "https://www.archive.org/download/the_prophet_2109_librivox/theprophet_28_gibran_64kb.mp3",
+      "chapterRef": "the-farewell"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "en": [
+    {
+      "partOfSpeech": "Adjective",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "Having or resulting from a legal <a rel=\"mw:WikiLink\" href=\"/wiki/entail\" title=\"entail\">entail</a>; pertaining to <a rel=\"mw:WikiLink\" href=\"/wiki/inheritance\" title=\"inheritance\">inheritance</a> that is <a rel=\"mw:WikiLink\" href=\"/wiki/limit\" title=\"limit\">limited</a> in <a rel=\"mw:WikiLink\" href=\"/wiki/descent\" title=\"descent\">descent</a> to a particular class of issue."
+        },
+        {
+          "definition": "That is <a rel=\"mw:WikiLink\" href=\"/wiki/require\" title=\"require\">required</a> <a rel=\"mw:WikiLink\" href=\"/wiki/logically\" title=\"logically\">logically</a> (by something); That has logical <a rel=\"mw:WikiLink\" href=\"/wiki/dependency\" title=\"dependency\">dependencies</a>."
+        }
+      ]
+    },
+    {
+      "partOfSpeech": "Verb",
+      "language": "English",
+      "definitions": [
+        {
+          "definition": "<span class=\"form-of-definition use-with-mention\" about=\"#mwt11\" typeof=\"mw:Transclusion\"><span class=\"inflection-of-conjoined\">simple <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#past_tense\" title=\"Appendix:Glossary\">past</a></span> and <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#past_tense\" title=\"Appendix:Glossary\">past</a> <a rel=\"mw:WikiLink\" href=\"/wiki/Appendix:Glossary#participle\" title=\"Appendix:Glossary\">participle</a> of <span class=\"form-of-definition-link\"><i class=\"Latn mention\" lang=\"en\"><a rel=\"mw:WikiLink\" href=\"/wiki/entail#English\" title=\"entail\">entail</a></i></span></span>"
+        }
+      ]
+    }
+  ]
+}

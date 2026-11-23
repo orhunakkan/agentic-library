@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0B0D17" />
+    <title>Offline · Folio</title>
+    <script>
+      try {
+        if (localStorage.getItem('folio-theme') === 'light') document.documentElement.classList.remove('dark')
+      } catch {
+      }
+    </script>
+    <style>
+      :root {
+        --page: #f5f6fb;
+        --ink: #11142a;
+        --body: #3a3f5c;
+        color-scheme: light;
+      }
+      .dark {
+        --page: #0b0d17;
+        --ink: #f2f3fa;
+        --body: #c9cce3;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--page);
+        color: var(--body);
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      main {
+        display: flex;
+        min-height: 100dvh;
+        max-width: 420px;
+        margin: 0 auto;
+        padding: 48px 16px;
+        flex-direction: column;
+        justify-content: center;
+      }
+      h1 {
+        margin: 24px 0 0;
+        color: var(--ink);
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 12px 0 0;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      button {
+        margin-top: 28px;
+        align-self: flex-start;
+        min-height: 44px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 12px;
+        background: #b8f35c;
+        color: #0b0d17;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover {
+        filter: brightness(1.05);
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+      }
+      section {
+        margin-top: 40px;
+      }
+      h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 19px;
+        line-height: 1.3;
+      }
+      ul {
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      li + li {
+        margin-top: 14px;
+      }
+      li a {
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.4;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        border-radius: 4px;
+      }
+      li p {
+        margin: 2px 0 0;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg width="48" height="48" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#B8F35C" />
+        <circle cx="16" cy="16" r="6" fill="#0B0D17" />
+      </svg>
+      <h1>You’re offline</h1>
+      <p>Folio needs a connection to open this page. Check your connection, then try again.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+      <section id="downloads" aria-labelledby="downloads-heading" hidden>
+        <h2 id="downloads-heading">Downloaded books</h2>
+        <p>These open without a connection.</p>
+        <ul id="downloads-list"></ul>
+      </section>
+    </main>
+    <script>
+      ;(async () => {
+        try {
+          if (typeof caches === 'undefined' || !(await caches.has('folio-books-v1'))) return
+          const cache = await caches.open('folio-books-v1')
+          const stored = (key, fallback) => {
+            try {
+              return JSON.parse(localStorage.getItem(key) || 'null') || fallback
+            } catch {
+              return fallback
+            }
+          }
+          const checked = stored('offline-checked', {})
+          const recent = stored('recent-reading', [])
+          const books = []
+          for (const request of await cache.keys()) {
+            const slug = /^\/offline\/([^/]+)\.json$/.exec(new URL(request.url).pathname)?.[1]
+            if (!slug || slug === 'nav') continue
+            let summary
+            try {
+              summary = JSON.parse(decodeURIComponent((await cache.match(request)).headers.get('x-folio-offline')))
+            } catch {
+              continue
+            }
+            if (!summary || summary.slug !== slug || typeof summary.title !== 'string') continue
+            const at = checked[slug]
+            if (slug.startsWith('u-') && !(typeof at === 'number' && Date.now() - at <= 30 * 24 * 60 * 60 * 1000)) continue
+            const own = (href) => typeof href === 'string' && href.startsWith(`/read/${slug}/`)
+            const place = Array.isArray(recent) ? recent.find((e) => e && e.bookSlug === slug && own(e.href)) : null
+            const href = place ? place.href : own(summary.start) ? summary.start : null
+            if (href) books.push({ ...summary, href })
+          }
+          if (books.length === 0) return
+          books.sort((a, b) => b.savedAt - a.savedAt)
+          const list = document.getElementById('downloads-list')
+          for (const book of books) {
+            const item = document.createElement('li')
+            const link = document.createElement('a')
+            link.href = book.href
+            link.textContent = book.title
+            const author = document.createElement('p')
+            author.textContent = book.author
+            item.append(link, author)
+            list.append(item)
+          }
+          document.getElementById('downloads').hidden = false
+        } catch {
+        }
+      })()
+    </script>
+  </body>
+</html>
