@@ -26,7 +26,7 @@ describe('encodeSummary and decodeSummary', () => {
       title: 'Şiirler — “Gül”',
       author: 'Ünal',
       owner: 'ada',
-      start: '/read/u-0f8fad5b-d9cb-469f-a165-70867728950e/one',
+      start: `/read/${privateBookSlug('0f8fad5b-d9cb-469f-a165-70867728950e')}/one`,
     }
     expect(decodeSummary(encodeSummary(own))).toEqual(own)
   })

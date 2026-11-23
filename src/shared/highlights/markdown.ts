@@ -1,4 +1,4 @@
-import { isPrivateBookSlug } from '../content/book-slug.ts'
+import { hasPrivateSlugPrefix } from '../content/book-slug.ts'
 import { slugify } from '../import/slug.ts'
 import { SITE_NAME } from '../lib/site.ts'
 import { groupByChapter, type HighlightView } from './group.ts'
@@ -171,7 +171,7 @@ export function toMarkdownAll(books: readonly ExportAllBook[], { origin, now }: 
 }
 
 export function exportFileName(slug: string, title: string): string {
-  const base = isPrivateBookSlug(slug) ? slugify(title).slice(0, 80).replace(/-$/, '') || 'book' : slug
+  const base = hasPrivateSlugPrefix(slug) ? slugify(title).slice(0, 80).replace(/-$/, '') || 'book' : slug
   return `${base}-highlights.md`
 }
 

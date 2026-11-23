@@ -26,7 +26,7 @@ const browser = () =>
     'ask:emma': '{}',
     [`read-aloud-pos:${PRIVATE_1234}`]: '{}',
     'read-aloud-pos:emma': '{}',
-    'listen-pos:u-6f1c0000-0000-4000-8000-000000000000:1': '{"v":1,"ms":1000,"at":1}',
+    [`listen-pos:${privateBookSlug('6f1c0000-0000-4000-8000-000000000000')}:1`]: '{"v":1,"ms":1000,"at":1}',
     'listen-pos:the-prophet:ep_1': '{"v":1,"ms":1000,"at":1}',
     'reader-prefs': '{"theme":"dark"}',
   })

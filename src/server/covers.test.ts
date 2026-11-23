@@ -77,7 +77,7 @@ describe('serveCover', () => {
       'nobody',
       'nobody.svg',
       privateBookSlug('0b9f6a3c-2d5e-4f1a-9c8b-7e6d5c4b3a21'),
-      'u-0b9f6a3c-2d5e-4f1a-9c8b-7e6d5c4b3a21.svg',
+      `${privateBookSlug('0b9f6a3c-2d5e-4f1a-9c8b-7e6d5c4b3a21')}.svg`,
       'With-Cover',
       '../secret',
       'with-cover-abcdef12.gif',

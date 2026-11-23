@@ -1,6 +1,6 @@
 import { browserStorage } from '~/client/features/ask/thread-store'
 import { syncOutbox } from '~/client/features/sync/outbox'
-import { isCatalogueBookSlug, isPrivateBookSlug } from '~/shared/content/book-slug'
+import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
 import type { PagePosition } from '~/shared/highlights/page-text'
 
@@ -31,7 +31,7 @@ export function positionFromHref(href: string): PagePosition | null {
   if (!match) return null
   const [, book = '', part = '', n] = match
   if (n !== undefined) return { chapter: part, page: Number(n) }
-  if (/^[1-9]\d*$/.test(part) && !isPrivateBookSlug(book)) return { printedPage: Number(part) }
+  if (/^[1-9]\d*$/.test(part) && !hasPrivateSlugPrefix(book)) return { printedPage: Number(part) }
   return { chapter: part, page: 1 }
 }
 
@@ -62,7 +62,7 @@ export function placeFor(bookSlug: string, storage: Storage | null = browserStor
 
 export function clearPrivateReading(storage: Storage | null): void {
   const list = readRecent(storage)
-  const kept = list.filter((e) => isCatalogueBookSlug(e.bookSlug))
+  const kept = list.filter((e) => !hasPrivateSlugPrefix(e.bookSlug))
   if (kept.length !== list.length) writeRecent(storage, kept)
 }
 

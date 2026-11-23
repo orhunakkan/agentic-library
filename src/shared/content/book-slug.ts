@@ -25,6 +25,9 @@ export const isPrivateBookSlug = (value: unknown): value is string => parseBookS
 
 export const isCatalogueBookSlug = (value: unknown): value is string => parseBookSlug(value)?.kind === 'catalogue'
 
+/** Whether a value starts like a private book's slug, valid or not: for sweeps and guards that must over-match. */
+export const hasPrivateSlugPrefix = (value: string): boolean => value.startsWith(PRIVATE_PREFIX)
+
 export const privateBookSlug = (id: string): string => `${PRIVATE_PREFIX}${id}`
 
 /** A slug that is not a private book's is taken as a catalogue slug, as rows store it. */

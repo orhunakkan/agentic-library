@@ -1,4 +1,5 @@
 import { removeKeys } from '~/client/lib/storage-keys'
+import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import type { PagePosition } from '~/shared/highlights/page-text'
 import type { ListeningWrite } from '~/shared/sync/sync'
 
@@ -163,7 +164,7 @@ export function forgetVoice(storage: Storage | null, key: string, voiceURI: stri
 }
 
 export function clearPrivatePositions(storage: Storage | null): void {
-  removeKeys(storage, (key) => key.startsWith(`${PREFIX}u-`))
+  removeKeys(storage, (key) => key.startsWith(PREFIX) && hasPrivateSlugPrefix(key.slice(PREFIX.length)))
 }
 
 export function offerDismissed(storage: Storage | null): boolean {

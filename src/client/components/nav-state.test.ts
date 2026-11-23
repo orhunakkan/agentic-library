@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { activeMainItem, isCollectionActive, shellFor } from './nav-state'
 
 describe('shellFor', () => {
@@ -10,7 +11,7 @@ describe('shellFor', () => {
 
   it('gives every reader page the reader frame, private books included', () => {
     expect(shellFor('/read/pride-and-prejudice/chapter-1')).toBe('reader')
-    expect(shellFor('/read/u-00000000-0000-4000-8000-000000000000/opening/2')).toBe('reader')
+    expect(shellFor(`/read/${privateBookSlug('00000000-0000-4000-8000-000000000000')}/opening/2`)).toBe('reader')
     expect(shellFor('/reader')).toBe('app')
   })
 

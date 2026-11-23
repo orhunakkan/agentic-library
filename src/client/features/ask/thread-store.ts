@@ -1,5 +1,6 @@
 import { removeKeys } from '~/client/lib/storage-keys'
 import type { AskPosition, CardDraft, QuizQuestion, StudySource, StudySpan } from '~/shared/ask/events'
+import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 
 export interface ThreadCitation {
   pageHref: string
@@ -152,7 +153,7 @@ export function clearThread(storage: Storage | null, bookSlug: string): void {
 }
 
 export function clearPrivateThreads(storage: Storage | null): void {
-  removeKeys(storage, (key) => key.startsWith('ask:u-'))
+  removeKeys(storage, (key) => key.startsWith(threadKey('')) && hasPrivateSlugPrefix(key.slice(threadKey('').length)))
 }
 
 export function browserStorage(): Storage | null {

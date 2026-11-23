@@ -20,6 +20,10 @@ _Avoid_: user book, uploaded book, my book
 The name of a book in links and references: `u-<id>` for a private book, a lowercase hyphenated name for a catalogue book.
 _Avoid_: book id, book key
 
+**Chapter slug**:
+The name of a chapter inside one book, in reader links (`/read/<book slug>/<chapter slug>`). It shares the book slug's lowercase hyphenated shape but is not a book slug, and may start with `u-`.
+_Avoid_: chapter id
+
 **Position**:
 Where in a book someone is: a page of a chapter, or a printed page.
 _Avoid_: location, place (a place is a highlight's span of text on a page)

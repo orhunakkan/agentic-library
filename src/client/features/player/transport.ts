@@ -2,7 +2,7 @@ import type { AudioLike } from '~/client/features/read-aloud/audio-speaker'
 import { browserTimers, type Timers } from '~/client/features/read-aloud/speaker'
 import type { OutboxItem } from '~/client/features/sync/outbox'
 import type { PlayerBook, PlayerEpisode } from '~/shared/content/book-page'
-import { isPrivateBookSlug } from '~/shared/content/book-slug'
+import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import type { Arbiter } from './arbitration'
 import { elementTime, endsInsideFile, isWindowed, needsSeek, reachedEnd, timeInEpisode } from './episode-window'
 import { finishEpisode, readEpisode, readSpeed, writeEpisode, writeSpeed } from './position-store'
@@ -71,7 +71,7 @@ function resumeAt(episode: PlayerEpisode, saved: number | null, startMs?: number
 }
 
 const legacyUrl = (book: PlayerBook, episode: PlayerEpisode) =>
-  isPrivateBookSlug(book.slug) ? undefined : episode.audioUrl
+  hasPrivateSlugPrefix(book.slug) ? undefined : episode.audioUrl
 
 export const IDLE_TRANSPORT: TransportState = {
   book: null,

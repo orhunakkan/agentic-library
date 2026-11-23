@@ -5,15 +5,27 @@ interface Seam {
   name: string
   pattern: RegExp
   under: string[]
+  /** Scan test files too; by default a seam guards only shipped source. */
+  tests?: boolean
   allowed: Record<string, string>
 }
 
 const SEAMS: Seam[] = [
   {
     name: "a book slug's u- prefix is written only by the book slug codec (#87)",
-    pattern: /['"`^]u-/,
+    pattern: /(^|[^a-zA-Z0-9_-])u-/m,
     under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
     allowed: { 'src/shared/content/book-slug.ts': 'the codec' },
+  },
+  {
+    name: 'a test builds a private book slug with the codec, never by hand (#87)',
+    pattern: /u-(\$\{|[0-9a-f]{8}-)/,
+    under: ['src', 'tests/fixtures', 'tests/content.test.ts'],
+    tests: true,
+    allowed: {
+      'src/shared/content/book-slug.test.ts': "the codec's own round-trips",
+      'src/shared/uuid.test.ts': 'a slug is not a UUID',
+    },
   },
   {
     name: 'the catalogue is searched for a book only by repository.ts (#70)',
@@ -149,12 +161,12 @@ function withoutComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1')
 }
 
-function sourcesUnder(path: string): string[] {
-  const isTest = (file: string) => /\.test\.tsx?$/.test(file)
-  if (/\.tsx?$/.test(path)) return isTest(path) ? [] : [path]
+function sourcesUnder(path: string, tests = false): string[] {
+  const kept = (file: string) => tests || !/\.test\.tsx?$/.test(file)
+  if (/\.tsx?$/.test(path)) return kept(path) ? [path] : []
   return readdirSync(path, { recursive: true, encoding: 'utf8' })
     .map((name) => `${path}/${name.replaceAll('\\', '/')}`)
-    .filter((file) => /\.tsx?$/.test(file) && !isTest(file))
+    .filter((file) => /\.tsx?$/.test(file) && kept(file))
 }
 
 function seamProblems(seam: Seam, read: (path: string) => string, files: string[]): string[] {
@@ -199,7 +211,7 @@ describe('the source tree', () => {
   const read = (path: string) => readFileSync(path, 'utf8')
 
   it.each(SEAMS.map((seam) => [seam.name, seam] as const))('%s', (_name, seam) => {
-    const files = seam.under.flatMap(sourcesUnder)
+    const files = seam.under.flatMap((path) => sourcesUnder(path, seam.tests))
     expect(files.length).toBeGreaterThan(0)
     expect(seamProblems(seam, read, files)).toEqual([])
   })

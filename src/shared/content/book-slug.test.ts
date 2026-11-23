@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBookSlug, parseBookSlug, privateBookSlug, refFor, slugOf } from './book-slug'
+import { hasPrivateSlugPrefix, isBookSlug, parseBookSlug, privateBookSlug, refFor, slugOf } from './book-slug'
 
 const ID = '6f1c0000-0000-4000-8000-000000000000'
 
@@ -51,5 +51,12 @@ describe('refFor and slugOf', () => {
     expect(refFor('emma')).toEqual({ slug: 'emma', userBookId: null })
     expect(refFor(privateBookSlug(ID))).toEqual({ slug: null, userBookId: ID })
     for (const slug of ['emma', privateBookSlug(ID)]) expect(slugOf(refFor(slug))).toBe(slug)
+  })
+})
+
+describe('hasPrivateSlugPrefix', () => {
+  it('over-matches: anything starting like a private book’s slug, valid or not, for sweeps that must not miss one', () => {
+    for (const slug of [privateBookSlug(ID), 'u-not-a-uuid', 'u-']) expect(hasPrivateSlugPrefix(slug), slug).toBe(true)
+    for (const slug of ['emma', 'menu-u-', 'U-x', '']) expect(hasPrivateSlugPrefix(slug), slug).toBe(false)
   })
 })
