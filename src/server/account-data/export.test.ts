@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { type AccountRows, exportFileName, toAccountExport, USER_TABLES } from './export'
 
 const at = (minute: number) => new Date(Date.UTC(2026, 10, 6, 12, minute))
@@ -432,8 +433,8 @@ describe('toAccountExport', () => {
       { slug: 'pride-and-prejudice', title: 'Pride and Prejudice' },
       { slug: 'gone-from-the-library', title: null },
     ])
-    expect(out.bookmarks[0]?.book).toEqual({ slug: `u-${BOOK_ID}`, title: 'My notes' })
-    expect(out.listeningPlaces[0]?.book).toEqual({ slug: `u-${BOOK_ID}`, title: 'My notes' })
+    expect(out.bookmarks[0]?.book).toEqual({ slug: privateBookSlug(BOOK_ID), title: 'My notes' })
+    expect(out.listeningPlaces[0]?.book).toEqual({ slug: privateBookSlug(BOOK_ID), title: 'My notes' })
     expect(out.audioBookmarks[0]?.book).toEqual({ slug: 'fixture-audio-book', title: 'The Audio Book' })
     expect(out.shelves[0]?.books[0]?.book).toEqual({ slug: 'pride-and-prejudice', title: 'Pride and Prejudice' })
     expect(out.removedBooks[0]).toEqual({
@@ -441,10 +442,10 @@ describe('toAccountExport', () => {
       removedAt: at(22).toISOString(),
     })
     expect(out.ratings).toEqual([
-      { book: { slug: `u-${BOOK_ID}`, title: 'My notes' }, stars: 2, ratedAt: at(26).toISOString() },
+      { book: { slug: privateBookSlug(BOOK_ID), title: 'My notes' }, stars: 2, ratedAt: at(26).toISOString() },
       { book: { slug: 'gone-from-the-library', title: null }, stars: 5, ratedAt: at(27).toISOString() },
     ])
-    expect(out.privateBooks[0]).toMatchObject({ slug: `u-${BOOK_ID}`, title: 'My notes' })
+    expect(out.privateBooks[0]).toMatchObject({ slug: privateBookSlug(BOOK_ID), title: 'My notes' })
     const everyBook = [
       ...out.highlights,
       ...out.bookmarks,
@@ -461,7 +462,7 @@ describe('toAccountExport', () => {
 
   it('a private book no longer in the rows gets a null title', () => {
     const lost = toAccountExport({ ...rows(), privateBooks: [] }, options)
-    expect(lost.bookmarks[0]?.book).toEqual({ slug: `u-${BOOK_ID}`, title: null })
+    expect(lost.bookmarks[0]?.book).toEqual({ slug: privateBookSlug(BOOK_ID), title: null })
   })
 
   it('stamps the format, the version, the site and the time, and resolves the model', () => {

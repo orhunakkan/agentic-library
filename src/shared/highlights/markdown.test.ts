@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import type { HighlightView } from './group.ts'
 import {
   type ExportAllBook,
@@ -140,7 +141,11 @@ The first impression everyone shares.
   })
 
   it('starts with properties that keep an awkward title one string and leave out an empty author', () => {
-    const md = toMarkdown({ slug: 'u-1', title: 'Notes: "Draft" #2', author: '' }, [], { origin, now })
+    const md = toMarkdown(
+      { slug: privateBookSlug('11111111-1111-4111-8111-111111111111'), title: 'Notes: "Draft" #2', author: '' },
+      [],
+      { origin, now },
+    )
     expect(md).toMatch(/^---\ntitle: "Notes: \\"Draft\\" #2"\nsource: "https:\/\/agenticlibrary\.app\//)
     expect(md).not.toContain('author:')
     expect(md).toContain('\nexported: 2026-11-04\n')
@@ -312,9 +317,9 @@ describe('exportAllFileName', () => {
 describe('exportFileName', () => {
   it('uses the slug for a catalogue book and the title for a private one', () => {
     expect(exportFileName('pride-and-prejudice', 'Pride and Prejudice')).toBe('pride-and-prejudice-highlights.md')
-    expect(exportFileName('u-6f1c0000-0000-4000-8000-000000000000', 'Field Notes: Spring')).toBe(
+    expect(exportFileName(privateBookSlug('6f1c0000-0000-4000-8000-000000000000'), 'Field Notes: Spring')).toBe(
       'field-notes-spring-highlights.md',
     )
-    expect(exportFileName('u-6f1c0000-0000-4000-8000-000000000000', '???')).toBe('book-highlights.md')
+    expect(exportFileName(privateBookSlug('6f1c0000-0000-4000-8000-000000000000'), '???')).toBe('book-highlights.md')
   })
 })

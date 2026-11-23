@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import type { ArticlesState } from '~/shared/articles/contract'
 import type { PlanState } from '~/shared/billing/billing'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { chapterPageHref } from '~/shared/content/navigation'
 import {
   buildPrivateAudiobookPage,
@@ -13,7 +14,6 @@ import {
   privateBookHref,
   privateCover,
   privateCoverImage,
-  privateSlug,
 } from '~/shared/content/private-book'
 import type { RepoFolderState, ReposState, RepoViewState } from '~/shared/github-repos/contract'
 import { costOf } from '~/shared/lib/speech-models'
@@ -22,6 +22,7 @@ import type { RatingState } from '~/shared/ratings/ratings'
 import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import type { ReadingStatsState, ReadingSummaryState } from '~/shared/reading-stats/contract'
 import type { SyncState } from '~/shared/sync/sync'
+import { isBookSlug } from '../shared/content/book-slug.ts'
 import { isUuid } from '../shared/uuid.ts'
 import { listAccessTokens } from './access-tokens/store.ts'
 import { toAccessTokenView } from './access-tokens/view.ts'
@@ -36,7 +37,6 @@ import { audioBytesUsed, loadAudiobook } from './audiobooks/store.ts'
 import { loginHref, readSessionToken, sessionForRequest, viewerForRequest } from './auth.ts'
 import { planStateFor } from './billing/actions.ts'
 import { imageBytesUsed } from './book-images/store.ts'
-import { isBookSlug } from './book-ref/ref.ts'
 import { type AudioBookmarksState, audioBookmarksState } from './bookmarks/audio-actions.ts'
 import { type BookBookmarksState, bookBookmarksState } from './bookmarks/read.ts'
 import { getConfig } from './config.ts'
@@ -201,7 +201,8 @@ export const getMyBooksPage = createServerFn({ method: 'GET' }).handler(async ()
       audioMs: b.format === 'audio' ? (b.audioMs ?? 0) : null,
       importedAt: b.readyAt.toISOString(),
       href: privateBookHref(b.id),
-      readHref: b.format === 'audio' ? privateBookHref(b.id) : chapterPageHref(privateSlug(b.id), b.firstChapter, 1),
+      readHref:
+        b.format === 'audio' ? privateBookHref(b.id) : chapterPageHref(privateBookSlug(b.id), b.firstChapter, 1),
       cover: privateCover(b.title),
       image: privateCoverImage(b.id, b.cover),
     })),

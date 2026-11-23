@@ -2,6 +2,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -125,7 +126,7 @@ describe('the endpoint and the reads', () => {
     expect(await answer(await post(null, body))).toEqual([401, 'signed_out'])
     expect(await answer(await post(cookie, 'not json'))).toEqual([400, 'invalid'])
     expect(await answer(await post(cookie, { book: PRIDE }))).toEqual([400, 'invalid'])
-    const privateBook = 'u-6f1c0000-0000-4000-8000-000000000000'
+    const privateBook = privateBookSlug('6f1c0000-0000-4000-8000-000000000000')
     expect(await answer(await post(cookie, { book: privateBook, removed: true }))).toEqual([400, 'invalid'])
     expect(await answer(await post(cookie, { book: 'no-such-book', removed: true }))).toEqual([404, 'not_found'])
     expect(await raw`select 1 from removed_books`).toHaveLength(0)

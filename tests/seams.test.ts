@@ -10,17 +10,10 @@ interface Seam {
 
 const SEAMS: Seam[] = [
   {
-    name: 'a private book id is read from a slug only where routing needs it (#70)',
-    pattern: /\bprivateBookId\(/,
-    under: ['src/server'],
-    allowed: {
-      'src/server/repository.ts': 'defines it',
-      'src/server/functions.ts': "the reader's routes",
-      'src/server/private-reading.ts': "the reader's private book",
-      'src/server/read-aloud.ts': "read aloud's chapter routing",
-      'src/server/content-images.ts': 'public files of a private book',
-      'src/server/downloads/handler.ts': 'downloads',
-    },
+    name: "a book slug's u- prefix is written only by the book slug codec (#87)",
+    pattern: /['"`^]u-/,
+    under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
+    allowed: { 'src/shared/content/book-slug.ts': 'the codec' },
   },
   {
     name: 'the catalogue is searched for a book only by repository.ts (#70)',
@@ -148,7 +141,6 @@ const SEAMS: Seam[] = [
     allowed: {
       'src/shared/uuid.ts': 'defines isUuid',
       'src/server/sync/input.ts': 'accepts uppercase too (the i flag), so it is not the same check',
-      'src/shared/content/private-book.ts': "PRIVATE_SLUG, a different pattern: 'u-' and a UUID",
     },
   },
 ]

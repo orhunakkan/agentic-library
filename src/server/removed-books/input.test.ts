@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseRemovedBook } from './input'
 
 describe('parseRemovedBook', () => {
@@ -14,7 +15,9 @@ describe('parseRemovedBook', () => {
   })
 
   it('refuses a private book, which is deleted instead', () => {
-    expect(parseRemovedBook({ book: 'u-6f1c0000-0000-4000-8000-000000000000', removed: true })).toBeNull()
+    expect(
+      parseRemovedBook({ book: privateBookSlug('6f1c0000-0000-4000-8000-000000000000'), removed: true }),
+    ).toBeNull()
   })
 
   it('refuses unknown fields, missing fields, wrong types and a bad slug', () => {

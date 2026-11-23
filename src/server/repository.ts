@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { delimiter, join, resolve } from 'node:path'
-import { privateBookId } from '~/shared/content/private-book'
+import { isCatalogueBookSlug } from '~/shared/content/book-slug'
 import type { AudioBook, BookContent, BookMeta, Catalog, Collection, Series } from '~/shared/content/schema'
 import { rebaseAudioUrl } from './audio-base'
 
@@ -73,8 +73,6 @@ async function readContent<T>(...path: string[]): Promise<T | null> {
   return null
 }
 
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-
 export function loadBook(slug: string): Promise<BookContent | null> {
   return cachedBySlug(bookCache, slug, () => readContent<BookContent>('books', `${slug}.json`))
 }
@@ -92,7 +90,7 @@ export function loadAudio(slug: string): Promise<AudioBook | null> {
 export type CatalogCoverImage = NonNullable<BookMeta['coverImage']>
 
 export async function coverFile(slug: string): Promise<{ path: string; meta: CatalogCoverImage } | null> {
-  if (!SLUG.test(slug) || privateBookId(slug)) return null
+  if (!isCatalogueBookSlug(slug)) return null
   const meta = (await catalogueBook(slug))?.coverImage
   if (!meta || !/^[a-z0-9-]+\.(jpg|png|webp)$/.test(meta.file)) return null
   for (const dir of CONTENT_DIRS) {
@@ -107,7 +105,7 @@ function cachedBySlug<T>(
   slug: string,
   load: () => Promise<T | null>,
 ): Promise<T | null> {
-  if (!SLUG.test(slug) || privateBookId(slug)) return Promise.resolve(null)
+  if (!isCatalogueBookSlug(slug)) return Promise.resolve(null)
   let cached = cache.get(slug)
   if (!cached) {
     cached = load()
@@ -117,7 +115,7 @@ function cachedBySlug<T>(
 }
 
 export async function contentImageFile(slug: string, file: string): Promise<string | null> {
-  if (!SLUG.test(slug) || privateBookId(slug) || !/^[0-9a-f]{12}\.[a-z]{3,4}$/.test(file)) return null
+  if (!isCatalogueBookSlug(slug) || !/^[0-9a-f]{12}\.[a-z]{3,4}$/.test(file)) return null
   for (const dir of CONTENT_DIRS) {
     const path = join(dir, 'images', slug, file)
     if (existsSync(path)) return path

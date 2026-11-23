@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseSpeakInput } from './input'
 
 const span = {
@@ -20,7 +21,12 @@ describe('parseSpeakInput', () => {
   })
 
   it('takes the chapter’s intro instead of a span, never both', () => {
-    const intro = { book: 'u-6f1c0000-0000-4000-8000-000000000001', chapter: 3, voice: 'Abc', intro: true }
+    const intro = {
+      book: privateBookSlug('6f1c0000-0000-4000-8000-000000000001'),
+      chapter: 3,
+      voice: 'Abc',
+      intro: true,
+    }
     expect(parseSpeakInput(intro)).toEqual({ ...intro, format: 'low', kind: 'intro', intro: undefined })
     expect(parseSpeakInput({ ...intro, intro: false })).toBeNull()
     expect(parseSpeakInput({ ...span, intro: true })).toBeNull()

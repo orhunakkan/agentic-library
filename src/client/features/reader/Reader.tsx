@@ -30,8 +30,8 @@ import { RunDialog, type RunTarget, useRunEdits } from '~/client/features/run-co
 import { runAccess } from '~/client/features/run-code/run-access'
 import { ReadElsewhere } from '~/client/features/sync/ReadElsewhere'
 import { useMediaQuery } from '~/client/lib/use-media-query'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import type { NavTarget } from '~/shared/content/navigation'
-import { privateBookId } from '~/shared/content/private-book'
 import type { ReaderView } from '~/shared/content/reader-view'
 import { AskButton, IconButton, ReadAloudButton } from './ChromeButtons'
 import { ContentsDrawer, TocPanel, type TocTab } from './Contents'
@@ -90,7 +90,7 @@ export function Reader({
   const askVoice = useAskVoice({
     ask,
     lang: view.book.language,
-    privateBook: privateBookId(view.book.slug) !== null,
+    privateBook: isPrivateBookSlug(view.book.slug),
     active: panelOpen || (askSheetOpen && !desktop),
     send: (text) => {
       void ask.ask(text, askQuote, { spoken: true })

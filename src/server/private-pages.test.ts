@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { privateHeaders } from './private-pages'
+
+const PRIVATE_0B6C = privateBookSlug('0b6c0000-0000-4000-8000-000000000000')
 
 const NO_STORE = { 'cache-control': 'private, no-store' }
 const TOKEN_PAGE = { ...NO_STORE, 'referrer-policy': 'strict-origin' }
@@ -16,8 +19,8 @@ describe('privateHeaders', () => {
       '/account/api-keys',
       '/account/books/12',
       '/account/books/lookup',
-      '/read/u-0b6c/chapter-1',
-      '/offline/u-0b6c.json',
+      `/read/${PRIVATE_0B6C}/chapter-1`,
+      `/offline/${PRIVATE_0B6C}.json`,
     ]) {
       expect(privateHeaders(path, null), path).toEqual(NO_STORE)
     }

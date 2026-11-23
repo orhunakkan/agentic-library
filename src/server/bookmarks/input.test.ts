@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseBookmarkChange, parseBookmarkCreate } from './input.ts'
 
 const BOOK_ID = '6f1c2a4e-0000-4000-8000-000000000000'
@@ -13,8 +14,10 @@ describe('parseBookmarkCreate', () => {
       book: 'confessions-of-al-ghazzali',
       position: { printedPage: 112 },
     })
-    expect(parseBookmarkCreate({ book: `u-${BOOK_ID}`, position: { chapter: 'only', page: 1 } })).toMatchObject({
-      book: `u-${BOOK_ID}`,
+    expect(
+      parseBookmarkCreate({ book: privateBookSlug(BOOK_ID), position: { chapter: 'only', page: 1 } }),
+    ).toMatchObject({
+      book: privateBookSlug(BOOK_ID),
     })
   })
 

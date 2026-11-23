@@ -1,3 +1,4 @@
+import { isCatalogueBookSlug } from '~/shared/content/book-slug'
 export const SPEED_KEY = 'player-speed'
 const PREFIX = 'listen-pos:'
 const LEGACY_PREFIX = 'player-pos:'
@@ -99,7 +100,7 @@ export function continueEpisode(storage: Storage | null, book: string, episodes:
 export function forgetPrivateEpisodes(storage: Storage | null): void {
   try {
     for (const e of listEpisodes(storage))
-      if (e.book.startsWith('u-')) storage?.removeItem(episodeKey(e.book, e.episode))
+      if (!isCatalogueBookSlug(e.book)) storage?.removeItem(episodeKey(e.book, e.episode))
   } catch {}
 }
 

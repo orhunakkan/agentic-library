@@ -1,5 +1,6 @@
 import { isNotFound } from '@tanstack/react-router'
 import { describe, expect, it, vi } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { loadSpeechChapterData, speechInput } from './read-aloud'
 
 vi.mock('@tanstack/react-start/server', () => ({ getRequest: () => new Request('http://localhost/read/x') }))
@@ -47,6 +48,8 @@ describe('loadSpeechChapterData', () => {
   it('is a 404 for an unknown book, a chapter out of range and a private book without its owner', async () => {
     await expect(loadSpeechChapterData('no-such-book', 0)).rejects.toSatisfy(isNotFound)
     await expect(loadSpeechChapterData('pride-and-prejudice', 999)).rejects.toSatisfy(isNotFound)
-    await expect(loadSpeechChapterData('u-00000000-0000-4000-8000-000000000000', 0)).rejects.toSatisfy(isNotFound)
+    await expect(loadSpeechChapterData(privateBookSlug('00000000-0000-4000-8000-000000000000'), 0)).rejects.toSatisfy(
+      isNotFound,
+    )
   })
 })

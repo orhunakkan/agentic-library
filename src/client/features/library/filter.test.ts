@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { buildLibrary } from '~/shared/content/library'
 import { myShelf } from '~/shared/content/private-book'
 import type { ShelfView } from '~/shared/shelves/contract'
@@ -51,7 +52,7 @@ describe('a reader’s shelf', () => {
   const toRead: ShelfView = {
     id: '6f1c0000-0000-4000-8000-000000000000',
     name: 'To read',
-    books: [`u-${BOOK_ID}`, 'rumi', 'gone-from-the-catalogue', 'essays'],
+    books: [privateBookSlug(BOOK_ID), 'rumi', 'gone-from-the-catalogue', 'essays'],
   }
   const empty: ShelfView = { id: '6f1c0000-0000-4000-8000-000000000001', name: 'Empty', books: [] }
   const readerShelves = [toRead, empty]
@@ -60,13 +61,15 @@ describe('a reader’s shelf', () => {
     const result = filterShelves(all, '', shelfFilter(toRead.id), readerShelves)
     expect(result).toHaveLength(1)
     expect(result[0]).toMatchObject({ slug: `shelf-${toRead.id}`, title: 'To read', hue: 'violet', hasAudio: true })
-    expect(slugs(result)).toEqual([`u-${BOOK_ID}`, 'rumi', 'essays'])
+    expect(slugs(result)).toEqual([privateBookSlug(BOOK_ID), 'rumi', 'essays'])
   })
 
   it('keeps a book whose title or whose series’ title matches the query', () => {
     expect(slugs(filterShelves(all, 'rumi', shelfFilter(toRead.id), readerShelves))).toEqual(['rumi'])
     expect(slugs(filterShelves(all, 'emerson', shelfFilter(toRead.id), readerShelves))).toEqual(['essays'])
-    expect(slugs(filterShelves(all, 'my shelf', shelfFilter(toRead.id), readerShelves))).toEqual([`u-${BOOK_ID}`])
+    expect(slugs(filterShelves(all, 'my shelf', shelfFilter(toRead.id), readerShelves))).toEqual([
+      privateBookSlug(BOOK_ID),
+    ])
   })
 
   it('shows an empty shelf’s row with no query, and no row once a query leaves it empty', () => {

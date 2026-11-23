@@ -1,7 +1,7 @@
 import { browserStorage } from '~/client/features/ask/thread-store'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { firstReadingHref } from '~/shared/content/reader-view'
 import {
-  isPrivateSlug,
   OFFLINE_NAV_URL,
   type OfflineBook,
   offlineBookUrl,
@@ -137,7 +137,7 @@ export async function saveBook(book: OfflineBook, options: SaveOptions = {}, env
     throw error
   }
   await removeEntries(cache, book.slug, new Set([bookUrl, ...files]))
-  if (isPrivateSlug(book.slug)) stampChecked([book.slug], env)
+  if (isPrivateBookSlug(book.slug)) stampChecked([book.slug], env)
 }
 
 export async function saveNav(nav: unknown, env: OfflineEnv = offlineEnv()): Promise<void> {
@@ -179,13 +179,13 @@ export async function forgetPrivateDownloads(env: OfflineEnv = offlineEnv()): Pr
   if (cache) {
     for (const request of await cache.keys()) {
       const slug = bookOfUrl(pathOf(request).pathname)
-      if (slug && isPrivateSlug(slug)) {
+      if (slug && isPrivateBookSlug(slug)) {
         slugs.add(slug)
         await cache.delete(request)
       }
     }
   }
-  forgetChecked([...slugs, ...Object.keys(readChecked(env.storage)).filter(isPrivateSlug)], env)
+  forgetChecked([...slugs, ...Object.keys(readChecked(env.storage)).filter(isPrivateBookSlug)], env)
   await afterRemoval(env)
 }
 
@@ -233,7 +233,7 @@ function forgetChecked(slugs: readonly string[], env: OfflineEnv) {
 }
 
 export function mayOpen(slug: string, env: OfflineEnv = offlineEnv()): boolean {
-  if (!isPrivateSlug(slug)) return true
+  if (!isPrivateBookSlug(slug)) return true
   const at = readChecked(env.storage)[slug]
   return at !== undefined && env.now() - at <= CHECK_WINDOW_MS
 }

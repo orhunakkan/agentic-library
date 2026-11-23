@@ -2,6 +2,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { testUser } from '../testing/users'
 
@@ -10,7 +11,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import type { BookRef } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/book-ref/ref'
 import { handleRating, ratingState } from '~/server/ratings/actions'
 import { clearRating, getRating, setRating } from '~/server/ratings/store'
 import { hashToken, newSessionToken } from '~/server/security'
@@ -240,7 +241,7 @@ describe('the endpoint and the read', () => {
   it('rates and clears the reader’s private book', async () => {
     const { user, cookie } = await signedIn()
     const mine = await privateBook(user.id)
-    const slug = `u-${mine.userBookId}`
+    const slug = slugOf(mine)
     const rated = await post(cookie, { book: slug, stars: 2 })
     expect([rated.status, await rated.json()]).toEqual([200, { book: slug, stars: 2 }])
     expect(await getRating(db(), user.id, mine)).toBe(2)
@@ -268,12 +269,9 @@ describe('the endpoint and the read', () => {
     }
     expect(await answer(await post(cookie, { book: 'no-such-book', stars: 4 }))).toEqual([404, 'not_found'])
     expect(await answer(await post(cookie, { book: 'no-such-book', stars: null }))).toEqual([404, 'not_found'])
-    expect(await answer(await post(cookie, { book: `u-${theirs.userBookId}`, stars: 4 }))).toEqual([404, 'not_found'])
-    expect(await answer(await post(cookie, { book: `u-${theirs.userBookId}`, stars: null }))).toEqual([
-      404,
-      'not_found',
-    ])
-    expect(await answer(await post(cookie, { book: `u-${NOWHERE}`, stars: 4 }))).toEqual([404, 'not_found'])
+    expect(await answer(await post(cookie, { book: slugOf(theirs), stars: 4 }))).toEqual([404, 'not_found'])
+    expect(await answer(await post(cookie, { book: slugOf(theirs), stars: null }))).toEqual([404, 'not_found'])
+    expect(await answer(await post(cookie, { book: privateBookSlug(NOWHERE), stars: 4 }))).toEqual([404, 'not_found'])
     expect(await rows()).toHaveLength(0)
   })
 

@@ -1,4 +1,4 @@
-import { privateBookId } from '~/shared/content/private-book'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import type { PagePosition } from '~/shared/highlights/page-text'
 import { primarySubtag, type SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import { ENGINE_BYTES, type FolioVoice, folioVoicesFor } from '~/shared/read-aloud/folio-voices'
@@ -378,7 +378,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   }
 
   const choiceKey = () =>
-    state.book ? voiceChoiceKey(primarySubtag(state.book.language), privateBookId(state.book.slug) !== null) : null
+    state.book ? voiceChoiceKey(primarySubtag(state.book.language), isPrivateBookSlug(state.book.slug)) : null
 
   const hasCloudChoice = () => Object.values(readVoices(deps.storage)).some((uri) => uri.startsWith(CLOUD_VOICE_PREFIX))
 
@@ -618,7 +618,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         return
       }
       const language = result.data.book.language
-      const privateBook = privateBookId(book) !== null
+      const privateBook = isPrivateBookSlug(book)
       const ranked = rankVoices(voices, language, { privateBook, locale: deps.locale })
       const local = deps.localSpeaker ? rankLocalVoices(downloaded, language, deps.locale) : []
       if (voices.length > 0 && ranked.length === 0 && local.length === 0) {

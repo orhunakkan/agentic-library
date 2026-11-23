@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { decodeSummary, encodeSummary, type OfflineSummary } from './summary'
 
 const summary: OfflineSummary = {
@@ -21,7 +22,7 @@ describe('encodeSummary and decodeSummary', () => {
   it('keep non-ASCII titles and a private book’s owner', () => {
     const own = {
       ...summary,
-      slug: 'u-0f8fad5b-d9cb-469f-a165-70867728950e',
+      slug: privateBookSlug('0f8fad5b-d9cb-469f-a165-70867728950e'),
       title: 'Şiirler — “Gül”',
       author: 'Ünal',
       owner: 'ada',
@@ -44,7 +45,7 @@ describe('encodeSummary and decodeSummary', () => {
     const bad = (patch: object) => encodeURIComponent(JSON.stringify({ ...summary, ...patch }))
     expect(decodeSummary(bad({ slug: 'u-nope' }))).toBeNull()
     expect(decodeSummary(bad({ owner: 'ada' }))).toBeNull()
-    expect(decodeSummary(bad({ slug: 'u-0f8fad5b-d9cb-469f-a165-70867728950e' }))).toBeNull()
+    expect(decodeSummary(bad({ slug: privateBookSlug('0f8fad5b-d9cb-469f-a165-70867728950e') }))).toBeNull()
     expect(decodeSummary(bad({ bytes: -1 }))).toBeNull()
     expect(decodeSummary(bad({ savedAt: 'today' }))).toBeNull()
     expect(decodeSummary(bad({ title: null }))).toBeNull()

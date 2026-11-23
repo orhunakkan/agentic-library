@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useToast } from '~/client/components/Toast'
 import { useInstall } from '~/client/features/install/use-install'
 import { formatBytes } from '~/client/lib/format'
-import { isPrivateSlug } from '~/shared/offline/book'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { useDownload } from './use-download'
 
 const SECONDARY =
@@ -90,9 +90,9 @@ export function DownloadButton({ slug, title }: { slug: string; title: string })
           Remove download
         </button>
       </div>
-      {(isPrivateSlug(slug) || offer === 'ios') && (
+      {(isPrivateBookSlug(slug) || offer === 'ios') && (
         <div className="basis-full space-y-1 text-[14px] text-muted">
-          {isPrivateSlug(slug) && <p data-testid="download-private-note">Removed when you sign out.</p>}
+          {isPrivateBookSlug(slug) && <p data-testid="download-private-note">Removed when you sign out.</p>}
           {offer === 'ios' && (
             <p data-testid="download-safari-note">
               Safari may remove downloads after 7 days without a visit. Add Folio to your Home Screen to keep them.

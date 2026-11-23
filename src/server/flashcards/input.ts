@@ -2,8 +2,8 @@ import { withoutMarkers } from '~/shared/ask/events'
 import { BACK_MAX, CARD_ORIGINS, type CardOrigin, FRONT_MAX } from '~/shared/flashcards/limits'
 import type { ReviewResult } from '~/shared/flashcards/schedule'
 import type { PagePosition } from '~/shared/highlights/page-text'
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { clean, isObject, only, parsePosition } from '../ask/input.ts'
-import { isBookSlug } from '../book-ref/ref.ts'
 
 export interface NewCardInput {
   book: string

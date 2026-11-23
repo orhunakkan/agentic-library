@@ -2,6 +2,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -57,7 +58,7 @@ async function privateBook(userId: number, title = 'Notes') {
   if (!start.ok) throw new Error('could not start')
   await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>One.</p>', '<p>Two.</p>'] })
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
-  return { id: start.id, slug: `u-${start.id}` }
+  return { id: start.id, slug: privateBookSlug(start.id) }
 }
 
 const post = (path: string, cookie: string | null, body: unknown, headers: Record<string, string> = {}) =>

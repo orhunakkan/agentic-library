@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { type ContentImageSources, serveContentImage } from './content-images'
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
@@ -44,7 +45,7 @@ describe('serveContentImage', () => {
     ['an SVG', 'figure-book', 'abcdef012345.svg'],
     ['a path out of the folder', 'figure-book', '../abcdef012345.png'],
     ['a slug with a path', '../figure-book', FILE],
-    ['a private book', 'u-0f8e2a9c-1b3d-4c5e-8f70-123456789abc', FILE],
+    ['a private book', privateBookSlug('0f8e2a9c-1b3d-4c5e-8f70-123456789abc'), FILE],
     ['an unknown slug', 'other-book', FILE],
     ['a file the book lacks', 'figure-book', 'ffffff012345.png'],
   ])('answers 404 for %s', async (_, slug, file) => {

@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { stat } from 'node:fs/promises'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { renderCoverSvg } from '~/shared/content/cover'
-import { privateSlug } from '~/shared/content/private-book'
 import type { BookMeta } from '~/shared/content/schema'
 import { OFFLINE_BOOK_VERSION, type OfflineBook, trimCatalog } from '~/shared/offline/book'
 import { pictureUrls } from '~/shared/offline/pictures'
@@ -75,7 +75,7 @@ export async function privateOfflineBook(
 ): Promise<OfflineBook | null> {
   const book = await loadWholeBook(db, userId, bookId)
   if (!book) return null
-  const slug = privateSlug(bookId)
+  const slug = privateBookSlug(bookId)
   const context = privateContext(bookId, book, book.chapters.length)
   const content = toChapterBook(slug, book.chapters)
   const outline = book.chapters.map((c) => ({ slug: c.slug, title: c.title, pageCount: c.pages.length }))

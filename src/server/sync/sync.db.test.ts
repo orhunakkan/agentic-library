@@ -2,6 +2,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { testUser } from '../testing/users'
 
@@ -10,7 +11,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import type { BookRef } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/book-ref/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { handleSync } from '~/server/sync/actions'
@@ -317,7 +318,7 @@ describe('POST /account/sync', () => {
   it('saves a batch of every kind, with the device from the User-Agent', async () => {
     const { user, cookie } = await signedIn()
     const book = await privateBook(user.id)
-    const slug = `u-${book.userBookId}`
+    const slug = slugOf(book)
     const response = await sync(
       cookie,
       {
@@ -404,15 +405,15 @@ describe('POST /account/sync', () => {
     const response = await sync(bob.cookie, {
       reading: [
         { book: 'no-such-book', position: { chapter: 'chapter-1', page: 1 }, at: 1 },
-        { book: `u-${hers.userBookId}`, position: { chapter: 'opening', page: 1 }, at: 1 },
+        { book: slugOf(hers), position: { chapter: 'opening', page: 1 }, at: 1 },
         { book: 'pride-and-prejudice', position: { chapter: 'chapter-6', page: 99 }, at: 1 },
         { book: 'confessions-of-al-ghazzali', position: { chapter: 'intro', page: 1 }, at: 1 },
         { book: 'fixture-code-book', position: { chapter: 'values-and-names', page: 1 }, at: 1 },
       ],
       listening: [
         { book: 'the-prophet', kind: 'episode', episode: 'ep_99', positionMs: 1, at: 1 },
-        { book: `u-${hers.userBookId}`, kind: 'episode', episode: 'ep_1', positionMs: 1, at: 1 },
-        { book: `u-${hers.userBookId}`, kind: 'voice', position: null, offset: 0, at: 1 },
+        { book: slugOf(hers), kind: 'episode', episode: 'ep_1', positionMs: 1, at: 1 },
+        { book: slugOf(hers), kind: 'voice', position: null, offset: 0, at: 1 },
         { book: 'pride-and-prejudice', kind: 'voice', position: { chapter: 'nowhere', page: 1 }, offset: 0, at: 1 },
       ],
     })
@@ -439,7 +440,7 @@ describe('POST /account/sync', () => {
     const alice = await signedIn()
     const bob = await signedIn()
     const id = await readyAudiobook(raw, alice.user.id, [60_000, 90_000])
-    const book = `u-${id}`
+    const book = privateBookSlug(id)
     const listening = [
       { book, kind: 'episode', episode: '2', positionMs: 30_000, at: 1000 },
       { book, kind: 'episode', episode: '1', positionMs: 99_000, at: 1000 },
@@ -655,10 +656,10 @@ describe('the reads', () => {
     expect((await ready(cookie)).reading.map((r) => r.href)).toEqual([
       '/read/pride-and-prejudice/chapter-6',
       '/read/confessions-of-al-ghazzali/7',
-      `/read/u-${book.userBookId}/opening`,
+      `/read/${slugOf(book)}/opening`,
     ])
     await raw`update reading_places set chapter = 'opening', page = 5 where user_book_id = ${book.userBookId}`
-    expect((await ready(cookie)).reading[2]?.href).toBe(`/read/u-${book.userBookId}/opening`)
+    expect((await ready(cookie)).reading[2]?.href).toBe(`/read/${slugOf(book)}/opening`)
     await raw`update reading_places set chapter = 'chapter-404' where book_slug = 'pride-and-prejudice'`
     expect((await ready(cookie)).reading[0]?.href).toBe('/read/pride-and-prejudice/chapter-1')
   })
@@ -675,13 +676,13 @@ describe('the reads', () => {
     const bob = await signedIn()
     const hers = await privateBook(alice.user.id)
     await sync(alice.cookie, {
-      reading: [{ book: `u-${hers.userBookId}`, position: { chapter: 'second', page: 1 }, at: 5 }],
+      reading: [{ book: slugOf(hers), position: { chapter: 'second', page: 1 }, at: 5 }],
     })
-    expect(await readingPlaceState(get(alice.cookie), `u-${hers.userBookId}`)).toEqual({
+    expect(await readingPlaceState(get(alice.cookie), slugOf(hers))).toEqual({
       state: 'ready',
-      place: expect.objectContaining({ href: `/read/u-${hers.userBookId}/second`, label: 'Ch. 2 · p. 1', at: 5 }),
+      place: expect.objectContaining({ href: `/read/${slugOf(hers)}/second`, label: 'Ch. 2 · p. 1', at: 5 }),
     })
-    expect(await readingPlaceState(get(bob.cookie), `u-${hers.userBookId}`)).toEqual({ state: 'not_found' })
+    expect(await readingPlaceState(get(bob.cookie), slugOf(hers))).toEqual({ state: 'not_found' })
     expect(await readingPlaceState(get(bob.cookie), 'no-such-book')).toEqual({ state: 'not_found' })
   })
 
@@ -711,7 +712,7 @@ describe('places', () => {
   it('check a page against the book and load each book once per request', async () => {
     const user = await newUser()
     const book = await privateBook(user.id)
-    const slug = `u-${book.userBookId}`
+    const slug = slugOf(book)
     const cache = newPlaceCache()
     expect(await resolvePlace(db(), user.id, slug, { chapter: 'second', page: 1 }, cache)).toEqual({
       ref: book,
@@ -736,6 +737,8 @@ describe('places', () => {
     expect(await resolveEpisode(db(), user.id, 'the-prophet', 'ep_1')).toEqual({ durationMs: 484_000 })
     expect(await resolveEpisode(db(), user.id, 'the-prophet', 'ep_404')).toBeNull()
     expect(await resolveEpisode(db(), user.id, 'pride-and-prejudice', 'ep_1')).toBeNull()
-    expect(await resolveEpisode(db(), user.id, 'u-0f9b8c7e-1d2a-4b3c-8d4e-5f6a7b8c9d0e', 'ep_1')).toBeNull()
+    expect(
+      await resolveEpisode(db(), user.id, privateBookSlug('0f9b8c7e-1d2a-4b3c-8d4e-5f6a7b8c9d0e'), 'ep_1'),
+    ).toBeNull()
   })
 })

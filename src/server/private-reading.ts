@@ -2,16 +2,15 @@ import '@tanstack/react-start/server-only'
 import { notFound } from '@tanstack/react-router'
 import { getRequest } from '@tanstack/react-start/server'
 import { type BookSearchHit, IN_BOOK_HIT_LIMIT, searchBook } from '~/shared/content/book-search'
+import { parseBookSlug, privateBookSlug } from '~/shared/content/book-slug'
 import {
   coverUrlOf,
   type PrivateCoverMeta,
   partialChapterBook,
   privateBookHref,
-  privateBookId,
   privateCover,
   privateCoverImage,
   privateReaderContext,
-  privateSlug,
 } from '~/shared/content/private-book'
 import { buildReaderView, type ReaderContext, type ReaderView } from '~/shared/content/reader-view'
 import type { CoverStyle } from '~/shared/content/schema'
@@ -28,8 +27,9 @@ export async function owned(
   slug: string,
   request: Request = getRequest(),
 ): Promise<{ bookId: string; userId: number; username: string }> {
-  const bookId = privateBookId(slug)
-  if (!bookId || !isDatabaseConfigured()) throw notFound()
+  const parsed = parseBookSlug(slug)
+  if (parsed?.kind !== 'private' || !isDatabaseConfigured()) throw notFound()
+  const bookId = parsed.id
   const session = await sessionForRequest(request)
   if (!session) throw notFound()
   return { bookId, userId: session.userId, username: session.username }
@@ -62,7 +62,7 @@ export function privateSpeechBook(
 ): SpeechBook {
   const image = privateCoverImage(bookId, book.cover)
   return {
-    slug: privateSlug(bookId),
+    slug: privateBookSlug(bookId),
     title: book.title,
     author: book.author,
     href: privateBookHref(bookId),

@@ -6,9 +6,10 @@ import {
   toMarkdown,
   toMarkdownAll,
 } from '~/shared/highlights/markdown'
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { NO_STORE, noStoreText, sessionForRequest, toSignIn } from '../auth.ts'
 import { findBook } from '../book-ref/book.ts'
-import { isBookSlug, slugOf } from '../book-ref/ref.ts'
+import { slugOf } from '../book-ref/ref.ts'
 import { getConfig } from '../config.ts'
 import { getDb, isDatabaseConfigured } from '../db.ts'
 import { requireProText } from '../plans/plan.ts'

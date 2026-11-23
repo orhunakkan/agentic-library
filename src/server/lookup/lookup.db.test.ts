@@ -1,5 +1,6 @@
 import postgres from 'postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -65,7 +66,7 @@ async function privateBook(userId: number, language: string, ready = true) {
     await storeChapter(db(), userId, start.id, 0, { title: 'Un', pages: ['<p>Paris.</p>'] })
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
-  return `u-${start.id}`
+  return privateBookSlug(start.id)
 }
 
 const sent: string[] = []

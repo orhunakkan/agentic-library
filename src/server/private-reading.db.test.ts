@@ -9,7 +9,7 @@ import { privateBookSearch, privateReaderPage, privateSpeechChapter } from '~/se
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
-import { privateSlug } from '~/shared/content/private-book'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../shared/import/details.ts'
 import { sniffImage } from '../shared/import/image.ts'
 import { databaseUrl, freshDatabase } from './testing/db'
@@ -53,7 +53,7 @@ async function book(userId: number, finish = true) {
     await storeChapter(db(), userId, start.id, 1, { title: 'Evening', pages: ['<p>the grass at dusk</p>'] })
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
-  return privateSlug(start.id)
+  return privateBookSlug(start.id)
 }
 
 function as(cookie?: string) {

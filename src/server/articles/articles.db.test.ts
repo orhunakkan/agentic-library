@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net'
 import postgres from 'postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -466,7 +467,8 @@ describe('reads and bookkeeping', () => {
         { id: first },
       ],
     })
-    if (state.state === 'ready') expect(state.articles[0]?.readHref).toBe(`/read/u-${second}/a-long-read`)
+    if (state.state === 'ready')
+      expect(state.articles[0]?.readHref).toBe(`/read/${privateBookSlug(second)}/a-long-read`)
     const row = await myArticlesState(get(cookie))
     expect(row).toMatchObject({ slug: 'articles', title: 'Articles', books: [{ title: 'A long read' }, {}] })
 

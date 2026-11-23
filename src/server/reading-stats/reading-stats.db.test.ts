@@ -2,6 +2,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { testUser } from '../testing/users'
 
@@ -248,7 +249,7 @@ describe('statsState', () => {
     await raw`insert into finished_books (user_id, book_slug) values (${user.id}, 'a-book-no-longer-here')`
     const stats = await ready(cookie)
     expect(stats.finished.map((f) => [f.book, f.title, f.href])).toEqual([
-      [`u-${id}`, 'My notes', `/account/books/${id}`],
+      [privateBookSlug(id), 'My notes', `/account/books/${id}`],
       [PRIDE, 'Pride and Prejudice', expect.stringMatching(new RegExp(`^/library/[^/]+/${PRIDE}$`))],
     ])
     expect(stats.hasAny).toBe(true)
@@ -367,18 +368,18 @@ describe('POST /account/stats/finished', () => {
     expect(await answer(await finished(bob.cookie, { book: 'a-book-no-longer-here', finished: false }))).toEqual(
       notFound,
     )
-    expect(await answer(await finished(bob.cookie, { book: `u-${id}`, finished: true }))).toEqual(notFound)
-    expect(await answer(await finished(bob.cookie, { book: `u-${id}`, finished: false }))).toEqual(notFound)
-    expect(await answer(await finished(ada.cookie, { book: `u-${id}`, finished: true }))).toEqual([
+    expect(await answer(await finished(bob.cookie, { book: privateBookSlug(id), finished: true }))).toEqual(notFound)
+    expect(await answer(await finished(bob.cookie, { book: privateBookSlug(id), finished: false }))).toEqual(notFound)
+    expect(await answer(await finished(ada.cookie, { book: privateBookSlug(id), finished: true }))).toEqual([
       200,
-      { book: `u-${id}`, finished: true, added: true },
+      { book: privateBookSlug(id), finished: true, added: true },
     ])
   })
 
   it('deletes a private book’s mark with the book and keeps the time', async () => {
     const { user, cookie } = await signedIn()
     const id = await privateBook(user.id)
-    await finished(cookie, { book: `u-${id}`, finished: true })
+    await finished(cookie, { book: privateBookSlug(id), finished: true })
     await addTime(user.id, [session(dayIn(new Date(), 'UTC'), 600)])
     expect(await deleteBook(db(), user.id, id)).toBe(true)
     expect(await raw`select 1 from finished_books`).toHaveLength(0)

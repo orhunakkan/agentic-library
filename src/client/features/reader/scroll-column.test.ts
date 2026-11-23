@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { buildReaderView, type ReaderView } from '~/shared/content/reader-view'
 import { chapterFixture, metaFor, pagedFixture } from '../../../../tests/fixtures/books'
 import { fixtureCatalog } from '../../../../tests/fixtures/catalog'
@@ -147,7 +148,7 @@ describe('readerParams', () => {
     expect(readerParams('/read/essays/history/3')).toEqual({ book: 'essays', part: 'history', n: '3' })
     expect(readerParams('/read/confessions/112')).toEqual({ book: 'confessions', part: '112' })
     expect(readerParams('/read/u-0f8e2a8c-4c4b-4a3e-9d8c-6f1b2a3c4d5e/chapter-1/2')).toEqual({
-      book: 'u-0f8e2a8c-4c4b-4a3e-9d8c-6f1b2a3c4d5e',
+      book: privateBookSlug('0f8e2a8c-4c4b-4a3e-9d8c-6f1b2a3c4d5e'),
       part: 'chapter-1',
       n: '2',
     })

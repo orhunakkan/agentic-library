@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import {
   continueEpisode,
   episodeKey,
@@ -108,7 +109,7 @@ describe('speed', () => {
 })
 
 describe('continueEpisode', () => {
-  const book = 'u-6f1c0000-0000-4000-8000-000000000000'
+  const book = privateBookSlug('6f1c0000-0000-4000-8000-000000000000')
   const episodes = ['1', '2', '3']
 
   it('is the episode played last, or the one after the episode finished last', () => {
@@ -131,7 +132,7 @@ describe('continueEpisode', () => {
 describe('forgetPrivateEpisodes', () => {
   it('removes private books’ positions and keeps the catalogue’s', () => {
     const storage = memoryStorage()
-    writeEpisode(storage, 'u-6f1c0000-0000-4000-8000-000000000000', '1', 5000, 10)
+    writeEpisode(storage, privateBookSlug('6f1c0000-0000-4000-8000-000000000000'), '1', 5000, 10)
     writeEpisode(storage, 'the-prophet', 'ep_1', 5000, 10)
     forgetPrivateEpisodes(storage)
     expect(listEpisodes(storage).map((e) => e.book)).toEqual(['the-prophet'])

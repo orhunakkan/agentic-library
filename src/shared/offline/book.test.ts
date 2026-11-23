@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { chapterFixture, metaFor, pagedFixture } from '../../../tests/fixtures/books'
 import { fixtureCatalog } from '../../../tests/fixtures/catalog'
 import { privateReaderContext } from '../content/private-book'
@@ -45,11 +46,11 @@ describe('parseOfflineBook', () => {
     const context = privateReaderContext({ id: ID, title: 'Mine', author: 'Me', language: 'en', chapterCount: 2 })
     const own = json({
       ...catalogueBook(),
-      slug: `u-${ID}`,
+      slug: privateBookSlug(ID),
       owner: 'ada',
       context,
-      content: { ...chapterFixture, slug: `u-${ID}` },
-      speech: { ...catalogueBook().speech, slug: `u-${ID}` },
+      content: { ...chapterFixture, slug: privateBookSlug(ID) },
+      speech: { ...catalogueBook().speech, slug: privateBookSlug(ID) },
     })
     expect(parseOfflineBook(own)).toEqual(own)
   })
@@ -81,14 +82,14 @@ describe('parseOfflineBook', () => {
     expect(parseOfflineBook({ ...book, bytes: -1 })).toBeNull()
     expect(parseOfflineBook({ ...book, bytes: 1.5 })).toBeNull()
     expect(parseOfflineBook({ ...book, title: 5 })).toBeNull()
-    expect(parseOfflineBook({ ...book, slug: `u-${ID}`, owner: null })).toBeNull()
+    expect(parseOfflineBook({ ...book, slug: privateBookSlug(ID), owner: null })).toBeNull()
   })
 })
 
 describe('isOfflineSlug and offlineBookUrl', () => {
   it('take catalogue slugs and private ones, nothing else', () => {
     expect(isOfflineSlug('pride-and-prejudice')).toBe(true)
-    expect(isOfflineSlug(`u-${ID}`)).toBe(true)
+    expect(isOfflineSlug(privateBookSlug(ID))).toBe(true)
     expect(isOfflineSlug('u-abc')).toBe(false)
     expect(isOfflineSlug('a'.repeat(201))).toBe(false)
     expect(isOfflineSlug(7)).toBe(false)

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseRating } from './input'
 
-const PRIVATE = 'u-6f1c0000-0000-4000-8000-000000000000'
+const PRIVATE = privateBookSlug('6f1c0000-0000-4000-8000-000000000000')
 
 describe('parseRating', () => {
   it('takes a catalogue or private book and its stars', () => {

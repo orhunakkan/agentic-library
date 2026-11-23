@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseAudioBookmarkChange, parseAudioBookmarkCreate } from './audio-input.ts'
 
 const BOOK_ID = '6f1c2a4e-0000-4000-8000-000000000000'
@@ -11,8 +12,8 @@ describe('parseAudioBookmarkCreate', () => {
     expect(
       parseAudioBookmarkCreate({ ...VOICE, book: 'confessions-of-al-ghazzali', position: { printedPage: 39 } }),
     ).toEqual({ book: 'confessions-of-al-ghazzali', kind: 'voice', position: { printedPage: 39 }, offset: 120 })
-    expect(parseAudioBookmarkCreate({ ...VOICE, book: `u-${BOOK_ID}`, offset: 0 })).toMatchObject({
-      book: `u-${BOOK_ID}`,
+    expect(parseAudioBookmarkCreate({ ...VOICE, book: privateBookSlug(BOOK_ID), offset: 0 })).toMatchObject({
+      book: privateBookSlug(BOOK_ID),
       offset: 0,
     })
   })

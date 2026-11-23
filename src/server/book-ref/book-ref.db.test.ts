@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs'
 import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-
 import { findAudio, findBook, labelsFor, onBook, onReadableBook, ownedBook, ownsBook } from '~/server/book-ref/book'
 import type { BookRef } from '~/server/book-ref/ref'
 import { closeDb, getDb } from '~/server/db'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import type { AudioBook, ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
 import { NO_DETAILS } from '~/shared/import/details'
@@ -102,7 +102,7 @@ describe('findBook', () => {
     await storeChapter(db(), user.id, start.id, 1, { title: 'Evening', pages: ['<p>dusk</p>'] })
     await storeChapter(db(), user.id, start.id, 0, { title: 'Morning', pages: ['<p>dew</p>', '<p>sun</p>'] })
     expect(await finishImport(db(), user.id, start.id, null)).toBe('ok')
-    const slug = `u-${start.id}`
+    const slug = privateBookSlug(start.id)
 
     const book = await findBook(db(), user.id, slug, 'text')
     expect(book).toMatchObject({
@@ -140,18 +140,18 @@ describe('findBook', () => {
       expect(await findBook(db(), owner.id, 'no-such-book', needs)).toBeNull()
       expect(await findBook(db(), owner.id, 'u-not-a-uuid', needs)).toBeNull()
       expect(await findBook(db(), owner.id, '../etc', needs)).toBeNull()
-      expect(await findBook(db(), other.id, `u-${ready}`, needs)).toBeNull()
-      expect(await findBook(db(), owner.id, `u-${uploading}`, needs)).toBeNull()
-      expect(await findBook(db(), other.id, `u-${heard}`, needs)).toBeNull()
+      expect(await findBook(db(), other.id, privateBookSlug(ready), needs)).toBeNull()
+      expect(await findBook(db(), owner.id, privateBookSlug(uploading), needs)).toBeNull()
+      expect(await findBook(db(), other.id, privateBookSlug(heard), needs)).toBeNull()
     }
-    expect(await findBook(db(), owner.id, `u-${heard}`, 'text')).toBeNull()
+    expect(await findBook(db(), owner.id, privateBookSlug(heard), 'text')).toBeNull()
   })
 
   it('finds an audiobook and an article under any, and an article under text', async () => {
     const user = await newUser()
     const heard = await readyAudiobook(raw, user.id)
-    expect(await findBook(db(), user.id, `u-${heard}`)).toEqual({
-      slug: `u-${heard}`,
+    expect(await findBook(db(), user.id, privateBookSlug(heard))).toEqual({
+      slug: privateBookSlug(heard),
       ref: { slug: null, userBookId: heard },
       title: 'Heard',
       author: 'Ada',
@@ -160,8 +160,8 @@ describe('findBook', () => {
       format: 'audio',
     })
     const saved = await article(user.id)
-    expect(await findBook(db(), user.id, `u-${saved}`)).toMatchObject({ title: 'Saved', format: 'text' })
-    const text = await findBook(db(), user.id, `u-${saved}`, 'text')
+    expect(await findBook(db(), user.id, privateBookSlug(saved))).toMatchObject({ title: 'Saved', format: 'text' })
+    const text = await findBook(db(), user.id, privateBookSlug(saved), 'text')
     expect((await text?.pages())?.map((p) => p.text)).toEqual(['news'])
     expect(await findBook(db(), user.id, 'pride-and-prejudice')).toMatchObject({ ref: PRIDE, format: 'text' })
   })
@@ -177,7 +177,7 @@ describe('findBook', () => {
       { title: 'Morning', pages: ['<p>dew</p>'] },
       { title: 'Evening', pages: ['<p>dusk</p>', '<p>night</p>'] },
     ])
-    const own = await findBook(db(), user.id, `u-${id}`, 'text')
+    const own = await findBook(db(), user.id, privateBookSlug(id), 'text')
     expect(await own?.chapter(1)).toMatchObject({
       index: 1,
       title: 'Evening',
@@ -193,7 +193,7 @@ describe('findBook', () => {
   it('loads a private book deleted after it was found as one with no pages', async () => {
     const user = await newUser()
     const id = await importBook(user.id)
-    const book = await findBook(db(), user.id, `u-${id}`, 'text')
+    const book = await findBook(db(), user.id, privateBookSlug(id), 'text')
     await deleteBook(db(), user.id, id)
     expect(await book?.pages()).toEqual([])
     expect(await book?.chapter(0)).toBeNull()
@@ -207,14 +207,14 @@ describe('findAudio', () => {
     expect((await findAudio(db(), owner.id, 'the-prophet'))?.episodes.length).toBe(catalogue.episodes.length)
     expect(await findAudio(db(), owner.id, 'pride-and-prejudice')).toBeNull()
     const heard = await readyAudiobook(raw, owner.id, [60_000, 90_000])
-    const own = await findAudio(db(), owner.id, `u-${heard}`)
-    expect(own?.bookSlug).toBe(`u-${heard}`)
+    const own = await findAudio(db(), owner.id, privateBookSlug(heard))
+    expect(own?.bookSlug).toBe(privateBookSlug(heard))
     expect(own?.episodes.map((e) => [e.id, e.durationMs])).toEqual([
       ['1', 60_000],
       ['2', 90_000],
     ])
-    expect(await findAudio(db(), other.id, `u-${heard}`)).toBeNull()
-    expect(await findAudio(db(), owner.id, `u-${await importBook(owner.id)}`)).toBeNull()
+    expect(await findAudio(db(), other.id, privateBookSlug(heard))).toBeNull()
+    expect(await findAudio(db(), owner.id, privateBookSlug(await importBook(owner.id)))).toBeNull()
     expect(await findAudio(db(), owner.id, 'u-not-a-uuid')).toBeNull()
   })
 })
@@ -238,7 +238,7 @@ describe('labelsFor', () => {
         removed: false,
       },
       'gone-book': { title: 'A book no longer in the library', author: '', href: null, removed: true },
-      [`u-${mine}`]: { title: 'Field Notes', author: 'Ada', href: `/account/books/${mine}`, removed: false },
+      [privateBookSlug(mine)]: { title: 'Field Notes', author: 'Ada', href: `/account/books/${mine}`, removed: false },
     })
     expect(await labelsFor(db(), owner.id, [])).toEqual(new Map())
   })
@@ -249,7 +249,7 @@ describe('the SQL for rows about a book', () => {
     const user = await newUser()
     const id = await importBook(user.id)
     const ref: BookRef = { slug: null, userBookId: id }
-    expect(await findBook(db(), user.id, `u-${id}`)).not.toBeNull()
+    expect(await findBook(db(), user.id, privateBookSlug(id))).not.toBeNull()
     await deleteBook(db(), user.id, id)
     const written = await db().begin(async (tx) => {
       expect(await ownsBook(tx, user.id, ref)).toBe(false)

@@ -13,7 +13,7 @@ import { loadBook, loadCatalog } from '~/server/repository'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
-import { privateSlug } from '~/shared/content/private-book'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
 import { type OfflineBook, parseOfflineBook } from '~/shared/offline/book'
@@ -77,7 +77,7 @@ async function book(userId: number, finish = true) {
   const image = info(picture)
   await storeImage(db(), userId, start.id, 1, newImage(picture, { ...image, type: image.type as 'image/png' }))
   if (finish) expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
-  return { id: start.id, slug: privateSlug(start.id), picture: src, pictureBytes: picture.length }
+  return { id: start.id, slug: privateBookSlug(start.id), picture: src, pictureBytes: picture.length }
 }
 
 const request = (file: string, headers: Record<string, string> = {}) =>
@@ -116,7 +116,9 @@ describe('a private book', () => {
     }
     const unfinished = await book(owner.user.id, false)
     expect((await download(unfinished.slug, owner.cookie)).response.status).toBe(404)
-    expect((await download('u-00000000-0000-4000-8000-000000000000', owner.cookie)).response.status).toBe(404)
+    expect(
+      (await download(privateBookSlug('00000000-0000-4000-8000-000000000000'), owner.cookie)).response.status,
+    ).toBe(404)
   })
 
   it('refuses a cross-site request and a malformed file name', async () => {

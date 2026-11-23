@@ -9,7 +9,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import type { BookRef } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/book-ref/ref'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { handleChange, handleCreate, handleHighlightsForm } from '~/server/highlights/actions'
@@ -223,8 +223,8 @@ describe('a book’s highlights, resolved (highlightsFor)', () => {
 
     const book = await privateBook(owner.id)
     await created(owner.id, book)
-    expect((await highlightsFor(db(), owner.id, `u-${book.userBookId}`))?.book.title).toBe('Notes')
-    expect(await highlightsFor(db(), other.id, `u-${book.userBookId}`)).toBeNull()
+    expect((await highlightsFor(db(), owner.id, slugOf(book)))?.book.title).toBe('Notes')
+    expect(await highlightsFor(db(), other.id, slugOf(book))).toBeNull()
   })
 })
 
@@ -403,7 +403,7 @@ describe('the endpoints', () => {
     expect(await read(null, 'pride-and-prejudice')).toEqual({ state: 'signed_out' })
     expect(await read(alice.cookie, 'no-such-book')).toEqual({ state: 'not_found' })
     const mine = await privateBook(alice.user.id)
-    expect(await read(bob.cookie, `u-${mine.userBookId}`)).toEqual({ state: 'not_found' })
+    expect(await read(bob.cookie, slugOf(mine))).toEqual({ state: 'not_found' })
     expect(await read(alice.cookie, 'pride-and-prejudice')).toEqual({ state: 'ready', highlights: [] })
     const { highlight } = (await (await create(alice.cookie)).json()) as { highlight: HighlightView }
     expect(await read(alice.cookie, 'pride-and-prejudice')).toEqual({ state: 'ready', highlights: [highlight] })
@@ -432,7 +432,7 @@ describe('the endpoints', () => {
     expect(await answer(await change(bob.cookie, highlight.id, { intent: 'delete' }))).toEqual([404, 'not_found'])
 
     const book = await privateBook(alice.user.id)
-    const slug = `u-${book.userBookId}`
+    const slug = slugOf(book)
     const privateBody = { book: slug, position: { chapter: 'only', page: 1 }, start: 0, end: 3, text: 'one' }
     expect((await create(alice.cookie, privateBody)).status).toBe(201)
     expect(await answer(await create(bob.cookie, privateBody))).toEqual([404, 'not_found'])
@@ -452,7 +452,7 @@ describe('the endpoints', () => {
     const alice = await signedIn()
     const bob = await signedIn()
     const book = await privateBook(alice.user.id)
-    const slug = `u-${book.userBookId}`
+    const slug = slugOf(book)
     const privateBody = { book: slug, position: { chapter: 'only', page: 1 }, start: 0, end: 3, text: 'one' }
     expect((await create(alice.cookie, privateBody)).status).toBe(201)
 

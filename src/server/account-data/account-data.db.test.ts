@@ -2,6 +2,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { privateBookSlug } from '~/shared/content/book-slug'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -76,7 +77,7 @@ describe('GET /account/export', () => {
     expect(data.readerSettings).toEqual({ theme: 'dark', font: 'literata', leading: 'normal', measure: 'normal' })
     expect(data.privateBooks).toEqual([
       expect.objectContaining({
-        slug: `u-${ada.bookId}`,
+        slug: privateBookSlug(ada.bookId),
         title: 'ada-mark book',
         chapters: ['Chapter one'],
         cover: { source: 'epub', width: 600, height: 900 },
@@ -85,7 +86,7 @@ describe('GET /account/export', () => {
         audio: null,
       }),
       expect.objectContaining({
-        slug: `u-${ada.audiobookId}`,
+        slug: privateBookSlug(ada.audiobookId),
         title: 'ada-mark audiobook',
         chapters: [],
         audio: {
@@ -104,7 +105,7 @@ describe('GET /account/export', () => {
         note: 'ada-mark note',
       }),
     ])
-    expect(data.bookmarks[0]).toMatchObject({ book: { slug: `u-${ada.bookId}`, title: 'ada-mark book' } })
+    expect(data.bookmarks[0]).toMatchObject({ book: { slug: privateBookSlug(ada.bookId), title: 'ada-mark book' } })
     expect(data.flashcards).toEqual([
       {
         book: { slug: 'pride-and-prejudice', title: 'Pride and Prejudice' },
@@ -131,7 +132,7 @@ describe('GET /account/export', () => {
     expect(data.ratings).toEqual(
       expect.arrayContaining([
         { book: { slug: 'pride-and-prejudice', title: 'Pride and Prejudice' }, stars: 4, ratedAt: expect.any(String) },
-        { book: { slug: `u-${ada.bookId}`, title: 'ada-mark book' }, stars: 2, ratedAt: expect.any(String) },
+        { book: { slug: privateBookSlug(ada.bookId), title: 'ada-mark book' }, stars: 2, ratedAt: expect.any(String) },
       ]),
     )
     expect(data.askPrompts).toEqual([
@@ -146,7 +147,7 @@ describe('GET /account/export', () => {
     ])
     expect(data.readingTime).toEqual([{ day: '2026-11-20', readingSeconds: 1234, listeningSeconds: 0 }])
     expect(data.finishedBooks).toEqual([
-      { book: { slug: `u-${ada.bookId}`, title: 'ada-mark book' }, finishedAt: expect.any(String) },
+      { book: { slug: privateBookSlug(ada.bookId), title: 'ada-mark book' }, finishedAt: expect.any(String) },
     ])
     expect(data.readingGoals).toEqual([{ fromDay: '2026-11-01', minutes: 30, setAt: expect.any(String) }])
     expect(data.account.timeZone).toBe('Europe/Istanbul')

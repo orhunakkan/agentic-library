@@ -10,7 +10,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import type { BookRef } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/book-ref/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { handleShelfBook, handleShelfChange, handleShelfCreate, shelvesState } from '~/server/shelves/actions'
@@ -279,7 +279,7 @@ describe('the view', () => {
     await shelf(user.id, 'Älter')
     const views = toShelfViews(await listShelves(db(), user.id), new Set(['pride-and-prejudice']))
     expect(views.map((v) => v.name)).toEqual(['Älter', 'shelf 2', 'Shelf 10'])
-    expect(views[2]?.books).toEqual([`u-${book.userBookId}`, 'pride-and-prejudice'])
+    expect(views[2]?.books).toEqual([slugOf(book), 'pride-and-prejudice'])
     expect(await raw`select 1 from shelf_books where book_slug = 'fixture-code-book'`).toHaveLength(1)
   })
 })
@@ -326,13 +326,13 @@ describe('the endpoints', () => {
     expect(await raw`select name, name_key from shelves`).toEqual([{ name: 'To read', name_key: 'to read' }])
 
     const own = await privateBook(user.id)
-    const on = await book(cookie, created.id, { book: `u-${own.userBookId}`, on: true })
+    const on = await book(cookie, created.id, { book: slugOf(own), on: true })
     expect([on.status, await shelfOf(on)]).toEqual([
       200,
-      { id: created.id, name: 'To read', books: [`u-${own.userBookId}`, 'pride-and-prejudice'] },
+      { id: created.id, name: 'To read', books: [slugOf(own), 'pride-and-prejudice'] },
     ])
     const off = await book(cookie, created.id, { book: 'pride-and-prejudice', on: false })
-    expect((await shelfOf(off)).books).toEqual([`u-${own.userBookId}`])
+    expect((await shelfOf(off)).books).toEqual([slugOf(own)])
 
     const renamed = await change(cookie, created.id, { name: 'Next up' })
     expect([renamed.status, (await shelfOf(renamed)).name]).toEqual([200, 'Next up'])
@@ -379,10 +379,10 @@ describe('the endpoints', () => {
     const off = { book: 'pride-and-prejudice', on: false }
     expect(await answer(await book(bob.cookie, hers.id, off))).toEqual([404, 'not_found'])
     const own = await privateBook(alice.user.id)
-    const peek = { name: 'Peek', book: `u-${own.userBookId}` }
+    const peek = { name: 'Peek', book: slugOf(own) }
     expect(await answer(await create(bob.cookie, peek))).toEqual([404, 'not_found'])
     const bobs = await shelfOf(await create(bob.cookie, { name: 'Bob' }))
-    const put = { book: `u-${own.userBookId}`, on: true }
+    const put = { book: slugOf(own), on: true }
     expect(await answer(await book(bob.cookie, bobs.id, put))).toEqual([404, 'not_found'])
     expect(await raw`select name from shelves where user_id = ${alice.user.id}`).toEqual([{ name: 'To read' }])
   })

@@ -1,5 +1,5 @@
+import { isCatalogueBookSlug } from '../../shared/content/book-slug.ts'
 import { isObject, only } from '../ask/input.ts'
-import { isBookSlug } from '../book-ref/ref.ts'
 
 export interface RemovedBookInput {
   book: string
@@ -9,6 +9,6 @@ export interface RemovedBookInput {
 export function parseRemovedBook(value: unknown): RemovedBookInput | null {
   if (!isObject(value) || !only(value, ['book', 'removed'])) return null
   const { book, removed } = value
-  if (!isBookSlug(book) || book.startsWith('u-') || typeof removed !== 'boolean') return null
+  if (!isCatalogueBookSlug(book) || typeof removed !== 'boolean') return null
   return { book, removed }
 }

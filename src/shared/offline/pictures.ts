@@ -1,5 +1,6 @@
-import { PRIVATE_SLUG } from '../content/private-book'
+import { privateBookSlug } from '../content/book-slug'
 import type { BookContent } from '../content/schema'
+import { isUuid } from '../uuid'
 import { isOfflineSlug } from './book'
 
 const IMG_SRC = /<img\b[^>]*?\ssrc="([^"]*)"/g
@@ -35,6 +36,5 @@ export function bookOfUrl(pathname: string): string | null {
   m = /^\/covers\/(.+)\.svg$/.exec(pathname) ?? /^\/covers\/(.+)-[0-9a-f]{8}\.[a-z]+$/.exec(pathname)
   if (m) return own(m[1])
   m = /^\/account\/books\/([0-9a-f-]{36})\//.exec(pathname)
-  if (m && PRIVATE_SLUG.test(`u-${m[1]}`)) return `u-${m[1]}`
-  return null
+  return m && isUuid(m[1] as string) ? privateBookSlug(m[1] as string) : null
 }

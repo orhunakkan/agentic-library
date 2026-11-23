@@ -5,11 +5,12 @@ import type { AudioBook, BookContent, BookMeta } from '~/shared/content/schema'
 import { type BookPage, bookPages } from '~/shared/highlights/page-text'
 import { MAX_CHAPTERS } from '~/shared/import/limits'
 import { chapterBookChapter, type SpeechChapter, speechChapter } from '~/shared/read-aloud/speech-text'
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { audiobookAudio } from '../audiobooks/view.ts'
 import type { Db } from '../db.ts'
 import { catalogueBook, catalogueBooks, loadAudio, loadBook } from '../repository.ts'
 import { loadBookText, loadSpeechChapter, toChapterBook } from '../user-books.ts'
-import { type BookRef, isBookSlug, refFor, slugOf } from './ref.ts'
+import { type BookRef, refFor, slugOf } from './ref.ts'
 
 export interface FoundBook {
   slug: string

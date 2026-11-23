@@ -12,8 +12,8 @@ import {
   type SyncBatch,
   type TimeWrite,
 } from '~/shared/sync/sync'
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { isObject, only, parsePosition } from '../ask/input.ts'
-import { isBookSlug } from '../book-ref/ref.ts'
 
 const MAX_OFFSET = 1_000_000
 const MAX_POSITION_MS = 86_400_000

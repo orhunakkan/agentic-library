@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayerBook, PlayerEpisode } from '~/shared/content/book-page'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { fakeAudio } from '../../../../tests/fixtures/fake-audio'
 import { episodeKey, legacyEpisodeKey, SPEED_KEY } from './position-store'
 import { createTransport, FADE_MS } from './transport'
@@ -29,7 +30,11 @@ const book: PlayerBook = {
   cover: {} as PlayerBook['cover'],
   image: null,
 }
-const imported: PlayerBook = { ...book, slug: 'u-abc', title: 'Imported' }
+const imported: PlayerBook = {
+  ...book,
+  slug: privateBookSlug('0e0f0000-0000-4000-8000-000000000000'),
+  title: 'Imported',
+}
 
 const episode = (id: string, number: number, extra: Partial<PlayerEpisode> = {}): PlayerEpisode => ({
   id,

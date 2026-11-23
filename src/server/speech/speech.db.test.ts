@@ -1,5 +1,6 @@
 import postgres from 'postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/repository', async (importOriginal) => {
@@ -84,7 +85,7 @@ async function privateBook(userId: number, ready = true) {
     })
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
-  return `u-${start.id}`
+  return privateBookSlug(start.id)
 }
 
 let chapter1: SpeechChapter
@@ -410,7 +411,7 @@ describe('speechVoicesState', () => {
     if (!start.ok) throw new Error('could not start')
     await storeChapter(db(), user.id, start.id, 0, { title: 'Un', pages: ['<p>Paris.</p>'] })
     await finishImport(db(), user.id, start.id, null)
-    const state = await voices(cookie, `u-${start.id}`)
+    const state = await voices(cookie, privateBookSlug(start.id))
     expect(state.state === 'ready' && state.voices.map((v) => v.name)).toEqual(['Camille', 'Aria', 'Ben'])
   })
 

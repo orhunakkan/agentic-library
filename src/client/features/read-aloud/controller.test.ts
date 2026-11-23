@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ChapterBook } from '~/shared/content/schema'
 import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import { ENGINE_BYTES, FOLIO_VOICES } from '~/shared/read-aloud/folio-voices'
@@ -280,7 +281,7 @@ describe('starting', () => {
   })
 
   it('picks an on-device voice by itself for a private book', async () => {
-    const slug = 'u-00000000-0000-4000-8000-000000000000'
+    const slug = privateBookSlug('00000000-0000-4000-8000-000000000000')
     const t = setup({
       fetch: async (_s, index) => {
         const chapter = speechChapter(book, index)
@@ -931,7 +932,7 @@ describe('ElevenLabs voices', () => {
   })
 
   it('keeps choices for private books apart from catalogue ones', async () => {
-    const slug = 'u-6f1c0000-0000-4000-8000-000000000001'
+    const slug = privateBookSlug('6f1c0000-0000-4000-8000-000000000001')
     const fetch = async (s: string, index: number): Promise<FetchResult> => {
       const chapter = speechChapter(book, index)
       return chapter ? { ok: true, data: { book: { ...bookInfo, slug: s }, chapter } } : { ok: false, reason: 'failed' }
@@ -1077,7 +1078,10 @@ describe('the Folio voice', () => {
     const first = localSetup({ downloaded: ['en_US-ljspeech-medium'] })
     await first.start({ kind: 'offset', chapter: 0, position: { chapter: 'history', page: 1 }, offset: 0 })
     expect(first.said[0]).toMatchObject({ text: 'One.', upcoming: ['Two.', 'Three.'] })
-    const own = localSetup({ downloaded: ['en_US-ljspeech-medium'], slug: 'u-00000000-0000-4000-8000-000000000000' })
+    const own = localSetup({
+      downloaded: ['en_US-ljspeech-medium'],
+      slug: privateBookSlug('00000000-0000-4000-8000-000000000000'),
+    })
     await own.start()
     expect(own.said[0]).toMatchObject({ engine: 'local', voice: LJ })
   })

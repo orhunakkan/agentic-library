@@ -1,4 +1,4 @@
-import { isPrivateSlug } from '~/shared/offline/book'
+import { isPrivateBookSlug, privateBookSlug } from '~/shared/content/book-slug'
 import { refreshAppCache } from './app-cache'
 import {
   forgetPrivateDownloads,
@@ -25,7 +25,7 @@ export async function reconcileDownloads(
     else {
       const own: string[] = []
       for (const download of await listDownloads(env)) {
-        if (!isPrivateSlug(download.slug)) continue
+        if (!isPrivateBookSlug(download.slug)) continue
         if (download.owner === viewer.username) own.push(download.slug)
         else await removeDownload(download.slug, env)
       }
@@ -37,14 +37,14 @@ export async function reconcileDownloads(
 }
 
 export async function forgetGoneCopy(slug: string, env: OfflineEnv = offlineEnv()): Promise<void> {
-  if (!isPrivateSlug(slug)) return
+  if (!isPrivateBookSlug(slug)) return
   await removeDownload(slug, env).catch(() => {})
 }
 
 export async function forgetUnlistedCopies(listedIds: readonly string[], env: OfflineEnv = offlineEnv()) {
   try {
-    const listed = new Set(listedIds.map((id) => `u-${id}`))
+    const listed = new Set(listedIds.map(privateBookSlug))
     for (const download of await listDownloads(env))
-      if (isPrivateSlug(download.slug) && !listed.has(download.slug)) await removeDownload(download.slug, env)
+      if (isPrivateBookSlug(download.slug) && !listed.has(download.slug)) await removeDownload(download.slug, env)
   } catch {}
 }

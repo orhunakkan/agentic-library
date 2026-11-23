@@ -1,6 +1,6 @@
 import { cleanShelfName } from '~/shared/shelves/shelves'
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { isObject, only } from '../ask/input.ts'
-import { isBookSlug } from '../book-ref/ref.ts'
 
 const RAW_NAME_MAX = 200
 

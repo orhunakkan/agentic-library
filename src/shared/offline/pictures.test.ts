@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { pagedFixture } from '../../../tests/fixtures/books'
 import type { ChapterBook } from '../content/schema'
 import { bookOfUrl, pictureUrls } from './pictures'
@@ -48,12 +49,12 @@ describe('pictureUrls', () => {
 describe('bookOfUrl', () => {
   it('names the book of each kind of kept address', () => {
     expect(bookOfUrl('/offline/pride-and-prejudice.json')).toBe('pride-and-prejudice')
-    expect(bookOfUrl(`/offline/u-${ID}.json`)).toBe(`u-${ID}`)
+    expect(bookOfUrl(`/offline/${privateBookSlug(ID)}.json`)).toBe(privateBookSlug(ID))
     expect(bookOfUrl('/images/pride-and-prejudice/0123456789ab.png')).toBe('pride-and-prejudice')
     expect(bookOfUrl('/covers/pride-and-prejudice.svg')).toBe('pride-and-prejudice')
     expect(bookOfUrl('/covers/pride-and-prejudice-1a2b3c4d.jpg')).toBe('pride-and-prejudice')
-    expect(bookOfUrl(`/account/books/${ID}/cover`)).toBe(`u-${ID}`)
-    expect(bookOfUrl(`/account/books/${ID}/images/3`)).toBe(`u-${ID}`)
+    expect(bookOfUrl(`/account/books/${ID}/cover`)).toBe(privateBookSlug(ID))
+    expect(bookOfUrl(`/account/books/${ID}/images/3`)).toBe(privateBookSlug(ID))
   })
 
   it('names none for anything else', () => {

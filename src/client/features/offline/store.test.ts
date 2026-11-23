@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { OFFLINE_NAV_URL } from '~/shared/offline/book'
 import { FakeCacheStorage, memoryStorage } from '../../../../tests/fixtures/cache-storage'
 import {
@@ -163,7 +164,7 @@ describe('forgetPrivateDownloads', () => {
       '/account/books/11111111-2222-4333-8444-555555555555/images/1',
       new Response('x'),
     )
-    stampChecked(['u-11111111-2222-4333-8444-555555555555'], env)
+    stampChecked([privateBookSlug('11111111-2222-4333-8444-555555555555')], env)
     await forgetPrivateDownloads(env)
     expect(books()?.paths()).toEqual([CATALOGUE_PICTURE, '/covers/essays.svg', '/offline/essays.json'].sort())
     expect(env.storage?.getItem(CHECKED_KEY)).toBeNull()

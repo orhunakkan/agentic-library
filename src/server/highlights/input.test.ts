@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { MAX_NOTE, MAX_PASSAGE } from '~/shared/highlights/limits'
 import { parseCreate, parseUpdate } from './input'
 
@@ -19,7 +20,11 @@ describe('parseCreate', () => {
   })
 
   it('accepts printed pages and private book slugs', () => {
-    const body = { ...base, book: 'u-6f1c0000-0000-4000-8000-000000000000', position: { printedPage: 112 } }
+    const body = {
+      ...base,
+      book: privateBookSlug('6f1c0000-0000-4000-8000-000000000000'),
+      position: { printedPage: 112 },
+    }
     expect(parseCreate(body)).toEqual({ ...body, note: null })
   })
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseFinished, parseGoal } from './input'
 
 describe('parseGoal', () => {
@@ -30,7 +31,7 @@ describe('parseFinished', () => {
       book: 'pride-and-prejudice',
       finished: true,
     })
-    const own = 'u-0f9b8c7e-1d2a-4b3c-8d4e-5f6a7b8c9d0e'
+    const own = privateBookSlug('0f9b8c7e-1d2a-4b3c-8d4e-5f6a7b8c9d0e')
     expect(parseFinished({ book: own, finished: false })).toEqual({ book: own, finished: false })
   })
 

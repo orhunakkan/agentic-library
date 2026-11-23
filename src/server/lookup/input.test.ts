@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseTranslateInput, parseWordInput } from './input'
 
 const BOOK = 'pride-and-prejudice'
-const PRIVATE = 'u-0b5e8d4c-3f7a-4e1b-9c2d-6a8f0e1b2c3d'
+const PRIVATE = privateBookSlug('0b5e8d4c-3f7a-4e1b-9c2d-6a8f0e1b2c3d')
 
 describe('parseWordInput', () => {
   it('takes a catalogue or private book, a term and a source, with the term normalised', () => {

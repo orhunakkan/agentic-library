@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import { privateBookSlug } from '../../shared/content/book-slug.ts'
 import type { AudioBook, AudioEpisode } from '../../shared/content/schema.ts'
 import type { Db } from '../db.ts'
 import { type AudiobookChapterRow, audiobookChapters } from './store.ts'
@@ -19,5 +20,5 @@ export function audioEpisodes(bookId: string, chapters: readonly AudiobookChapte
 export async function audiobookAudio(db: Db, userId: number, bookId: string): Promise<AudioBook | null> {
   const chapters = await audiobookChapters(db, userId, bookId)
   if (!chapters.length) return null
-  return { bookSlug: `u-${bookId}`, credit: '', sourceUrl: '', episodes: audioEpisodes(bookId, chapters) }
+  return { bookSlug: privateBookSlug(bookId), credit: '', sourceUrl: '', episodes: audioEpisodes(bookId, chapters) }
 }

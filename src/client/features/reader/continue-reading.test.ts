@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { buildReaderView, type ReaderView } from '~/shared/content/reader-view'
 import { chapterFixture, metaFor, pagedFixture } from '../../../../tests/fixtures/books'
 import { fixtureCatalog } from '../../../../tests/fixtures/catalog'
@@ -15,6 +16,10 @@ import {
   visitOf,
   writeRecent,
 } from './continue-reading'
+
+const PRIVATE_5678 = privateBookSlug('56785678-0000-4000-8000-000000000000')
+
+const PRIVATE_1234 = privateBookSlug('12341234-0000-4000-8000-000000000000')
 
 const entry = (slug: string, at: number) => ({
   bookSlug: slug,
@@ -79,7 +84,10 @@ describe('positionFromHref', () => {
     expect(positionFromHref('/read/emma/chapter-6/2')).toEqual({ chapter: 'chapter-6', page: 2 })
     expect(positionFromHref('/read/emma/chapter-6')).toEqual({ chapter: 'chapter-6', page: 1 })
     expect(positionFromHref('/read/confessions/112')).toEqual({ printedPage: 112 })
-    expect(positionFromHref('/read/u-0e0f/7')).toEqual({ chapter: '7', page: 1 })
+    expect(positionFromHref(`/read/${privateBookSlug('0e0f0000-0000-4000-8000-000000000000')}/7`)).toEqual({
+      chapter: '7',
+      page: 1,
+    })
   })
 
   it('is null for anything else', () => {
@@ -183,7 +191,7 @@ describe('the sync layer’s helpers', () => {
 
   it('clears private books’ entries and keeps the catalogue’s', () => {
     const storage = memoryStorage({
-      'recent-reading': JSON.stringify([entry('u-1234', 3), entry('emma', 2), entry('u-5678', 1)]),
+      'recent-reading': JSON.stringify([entry(PRIVATE_1234, 3), entry('emma', 2), entry(PRIVATE_5678, 1)]),
     })
     clearPrivateReading(storage)
     expect(readRecent(storage).map((e) => e.bookSlug)).toEqual(['emma'])

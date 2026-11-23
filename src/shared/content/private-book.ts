@@ -4,19 +4,12 @@ import { formatLength } from '../audiobooks/chapters'
 import { type BookDetails, paragraphs } from '../import/details'
 import { shortHash } from '../import/image'
 import type { PlayerBook, PlayerEpisode } from './book-page'
+import { privateBookSlug } from './book-slug'
 import { renderCoverSvg } from './cover'
 import { PRIVATE_SHELF_HUE } from './hues'
 import type { CoverImage, Shelf, ShelfBook } from './library'
 import type { ReaderContext } from './reader-view'
 import type { BookMeta, ChapterBook, CoverStyle } from './schema'
-
-export const PRIVATE_SLUG = /^u-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-
-export const privateSlug = (id: string) => `u-${id}`
-
-export function privateBookId(slug: string): string | null {
-  return PRIVATE_SLUG.test(slug) ? slug.slice(2) : null
-}
 
 export const MY_BOOKS_HREF = '/account/books'
 export const MY_SHELF = {
@@ -86,7 +79,7 @@ export function privateReaderContext(book: PrivateBookInfo): ReaderContext {
   const page = privateBookHref(book.id)
   const meta: BookMeta = {
     id: book.id,
-    slug: privateSlug(book.id),
+    slug: privateBookSlug(book.id),
     title: book.title,
     author: book.author,
     seriesSlug: MY_SHELF.slug,
@@ -161,7 +154,7 @@ export function myShelf(
     books: books.map((b, i): ShelfBook => {
       const image = privateCoverImage(b.id, b.cover)
       return {
-        slug: privateSlug(b.id),
+        slug: privateBookSlug(b.id),
         title: b.title,
         author: b.author,
         order: i + 1,
@@ -247,7 +240,7 @@ function pageHeader(
   const about = book.details.description ? paragraphs(book.details.description) : []
   return {
     id: book.id,
-    slug: privateSlug(book.id),
+    slug: privateBookSlug(book.id),
     title: book.title,
     author: book.author,
     language: book.language,

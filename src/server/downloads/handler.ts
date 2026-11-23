@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { isNotFound } from '@tanstack/react-router'
-import { privateBookId } from '~/shared/content/private-book'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { isOfflineSlug } from '~/shared/offline/book'
 import { forbidden, NO_STORE, noStoreJson } from '../auth.ts'
 import { getDb } from '../db.ts'
@@ -25,7 +25,7 @@ export async function handleOfflineBook(request: Request, file: string): Promise
   if (!slug) return notFound()
   if (request.headers.get('sec-fetch-site') === 'cross-site') return forbidden()
   try {
-    if (privateBookId(slug)) {
+    if (isPrivateBookSlug(slug)) {
       const owner = await ownerOf(slug, request)
       const book = owner && (await privateOfflineBook(getDb(), owner.userId, owner.username, owner.bookId))
       return book ? noStoreJson(200, book) : notFound()

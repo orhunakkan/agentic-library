@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { citationMarker } from '~/shared/ask/events'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseCardChange, parseNewCard } from './input'
 
 const base = {
@@ -14,8 +15,8 @@ describe('parseNewCard', () => {
   it('accepts a card from a set of flashcards or a quiz, on a catalogue or a private book', () => {
     expect(parseNewCard(base)).toEqual(base)
     expect(parseNewCard({ ...base, origin: 'quiz' })?.origin).toBe('quiz')
-    expect(parseNewCard({ ...base, book: 'u-7f9c2ba4-e88f-4c1c-9a3d-2b8b6c0f1a2e' })?.book).toBe(
-      'u-7f9c2ba4-e88f-4c1c-9a3d-2b8b6c0f1a2e',
+    expect(parseNewCard({ ...base, book: privateBookSlug('7f9c2ba4-e88f-4c1c-9a3d-2b8b6c0f1a2e') })?.book).toBe(
+      privateBookSlug('7f9c2ba4-e88f-4c1c-9a3d-2b8b6c0f1a2e'),
     )
     expect(parseNewCard({ ...base, position: { printedPage: 12 } })?.position).toEqual({ printedPage: 12 })
   })

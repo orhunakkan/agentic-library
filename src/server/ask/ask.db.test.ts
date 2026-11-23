@@ -11,6 +11,7 @@ import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
 import { setAiModel } from '~/server/users'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
 import { anthropicStub, STUB_KEYS, STUB_RIGHT_ANSWER } from '../../../tests/e2e/support/anthropic-stub'
@@ -222,7 +223,7 @@ describe('POST /read/<book>/ask', () => {
         pages: ['<p>First page.</p>', '<p>Second page.</p>'],
       })
       expect(await finishImport(db(), owner.user.id, start.id, null)).toBe('ok')
-      return { owner, slug: `u-${start.id}` }
+      return { owner, slug: privateBookSlug(start.id) }
     }
 
     it('can be asked about by its owner', async () => {
@@ -713,7 +714,7 @@ describe('Ask for a quiz or flashcards', () => {
       pages: ['<p>A title page.</p>', `<p>${'Plenty of text. '.repeat(40)}</p>`],
     })
     expect(await finishImport(db(), user.id, start.id, null)).toBe('ok')
-    const slug = `u-${start.id}`
+    const slug = privateBookSlug(start.id)
     const { sent, fetch } = capturing()
     const quizAt = (page: number) =>
       handleAsk(

@@ -4,10 +4,10 @@ import { getRequest } from '@tanstack/react-start/server'
 import type { BillingOffer } from '~/shared/billing/billing'
 import { buildBookPage } from '~/shared/content/book-page'
 import { IN_BOOK_HIT_LIMIT, searchBook } from '~/shared/content/book-search'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { collectionHues } from '~/shared/content/hues'
 import { bookHref, buildLibrary, seriesBooks, toShelfBook } from '~/shared/content/library'
 import { chapterPageHref, pagedHref } from '~/shared/content/navigation'
-import { privateBookId } from '~/shared/content/private-book'
 import { buildReaderView } from '~/shared/content/reader-view'
 import { catalogWithoutRemoved, removedShelfBooks, withoutRemoved } from '~/shared/content/removed'
 import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
@@ -87,7 +87,7 @@ export const getBookPage = createServerFn({ method: 'GET' })
     book: str(data.book, 'book'),
   }))
   .handler(async ({ data }) => {
-    if (privateBookId(data.book)) throw notFound()
+    if (isPrivateBookSlug(data.book)) throw notFound()
     const [catalog, content, audio, removed, rating] = await Promise.all([
       loadCatalog(),
       loadBook(data.book),
@@ -107,7 +107,7 @@ export const getReaderPage = createServerFn({ method: 'GET' })
     n: data.n === undefined ? undefined : str(data.n, 'n'),
   }))
   .handler(async ({ data }) => {
-    if (privateBookId(data.book)) return privateReaderPage(data.book, data.part, data.n)
+    if (isPrivateBookSlug(data.book)) return privateReaderPage(data.book, data.part, data.n)
     const [catalog, meta, content, audio] = await Promise.all([
       loadCatalog(),
       catalogueBook(data.book),
@@ -127,7 +127,7 @@ export const searchInBook = createServerFn({ method: 'GET' })
     q: String(data.q ?? '').slice(0, 120),
   }))
   .handler(async ({ data }) => {
-    if (privateBookId(data.book)) return privateBookSearch(data.book, data.q)
+    if (isPrivateBookSlug(data.book)) return privateBookSearch(data.book, data.q)
     const content = await loadBook(data.book)
     if (!content) throw notFound()
     return searchBook(content, data.q, { limit: IN_BOOK_HIT_LIMIT })

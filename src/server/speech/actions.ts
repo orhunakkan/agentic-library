@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { canUse } from '../../shared/plans/plans.ts'
 import { sayMap, wordsFrom } from '../../shared/read-aloud/alignment.ts'
 import {
@@ -13,7 +14,6 @@ import type { SpeechChapter } from '../../shared/read-aloud/speech-text.ts'
 import { hasKey, withApiKey } from '../api-keys.ts'
 import { noStoreJson } from '../auth.ts'
 import { findBook } from '../book-ref/book.ts'
-import { isBookSlug } from '../book-ref/ref.ts'
 import type { Db } from '../db.ts'
 import { requirePro } from '../plans/plan.ts'
 import { charactersRetryAt, SPEECH_LIMIT } from '../rate-limit.ts'

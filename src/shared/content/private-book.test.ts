@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { NO_DETAILS } from '../import/details'
+import { privateBookSlug } from './book-slug'
 import {
   buildPrivateAudiobookPage,
   buildPrivateBookPage,
@@ -8,7 +9,6 @@ import {
   myShelf,
   partialChapterBook,
   privateBookHref,
-  privateBookId,
   privateCover,
   privateCoverImage,
   privateCoverUrl,
@@ -17,18 +17,8 @@ import {
 import { buildReaderView } from './reader-view'
 
 const ID = '0f8e2a9c-1b3d-4c5e-8f70-123456789abc'
-const SLUG = `u-${ID}`
+const SLUG = privateBookSlug(ID)
 const COVER = { width: 600, height: 900, sha256: `abcdef12${'0'.repeat(56)}`, source: 'upload' as const }
-
-describe('private slugs', () => {
-  it('are u-<uuid>, and only that', () => {
-    expect(privateBookId(SLUG)).toBe(ID)
-    expect(privateBookId('u-boat')).toBeNull()
-    expect(privateBookId(`u-${ID.toUpperCase()}`)).toBeNull()
-    expect(privateBookId(`${SLUG}-x`)).toBeNull()
-    expect(privateBookId('pride-and-prejudice')).toBeNull()
-  })
-})
 
 describe('reading a private book', () => {
   const chapters = [

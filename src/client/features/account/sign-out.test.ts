@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { beforeSignOut, clearBrowserAccountData, SIGN_OUT_WAIT_MS, signOutSubmit } from './sign-out'
+
+const PRIVATE_1234 = privateBookSlug('12341234-0000-4000-8000-000000000000')
 
 function memoryStorage(entries: Record<string, string> = {}): Storage {
   const map = new Map(Object.entries(entries))
@@ -18,10 +21,10 @@ function memoryStorage(entries: Record<string, string> = {}): Storage {
 const entry = (slug: string) => ({ bookSlug: slug, bookTitle: slug, chapterTitle: 'c', href: `/read/${slug}/c`, at: 1 })
 const browser = () =>
   memoryStorage({
-    'recent-reading': JSON.stringify([entry('u-1234'), entry('emma')]),
-    'ask:u-1234': '{}',
+    'recent-reading': JSON.stringify([entry(PRIVATE_1234), entry('emma')]),
+    [`ask:${PRIVATE_1234}`]: '{}',
     'ask:emma': '{}',
-    'read-aloud-pos:u-1234': '{}',
+    [`read-aloud-pos:${PRIVATE_1234}`]: '{}',
     'read-aloud-pos:emma': '{}',
     'listen-pos:u-6f1c0000-0000-4000-8000-000000000000:1': '{"v":1,"ms":1000,"at":1}',
     'listen-pos:the-prophet:ep_1': '{"v":1,"ms":1000,"at":1}',
@@ -40,7 +43,7 @@ describe('beforeSignOut', () => {
     const outbox = {
       flush: vi.fn(async (options?: { keepalive?: boolean }) => {
         order.push(`flush ${options?.keepalive}`)
-        expect(storage.getItem('ask:u-1234')).not.toBeNull()
+        expect(storage.getItem(`ask:${PRIVATE_1234}`)).not.toBeNull()
       }),
       enable: vi.fn((account: string | null) => void order.push(`enable ${account}`)),
     }
@@ -63,17 +66,17 @@ describe('beforeSignOut', () => {
     const outbox = { flush: vi.fn(() => new Promise<void>(() => {})), enable: vi.fn() }
     const signingOut = beforeSignOut(storage, outbox)
     await vi.advanceTimersByTimeAsync(SIGN_OUT_WAIT_MS - 1)
-    expect(storage.getItem('ask:u-1234')).not.toBeNull()
+    expect(storage.getItem(`ask:${PRIVATE_1234}`)).not.toBeNull()
     await vi.advanceTimersByTimeAsync(1)
     await signingOut
-    expect(storage.getItem('ask:u-1234')).toBeNull()
+    expect(storage.getItem(`ask:${PRIVATE_1234}`)).toBeNull()
     expect(outbox.enable).toHaveBeenCalledWith(null)
 
     const failing = browser()
     const enable = vi.fn()
     const forget = () => Promise.reject(new Error('blocked'))
     await beforeSignOut(failing, { flush: () => Promise.reject(new Error('offline')), enable }, forget)
-    expect(failing.getItem('read-aloud-pos:u-1234')).toBeNull()
+    expect(failing.getItem(`read-aloud-pos:${PRIVATE_1234}`)).toBeNull()
     expect(enable).toHaveBeenCalledWith(null)
   })
 })

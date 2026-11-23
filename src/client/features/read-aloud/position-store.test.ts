@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import {
   clearPrivatePositions,
   dismissOffer,
@@ -22,6 +23,10 @@ import {
   writePosition,
   writeSpeed,
 } from './position-store'
+
+const PRIVATE_5678 = privateBookSlug('56785678-0000-4000-8000-000000000000')
+
+const PRIVATE_1234 = privateBookSlug('12341234-0000-4000-8000-000000000000')
 
 function memoryStorage(entries: Record<string, string> = {}): Storage {
   const map = new Map(Object.entries(entries))
@@ -110,26 +115,26 @@ describe('positions', () => {
   it('lists every book’s position or finish for the sync layer, leaving out anything malformed', () => {
     const storage = memoryStorage({
       [positionKey('emma')]: '{"v":1,"chapter":0,"position":{"printedPage":1},"offset":4,"at":3}',
-      [positionKey('u-1')]: '{"v":1,"done":true,"at":9}',
+      [positionKey(privateBookSlug('11111111-1111-4111-8111-111111111111'))]: '{"v":1,"done":true,"at":9}',
       [positionKey('broken')]: '{',
       'read-aloud-speed': '1.5',
     })
     expect(listPositions(storage).sort((a, b) => a.book.localeCompare(b.book))).toEqual([
       { book: 'emma', saved: { v: 1, chapter: 0, position: { printedPage: 1 }, offset: 4, at: 3 }, at: 3 },
-      { book: 'u-1', saved: null, at: 9 },
+      { book: privateBookSlug('11111111-1111-4111-8111-111111111111'), saved: null, at: 9 },
     ])
   })
 
   it("clears only private books' positions on sign-out", () => {
     const storage = memoryStorage({
-      [positionKey('u-1234')]: '{}',
-      [positionKey('u-5678')]: '{}',
+      [positionKey(PRIVATE_1234)]: '{}',
+      [positionKey(PRIVATE_5678)]: '{}',
       [positionKey('pride-and-prejudice')]: '{}',
-      'ask:u-1234': '{}',
+      [`ask:${PRIVATE_1234}`]: '{}',
     })
     clearPrivatePositions(storage)
     expect([...Array(storage.length)].map((_, i) => storage.key(i)).sort()).toEqual([
-      'ask:u-1234',
+      `ask:${PRIVATE_1234}`,
       positionKey('pride-and-prejudice'),
     ])
     expect(() => clearPrivatePositions(blocked)).not.toThrow()

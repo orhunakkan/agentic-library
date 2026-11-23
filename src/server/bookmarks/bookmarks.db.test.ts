@@ -16,7 +16,7 @@ vi.mock('~/server/db', async (importOriginal) => {
 })
 
 import { findBook } from '~/server/book-ref/book'
-import type { BookRef } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/book-ref/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -345,7 +345,7 @@ describe('the endpoints', () => {
     expect(await read(null, 'pride-and-prejudice')).toEqual({ state: 'signed_out' })
     expect(await read(alice.cookie, 'no-such-book')).toEqual({ state: 'not_found' })
     const mine = await privateBook(alice.user.id)
-    expect(await read(bob.cookie, `u-${mine.userBookId}`)).toEqual({ state: 'not_found' })
+    expect(await read(bob.cookie, slugOf(mine))).toEqual({ state: 'not_found' })
     expect(await read(alice.cookie, 'pride-and-prejudice')).toEqual({ state: 'ready', bookmarks: [] })
     const { bookmark } = (await (await create(alice.cookie)).json()) as { bookmark: BookmarkView }
     expect(await read(alice.cookie, 'pride-and-prejudice')).toEqual({ state: 'ready', bookmarks: [bookmark] })
@@ -371,7 +371,7 @@ describe('the endpoints', () => {
     expect(await listForBook(db(), alice.user.id, PRIDE)).toHaveLength(1)
 
     const book = await privateBook(alice.user.id)
-    const privateBody = { book: `u-${book.userBookId}`, position: { chapter: 'only', page: 1 } }
+    const privateBody = { book: slugOf(book), position: { chapter: 'only', page: 1 } }
     const own = await create(alice.cookie, privateBody)
     expect(own.status).toBe(201)
     expect(((await own.json()) as { bookmark: BookmarkView }).bookmark).toMatchObject({

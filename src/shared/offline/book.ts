@@ -1,5 +1,5 @@
+import { isBookSlug, isPrivateBookSlug } from '../content/book-slug'
 import { coverUrlFor } from '../content/library'
-import { PRIVATE_SLUG } from '../content/private-book'
 import type { ReaderContext } from '../content/reader-view'
 import type { BookContent, BookMeta, Catalog, CoverStyle } from '../content/schema'
 import type { SpeechBook } from '../read-aloud/speech-text'
@@ -23,7 +23,6 @@ export interface OfflineBook {
   bytes: number
 }
 
-const CATALOGUE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const VERSION = /^[0-9a-f]{16}$/
 const KEYS = [
   'v',
@@ -40,15 +39,8 @@ const KEYS = [
   'bytes',
 ]
 
-export function isOfflineSlug(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    value.length <= 200 &&
-    (PRIVATE_SLUG.test(value) || (CATALOGUE_SLUG.test(value) && !value.startsWith('u-') && value !== 'nav'))
-  )
-}
-
-export const isPrivateSlug = (slug: string) => PRIVATE_SLUG.test(slug)
+/** A book slug that can name an offline copy: `nav` is taken by the nav file beside them. */
+export const isOfflineSlug = (value: unknown): value is string => isBookSlug(value) && value !== 'nav'
 
 export const offlineBookUrl = (slug: string) => `/offline/${slug}.json`
 
@@ -66,7 +58,7 @@ export function parseOfflineBook(value: unknown): OfflineBook | null {
   if (v !== OFFLINE_BOOK_VERSION || !isOfflineSlug(slug)) return null
   if (typeof version !== 'string' || !VERSION.test(version)) return null
   if (typeof title !== 'string' || typeof author !== 'string') return null
-  if (isPrivateSlug(slug) ? typeof owner !== 'string' || owner === '' : owner !== null) return null
+  if (isPrivateBookSlug(slug) ? typeof owner !== 'string' || owner === '' : owner !== null) return null
   if (!isObject(context) || !isObject(context.meta) || context.meta.slug !== slug || !isObject(context.catalog))
     return null
   if (!isObject(content) || content.slug !== slug || !Array.isArray(content.chapters)) return null

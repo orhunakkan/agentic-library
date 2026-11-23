@@ -7,9 +7,10 @@ import {
   siteOf,
   type WebFetchProblem,
 } from '../../shared/articles/contract.ts'
+import { privateBookSlug } from '../../shared/content/book-slug.ts'
 import type { Shelf } from '../../shared/content/library.ts'
 import { chapterPageHref } from '../../shared/content/navigation.ts'
-import { myArticles, privateSlug } from '../../shared/content/private-book.ts'
+import { myArticles } from '../../shared/content/private-book.ts'
 import { sniffImage } from '../../shared/import/image.ts'
 import { limitsFor } from '../../shared/plans/plans.ts'
 import { isUuid } from '../../shared/uuid.ts'
@@ -128,7 +129,7 @@ export function toArticleView(article: UserArticle): ArticleView {
     url: article.url,
     words: article.words,
     savedAt: article.savedAt.toISOString(),
-    readHref: chapterPageHref(privateSlug(article.id), article.firstChapter, 1),
+    readHref: chapterPageHref(privateBookSlug(article.id), article.firstChapter, 1),
   }
 }
 

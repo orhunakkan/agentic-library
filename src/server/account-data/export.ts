@@ -1,3 +1,4 @@
+import { privateBookSlug } from '../../shared/content/book-slug.ts'
 import { resolveAiModel } from '../../shared/lib/ai-models.ts'
 import { resolveSpeechModel } from '../../shared/lib/speech-models.ts'
 import { describeDevice } from '../device.ts'
@@ -187,7 +188,7 @@ export function toAccountExport(
   const privateTitles = new Map(rows.privateBooks.map((b) => [b.id, b.title]))
   const book = (key: BookKey): ExportBook =>
     key.userBookId !== null
-      ? { slug: `u-${key.userBookId}`, title: privateTitles.get(key.userBookId) ?? null }
+      ? { slug: privateBookSlug(key.userBookId), title: privateTitles.get(key.userBookId) ?? null }
       : { slug: key.slug ?? '', title: titles.get(key.slug ?? '') ?? null }
   const settings = rows.readerSettings
 
@@ -247,7 +248,7 @@ export function toAccountExport(
     })),
     readerSettings: settings ? Object.fromEntries(SETTINGS_KEYS.map((key) => [key, settings[key] ?? null])) : null,
     privateBooks: rows.privateBooks.map((b) => ({
-      slug: `u-${b.id}`,
+      slug: privateBookSlug(b.id),
       title: b.title,
       author: b.author,
       language: b.language,

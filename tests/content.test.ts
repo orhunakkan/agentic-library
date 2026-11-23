@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { delimiter, join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { loadAudio, loadBook, loadCatalog } from '~/server/repository'
+import { parseBookSlug } from '~/shared/content/book-slug'
 import type { AudioBook, BookContent, BookMeta, ChapterBook, PagedBook } from '~/shared/content/schema'
 import { sniffImage } from '~/shared/import/image'
 import { MAX_CATALOG_COVER_BYTES, MAX_CATALOG_IMAGE_BYTES } from '~/shared/import/limits'
@@ -32,9 +33,9 @@ describe('catalog', () => {
     expect(new Set(catalog.series.map((s) => s.slug)).size).toBe(catalog.series.length)
   })
 
-  it('has no slug shaped like a private book’s (u-<uuid>), which the app sends to the database instead', () => {
-    for (const slug of [...catalog.books.map((b) => b.slug), ...catalog.series.map((s) => s.slug)])
-      expect(slug).not.toMatch(/^u-[0-9a-f-]{36}$/)
+  it('names every book with a catalogue book slug, never one shaped like a private book’s', () => {
+    for (const { slug } of catalog.books) expect(parseBookSlug(slug), slug).toEqual({ kind: 'catalogue', slug })
+    for (const { slug } of catalog.series) expect(parseBookSlug(slug)?.kind, slug).not.toBe('private')
   })
 
   it('references existing series and collections, with matching kinds', () => {

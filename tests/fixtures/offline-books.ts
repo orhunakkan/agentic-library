@@ -1,11 +1,12 @@
-import { privateReaderContext, privateSlug } from '../../src/shared/content/private-book'
+import { privateBookSlug } from '../../src/shared/content/book-slug'
+import { privateReaderContext } from '../../src/shared/content/private-book'
 import type { ChapterBook } from '../../src/shared/content/schema'
 import { type OfflineBook, trimCatalog } from '../../src/shared/offline/book'
 import { metaFor } from './books'
 import { fixtureCatalog } from './catalog'
 
 export const PRIVATE_ID = '0f8fad5b-d9cb-469f-a165-70867728950e'
-export const PRIVATE_SLUG = privateSlug(PRIVATE_ID)
+export const PRIVATE_SLUG = privateBookSlug(PRIVATE_ID)
 
 const figure = (src: string) => `<figure><a href="${src}"><img src="${src}" alt="" width="1" height="1"></a></figure>`
 

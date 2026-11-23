@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import {
   clearPrivateThreads,
   clearThread,
@@ -103,12 +104,17 @@ describe('the thread store', () => {
 
   it('clears one book, or every private book on sign-out', () => {
     const storage = memoryStorage()
-    for (const slug of ['pride-and-prejudice', 'u-1111', 'u-2222']) saveThread(storage, slug, emptyThread())
+    for (const slug of [
+      'pride-and-prejudice',
+      privateBookSlug('11111111-1111-4111-8111-111111111111'),
+      privateBookSlug('22222222-2222-4222-8222-222222222222'),
+    ])
+      saveThread(storage, slug, emptyThread())
     storage.setItem('recent-reading', '[]')
-    clearThread(storage, 'u-1111')
-    expect(storage.getItem(threadKey('u-1111'))).toBeNull()
+    clearThread(storage, privateBookSlug('11111111-1111-4111-8111-111111111111'))
+    expect(storage.getItem(threadKey(privateBookSlug('11111111-1111-4111-8111-111111111111')))).toBeNull()
     clearPrivateThreads(storage)
-    expect(storage.getItem(threadKey('u-2222'))).toBeNull()
+    expect(storage.getItem(threadKey(privateBookSlug('22222222-2222-4222-8222-222222222222')))).toBeNull()
     expect(storage.getItem(threadKey('pride-and-prejudice'))).not.toBeNull()
     expect(storage.getItem('recent-reading')).toBe('[]')
   })

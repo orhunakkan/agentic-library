@@ -8,7 +8,7 @@ import { forgetGoneCopy } from '~/client/features/offline/reconcile'
 import { readCopy } from '~/client/features/offline/store'
 import { Reader } from '~/client/features/reader/Reader'
 import { getReaderPage } from '~/server/functions'
-import { privateBookId } from '~/shared/content/private-book'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 
 const compared = new Set<string>()
 
@@ -34,7 +34,7 @@ export const Route = createFileRoute('/read/$book/$part/{-$n}')({
   head: ({ loaderData }) => {
     if (!loaderData) return {}
     const { view } = loaderData
-    if (privateBookId(view.book.slug))
+    if (isPrivateBookSlug(view.book.slug))
       return { meta: [{ title: view.documentTitle }, { name: 'robots', content: 'noindex' }] }
     return {
       meta: [

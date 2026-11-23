@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { parseSyncBatch } from './input'
 
 const NOW = 1_800_000_000_000
 const reading = { book: 'pride-and-prejudice', position: { chapter: 'chapter-6', page: 2 }, at: 1000 }
 const episode = { book: 'the-prophet', kind: 'episode', episode: 'ep_1', positionMs: 15_000, at: 1000 }
 const voice = {
-  book: 'u-0f9b8c7e-1d2a-4b3c-8d4e-5f6a7b8c9d0e',
+  book: privateBookSlug('0f9b8c7e-1d2a-4b3c-8d4e-5f6a7b8c9d0e'),
   kind: 'voice',
   position: { printedPage: 9 },
   offset: 40,

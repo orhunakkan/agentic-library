@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { privateBookId } from '~/shared/content/private-book'
+import { isCatalogueBookSlug } from '~/shared/content/book-slug'
 import { catalogueBook, contentImageFile } from './repository'
 
 export interface ContentImageSources {
@@ -15,7 +15,6 @@ const defaultSources: ContentImageSources = {
   },
 }
 
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const FILE = /^[0-9a-f]{12}\.(jpg|png|webp|gif)$/
 const TYPES: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' }
 
@@ -28,7 +27,7 @@ export async function serveContentImage(
   sources: ContentImageSources = defaultSources,
 ): Promise<Response> {
   const match = FILE.exec(file)
-  if (!match || !SLUG.test(slug) || privateBookId(slug) || !(await sources.isBook(slug))) return notFound()
+  if (!match || !isCatalogueBookSlug(slug) || !(await sources.isBook(slug))) return notFound()
   const bytes = await sources.image(slug, file)
   if (!bytes) return notFound()
   return new Response(bytes, {

@@ -16,6 +16,7 @@ import {
 import { toAudioBookmarkViews } from '~/server/bookmarks/audio-view'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { testUser } from '../testing/users'
 
@@ -25,7 +26,7 @@ vi.mock('~/server/db', async (importOriginal) => {
 })
 
 import { findBook } from '~/server/book-ref/book'
-import type { BookRef } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/book-ref/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -379,7 +380,7 @@ describe('the endpoints', () => {
     expect(await answer(await create(cookie, voiceBody({ offset: page2.text.length })))).toEqual([400, 'invalid'])
     const noAudio = episodeBody({ book: 'pride-and-prejudice' })
     expect(await answer(await create(cookie, noAudio))).toEqual([404, 'not_found'])
-    const privateBook = episodeBody({ book: 'u-6f1c0000-0000-4000-8000-000000000000' })
+    const privateBook = episodeBody({ book: privateBookSlug('6f1c0000-0000-4000-8000-000000000000') })
     expect(await answer(await create(cookie, privateBook))).toEqual([404, 'not_found'])
     expect(await answer(await create(cookie, episodeBody({ episode: 'ep_99' })))).toEqual([400, 'invalid'])
     expect(await answer(await create(cookie, episodeBody({ positionMs: 484_001 })))).toEqual([400, 'invalid'])
@@ -449,7 +450,11 @@ describe('the endpoints', () => {
     expect(await listAudioForBook(db(), alice.user.id, PRIDE)).toHaveLength(1)
 
     const book = await privateBook(alice.user.id)
-    const privateBody = voiceBody({ book: `u-${book.userBookId}`, position: { chapter: 'only', page: 1 }, offset: 0 })
+    const privateBody = voiceBody({
+      book: slugOf(book),
+      position: { chapter: 'only', page: 1 },
+      offset: 0,
+    })
     const own = await create(alice.cookie, privateBody)
     expect(own.status).toBe(201)
     expect(await bookmarkOf(own)).toMatchObject({
@@ -463,7 +468,7 @@ describe('the endpoints', () => {
     const alice = await signedIn()
     const bob = await signedIn()
     const id = await readyAudiobook(raw, alice.user.id, [60_000, 90_000])
-    const slug = `u-${id}`
+    const slug = privateBookSlug(id)
     const response = await create(alice.cookie, episodeBody({ book: slug, episode: '2', positionMs: 12_345 }))
     expect(response.status).toBe(201)
     expect(await bookmarkOf(response)).toMatchObject({
@@ -503,7 +508,7 @@ describe('the endpoints', () => {
       expect(await read(null, 'the-prophet')).toEqual({ state: 'signed_out' })
       expect(await read(alice.cookie, 'no-such-book')).toEqual({ state: 'not_found' })
       const book = await privateBook(alice.user.id)
-      expect(await read(bob.cookie, `u-${book.userBookId}`)).toEqual({ state: 'not_found' })
+      expect(await read(bob.cookie, slugOf(book))).toEqual({ state: 'not_found' })
     })
 
     it('lists both kinds on a book with an audiobook, read aloud first', async () => {
@@ -521,7 +526,7 @@ describe('the endpoints', () => {
     it('lists only read-aloud bookmarks on a private book', async () => {
       const { user, cookie } = await signedIn()
       const book = await privateBook(user.id)
-      const slug = `u-${book.userBookId}`
+      const slug = slugOf(book)
       await create(cookie, voiceBody({ book: slug, position: { chapter: 'only', page: 1 }, offset: 0 }))
       expect(await read(cookie, slug)).toMatchObject({
         state: 'ready',

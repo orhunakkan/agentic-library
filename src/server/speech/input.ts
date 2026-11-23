@@ -1,7 +1,7 @@
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import type { PagePosition } from '../../shared/highlights/page-text.ts'
 import { type SpeechFormat, VOICE_ID } from '../../shared/read-aloud/cloud.ts'
 import { isObject, only, parsePosition } from '../ask/input.ts'
-import { isBookSlug } from '../book-ref/ref.ts'
 
 const MAX_INDEX = 100_000
 

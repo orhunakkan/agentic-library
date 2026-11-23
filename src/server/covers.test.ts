@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import type { BookMeta } from '~/shared/content/schema'
 import { type CoverSources, serveCover } from './covers'
 
@@ -75,7 +76,7 @@ describe('serveCover', () => {
       'nobody-abcdef12.jpg',
       'nobody',
       'nobody.svg',
-      'u-0b9f6a3c-2d5e-4f1a-9c8b-7e6d5c4b3a21',
+      privateBookSlug('0b9f6a3c-2d5e-4f1a-9c8b-7e6d5c4b3a21'),
       'u-0b9f6a3c-2d5e-4f1a-9c8b-7e6d5c4b3a21.svg',
       'With-Cover',
       '../secret',

@@ -1,7 +1,7 @@
+import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { isTimeZone } from '../../shared/reading-stats/days.ts'
 import { isGoalChoice } from '../../shared/reading-stats/goals.ts'
 import { isObject, only } from '../ask/input.ts'
-import { isBookSlug } from '../book-ref/ref.ts'
 
 export interface GoalInput {
   minutes: number

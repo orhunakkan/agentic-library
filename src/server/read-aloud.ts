@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { notFound } from '@tanstack/react-router'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { bookHref, catalogCoverImage, coverUrlFor } from '~/shared/content/library'
-import { privateBookId } from '~/shared/content/private-book'
 import type { BookContent, BookMeta } from '~/shared/content/schema'
 import { type SpeechBook, type SpeechChapterData, speechChapter } from '~/shared/read-aloud/speech-text'
 import { privateSpeechChapter } from './private-reading.ts'
@@ -16,7 +16,7 @@ export function speechInput(data: { book?: unknown; chapter?: unknown }): { book
 }
 
 export async function loadSpeechChapterData(book: string, chapter: number): Promise<SpeechChapterData> {
-  if (privateBookId(book)) return privateSpeechChapter(book, chapter)
+  if (isPrivateBookSlug(book)) return privateSpeechChapter(book, chapter)
   const [meta, content] = await Promise.all([catalogueBook(book), loadBook(book)])
   const found = meta && content ? speechChapter(content, chapter) : null
   if (!meta || !content || !found) throw notFound()

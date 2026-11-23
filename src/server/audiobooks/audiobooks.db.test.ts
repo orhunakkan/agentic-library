@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -584,9 +585,9 @@ describe('the text paths', () => {
     expect(await loadBookText(db(), userId, id)).toBeNull()
     expect(await loadBookPage(db(), userId, id)).toBeNull()
     expect(await loadOutlines(db(), userId, [id])).toEqual(new Map())
-    expect(await findBook(db(), userId, `u-${id}`, 'text')).toBeNull()
-    expect((await findAudio(db(), userId, `u-${id}`))?.episodes.map((e) => e.id)).toEqual(['1', '2', '3'])
-    expect(await findAudio(db(), bob.user.id, `u-${id}`)).toBeNull()
+    expect(await findBook(db(), userId, privateBookSlug(id), 'text')).toBeNull()
+    expect((await findAudio(db(), userId, privateBookSlug(id)))?.episodes.map((e) => e.id)).toEqual(['1', '2', '3'])
+    expect(await findAudio(db(), bob.user.id, privateBookSlug(id))).toBeNull()
   })
 })
 
