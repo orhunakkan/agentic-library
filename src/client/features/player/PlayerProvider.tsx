@@ -58,6 +58,7 @@ export function PlayerProvider({ children, signedIn = false }: { children: React
     signedIn,
     (notice: DownloadNotice) => toast(noticeMessage(notice)),
     (on) => arbiter.current?.playing('voice', on),
+    () => arbiter.current?.closed(),
   )
   const latest = useRef({ speech, signedIn, toast })
   latest.current = { speech, signedIn, toast }
@@ -153,7 +154,6 @@ export function PlayerProvider({ children, signedIn = false }: { children: React
       },
       close: () => {
         speech.close()
-        arbiter.current?.closed()
         setExpanded(false)
       },
       aside: { ...speech.aside, hush: aside(speech.aside.hush), say: aside(speech.aside.say) },

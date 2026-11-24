@@ -48,6 +48,7 @@ export function useReadAloud(
   signedIn: boolean,
   onNotice: (notice: DownloadNotice) => void = () => {},
   onPlaying: (on: boolean) => void = () => {},
+  onClosed: () => void = () => {},
 ): ReadAloudApi {
   const [state, setState] = useState<ReadAloudState>(IDLE)
   const [supported, setSupported] = useState(false)
@@ -59,6 +60,8 @@ export function useReadAloud(
   noticeRef.current = onNotice
   const playingRef = useRef(onPlaying)
   playingRef.current = onPlaying
+  const closedRef = useRef(onClosed)
+  closedRef.current = onClosed
   const toast = useToast()
   const finishRef = useRef({ signedIn, toast })
   finishRef.current = { signedIn, toast }
@@ -111,6 +114,7 @@ export function useReadAloud(
         }
       },
       onNotice: (notice) => noticeRef.current(notice),
+      onClosed: () => closedRef.current(),
       ...(localSpeaker && voiceStore ? { localSpeaker, voiceStore } : {}),
       ...(cloudSpeaker
         ? {

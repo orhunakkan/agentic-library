@@ -141,6 +141,8 @@ export interface ControllerDeps {
   locale?: string
   now?: () => number
   onSaved?: (book: string, saved: Omit<SavedPosition, 'v'> | null) => void
+  /** Called after a book that was open closes, whoever closed it. */
+  onClosed?: () => void
 }
 
 export interface ReadAloud {
@@ -540,6 +542,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   }
 
   const close = (problem: Problem | null = null) => {
+    const wasOpen = slug !== null
     save()
     deps.speaker.stop()
     deps.cloudSpeaker?.close()
@@ -557,6 +560,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     failures = 0
     state = { ...closed(), rate: state.rate, problem }
     deps.onState(state)
+    if (wasOpen) deps.onClosed?.()
   }
 
   const cloudVoicesFor = (book: string): Promise<SpeechVoicesState> => {

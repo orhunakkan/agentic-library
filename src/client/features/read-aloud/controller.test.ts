@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { createArbiter } from '~/client/features/player/arbitration'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ChapterBook } from '~/shared/content/schema'
 import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
@@ -75,6 +76,7 @@ function setup(
     content?: ChapterBook
     onSaved?: ControllerDeps['onSaved']
     cloud?: () => Promise<SpeechVoicesState>
+    onClosed?: () => void
   } = {},
 ) {
   const said: { text: string; rate: number; voice: string | null; lang: string; engine: 'device' | 'cloud' }[] = []
@@ -129,6 +131,7 @@ function setup(
     locale: 'en-US',
     now: () => clock,
     onSaved: options.onSaved,
+    onClosed: options.onClosed,
     cloudSpeaker,
     loadCloudVoices: options.cloud
       ? (book) => {
@@ -713,6 +716,42 @@ describe('controls', () => {
     expect(chapterEnd.texts().at(-1)).toBe('Chapter 3. Coda.')
     expect(chapterEnd.state()).toMatchObject({ status: 'playing', chapter: { index: 2 } })
     expect(chapterEnd.onSleep).toHaveBeenCalledOnce()
+  })
+
+  it('turns the end-of-chapter sleep timer off when it closes itself', async () => {
+    const reading = { ra: null as ReturnType<typeof createReadAloud> | null }
+    const arbiter = createArbiter({
+      audiobook: { loaded: () => false, close: () => {}, pause: () => {}, fadeOut: () => {} },
+      voice: {
+        loaded: () => reading.ra?.state().book != null,
+        close: () => reading.ra?.close(),
+        stopAfterSentence: () => reading.ra?.stopAfterSentence(),
+        setStopAtChapterEnd: (on) => reading.ra?.setStopAtChapterEnd(on),
+      },
+      aside: { interrupt: () => {} },
+      onSleepEnded: () => {},
+      onChange: () => {},
+    })
+    const t = setup({
+      fetch: async () => ({ ok: false, reason: 'failed' }),
+      onClosed: () => arbiter.closed(),
+    })
+    reading.ra = t.ra
+    arbiter.setSleep('end-of-part')
+    await t.start(page(0, 'history', 1))
+    expect(t.state()).toMatchObject({ book: null, problem: { kind: 'load-failed' } })
+    expect(arbiter.state()).toMatchObject({ sleep: { kind: 'off' }, sleepChoice: 'off' })
+    arbiter.dispose()
+  })
+
+  it('reports a close only when it had a book open', async () => {
+    const onClosed = vi.fn()
+    const t = setup({ onClosed })
+    t.ra.close()
+    expect(onClosed).not.toHaveBeenCalled()
+    await t.start(page(0, 'history', 1))
+    t.ra.close()
+    expect(onClosed).toHaveBeenCalledOnce()
   })
 
   it('ignores a late answer for a book it is no longer reading', async () => {
