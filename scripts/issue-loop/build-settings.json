@@ -38,8 +38,6 @@
       "Bash(git restore *)",
       "Bash(git commit *)",
       "Bash(git fetch *)",
-      "Bash(git pull --rebase origin main)",
-      "Bash(git push origin main)",
       "Bash(gh issue view *)",
       "Bash(gh issue list *)",
       "Bash(gh issue comment *)",
@@ -50,10 +48,8 @@
       "Bash(gh run watch *)"
     ],
     "deny": [
-      "Bash(git push --force*)",
-      "Bash(git push -f*)",
-      "Bash(git push * --force*)",
-      "Bash(git push * -f*)",
+      "Bash(git push*)",
+      "Bash(git pull*)",
       "Bash(git reset --hard*)",
       "Bash(git checkout *)",
       "Bash(git switch *)",

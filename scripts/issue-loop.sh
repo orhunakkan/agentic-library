@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Issue loop: builds "ready-for-agent" issues one at a time, each in a fresh
-# Claude session, then runs a retro session on each build.
+# Claude session, then runs a retro session on each build. Each issue is
+# committed on local main once pnpm ci:local passes; the whole cycle is pushed
+# once at the end, so CI runs once.
 # Design and definition of done: docs/agents/issue-loop.md
 #
 #   scripts/issue-loop.sh start [--once]   start the loop in tmux and return
@@ -71,27 +73,42 @@ log() { printf '%s %s\n' "$(date '+%F %T')" "$*" | tee -a "$run_dir/loop.log" >&
 
 preflight() {
   local tool
-  for tool in claude gh git jq timeout; do
+  for tool in claude docker gh git jq timeout; do
     command -v "$tool" >/dev/null || die "$tool is not installed"
   done
   gh auth status >/dev/null 2>&1 || die "gh is not logged in: gh auth login"
   [[ $(git branch --show-current) == main ]] || die "not on main"
   [[ -z $(git status --porcelain) ]] || die "the working tree has changes: commit or stash them first"
   git fetch -q origin main
-  git merge -q --ff-only origin/main || die "main has diverged from origin/main"
+  git merge -q --ff-only origin/main 2>/dev/null ||
+    [[ -z $(git rev-list HEAD..origin/main) ]] || die "main has diverged from origin/main"
+  local ahead
+  ahead=$(git rev-list --count origin/main..HEAD)
+  if ((ahead > 0)); then
+    "$here/ci-local.sh" --passed HEAD ||
+      die "local main has $ahead unpushed commits that never passed pnpm ci:local together: check them, run it, or push by hand"
+    log "local main is $ahead commits ahead of origin/main, and they passed pnpm ci:local: they go out with this cycle's push"
+  fi
   if [[ -z ${DATABASE_URL:-} ]] && command -v pg_isready >/dev/null &&
     ! pg_isready -q -h 127.0.0.1 -p 5432; then
     log "warning: Postgres isn't reachable at 127.0.0.1:5432, so pnpm test:db will fail"
   fi
 }
 
+# Issues closed by commits on local main that aren't pushed yet. They stay open
+# on GitHub until the push at the end of the cycle, but count as done.
+committed_issues() {
+  git log origin/main..HEAD --format=%B | grep -oiE 'closes #[0-9]+' | grep -oE '[0-9]+' | sort -un
+}
+
 # An issue is blocked while a native "blocked by" dependency, or an issue named
-# on a "Blocked by:" line in its body, is still open.
+# on a "Blocked by:" line in its body, is still open and not committed locally.
 is_blocked() {
-  local n=$1 open ref
-  open=$(gh api "repos/{owner}/{repo}/issues/$n" -q '.issue_dependencies_summary.blocked_by // 0')
-  ((open > 0)) && return 0
-  for ref in $(gh issue view "$n" --json body -q .body | grep -m1 -i '^blocked by:' | grep -oE '#[0-9]+' | tr -d '#'); do
+  local n=$1 ref done
+  done=" $(committed_issues | tr '\n' ' ') "
+  for ref in $(gh api "repos/{owner}/{repo}/issues/$n/dependencies/blocked_by" -q '.[] | select(.state == "open") | .number') \
+    $(gh issue view "$n" --json body -q .body | grep -m1 -i '^blocked by:' | grep -oE '#[0-9]+' | tr -d '#'); do
+    [[ $done == *" $ref "* ]] && continue
     [[ $(gh issue view "$ref" --json state -q .state) == OPEN ]] && return 0
   done
   return 1
@@ -135,22 +152,47 @@ run_claude() {
 
 result_line() { jq -r '.result // ""' "$1" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -1; }
 
-# check_done <n>: the definition of done (docs/agents/issue-loop.md), checked
-# on GitHub rather than trusted from the session. Prints the commit on success.
+# check_done <n> <base>: the definition of done (docs/agents/issue-loop.md),
+# checked rather than trusted from the session. Prints the commit on success.
+# It doesn't wait for CI: a local pass of the same CI (ci-local.sh) on the exact
+# code committed is enough. Nothing is pushed until the cycle ends.
 check_done() {
-  local n=$1 sha run_id tries=0
-  git fetch -q origin main
-  sha=$(git log origin/main -E --grep="Closes #$n([^0-9]|$)" --format=%H -1)
-  [[ -n $sha ]] || { log "  not done: no commit with 'Closes #$n' on origin/main"; return 1; }
+  local n=$1 base=$2 sha
+  sha=$(git log "$base..HEAD" -E --grep="Closes #$n([^0-9]|$)" --format=%H -1)
+  [[ -n $sha ]] || { log "  not done: no new commit with 'Closes #$n' on main"; return 1; }
+  [[ $(git branch --show-current) == main ]] || { log "  not done: not on main"; return 1; }
   [[ -z $(git status --porcelain) ]] || { log "  not done: the working tree has uncommitted changes"; return 1; }
-  [[ $(git rev-parse HEAD) == $(git rev-parse origin/main) ]] || { log "  not done: local main and origin/main differ"; return 1; }
-  [[ $(gh issue view "$n" --json state -q .state) == CLOSED ]] || { log "  not done: #$n is still open"; return 1; }
-  until run_id=$(gh run list --workflow ci.yml --commit "$sha" --limit 1 --json databaseId -q '.[0].databaseId // empty') && [[ -n $run_id ]]; do
-    ((++tries > 20)) && { log "  not done: no CI run found for $sha"; return 1; }
+  [[ -z $(git rev-list HEAD..origin/main) ]] || { log "  not done: origin/main has commits local main lacks"; return 1; }
+  "$here/ci-local.sh" --passed HEAD || { log "  not done: pnpm ci:local never passed on the code of $(git rev-parse --short HEAD)"; return 1; }
+  git rev-parse HEAD
+}
+
+# push_cycle: push main up to push_tip, the last commit that passed
+# pnpm ci:local, once, then wait for CI on it. Commits a failed session left
+# after push_tip stay local. A rejected push stops here: rebasing would change
+# code that was tested.
+push_cycle() {
+  local tip=$push_tip run_id tries=0 n
+  [[ -n $(git rev-list "origin/main..$tip") ]] || { log "Nothing to push."; return 0; }
+  log "Pushing $(git rev-list --count "origin/main..$tip") commits to origin/main, up to $tip"
+  git push -q origin "$tip:refs/heads/main" || { log "Push rejected: origin/main moved. Nothing was rebased; push by hand."; return 1; }
+  pushed=true
+  until run_id=$(gh run list --workflow ci.yml --commit "$tip" --limit 1 --json databaseId -q '.[0].databaseId // empty') && [[ -n $run_id ]]; do
+    ((++tries > 20)) && { log "No CI run found for $tip"; return 1; }
     sleep 15
   done
-  gh run watch "$run_id" --exit-status >/dev/null 2>&1 || { log "  not done: CI run $run_id for $sha is not green"; return 1; }
-  echo "$sha"
+  log "CI run $run_id started for $tip; waiting for it"
+  if gh run watch "$run_id" --exit-status >/dev/null 2>&1; then
+    ci_result=green
+  else
+    ci_result=red
+    log "CI run $run_id is RED for $tip, though each issue passed locally: gh run view $run_id"
+    return 1
+  fi
+  log "CI is green for $tip"
+  for n in "${done_list[@]}"; do
+    [[ $(gh issue view "$n" --json state -q .state) == CLOSED ]] || log "warning: #$n is still open after the push"
+  done
 }
 
 build_issue() {
@@ -170,7 +212,7 @@ build_issue() {
 
   case $line in
   "DONE #$n"*)
-    if build_commit=$(check_done "$n"); then status=done; else status=failed; fi
+    if build_commit=$(check_done "$n" "$base"); then status=done; else status=failed; fi
     ;;
   "BLOCKED #$n"*)
     status=blocked
@@ -212,8 +254,8 @@ cmd_run() {
 
   run_dir=$state_dir/runs/$(date +%Y%m%dT%H%M%S)
   mkdir -p "$run_dir"
-  skipped=()
-  local done_list=() blocked_list=() failed=""
+  skipped=() done_list=() pushed=false ci_result=""
+  local blocked_list=() failed=""
 
   if $dry_run; then
     log "Dry run. Queue, oldest first (unassigned, open, label $label):"
@@ -225,6 +267,7 @@ cmd_run() {
   fi
 
   preflight
+  push_tip=$(git rev-parse HEAD)
   log "Loop started. Logs: $run_dir"
   while true; do
     if [[ -f $stop_file ]]; then
@@ -239,8 +282,9 @@ cmd_run() {
     build_issue "$n"
     case $build_status in
     done)
-      log "#$n: DONE (commit $build_commit, CI green, issue closed)"
+      log "#$n: DONE (commit $build_commit, CI passed locally; closes on the push)"
       done_list+=("$n")
+      push_tip=$build_commit
       retro_issue "$n"
       ;;
     blocked)
@@ -257,10 +301,14 @@ cmd_run() {
     $once && { log "--once given, so stopping."; break; }
   done
 
-  log "Summary: done ${done_list[*]:-none} | blocked ${blocked_list[*]:-none} | failed ${failed:-none}"
+  # A failed session may leave its work in the tree: push only what's committed,
+  # all of which passed pnpm ci:local.
+  local push_ok=true
+  push_cycle || push_ok=false
+  log "Summary: done ${done_list[*]:-none} | blocked ${blocked_list[*]:-none} | failed ${failed:-none} | pushed $pushed | CI ${ci_result:-not run}"
   command -v notify-send >/dev/null && notify-send "Issue loop ended" \
-    "Done: ${done_list[*]:-none}. Blocked: ${blocked_list[*]:-none}. Failed: ${failed:-none}." || true
-  [[ -z $failed ]]
+    "Done: ${done_list[*]:-none}. Blocked: ${blocked_list[*]:-none}. Failed: ${failed:-none}. CI: ${ci_result:-not run}." || true
+  [[ -z $failed ]] && $push_ok
 }
 
 case ${1:-} in

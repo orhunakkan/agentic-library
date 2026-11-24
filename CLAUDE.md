@@ -14,7 +14,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ### Tests
 
-`pnpm check` runs lint, types and the unit suite (client, shared, `tests/`). `pnpm test:db` runs only `src/server` tests (about 2–3 minutes, so set a longer command timeout) against `DATABASE_URL`, or else local Postgres at `127.0.0.1:5432/agentic_test` (`tests/test-databases.ts`). E2e runs only in CI.
+`pnpm check` runs lint, types and the unit suite (client, shared, `tests/`). `pnpm test:db` runs only `src/server` tests (about 2–3 minutes, so set a longer command timeout) against `DATABASE_URL`, or else local Postgres at `127.0.0.1:5432/agentic_test` (`tests/test-databases.ts`). `pnpm ci:local` runs the whole CI workflow on this machine, e2e included, in CI's container image (about 10 minutes; needs Docker and that Postgres). Otherwise e2e runs only in CI.
 
 ### Branches
 
