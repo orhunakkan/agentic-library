@@ -18,7 +18,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ### Branches
 
-One person works on this repo, so all work is committed on `main` and pushed straight to `origin main`, with no branches or pull requests. A commit closes its issue with `Closes #<n>`. Before pushing, comment on the issue with any part of it left undone and why, and open a `needs-triage` issue for each follow-up the review found. After pushing, watch CI with `gh run watch`, because e2e runs only there.
+One person works on this repo, so all work is committed on `main` and pushed straight to `origin main`, with no branches or pull requests. A commit closes its issue with `Closes #<n>`. Before pushing, comment on the issue with any part of it left undone and why, and open a `needs-triage` issue for each follow-up the review found. After pushing, run `pnpm ci:watch` and use its exit code, because e2e runs only there. Don't pipe it: the exit code and the per-job lines are the verdict.
 
 ### Coding standards
 

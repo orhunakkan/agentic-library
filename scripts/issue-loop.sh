@@ -172,21 +172,18 @@ check_done() {
 # after push_tip stay local. A rejected push stops here: rebasing would change
 # code that was tested.
 push_cycle() {
-  local tip=$push_tip run_id tries=0 n
+  local tip=$push_tip n line watch_out=$run_dir/ci-watch.log
   [[ -n $(git rev-list "origin/main..$tip") ]] || { log "Nothing to push."; return 0; }
   log "Pushing $(git rev-list --count "origin/main..$tip") commits to origin/main, up to $tip"
   git push -q origin "$tip:refs/heads/main" || { log "Push rejected: origin/main moved. Nothing was rebased; push by hand."; return 1; }
   pushed=true
-  until run_id=$(gh run list --workflow ci.yml --commit "$tip" --limit 1 --json databaseId -q '.[0].databaseId // empty') && [[ -n $run_id ]]; do
-    ((++tries > 20)) && { log "No CI run found for $tip"; return 1; }
-    sleep 15
-  done
-  log "CI run $run_id started for $tip; waiting for it"
-  if gh run watch "$run_id" --exit-status >/dev/null 2>&1; then
-    ci_result=green
-  else
-    ci_result=red
-    log "CI run $run_id is RED for $tip, though each issue passed locally: gh run view $run_id"
+  log "Waiting for CI on $tip (pnpm ci:watch)"
+  # pnpm ci:watch finds the run, watches it, prints each job's conclusion and
+  # exits with the verdict. Not piped, so its exit status is the one tested.
+  if pnpm -s ci:watch "$tip" >"$watch_out" 2>&1; then ci_result=green; else ci_result=red; fi
+  while IFS= read -r line; do log "  $line"; done <"$watch_out"
+  if [[ $ci_result == red ]]; then
+    log "CI is RED for $tip, though each issue passed locally"
     return 1
   fi
   log "CI is green for $tip"

@@ -25,6 +25,7 @@ The files:
 |---|---|
 | `scripts/issue-loop.sh` | The loop: picks issues, starts the sessions, checks the definition of done |
 | `scripts/issue-loop/ci-local.sh` | The whole CI workflow run on this machine (`pnpm ci:local`): same jobs, same steps, same order, e2e in CI's container image. Its pass stands in for a green CI run |
+| `scripts/ci/watch.ts` | `pnpm ci:watch [ref]`: finds the `ci.yml` run for a pushed commit (default HEAD), watches it, prints `<job>: <conclusion>` per job, then a last line `CI <success\|failure> for <short sha>: <run url>`. It exits 0 only if every job succeeded (the deploy job may be skipped), and non-zero if no run appears within 5 minutes. Its exit code is the verdict, so don't pipe it |
 | `scripts/issue-loop/build-prompt.md` | Session A's extra instructions (the steps below), added to `/implement` |
 | `scripts/issue-loop/retro-prompt.md` | Session B's extra instructions, added to `/retro` |
 | `scripts/issue-loop/build-settings.json` | What Session A may run. Anything else is refused, never prompted |
@@ -114,7 +115,8 @@ Skills from the `mattpocock-skills` plugin are shown in brackets. `implement` an
 │                                                              │
 │ 4. Push main, up to the last DONE commit, once               │
 │    (the "Closes #N" lines close every issue built)           │
-│ 5. Wait for that one CI run and put green/red in the summary │
+│ 5. Watch that one CI run: pnpm ci:watch <tip>                │
+│    put its verdict (green/red) in the summary                │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -143,7 +145,7 @@ What DONE does *not* mean:
 
 - Every part of the issue was built. A session may finish most of it and write up the rest (#6). That's deliberate: a partial result with a clear note beats a session that never ends.
 - The retro succeeded. Session B runs after DONE, and its failure doesn't undo it.
-- The issue is closed, or CI on GitHub is green. Both happen at the end of the cycle, after the push; the summary reports CI as green or red.
+- The issue is closed, or CI on GitHub is green. Both happen at the end of the cycle, after the push; the summary reports CI as green or red, from the exit code of `pnpm ci:watch`.
 
 The other outcomes:
 

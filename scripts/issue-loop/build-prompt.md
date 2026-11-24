@@ -11,7 +11,7 @@ Your task is issue #{{ISSUE}}. `/implement` drives the work; around it, follow t
 7. **Review**: run the `code-review` skill with commit `{{BASE_SHA}}` as the fixed point. Fix the findings that cite a rule or the issue, then rerun the checks from step 6. Run the review once; don't loop it until it comes back clean.
 8. **Write up what's left.** Comment on #{{ISSUE}} about any part not done and why. Open a `needs-triage` issue for each follow-up the review found (`gh issue create --label needs-triage ...`).
 9. **Run CI locally**: `pnpm ci:local`, as the last thing before committing, with a timeout of at least 30 minutes (the run is about 10). It runs every CI job and step in CI's container images, so a pass here replaces waiting for CI. If it fails, make one fix attempt with the `diagnosing-bugs` skill and run it again. If it's still red, finish with `FAILED #{{ISSUE}}: <reason>`. Change no files after it passes: the loop checks that what you commit is the exact code that passed.
-10. **Commit, don't push.** Commit on `main` with a message containing `Closes #{{ISSUE}}`. Don't push and don't watch CI: the loop pushes every issue of the cycle at once when the cycle ends, so CI runs once. The issue stays open until then; that's expected. This overrides the push and CI steps in `CLAUDE.md`.
+10. **Commit, don't push.** Commit on `main` with a message containing `Closes #{{ISSUE}}`. Don't push and don't watch CI: the loop pushes every issue of the cycle at once when the cycle ends, so CI runs once, and watches it with `pnpm ci:watch`. The issue stays open until then; that's expected. This overrides the push and CI steps in `CLAUDE.md`.
 11. **Finish** with `DONE #{{ISSUE}}`.
 
 Rules:
