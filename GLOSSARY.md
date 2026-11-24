@@ -42,6 +42,14 @@ _Avoid_: audio, episode (as the playback source)
 One text-to-speech voice that read aloud can speak with.
 _Avoid_: speaker, narrator
 
+**Player**:
+What plays a book aloud: read aloud or an audiobook, one at a time, with one sleep timer for both. In code, the `player` module; its arbiter decides which source plays and owns the sleep timer.
+_Avoid_: dock (the dock is only what the player shows)
+
+**Sleep timer**:
+Stops what plays after some minutes, or at the end of the chapter or episode. It belongs to the player, not to either source.
+_Avoid_: stop timer
+
 ## Usage
 
 **Usage quota**:

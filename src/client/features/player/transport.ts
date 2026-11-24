@@ -38,7 +38,7 @@ export interface TransportDeps {
   timers?: Timers
   queue: (item: OutboxItem) => void
   onBookFinished: (book: PlayerBook) => void
-  arbiter: Pick<Arbiter, 'beforeAudiobook' | 'playing' | 'partEnded'>
+  arbiter: Pick<Arbiter, 'beforeAudiobook' | 'playing' | 'partEnded' | 'closed'>
   onState: (state: TransportState) => void
 }
 
@@ -269,13 +269,15 @@ export function createTransport(deps: TransportDeps): Transport {
     fadeOut,
     close: () => {
       stopFade()
-      if (s.current) {
+      const wasLoaded = s.current !== null
+      if (wasLoaded) {
         saveHere()
         audio.pause()
         audio.removeAttribute('src')
         audio.load()
       }
       set({ book: null, episodes: [], current: null, playing: false, positionMs: 0 })
+      if (wasLoaded) deps.arbiter.closed()
     },
     loaded: () => s.current !== null,
     state,

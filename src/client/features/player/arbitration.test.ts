@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type ArbiterDeps, createArbiter } from './arbitration'
 
 function setup() {
-  const loaded = { audiobook: false, voice: false }
+  const loaded = { audiobook: false, readAloud: false }
   const deps = {
     audiobook: {
       loaded: () => loaded.audiobook,
@@ -12,13 +12,13 @@ function setup() {
       pause: vi.fn(),
       fadeOut: vi.fn(),
     },
-    voice: {
-      loaded: () => loaded.voice,
+    readAloud: {
+      loaded: () => loaded.readAloud,
       close: vi.fn(() => {
-        loaded.voice = false
+        loaded.readAloud = false
       }),
+      pause: vi.fn(),
       stopAfterSentence: vi.fn(),
-      setStopAtChapterEnd: vi.fn(),
     },
     aside: { interrupt: vi.fn() },
     onSleepEnded: vi.fn(),
@@ -32,51 +32,54 @@ beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
 
 describe('one thing plays at a time', () => {
-  it('an audiobook closes the voice and turns its timer off', () => {
+  it('an audiobook closes read aloud and turns its timer off', () => {
     const { arbiter, deps, loaded } = setup()
-    loaded.voice = true
+    loaded.readAloud = true
     arbiter.setSleep(30)
     arbiter.beforeAudiobook()
-    expect(deps.voice.close).toHaveBeenCalledOnce()
+    expect(deps.readAloud.close).toHaveBeenCalledOnce()
     expect(arbiter.state()).toMatchObject({ sleep: { kind: 'off' }, sleepChoice: 'off' })
   })
 
-  it('an audiobook with no voice loaded closes nothing and keeps the timer', () => {
+  it('an audiobook with no read aloud loaded closes nothing and keeps the timer', () => {
     const { arbiter, deps } = setup()
     arbiter.setSleep(30)
     arbiter.beforeAudiobook()
-    expect(deps.voice.close).not.toHaveBeenCalled()
+    expect(deps.readAloud.close).not.toHaveBeenCalled()
     expect(arbiter.state().sleepChoice).toBe(30)
   })
 
-  it('the voice closes the audiobook and turns its timer off', () => {
+  it('read aloud closes the audiobook and turns its timer off', () => {
     const { arbiter, deps, loaded } = setup()
     loaded.audiobook = true
     arbiter.setSleep(15)
-    arbiter.beforeVoice()
+    arbiter.beforeReadAloud()
     expect(deps.audiobook.close).toHaveBeenCalledOnce()
     expect(arbiter.state()).toMatchObject({ sleep: { kind: 'off' }, sleepChoice: 'off' })
   })
 
-  it('the voice with no audiobook loaded closes nothing and keeps the timer', () => {
+  it('read aloud with no audiobook loaded closes nothing and keeps the timer', () => {
     const { arbiter, deps } = setup()
     arbiter.setSleep(15)
-    arbiter.beforeVoice()
+    arbiter.beforeReadAloud()
     expect(deps.audiobook.close).not.toHaveBeenCalled()
     expect(arbiter.state().sleepChoice).toBe(15)
   })
 
-  it('the aside pauses the audiobook, leaves it loaded and keeps the timer', () => {
+  it('the aside pauses both sources, leaves them loaded and keeps the timer', () => {
     const { arbiter, deps, loaded } = setup()
     loaded.audiobook = true
+    loaded.readAloud = true
     arbiter.setSleep(45)
     arbiter.beforeAside()
     expect(deps.audiobook.pause).toHaveBeenCalledOnce()
+    expect(deps.readAloud.pause).toHaveBeenCalledOnce()
     expect(deps.audiobook.close).not.toHaveBeenCalled()
+    expect(deps.readAloud.close).not.toHaveBeenCalled()
     expect(arbiter.state().sleepChoice).toBe(45)
   })
 
-  it.each(['audiobook', 'voice'] as const)('the %s starting to play interrupts the aside', (source) => {
+  it.each(['audiobook', 'read-aloud'] as const)('the %s starting to play interrupts the aside', (source) => {
     const { arbiter, deps } = setup()
     arbiter.playing(source, true)
     expect(deps.aside.interrupt).toHaveBeenCalledOnce()
@@ -86,10 +89,10 @@ describe('one thing plays at a time', () => {
 
   it('says whether something plays', () => {
     const { arbiter, deps } = setup()
-    arbiter.playing('voice', true)
+    arbiter.playing('read-aloud', true)
     expect(arbiter.state().playing).toBe(true)
     expect(deps.onChange).toHaveBeenLastCalledWith(expect.objectContaining({ playing: true }))
-    arbiter.playing('voice', false)
+    arbiter.playing('read-aloud', false)
     expect(arbiter.state().playing).toBe(false)
   })
 
@@ -118,8 +121,8 @@ describe('the sleep timer', () => {
   it('ticks once a second however often playing is reported', () => {
     const { arbiter } = setup()
     arbiter.setSleep(15)
-    arbiter.playing('voice', true)
-    arbiter.playing('voice', true)
+    arbiter.playing('read-aloud', true)
+    arbiter.playing('read-aloud', true)
     vi.advanceTimersByTime(2000)
     expect(arbiter.state().sleep).toEqual({ kind: 'minutes', leftMs: 15 * 60_000 - 2000 })
   })
@@ -142,37 +145,21 @@ describe('the sleep timer', () => {
     expect(deps.onSleepEnded).toHaveBeenCalledOnce()
   })
 
-  it('stops the voice after its sentence, and toasts only when the voice has slept', () => {
+  it('stops read aloud after its sentence, and toasts only when read aloud has slept', () => {
     const { arbiter, deps, loaded } = setup()
-    loaded.voice = true
+    loaded.readAloud = true
     arbiter.setSleep(15)
-    arbiter.playing('voice', true)
+    arbiter.playing('read-aloud', true)
     vi.advanceTimersByTime(15 * 60_000)
-    expect(deps.voice.stopAfterSentence).toHaveBeenCalledOnce()
+    expect(deps.readAloud.stopAfterSentence).toHaveBeenCalledOnce()
     expect(arbiter.state().sleep).toEqual({ kind: 'off' })
     expect(deps.onSleepEnded).not.toHaveBeenCalled()
-    arbiter.voiceSlept()
+    arbiter.readAloudSlept()
     expect(deps.onSleepEnded).toHaveBeenCalledOnce()
     expect(arbiter.state().sleepChoice).toBe('off')
   })
 
-  it('end of part tells the voice to stop at the chapter end, and Off takes it back', () => {
-    const { arbiter, deps } = setup()
-    arbiter.setSleep('end-of-part')
-    expect(deps.voice.setStopAtChapterEnd).toHaveBeenLastCalledWith(true)
-    arbiter.setSleep('off')
-    expect(deps.voice.setStopAtChapterEnd).toHaveBeenLastCalledWith(false)
-  })
-
-  it('end of part is taken back when another source turns the timer off', () => {
-    const { arbiter, deps, loaded } = setup()
-    loaded.audiobook = true
-    arbiter.setSleep('end-of-part')
-    arbiter.beforeVoice()
-    expect(deps.voice.setStopAtChapterEnd).toHaveBeenLastCalledWith(false)
-  })
-
-  it("stops at an episode's end with end of part set, toasting once", () => {
+  it('stops at the end of a part with end of part set, toasting once', () => {
     const { arbiter, deps } = setup()
     expect(arbiter.partEnded()).toBe('continue')
     expect(deps.onSleepEnded).not.toHaveBeenCalled()

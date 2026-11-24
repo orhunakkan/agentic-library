@@ -1,3 +1,4 @@
+import type { Arbiter } from '~/client/features/player/arbitration'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import type { PagePosition } from '~/shared/highlights/page-text'
 import { primarySubtag, type SpeechVoicesState } from '~/shared/read-aloud/cloud'
@@ -137,12 +138,11 @@ export interface ControllerDeps {
   fetchChapter: (book: string, chapter: number) => Promise<FetchResult>
   storage: Storage | null
   onState: (state: ReadAloudState) => void
-  onSleep?: () => void
+  /** Read aloud reports to the arbiter, and asks it whether to stop at a chapter's end. */
+  arbiter: Pick<Arbiter, 'beforeReadAloud' | 'playing' | 'closed' | 'partEnded' | 'readAloudSlept'>
   locale?: string
   now?: () => number
   onSaved?: (book: string, saved: Omit<SavedPosition, 'v'> | null) => void
-  /** Called after a book that was open closes, whoever closed it. */
-  onClosed?: () => void
 }
 
 export interface ReadAloud {
@@ -166,7 +166,6 @@ export interface ReadAloud {
   noteSlow: () => void
   setFollowing: (following: boolean) => void
   stopAfterSentence: () => void
-  setStopAtChapterEnd: (on: boolean) => void
   retry: () => void
   close: () => void
   state: () => ReadAloudState
@@ -240,8 +239,12 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   let failures = 0
   let lastSave = 0
   let stopAfter = false
-  let stopAtChapterEnd = false
   let retryAction: (() => void) | null = null
+
+  const publish = () => {
+    deps.onState(state)
+    deps.arbiter.playing('read-aloud', state.status === 'playing')
+  }
 
   const emit = (patch: Partial<ReadAloudState> = {}) => {
     state = { ...state, ...patch }
@@ -256,7 +259,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         minutesLeft: minutesLeft(current.plan, cursor, state.rate),
       }
     }
-    deps.onState(state)
+    publish()
   }
 
   const save = () => {
@@ -465,7 +468,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   const finishForSleep = () => {
     stopAfter = false
     pause()
-    deps.onSleep?.()
+    deps.arbiter.readAloudSlept()
   }
 
   const advance = () => {
@@ -487,9 +490,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       emit({ status: 'ended', problem: { kind: 'end-of-book' } })
       return
     }
-    if (stopAtChapterEnd) {
-      stopAtChapterEnd = false
-      deps.onSleep?.()
+    if (deps.arbiter.partEnded() === 'stop') {
       void goToChapter(chapter.index + 1, { at: 'start', play: false })
       return
     }
@@ -555,12 +556,11 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     cursor = null
     intro = false
     stopAfter = false
-    stopAtChapterEnd = false
     retryAction = null
     failures = 0
     state = { ...closed(), rate: state.rate, problem }
-    deps.onState(state)
-    if (wasOpen) deps.onClosed?.()
+    publish()
+    if (wasOpen) deps.arbiter.closed()
   }
 
   const cloudVoicesFor = (book: string): Promise<SpeechVoicesState> => {
@@ -586,6 +586,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   }
 
   const start = (book: string, at: StartAt) => {
+    deps.arbiter.beforeReadAloud()
     const same =
       slug === book
         ? { book: state.book, chapter: state.chapter, cloudVoices: state.cloudVoices, cloudModel: state.cloudModel }
@@ -605,7 +606,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     lastSave = Number.NEGATIVE_INFINITY
     const loading = deps.cloudSpeaker && deps.loadCloudVoices ? ({ cloudVoices: 'loading' } as const) : {}
     state = { ...closed(), ...loading, ...same, rate: state.rate, following: true, status: 'loading' }
-    deps.onState(state)
+    publish()
     const saved = readPosition(deps.storage, book)
     const chapter = at.kind === 'saved' ? (saved?.chapter ?? 0) : at.chapter
     const position = at.kind === 'saved' ? (saved?.position ?? null) : at.position
@@ -880,9 +881,6 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     },
     stopAfterSentence: () => {
       if (state.status === 'playing') stopAfter = true
-    },
-    setStopAtChapterEnd: (on) => {
-      stopAtChapterEnd = on
     },
     retry: () => retryAction?.(),
     close: () => close(),

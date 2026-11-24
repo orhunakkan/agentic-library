@@ -9,7 +9,7 @@ import type { TransportState } from './transport'
 export type NowPlaying =
   | { source: null }
   | {
-      source: 'audio'
+      source: 'audiobook'
       book: PlayerBook
       episodes: PlayerEpisode[]
       episode: PlayerEpisode
@@ -17,7 +17,7 @@ export type NowPlaying =
       positionMs: number
     }
   | {
-      source: 'speech'
+      source: 'read-aloud'
       book: SpeechBook
       engine: ReadAloudState['engine']
       chapter: ReadAloudState['chapter']
@@ -26,20 +26,20 @@ export type NowPlaying =
       playing: boolean
     }
 
-export function nowPlaying(audio: TransportState, voice: ReadAloudState): NowPlaying {
-  if (audio.book && audio.current) {
-    const { book, episodes, current: episode, playing, positionMs } = audio
-    return { source: 'audio', book, episodes, episode, playing, positionMs }
+export function nowPlaying(audiobook: TransportState, readAloud: ReadAloudState): NowPlaying {
+  if (audiobook.book && audiobook.current) {
+    const { book, episodes, current: episode, playing, positionMs } = audiobook
+    return { source: 'audiobook', book, episodes, episode, playing, positionMs }
   }
-  if (voice.book) {
-    const { book, engine, chapter, page, utterance } = voice
-    return { source: 'speech', book, engine, chapter, page, utterance, playing: voice.status === 'playing' }
+  if (readAloud.book) {
+    const { book, engine, chapter, page, utterance } = readAloud
+    return { source: 'read-aloud', book, engine, chapter, page, utterance, playing: readAloud.status === 'playing' }
   }
   return { source: null }
 }
 
 export function momentOf(now: NowPlaying): NewAudioBookmark | null {
-  if (now.source === 'speech') {
+  if (now.source === 'read-aloud') {
     const { book, chapter, page } = now
     if (!chapter || !page) return null
     const { position } = page
@@ -63,7 +63,7 @@ export function momentOf(now: NowPlaying): NewAudioBookmark | null {
       label: page.label,
     }
   }
-  if (now.source === 'audio') {
+  if (now.source === 'audiobook') {
     const positionMs = Math.floor(now.positionMs / 1000) * 1000
     const { id, number, title, durationMs } = now.episode
     return {
@@ -76,12 +76,12 @@ export function momentOf(now: NowPlaying): NewAudioBookmark | null {
 }
 
 export function partsOf(now: NowPlaying): { items: { value: string; label: string }[]; current: string | null } {
-  if (now.source === 'speech')
+  if (now.source === 'read-aloud')
     return {
       items: now.book.chapterTitles.map((title, i) => ({ value: String(i), label: `${i + 1}. ${title}` })),
       current: now.chapter ? String(now.chapter.index) : null,
     }
-  if (now.source === 'audio')
+  if (now.source === 'audiobook')
     return {
       items: now.episodes.map((e) => ({
         value: e.id,
@@ -92,23 +92,27 @@ export function partsOf(now: NowPlaying): { items: { value: string; label: strin
   return { items: [], current: null }
 }
 
+/** The kind an audio bookmark is stored under, which keeps its older names. */
 export const bookmarkKind = (now: NowPlaying): 'voice' | 'episode' | null =>
-  now.source === 'speech' ? 'voice' : now.source === 'audio' ? 'episode' : null
+  now.source === 'read-aloud' ? 'voice' : now.source === 'audiobook' ? 'episode' : null
 
 export function bookmarkPlay(
   now: NowPlaying,
   item: AudioBookmarkView,
-): { kind: 'voice'; book: string; at: StartAt } | { kind: 'episode'; episodeId: string; positionMs: number } | null {
-  if (item.kind === 'voice' && item.place && now.source === 'speech') {
+):
+  | { source: 'read-aloud'; book: string; at: StartAt }
+  | { source: 'audiobook'; episodeId: string; positionMs: number }
+  | null {
+  if (item.kind === 'voice' && item.place && now.source === 'read-aloud') {
     const { chapterIndex, chapter, page, start } = item.place
     const position = chapter === null ? { printedPage: page } : { chapter, page }
     return {
-      kind: 'voice',
+      source: 'read-aloud',
       book: now.book.slug,
       at: { kind: 'offset', chapter: chapterIndex, position, offset: start },
     }
   }
-  if (item.kind === 'episode' && item.episode && now.source === 'audio')
-    return { kind: 'episode', episodeId: item.episode.id, positionMs: item.positionMs }
+  if (item.kind === 'episode' && item.episode && now.source === 'audiobook')
+    return { source: 'audiobook', episodeId: item.episode.id, positionMs: item.positionMs }
   return null
 }

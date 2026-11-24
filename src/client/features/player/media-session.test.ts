@@ -35,15 +35,15 @@ const episode: PlayerEpisode = {
 }
 
 const audiobook = (playing: boolean): NowPlaying => ({
-  source: 'audio',
+  source: 'audiobook',
   book,
   episodes: [episode],
   episode,
   playing,
   positionMs: 1_000,
 })
-const voice = (engine: ReadAloudState['engine'], playing = true): NowPlaying => ({
-  source: 'speech',
+const readAloud = (engine: ReadAloudState['engine'], playing = true): NowPlaying => ({
+  source: 'read-aloud',
   book: speechBook,
   engine,
   chapter: { index: 1, slug: 'self', title: 'Self-Reliance', number: 2, chapterCount: 2 },
@@ -92,7 +92,7 @@ function actions(): LockScreenActions {
       next: vi.fn(),
       seekFile: vi.fn(),
     },
-    voice: { toggle: vi.fn(), prevSentence: vi.fn(), nextSentence: vi.fn() },
+    readAloud: { toggle: vi.fn(), prevSentence: vi.fn(), nextSentence: vi.fn() },
   }
 }
 
@@ -148,48 +148,51 @@ describe('createLockScreen', () => {
     session.update({ ...audiobook(true), episode: next } as NowPlaying)
     expect(ms.metadata).toMatchObject({ title: 'In the Golden Age' })
     session.update({ source: null })
-    session.update(voice('cloud'))
+    session.update(readAloud('cloud'))
     const history = { index: 0, slug: 'history', title: 'History', number: 1, chapterCount: 2 }
-    session.update({ ...voice('cloud'), chapter: history } as NowPlaying)
+    session.update({ ...readAloud('cloud'), chapter: history } as NowPlaying)
     expect(ms.metadata).toMatchObject({ title: 'History' })
     expect(made).toBe(4)
     expect(ms.setActionHandler).toHaveBeenCalledTimes(21)
   })
 
-  it.each(['cloud', 'local'] as const)('gives a %s voice the chapter, the book and four controls', (engine) => {
-    const { ms, press, offered, acts, session } = setup()
-    session.update(voice(engine, false))
-    expect(ms.metadata).toEqual({
-      title: 'Self-Reliance',
-      artist: 'Ralph Waldo Emerson',
-      album: 'Essays',
-      artwork: [{ src: '/covers/emerson.svg', sizes: '600x900', type: 'image/svg+xml' }],
-    })
-    expect(ms.playbackState).toBe('paused')
-    expect(offered().sort()).toEqual(['nexttrack', 'pause', 'play', 'previoustrack'])
-    press('pause')
-    press('play')
-    press('previoustrack')
-    press('nexttrack')
-    expect(acts.voice.toggle).toHaveBeenCalledOnce()
-    session.update(voice(engine, true))
-    expect(ms.playbackState).toBe('playing')
-    press('play')
-    press('pause')
-    expect(acts.voice.toggle).toHaveBeenCalledTimes(2)
-    expect(acts.voice.prevSentence).toHaveBeenCalledOnce()
-    expect(acts.voice.nextSentence).toHaveBeenCalledOnce()
-  })
+  it.each(['cloud', 'local'] as const)(
+    'gives read aloud with a %s voice the chapter, the book and four controls',
+    (engine) => {
+      const { ms, press, offered, acts, session } = setup()
+      session.update(readAloud(engine, false))
+      expect(ms.metadata).toEqual({
+        title: 'Self-Reliance',
+        artist: 'Ralph Waldo Emerson',
+        album: 'Essays',
+        artwork: [{ src: '/covers/emerson.svg', sizes: '600x900', type: 'image/svg+xml' }],
+      })
+      expect(ms.playbackState).toBe('paused')
+      expect(offered().sort()).toEqual(['nexttrack', 'pause', 'play', 'previoustrack'])
+      press('pause')
+      press('play')
+      press('previoustrack')
+      press('nexttrack')
+      expect(acts.readAloud.toggle).toHaveBeenCalledOnce()
+      session.update(readAloud(engine, true))
+      expect(ms.playbackState).toBe('playing')
+      press('play')
+      press('pause')
+      expect(acts.readAloud.toggle).toHaveBeenCalledTimes(2)
+      expect(acts.readAloud.prevSentence).toHaveBeenCalledOnce()
+      expect(acts.readAloud.nextSentence).toHaveBeenCalledOnce()
+    },
+  )
 
-  it("titles a voice with the book's title before it reaches a chapter", () => {
+  it("titles read aloud with the book's title before it reaches a chapter", () => {
     const { ms, session } = setup()
-    session.update({ ...voice('cloud'), chapter: null } as NowPlaying)
+    session.update({ ...readAloud('cloud'), chapter: null } as NowPlaying)
     expect(ms.metadata).toMatchObject({ title: 'Essays' })
   })
 
-  it("leaves the lock screen alone for a voice on the device's own engine", () => {
+  it("leaves the lock screen alone for read aloud on the device's own engine", () => {
     const { ms, offered, session } = setup()
-    session.update(voice('device'))
+    session.update(readAloud('device'))
     expect(ms.metadata).toBeNull()
     expect(ms.playbackState).toBe('none')
     expect(offered()).toEqual([])
@@ -202,15 +205,15 @@ describe('createLockScreen', () => {
     expect(ms.metadata).toBeNull()
     expect(ms.playbackState).toBe('none')
     expect(offered()).toEqual([])
-    session.update(voice('cloud'))
-    session.update(voice('device'))
+    session.update(readAloud('cloud'))
+    session.update(readAloud('device'))
     expect(ms.metadata).toBeNull()
     expect(offered()).toEqual([])
   })
 
-  it("switches a voice's lock screen to the audiobook that follows it", () => {
+  it("switches read aloud's lock screen to the audiobook that follows it", () => {
     const { ms, press, offered, acts, session } = setup()
-    session.update(voice('local', true))
+    session.update(readAloud('local', true))
     session.update(audiobook(false))
     expect(ms.metadata).toMatchObject({ title: 'The Going', album: 'The Time Machine' })
     expect(ms.playbackState).toBe('none')
@@ -219,8 +222,8 @@ describe('createLockScreen', () => {
     press('nexttrack')
     expect(acts.audiobook.resume).toHaveBeenCalledOnce()
     expect(acts.audiobook.next).toHaveBeenCalledOnce()
-    expect(acts.voice.toggle).not.toHaveBeenCalled()
-    expect(acts.voice.nextSentence).not.toHaveBeenCalled()
+    expect(acts.readAloud.toggle).not.toHaveBeenCalled()
+    expect(acts.readAloud.nextSentence).not.toHaveBeenCalled()
   })
 
   it('skips an action this browser does not support', () => {
@@ -236,7 +239,7 @@ describe('createLockScreen', () => {
 
   it('clears the lock screen when disposed', () => {
     const { ms, offered, session } = setup()
-    session.update(voice('cloud'))
+    session.update(readAloud('cloud'))
     session.dispose()
     expect(ms.metadata).toBeNull()
     expect(offered()).toEqual([])

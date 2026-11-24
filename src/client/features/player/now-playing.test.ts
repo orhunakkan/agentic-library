@@ -68,10 +68,10 @@ const voice = {
 } as ReadAloudState
 
 describe('nowPlaying', () => {
-  it('is the audiobook first, then the voice, then nothing', () => {
-    expect(nowPlaying(audio, voice)).toMatchObject({ source: 'audio', book, episode: episodes[1], playing: false })
+  it('is the audiobook first, then read aloud, then nothing', () => {
+    expect(nowPlaying(audio, voice)).toMatchObject({ source: 'audiobook', book, episode: episodes[1], playing: false })
     expect(nowPlaying(idleAudio, voice)).toMatchObject({
-      source: 'speech',
+      source: 'read-aloud',
       book: speechBook,
       engine: 'local',
       playing: true,
@@ -79,13 +79,13 @@ describe('nowPlaying', () => {
     expect(nowPlaying(idleAudio, idleVoice)).toEqual({ source: null })
   })
 
-  it('says the voice is not playing unless its status is', () => {
+  it('says read aloud is not playing unless its status is', () => {
     expect(nowPlaying(idleAudio, { ...voice, status: 'loading' } as ReadAloudState)).toMatchObject({ playing: false })
   })
 })
 
 describe('momentOf', () => {
-  it("is the voice's sentence", () => {
+  it("is read aloud's sentence", () => {
     expect(momentOf(nowPlaying(idleAudio, voice))).toEqual({
       request: { book: 'emerson', kind: 'voice', position: { chapter: 'self', page: 2 }, offset: 140 },
       view: {
@@ -125,14 +125,14 @@ describe('momentOf', () => {
     })
   })
 
-  it('is nothing before the voice is at a page, or with nothing playing', () => {
+  it('is nothing before read aloud is at a page, or with nothing playing', () => {
     expect(momentOf(nowPlaying(idleAudio, { ...voice, page: null } as ReadAloudState))).toBeNull()
     expect(momentOf({ source: null })).toBeNull()
   })
 })
 
 describe('partsOf', () => {
-  it("is the voice's chapters, the current one checked", () => {
+  it("is read aloud's chapters, the current one checked", () => {
     expect(partsOf(nowPlaying(idleAudio, voice))).toEqual({
       items: [
         { value: '0', label: '1. History' },
@@ -181,9 +181,9 @@ describe('bookmarks', () => {
     expect(bookmarkKind({ source: null })).toBeNull()
   })
 
-  it('plays a voice bookmark from its sentence, and a printed page by its number', () => {
+  it('plays a read-aloud bookmark from its sentence, and a printed page by its number', () => {
     expect(bookmarkPlay(speechNow, voiceMark)).toEqual({
-      kind: 'voice',
+      source: 'read-aloud',
       book: 'emerson',
       at: { kind: 'offset', chapter: 1, position: { chapter: 'self', page: 2 }, offset: 140 },
     })
@@ -193,7 +193,7 @@ describe('bookmarks', () => {
 
   it('plays an episode bookmark from its time', () => {
     expect(bookmarkPlay(audioNow, { ...episodeMark, episode: ep })).toEqual({
-      kind: 'episode',
+      source: 'audiobook',
       episodeId: 'e1',
       positionMs: 60_000,
     })

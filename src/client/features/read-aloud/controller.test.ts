@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createArbiter } from '~/client/features/player/arbitration'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ChapterBook } from '~/shared/content/schema'
 import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
@@ -64,6 +63,25 @@ function memoryStorage(): Storage {
   }
 }
 
+/** Stands in for the arbiter; `endOfChapter()` sets a one-shot end-of-chapter sleep timer. */
+function fakeArbiter() {
+  let endOfPart = false
+  return {
+    beforeReadAloud: vi.fn(),
+    playing: vi.fn(),
+    closed: vi.fn(),
+    readAloudSlept: vi.fn(),
+    partEnded: vi.fn((): 'stop' | 'continue' => {
+      if (!endOfPart) return 'continue'
+      endOfPart = false
+      return 'stop'
+    }),
+    endOfChapter: () => {
+      endOfPart = true
+    },
+  }
+}
+
 const flush = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0))
 }
@@ -76,7 +94,6 @@ function setup(
     content?: ChapterBook
     onSaved?: ControllerDeps['onSaved']
     cloud?: () => Promise<SpeechVoicesState>
-    onClosed?: () => void
   } = {},
 ) {
   const said: { text: string; rate: number; voice: string | null; lang: string; engine: 'device' | 'cloud' }[] = []
@@ -120,18 +137,17 @@ function setup(
   const storage = options.storage ?? memoryStorage()
   const states: ReadAloudState[] = []
   let clock = 0
-  const onSleep = vi.fn()
+  const arbiter = fakeArbiter()
   const ra = createReadAloud({
     speaker,
     loadVoices: async () => options.voices ?? [local, online],
     fetchChapter,
     storage,
     onState: (s) => states.push(s),
-    onSleep,
+    arbiter,
     locale: 'en-US',
     now: () => clock,
     onSaved: options.onSaved,
-    onClosed: options.onClosed,
     cloudSpeaker,
     loadCloudVoices: options.cloud
       ? (book) => {
@@ -151,7 +167,7 @@ function setup(
     texts: () => said.map((s) => s.text),
     fetches,
     storage,
-    onSleep,
+    arbiter,
     state: () => ra.state(),
     stops: () => stops,
     tick: (ms: number) => {
@@ -675,15 +691,15 @@ describe('controls', () => {
     await t.end()
     expect(t.state().status).toBe('paused')
     expect(t.texts().at(-1)).toBe('One.')
-    expect(t.onSleep).toHaveBeenCalledOnce()
+    expect(t.arbiter.readAloudSlept).toHaveBeenCalledOnce()
 
     const chapterEnd = setup()
     await chapterEnd.start(page(0, 'history', 2))
-    chapterEnd.ra.setStopAtChapterEnd(true)
+    chapterEnd.arbiter.endOfChapter()
     await chapterEnd.end()
     expect(chapterEnd.state()).toMatchObject({ status: 'paused', chapter: { index: 1 } })
     expect(chapterEnd.texts()).toEqual(['Three.'])
-    expect(chapterEnd.onSleep).toHaveBeenCalledOnce()
+    expect(chapterEnd.arbiter.partEnded.mock.results.filter((r) => r.value === 'stop')).toHaveLength(1)
     chapterEnd.ra.toggle()
     expect(chapterEnd.texts().at(-1)).toBe('Chapter 2. Self.')
   })
@@ -706,7 +722,7 @@ describe('controls', () => {
     }
     const chapterEnd = setup({ content: threeChapters })
     await chapterEnd.start(page(0, 'history', 2))
-    chapterEnd.ra.setStopAtChapterEnd(true)
+    chapterEnd.arbiter.endOfChapter()
     await chapterEnd.end()
     expect(chapterEnd.state()).toMatchObject({ status: 'paused', chapter: { index: 1 } })
     chapterEnd.ra.toggle()
@@ -715,43 +731,25 @@ describe('controls', () => {
     await chapterEnd.end()
     expect(chapterEnd.texts().at(-1)).toBe('Chapter 3. Coda.')
     expect(chapterEnd.state()).toMatchObject({ status: 'playing', chapter: { index: 2 } })
-    expect(chapterEnd.onSleep).toHaveBeenCalledOnce()
+    expect(chapterEnd.arbiter.partEnded.mock.results.filter((r) => r.value === 'stop')).toHaveLength(1)
   })
 
-  it('turns the end-of-chapter sleep timer off when it closes itself', async () => {
-    const reading = { ra: null as ReturnType<typeof createReadAloud> | null }
-    const arbiter = createArbiter({
-      audiobook: { loaded: () => false, close: () => {}, pause: () => {}, fadeOut: () => {} },
-      voice: {
-        loaded: () => reading.ra?.state().book != null,
-        close: () => reading.ra?.close(),
-        stopAfterSentence: () => reading.ra?.stopAfterSentence(),
-        setStopAtChapterEnd: (on) => reading.ra?.setStopAtChapterEnd(on),
-      },
-      aside: { interrupt: () => {} },
-      onSleepEnded: () => {},
-      onChange: () => {},
-    })
-    const t = setup({
-      fetch: async () => ({ ok: false, reason: 'failed' }),
-      onClosed: () => arbiter.closed(),
-    })
-    reading.ra = t.ra
-    arbiter.setSleep('end-of-part')
+  it('tells the arbiter it closed only when it had a book open', async () => {
+    const t = setup()
+    t.ra.close()
+    expect(t.arbiter.closed).not.toHaveBeenCalled()
     await t.start(page(0, 'history', 1))
-    expect(t.state()).toMatchObject({ book: null, problem: { kind: 'load-failed' } })
-    expect(arbiter.state()).toMatchObject({ sleep: { kind: 'off' }, sleepChoice: 'off' })
-    arbiter.dispose()
+    t.ra.close()
+    expect(t.arbiter.closed).toHaveBeenCalledOnce()
   })
 
-  it('reports a close only when it had a book open', async () => {
-    const onClosed = vi.fn()
-    const t = setup({ onClosed })
-    t.ra.close()
-    expect(onClosed).not.toHaveBeenCalled()
+  it('asks the arbiter before starting, and reports when it plays', async () => {
+    const t = setup()
     await t.start(page(0, 'history', 1))
-    t.ra.close()
-    expect(onClosed).toHaveBeenCalledOnce()
+    expect(t.arbiter.beforeReadAloud).toHaveBeenCalledOnce()
+    expect(t.arbiter.playing).toHaveBeenLastCalledWith('read-aloud', true)
+    t.ra.pause()
+    expect(t.arbiter.playing).toHaveBeenLastCalledWith('read-aloud', false)
   })
 
   it('ignores a late answer for a book it is no longer reading', async () => {
@@ -1076,6 +1074,7 @@ describe('the Folio voice', () => {
       },
       storage,
       onState: () => {},
+      arbiter: fakeArbiter(),
       onNotice: (n) => notices.push(n),
       locale: 'en-US',
     })

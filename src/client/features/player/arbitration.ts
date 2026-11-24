@@ -3,12 +3,7 @@ import { SLEEP_OFF, type Sleep, type SleepChoice, startSleep, tick } from './sle
 
 export interface ArbiterDeps {
   audiobook: { loaded: () => boolean; close: () => void; pause: () => void; fadeOut: () => void }
-  voice: {
-    loaded: () => boolean
-    close: () => void
-    stopAfterSentence: () => void
-    setStopAtChapterEnd: (on: boolean) => void
-  }
+  readAloud: { loaded: () => boolean; close: () => void; pause: () => void; stopAfterSentence: () => void }
   aside: { interrupt: () => void }
   timers?: Timers
   onSleepEnded: () => void
@@ -23,16 +18,19 @@ export interface ArbiterState {
 
 export interface Arbiter {
   beforeAudiobook: () => void
-  beforeVoice: () => void
+  beforeReadAloud: () => void
   beforeAside: () => void
-  playing: (source: 'audiobook' | 'voice', on: boolean) => void
+  playing: (source: Source, on: boolean) => void
   closed: () => void
   setSleep: (choice: SleepChoice) => void
   partEnded: () => 'stop' | 'continue'
-  voiceSlept: () => void
+  readAloudSlept: () => void
   state: () => ArbiterState
   dispose: () => void
 }
+
+/** The two playback sources, one playing at a time. */
+export type Source = 'audiobook' | 'read-aloud'
 
 const TICK_MS = 1000
 
@@ -40,11 +38,11 @@ export function createArbiter(deps: ArbiterDeps): Arbiter {
   const timers = deps.timers ?? browserTimers
   let sleep: Sleep = SLEEP_OFF
   let sleepChoice: SleepChoice = 'off'
-  const on = { audiobook: false, voice: false }
+  const on: Record<Source, boolean> = { audiobook: false, 'read-aloud': false }
   let ticking: unknown = null
   let disposed = false
 
-  const state = (): ArbiterState => ({ sleep, sleepChoice, playing: on.audiobook || on.voice })
+  const state = (): ArbiterState => ({ sleep, sleepChoice, playing: on.audiobook || on['read-aloud'] })
 
   const reconcile = () => {
     const wanted = !disposed && state().playing && sleep.kind === 'minutes'
@@ -56,10 +54,8 @@ export function createArbiter(deps: ArbiterDeps): Arbiter {
   }
 
   const setSleepState = (next: Sleep, choice: SleepChoice = sleepChoice) => {
-    const wasEndOfPart = sleep.kind === 'end-of-part'
     sleep = next
     sleepChoice = choice
-    if (wasEndOfPart !== (next.kind === 'end-of-part')) deps.voice.setStopAtChapterEnd(next.kind === 'end-of-part')
     reconcile()
     deps.onChange(state())
   }
@@ -78,22 +74,25 @@ export function createArbiter(deps: ArbiterDeps): Arbiter {
       deps.audiobook.fadeOut()
     } else {
       setSleepState(SLEEP_OFF)
-      deps.voice.stopAfterSentence()
+      deps.readAloud.stopAfterSentence()
     }
   }
 
   return {
     beforeAudiobook: () => {
-      if (!deps.voice.loaded()) return
-      deps.voice.close()
+      if (!deps.readAloud.loaded()) return
+      deps.readAloud.close()
       sleepOff()
     },
-    beforeVoice: () => {
+    beforeReadAloud: () => {
       if (!deps.audiobook.loaded()) return
       deps.audiobook.close()
       sleepOff()
     },
-    beforeAside: () => deps.audiobook.pause(),
+    beforeAside: () => {
+      deps.audiobook.pause()
+      deps.readAloud.pause()
+    },
     playing: (source, playing) => {
       if (playing) deps.aside.interrupt()
       if (on[source] === playing) return
@@ -108,7 +107,7 @@ export function createArbiter(deps: ArbiterDeps): Arbiter {
       sleepEnded()
       return 'stop'
     },
-    voiceSlept: sleepEnded,
+    readAloudSlept: sleepEnded,
     state,
     dispose: () => {
       disposed = true

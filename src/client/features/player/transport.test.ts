@@ -65,7 +65,7 @@ function setup(entries: Record<string, string> = {}, partEnded: () => 'stop' | '
     now: () => clock,
     queue: vi.fn(),
     onBookFinished: vi.fn(),
-    arbiter: { beforeAudiobook: vi.fn(), playing: vi.fn(), partEnded: vi.fn(partEnded) },
+    arbiter: { beforeAudiobook: vi.fn(), playing: vi.fn(), partEnded: vi.fn(partEnded), closed: vi.fn() },
     onState: vi.fn(),
   }
   const transport = createTransport(deps)
@@ -319,6 +319,15 @@ describe('saving where an episode is', () => {
     transport.close()
     expect(stored(storage)).toMatchObject({ ms: 3000 })
     expect(deps.queue).toHaveBeenCalledTimes(2)
+  })
+
+  it('tells the arbiter it closed only when an episode was loaded', () => {
+    const { transport, deps } = setup()
+    transport.close()
+    expect(deps.arbiter.closed).not.toHaveBeenCalled()
+    transport.play(book, files, 'e1')
+    transport.close()
+    expect(deps.arbiter.closed).toHaveBeenCalledOnce()
   })
 
   it('saves nothing once the episode is marked finished', () => {

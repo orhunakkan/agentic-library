@@ -231,7 +231,6 @@ function VoiceEntry({
       position: place.chapter === null ? { printedPage: place.page } : { chapter: place.chapter, page: place.page },
       offset: place.start,
     })
-    readAloud.setFollowing(true)
   }
   const iconButton =
     'grid size-11 shrink-0 place-items-center rounded-full text-r-muted transition hover:bg-r-line/60 hover:text-r-ink disabled:opacity-40'

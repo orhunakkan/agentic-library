@@ -32,12 +32,12 @@ export function PlayerDock() {
   return (
     <>
       <AnimatePresence>
-        {source === 'audio' && !expanded && <AudioDock key="audio" />}
-        {source === 'speech' && !expanded && <SpeechDock key="speech" />}
+        {source === 'audiobook' && !expanded && <AudioDock key="audiobook" />}
+        {source === 'read-aloud' && !expanded && <SpeechDock key="read-aloud" />}
       </AnimatePresence>
       <AnimatePresence>
-        {source === 'audio' && expanded && <ExpandedPlayer key="audio-sheet" />}
-        {source === 'speech' && expanded && <SpeechSheet key="speech-sheet" />}
+        {source === 'audiobook' && expanded && <ExpandedPlayer key="audiobook-sheet" />}
+        {source === 'read-aloud' && expanded && <SpeechSheet key="read-aloud-sheet" />}
       </AnimatePresence>
     </>
   )

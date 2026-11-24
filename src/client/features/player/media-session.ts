@@ -16,7 +16,7 @@ export interface LockScreenActions {
     next: () => void
     seekFile: (ms: number) => void
   }
-  voice: { toggle: () => void; prevSentence: () => void; nextSentence: () => void }
+  readAloud: { toggle: () => void; prevSentence: () => void; nextSentence: () => void }
 }
 
 export interface LockScreen {
@@ -45,12 +45,12 @@ const ALL_ACTIONS: MediaSessionAction[] = [
 
 type Handlers = [MediaSessionAction, MediaSessionActionHandler | null][]
 
-type Screen = { source: 'audio' | 'speech'; metadata: MediaMetadataInit }
+type Screen = { source: NonNullable<NowPlaying['source']>; metadata: MediaMetadataInit }
 
 function screenOf(now: NowPlaying): Screen | null {
-  if (now.source === 'audio') return { source: 'audio', metadata: metadataOf(now.episode.title, now.book) }
-  if (now.source === 'speech' && now.engine !== 'device')
-    return { source: 'speech', metadata: metadataOf(now.chapter?.title ?? now.book.title, now.book) }
+  if (now.source === 'audiobook') return { source: 'audiobook', metadata: metadataOf(now.episode.title, now.book) }
+  if (now.source === 'read-aloud' && now.engine !== 'device')
+    return { source: 'read-aloud', metadata: metadataOf(now.chapter?.title ?? now.book.title, now.book) }
   return null
 }
 
@@ -60,12 +60,12 @@ export function createLockScreen(nav: { mediaSession?: MediaSessionLike }, actio
 
   let metadataKey: string | null = null
   let handlersFor: Screen['source'] | null = null
-  let voicePlaying = false
+  let readAloudPlaying = false
 
   const audiobook = actions.audiobook
-  const voice = actions.voice
+  const readAloud = actions.readAloud
   const handlers: Record<Screen['source'], Handlers> = {
-    audio: [
+    audiobook: [
       ['play', () => audiobook.resume()],
       ['pause', () => audiobook.pause()],
       ['seekbackward', () => audiobook.skip(-15_000)],
@@ -74,11 +74,11 @@ export function createLockScreen(nav: { mediaSession?: MediaSessionLike }, actio
       ['nexttrack', () => audiobook.next()],
       ['seekto', (d) => d.seekTime !== undefined && audiobook.seekFile(d.seekTime * 1000)],
     ],
-    speech: [
-      ['play', () => !voicePlaying && voice.toggle()],
-      ['pause', () => voicePlaying && voice.toggle()],
-      ['previoustrack', () => voice.prevSentence()],
-      ['nexttrack', () => voice.nextSentence()],
+    'read-aloud': [
+      ['play', () => !readAloudPlaying && readAloud.toggle()],
+      ['pause', () => readAloudPlaying && readAloud.toggle()],
+      ['previoustrack', () => readAloud.prevSentence()],
+      ['nexttrack', () => readAloud.nextSentence()],
       ['seekbackward', null],
       ['seekforward', null],
       ['seekto', null],
@@ -115,8 +115,8 @@ export function createLockScreen(nav: { mediaSession?: MediaSessionLike }, actio
         setHandlers(handlers[screen.source])
         handlersFor = screen.source
       }
-      voicePlaying = now.source === 'speech' && now.playing
-      ms.playbackState = now.source === 'speech' ? (voicePlaying ? 'playing' : 'paused') : 'none'
+      readAloudPlaying = now.source === 'read-aloud' && now.playing
+      ms.playbackState = now.source === 'read-aloud' ? (readAloudPlaying ? 'playing' : 'paused') : 'none'
     },
     dispose: reset,
   }

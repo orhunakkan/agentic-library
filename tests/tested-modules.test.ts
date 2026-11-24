@@ -37,7 +37,8 @@ const ALLOWLIST: Record<string, string> = {
     'the React hook behind audio bookmarks; its logic is in audio-bookmark-list and shared/bookmarks/audio; covered by audio-bookmarks.spec',
   'src/client/features/reader/use-reader-prefs.ts': 'a React hook over prefs.ts and storage; covered by reader.spec',
   'src/client/features/highlights/paint.ts': 'paints with CSS.highlights, which only a browser has; highlights.spec',
-  'src/client/features/read-aloud/use-read-aloud.ts': 'the React hook over controller.ts; covered by read-aloud.spec',
+  'src/client/features/read-aloud/browser-read-aloud.ts':
+    "the browser's speech engines and server calls handed to the player, whose rules player.test covers; read-aloud.spec",
   'src/client/features/reading-stats/reading-time.ts':
     "wiring only; the rules are tracker.ts's and outbox.ts's; covered by reading-stats.spec",
   'src/client/features/sync/use-sync.ts':
