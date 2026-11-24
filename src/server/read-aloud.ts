@@ -1,11 +1,9 @@
 import '@tanstack/react-start/server-only'
 import { notFound } from '@tanstack/react-router'
-import { isPrivateBookSlug } from '~/shared/content/book-slug'
-import { bookHref, catalogCoverImage, coverUrlFor } from '~/shared/content/library'
-import type { BookContent, BookMeta } from '~/shared/content/schema'
-import { type SpeechBook, type SpeechChapterData, speechChapter } from '~/shared/read-aloud/speech-text'
-import { privateSpeechChapter } from './private-reading.ts'
-import { catalogueBook, loadBook } from './repository.ts'
+import { getRequest } from '@tanstack/react-start/server'
+import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
+import { readerOf } from './auth.ts'
+import { openBook } from './books/book.ts'
 
 export function speechInput(data: { book?: unknown; chapter?: unknown }): { book: string; chapter: number } {
   const { book, chapter } = data
@@ -15,24 +13,11 @@ export function speechInput(data: { book?: unknown; chapter?: unknown }): { book
   return { book, chapter }
 }
 
-export async function loadSpeechChapterData(book: string, chapter: number): Promise<SpeechChapterData> {
-  if (isPrivateBookSlug(book)) return privateSpeechChapter(book, chapter)
-  const [meta, content] = await Promise.all([catalogueBook(book), loadBook(book)])
-  const found = meta && content ? speechChapter(content, chapter) : null
-  if (!meta || !content || !found) throw notFound()
-  return { book: catalogueSpeechBook(meta, content), chapter: found }
-}
-
-export function catalogueSpeechBook(meta: BookMeta, content: BookContent): SpeechBook {
-  return {
-    slug: meta.slug,
-    title: meta.title,
-    author: meta.author,
-    href: bookHref(meta),
-    coverUrl: coverUrlFor(meta),
-    cover: meta.cover,
-    image: catalogCoverImage(meta),
-    language: meta.language,
-    chapterTitles: content.chapters.map((c) => c.title),
-  }
+/** One chapter of a text book to read aloud, for whoever is signed in on this request; any other answer is a 404. */
+export async function loadSpeechChapterData(slug: string, chapter: number): Promise<SpeechChapterData> {
+  const { db, userId } = await readerOf(getRequest())
+  const book = await openBook(db, userId, slug)
+  const found = book?.format === 'text' ? await book.speechChapter(chapter) : null
+  if (!found) throw notFound()
+  return found
 }

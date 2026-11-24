@@ -1,8 +1,8 @@
 import '@tanstack/react-start/server-only'
 import { chapterPageHref, pageLabel } from '~/shared/content/navigation'
 import { type BookPage, type PagePosition, pageIndexOf } from '~/shared/highlights/page-text'
-import { findAudio, findBook } from '../book-ref/book.ts'
-import { type BookRef, refFor } from '../book-ref/ref.ts'
+import { openBook } from '../books/book.ts'
+import { type BookRef, refFor } from '../books/ref.ts'
 import type { Db } from '../db.ts'
 import { type BookOutline, loadOutlines } from '../user-books.ts'
 
@@ -123,8 +123,8 @@ export function bookFor(db: Db, userId: number, slug: string, cache: PlaceCache)
     const id = refFor(slug).userBookId
     found = id
       ? loadOutlines(db, userId, [id]).then((outlines) => fromOutlines(outlines, slug, id))
-      : findBook(db, userId, slug, 'text').then(
-          async (book) => book && catalogueBook(book.ref, book.title, await book.pages()),
+      : openBook(db, userId, slug).then(async (book) =>
+          book?.format === 'text' ? catalogueBook(book.ref, book.title, await book.pages()) : null,
         )
     cache.set(slug, found)
   }
@@ -162,7 +162,7 @@ export async function resolveEpisode(
   slug: string,
   episodeId: string,
 ): Promise<{ durationMs: number } | null> {
-  const audio = await findAudio(db, userId, slug)
+  const audio = await (await openBook(db, userId, slug))?.audio()
   const episode = audio?.episodes.find((e) => e.id === episodeId)
   return episode ? { durationMs: episode.durationMs } : null
 }

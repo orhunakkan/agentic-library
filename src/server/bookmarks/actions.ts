@@ -3,7 +3,7 @@ import { MAX_BOOKMARKS_PER_BOOK, MAX_BOOKMARKS_PER_USER, pageAnchor } from '~/sh
 import { pageIndexOf } from '~/shared/highlights/page-text'
 import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson } from '../auth.ts'
-import { findBook } from '../book-ref/book.ts'
+import { openBook } from '../books/book.ts'
 import { signedInEndpoints } from '../signed-in.ts'
 import { parseBookmarkChange, parseBookmarkCreate } from './input.ts'
 import { createBookmark, deleteBookmark } from './store.ts'
@@ -18,7 +18,7 @@ const { fail } = bookmarks
 
 export const handleBookmarkCreate = (request: Request) =>
   bookmarks.post(request, { log: 'bookmark create', parse: parseBookmarkCreate }, async ({ session, db, input }) => {
-    const book = await findBook(db, session.userId, input.book, 'text')
+    const book = await openBook(db, session.userId, input.book).then((b) => (b?.format === 'text' ? b : null))
     if (!book) return fail(404, 'not_found')
     const pages = await book.pages()
     const page = pages[pageIndexOf(pages, input.position)]

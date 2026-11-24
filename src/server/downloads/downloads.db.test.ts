@@ -3,12 +3,12 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { newCover, saveDetails, setCover } from '~/server/book-details/store'
 import { newImage, storeImage } from '~/server/book-images/store'
+import { openBook } from '~/server/books/book'
+import { catalogueOfflineBook } from '~/server/books/offline'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
-import { catalogueOfflineBook } from '~/server/downloads/book'
 import { handleOfflineBook } from '~/server/downloads/handler'
 import { catalogueVersion } from '~/server/downloads/version'
-import { privateReaderPage } from '~/server/private-reading'
 import { loadBook, loadCatalog } from '~/server/repository'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
@@ -21,21 +21,13 @@ import { pictureUrls } from '~/shared/offline/pictures'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { testUser } from '../testing/users'
 
-const current = vi.hoisted(() => ({ request: undefined as Request | undefined }))
-vi.mock('@tanstack/react-start/server', () => ({
-  getRequest: () => {
-    if (!current.request) throw new Error('no request set')
-    return current.request
-  },
-}))
-
 const failing = vi.hoisted(() => ({ owner: false }))
-vi.mock('~/server/private-reading', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('~/server/private-reading')>()
+vi.mock('~/server/books/book', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/server/books/book')>()
   return {
     ...actual,
-    owned: (...args: Parameters<typeof actual.owned>) =>
-      failing.owner ? Promise.reject(new Error('connection lost')) : actual.owned(...args),
+    openBook: (...args: Parameters<typeof actual.openBook>) =>
+      failing.owner ? Promise.reject(new Error('connection lost')) : actual.openBook(...args),
   }
 })
 
@@ -55,7 +47,6 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books restart identity cascade`
-  current.request = undefined
   failing.owner = false
 })
 
@@ -78,6 +69,14 @@ async function book(userId: number, finish = true) {
   await storeImage(db(), userId, start.id, 1, newImage(picture, { ...image, type: image.type as 'image/png' }))
   if (finish) expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return { id: start.id, slug: privateBookSlug(start.id), picture: src, pictureBytes: picture.length }
+}
+
+async function readerPage(userId: number, slug: string, part: string, n: string | undefined) {
+  const book = await openBook(db(), userId, slug)
+  if (book?.format !== 'text') throw new Error(`${slug} does not open as a text book`)
+  const page = await book.readerPage(part, n)
+  if (!page) throw new Error(`no reader page ${part}/${n ?? 1}`)
+  return page
 }
 
 const request = (file: string, headers: Record<string, string> = {}) =>
@@ -157,15 +156,14 @@ describe('a private book', () => {
     expect(first).toMatch(/^[0-9a-f]{16}$/)
     expect(await version()).toBe(first)
 
-    current.request = request(`${slug}.json`, { cookie: owner.cookie })
-    expect((await privateReaderPage(slug, 'morning', undefined)).offlineVersion).toBe(first)
-    expect((await privateReaderPage(slug, 'evening', undefined)).offlineVersion).toBe(first)
+    expect((await readerPage(owner.user.id, slug, 'morning', undefined)).offlineVersion).toBe(first)
+    expect((await readerPage(owner.user.id, slug, 'evening', undefined)).offlineVersion).toBe(first)
 
     await saveDetails(db(), owner.user.id, id, { ...NO_DETAILS, title: 'Field Notes, Revised', author: 'Ada' })
     const renamed = await version()
     expect(renamed).not.toBe(first)
     expect((await download(slug, owner.cookie)).book?.title).toBe('Field Notes, Revised')
-    expect((await privateReaderPage(slug, 'morning', '2')).offlineVersion).toBe(renamed)
+    expect((await readerPage(owner.user.id, slug, 'morning', '2')).offlineVersion).toBe(renamed)
 
     const cover = fixture('cover.jpg')
     await setCover(db(), owner.user.id, id, newCover(cover, info(cover), 'upload'))
@@ -173,7 +171,7 @@ describe('a private book', () => {
     expect(covered.book?.version).not.toBe(renamed)
     expect(covered.book?.context.image?.src).toMatch(new RegExp(`^/account/books/${id}/cover\\?v=`))
     expect(covered.book?.bytes).toBeGreaterThan(cover.length)
-    expect((await privateReaderPage(slug, 'morning', undefined)).offlineVersion).toBe(covered.book?.version)
+    expect((await readerPage(owner.user.id, slug, 'morning', undefined)).offlineVersion).toBe(covered.book?.version)
   })
 })
 

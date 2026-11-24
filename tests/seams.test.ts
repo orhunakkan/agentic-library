@@ -34,7 +34,7 @@ const SEAMS: Seam[] = [
     allowed: {},
   },
   {
-    name: "an owned book's ready check is written only where books are stored and in book-ref (#70)",
+    name: "an owned book's ready check is written only where books are stored and in the books module (#70)",
     pattern: /status = 'ready'/,
     under: ['src/server'],
     allowed: {
@@ -42,20 +42,20 @@ const SEAMS: Seam[] = [
       'src/server/audiobooks/store.ts': 'an audiobook import',
       'src/server/book-details/store.ts': "a book's details",
       'src/server/book-images/store.ts': "a book's pictures",
-      'src/server/book-ref/book.ts': 'the one 404 rule (ownedBook, onReadableBook)',
+      'src/server/books/book.ts': 'the one 404 rule (ownedBook, onReadableBook)',
     },
   },
   {
-    name: "no feature imports highlights' store or input; the book reference is book-ref's (#70)",
+    name: "no feature imports highlights' store or input; the book reference is the books module's (#70)",
     pattern: /['"][^'"]*highlights\/(store|input)(\.ts)?['"]/,
     under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
     allowed: {},
   },
   {
-    name: "a book no longer in the library is named only by book-ref's labels (#70)",
+    name: "a book no longer in the library is named only by the books module's labels (#70)",
     pattern: /no longer in the library/,
     under: ['src/server'],
-    allowed: { 'src/server/book-ref/book.ts': 'labelsFor' },
+    allowed: { 'src/server/books/book.ts': 'labelsFor' },
   },
   {
     name: 'only the gate checks who is signed in on a JSON endpoint (#71)',

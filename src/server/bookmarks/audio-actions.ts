@@ -9,8 +9,8 @@ import type { AudioBook } from '~/shared/content/schema'
 import { type BookPage, pageIndexOf } from '~/shared/highlights/page-text'
 import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson } from '../auth.ts'
-import { findAudio, findBook } from '../book-ref/book.ts'
-import { type BookRef, refFor } from '../book-ref/ref.ts'
+import { openBook } from '../books/book.ts'
+import type { BookRef } from '../books/ref.ts'
 import type { Pool } from '../db.ts'
 import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import type { BookmarkErrorCode } from './actions.ts'
@@ -28,9 +28,9 @@ type Moment =
   | { ok: false; response: Response }
 
 async function momentFor(db: Pool, userId: number, input: AudioBookmarkCreateInput): Promise<Moment> {
+  const book = await openBook(db, userId, input.book)
   if (input.kind === 'voice') {
-    const book = await findBook(db, userId, input.book, 'text')
-    if (!book) return { ok: false, response: fail(404, 'not_found') }
+    if (book?.format !== 'text') return { ok: false, response: fail(404, 'not_found') }
     const pages = await book.pages()
     const page = pages[pageIndexOf(pages, input.position)]
     if (!page) return { ok: false, response: fail(400, 'invalid') }
@@ -39,8 +39,8 @@ async function momentFor(db: Pool, userId: number, input: AudioBookmarkCreateInp
     const moment: NewAudioBookmark = { kind: 'voice', chapter: page.chapterSlug, page: page.page, ...anchor }
     return { ok: true, ref: book.ref, moment, pages, audio: null }
   }
-  const audio = await findAudio(db, userId, input.book)
-  if (!audio) return { ok: false, response: fail(404, 'not_found') }
+  const audio = await book?.audio()
+  if (!book || !audio) return { ok: false, response: fail(404, 'not_found') }
   const episode = audio.episodes.find((e) => e.id === input.episode)
   if (!episode || input.positionMs > episode.durationMs) return { ok: false, response: fail(400, 'invalid') }
   const moment: NewAudioBookmark = {
@@ -48,7 +48,7 @@ async function momentFor(db: Pool, userId: number, input: AudioBookmarkCreateInp
     episode: episode.id,
     positionMs: Math.floor(input.positionMs / 1000) * 1000,
   }
-  return { ok: true, ref: refFor(input.book), moment, pages: [], audio }
+  return { ok: true, ref: book.ref, moment, pages: [], audio }
 }
 
 export const handleAudioBookmarkCreate = (request: Request) =>
@@ -87,17 +87,17 @@ export type AudioBookmarksState =
 
 export function audioBookmarksState(request: Request, slug: string): Promise<AudioBookmarksState> {
   return signedInRead(request, 'audio bookmarks', async ({ session, db }) => {
-    const book = await findBook(db, session.userId, slug, 'text')
-    if (!book) {
-      const ref = refFor(slug)
-      const audio = ref.userBookId === null ? null : await findAudio(db, session.userId, slug)
+    const book = await openBook(db, session.userId, slug)
+    if (!book) return { state: 'not_found' }
+    if (book.format === 'audio') {
+      const audio = await book.audio()
       if (!audio) return { state: 'not_found' }
-      const rows = await listAudioForBook(db, session.userId, ref)
+      const rows = await listAudioForBook(db, session.userId, book.ref)
       return { state: 'ready', bookmarks: toAudioBookmarkViews(rows, [], audio) }
     }
     const [rows, audio, pages] = await Promise.all([
       listAudioForBook(db, session.userId, book.ref),
-      book.ref.slug === null ? null : findAudio(db, session.userId, slug),
+      book.ref.slug === null ? null : book.audio(),
       book.pages(),
     ])
     return { state: 'ready', bookmarks: toAudioBookmarkViews(rows, pages, audio) }

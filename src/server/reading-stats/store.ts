@@ -3,8 +3,8 @@ import { MAX_SESSIONS_PER_DAY } from '~/shared/reading-stats/contract'
 import type { Day } from '~/shared/reading-stats/days'
 import type { GoalChange } from '~/shared/reading-stats/goals'
 import type { TimeWrite } from '~/shared/sync/sync'
-import { onBook, ownedBook } from '../book-ref/book.ts'
-import { type BookRef, bookOf } from '../book-ref/ref.ts'
+import { onBook, ownedBook } from '../books/book.ts'
+import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
 const keepZone = (db: Db, userId: number, zone: string) =>

@@ -13,7 +13,7 @@ import { CODE_SAY, chapterIntro, type Utterance, utterances } from '../../shared
 import type { SpeechChapter } from '../../shared/read-aloud/speech-text.ts'
 import { hasKey, withApiKey } from '../api-keys.ts'
 import { noStoreJson } from '../auth.ts'
-import { findBook } from '../book-ref/book.ts'
+import { openBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
 import { requirePro } from '../plans/plan.ts'
 import { charactersRetryAt, SPEECH_LIMIT } from '../rate-limit.ts'
@@ -49,8 +49,8 @@ interface LoadedChapter {
 }
 
 async function chapterFor(db: Db, userId: number, slug: string, index: number): Promise<LoadedChapter | null> {
-  const book = await findBook(db, userId, slug, 'text')
-  const chapter = await book?.chapter(index)
+  const book = await openBook(db, userId, slug).then((b) => (b?.format === 'text' ? b : null))
+  const chapter = (await book?.speechChapter(index))?.chapter
   return book && chapter ? { language: book.language, chapter } : null
 }
 
@@ -156,7 +156,8 @@ export const handleSpeak = (request: Request, options: SpeechOptions = {}) =>
   )
 
 async function bookLanguage(db: Db, userId: number, slug: string): Promise<string | null> {
-  return (await findBook(db, userId, slug, 'text'))?.language ?? null
+  const book = await openBook(db, userId, slug)
+  return book?.format === 'text' ? book.language : null
 }
 
 export function speechVoicesState(

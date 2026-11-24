@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import type { HighlightView } from '~/shared/highlights/group'
-import { findBook } from '../book-ref/book.ts'
+import { openBook } from '../books/book.ts'
 import { signedInRead } from '../signed-in.ts'
 import { resolvedHighlights } from './resolve.ts'
 
@@ -12,7 +12,7 @@ export type BookHighlightsState =
 
 export const bookHighlightsState = (request: Request, slug: string): Promise<BookHighlightsState> =>
   signedInRead(request, 'book highlights', async ({ session, db }): Promise<BookHighlightsState> => {
-    const book = await findBook(db, session.userId, slug, 'text')
+    const book = await openBook(db, session.userId, slug).then((b) => (b?.format === 'text' ? b : null))
     if (!book) return { state: 'not_found' }
     return { state: 'ready', highlights: await resolvedHighlights(db, session.userId, book) }
   })

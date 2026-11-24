@@ -3,8 +3,8 @@ import type { BookFlashcards, FlashcardBookCount, FlashcardBookSummary } from '~
 import { REVIEW_SESSION_MAX } from '~/shared/flashcards/limits'
 import { canUse } from '~/shared/plans/plans'
 import { sessionForRequest } from '../auth.ts'
-import { type BookLabel, findBook, labelsFor } from '../book-ref/book.ts'
-import { slugOf } from '../book-ref/ref.ts'
+import { type BookLabel, labelsFor, openBook } from '../books/book.ts'
+import { slugOf } from '../books/ref.ts'
 import { getDb } from '../db.ts'
 import { bookCards, type CardBook, cardBooks, dueCards } from './store.ts'
 import { toCardView } from './view.ts'
@@ -70,7 +70,7 @@ export async function bookFlashcardsState(
   if (!session) return { kind: 'signed_out' }
   if (!canUse(session.plan, 'flashcards')) return counts(session.userId, now)
   const db = getDb()
-  const book = await findBook(db, session.userId, slug, 'text')
+  const book = await openBook(db, session.userId, slug).then((b) => (b?.format === 'text' ? b : null))
   if (!book) return { kind: 'not_found' }
   const [cards, due, pages] = await Promise.all([
     bookCards(db, session.userId, book.ref),

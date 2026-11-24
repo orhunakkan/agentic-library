@@ -1,8 +1,8 @@
 import '@tanstack/react-start/server-only'
 import { MAX_HIGHLIGHTS_PER_BOOK, MAX_HIGHLIGHTS_PER_USER } from '../../shared/highlights/limits.ts'
 import { isUuid } from '../../shared/uuid.ts'
-import { onBook, ownsBook } from '../book-ref/book.ts'
-import { type BookRef, bookOf } from '../book-ref/ref.ts'
+import { onBook, ownsBook } from '../books/book.ts'
+import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
 export const isHighlightId = isUuid

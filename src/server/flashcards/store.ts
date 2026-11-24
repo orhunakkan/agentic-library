@@ -2,8 +2,8 @@ import '@tanstack/react-start/server-only'
 import { type CardOrigin, MAX_CARDS_PER_BOOK, MAX_CARDS_PER_USER } from '~/shared/flashcards/limits'
 import { nextReview, type ReviewResult } from '~/shared/flashcards/schedule'
 import { isUuid } from '../../shared/uuid.ts'
-import { onBook, ownsBook } from '../book-ref/book.ts'
-import { type BookRef, bookOf } from '../book-ref/ref.ts'
+import { onBook, ownsBook } from '../books/book.ts'
+import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
 export interface CardRow {

@@ -1,8 +1,8 @@
 import '@tanstack/react-start/server-only'
 import type { RatingErrorCode, RatingState } from '~/shared/ratings/ratings'
 import { noStoreJson } from '../auth.ts'
-import { findBook } from '../book-ref/book.ts'
-import { refFor } from '../book-ref/ref.ts'
+import { openBook } from '../books/book.ts'
+import { refFor } from '../books/ref.ts'
 import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import { parseRating } from './input.ts'
 import { clearRating, getRating, setRating } from './store.ts'
@@ -15,7 +15,7 @@ const ratings = signedInEndpoints<RatingErrorCode>({ maxBytes: MAX_BODY_BYTES })
 
 export const handleRating = (request: Request) =>
   ratings.post(request, { log: 'rating', parse: parseRating }, async ({ session, db, input }) => {
-    const found = await findBook(db, session.userId, input.book)
+    const found = await openBook(db, session.userId, input.book)
     if (!found) return ratings.fail(404, 'not_found')
     const result =
       input.stars === null

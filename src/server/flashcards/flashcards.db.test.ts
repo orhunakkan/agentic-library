@@ -10,7 +10,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import type { BookRef } from '~/server/book-ref/ref'
+import type { BookRef } from '~/server/books/ref'
 import { handleCardChange, handleCardSave } from '~/server/flashcards/actions'
 import { bookFlashcardsState, flashcardBooksState } from '~/server/flashcards/page'
 import { bookCards, cardBooks, dueCards, reviewCard, saveCard } from '~/server/flashcards/store'

@@ -1,8 +1,8 @@
 import '@tanstack/react-start/server-only'
 import { MAX_BOOKMARKS_PER_BOOK, MAX_BOOKMARKS_PER_USER } from '~/shared/bookmarks/bookmarks'
 import { isUuid } from '../../shared/uuid.ts'
-import { onBook, ownsBook } from '../book-ref/book.ts'
-import type { BookRef } from '../book-ref/ref.ts'
+import { onBook, ownsBook } from '../books/book.ts'
+import type { BookRef } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
 export interface BookmarkRow {

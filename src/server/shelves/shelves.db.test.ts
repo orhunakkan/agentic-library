@@ -10,7 +10,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { type BookRef, slugOf } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/books/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { handleShelfBook, handleShelfChange, handleShelfCreate, shelvesState } from '~/server/shelves/actions'

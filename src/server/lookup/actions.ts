@@ -4,7 +4,7 @@ import { primaryLanguage } from '../../shared/lookup/languages.ts'
 import { hasKey } from '../api-keys.ts'
 import { eventTimes, recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp } from '../auth.ts'
-import { findBook } from '../book-ref/book.ts'
+import { openBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
 import { requirePro } from '../plans/plan.ts'
 import { type Limit, nextAllowedAt, TRANSLATE_LIMIT, WORD_LOOKUP_LIMIT } from '../rate-limit.ts'
@@ -33,7 +33,7 @@ interface LookupBook {
 }
 
 async function lookupBook(db: Db, userId: number, slug: string): Promise<LookupBook | null> {
-  const book = await findBook(db, userId, slug, 'text')
+  const book = await openBook(db, userId, slug).then((b) => (b?.format === 'text' ? b : null))
   return book && { title: book.title, lang: primaryLanguage(book.language) }
 }
 

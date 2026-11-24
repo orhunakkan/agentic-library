@@ -3,26 +3,32 @@ import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import type { BillingOffer } from '~/shared/billing/billing'
 import { buildBookPage } from '~/shared/content/book-page'
-import { IN_BOOK_HIT_LIMIT, searchBook } from '~/shared/content/book-search'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { collectionHues } from '~/shared/content/hues'
 import { bookHref, buildLibrary, seriesBooks, toShelfBook } from '~/shared/content/library'
 import { chapterPageHref, pagedHref } from '~/shared/content/navigation'
-import { buildReaderView } from '~/shared/content/reader-view'
 import { catalogWithoutRemoved, removedShelfBooks, withoutRemoved } from '~/shared/content/removed'
 import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
+import { readerOf } from './auth'
 import { billingOffer } from './billing/actions'
+import { openBook, type ReaderPage, type TextBook } from './books/book'
 import { getConfig, type SiteContact } from './config'
-import { catalogueVersion } from './downloads/version'
-import { privateBookSearch, privateReaderPage } from './private-reading'
 import { ratingState } from './ratings/actions'
 import { loadSpeechChapterData, speechInput } from './read-aloud'
 import { libraryExclusionsFor } from './removed-books/actions'
-import { catalogueBook, loadAudio, loadBook, loadCatalog } from './repository'
+import { loadAudio, loadBook, loadCatalog } from './repository'
 
 const str = (value: unknown, name: string): string => {
   if (typeof value !== 'string' || value.length === 0 || value.length > 200) throw new Error(`Invalid ${name}`)
   return value
+}
+
+/** Opens a text book for whoever is signed in on this request; any other answer is a 404. */
+async function openTextBook(slug: string): Promise<TextBook> {
+  const { db, userId } = await readerOf(getRequest())
+  const book = await openBook(db, userId, slug)
+  if (book?.format !== 'text') throw notFound()
+  return book
 }
 
 export const getNavData = createServerFn({ method: 'GET' }).handler(async () => {
@@ -106,19 +112,11 @@ export const getReaderPage = createServerFn({ method: 'GET' })
     part: str(data.part, 'part'),
     n: data.n === undefined ? undefined : str(data.n, 'n'),
   }))
-  .handler(async ({ data }) => {
-    if (isPrivateBookSlug(data.book)) return privateReaderPage(data.book, data.part, data.n)
-    const [catalog, meta, content, audio] = await Promise.all([
-      loadCatalog(),
-      catalogueBook(data.book),
-      loadBook(data.book),
-      loadAudio(data.book),
-    ])
-    const view = meta && content ? buildReaderView({ meta, catalog }, content, data.part, data.n) : null
-    if (!meta || !content || !view) throw notFound()
-    const page = buildBookPage(catalog, content, audio, meta.seriesSlug, meta.slug)
-    const offlineVersion = (await catalogueVersion(meta.slug)) ?? ''
-    return { view, cover: meta.cover, audio: page?.audio ?? null, offlineVersion }
+  .handler(async ({ data }): Promise<ReaderPage> => {
+    const book = await openTextBook(data.book)
+    const page = await book.readerPage(data.part, data.n)
+    if (!page) throw notFound()
+    return page
   })
 
 export const searchInBook = createServerFn({ method: 'GET' })
@@ -126,12 +124,7 @@ export const searchInBook = createServerFn({ method: 'GET' })
     book: str(data.book, 'book'),
     q: String(data.q ?? '').slice(0, 120),
   }))
-  .handler(async ({ data }) => {
-    if (isPrivateBookSlug(data.book)) return privateBookSearch(data.book, data.q)
-    const content = await loadBook(data.book)
-    if (!content) throw notFound()
-    return searchBook(content, data.q, { limit: IN_BOOK_HIT_LIMIT })
-  })
+  .handler(async ({ data }) => (await openTextBook(data.book)).search(data.q))
 
 export const getSpeechChapter = createServerFn({ method: 'GET' })
   .validator((data: { book: string; chapter: number }) => speechInput(data))

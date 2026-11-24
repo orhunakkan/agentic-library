@@ -1,8 +1,8 @@
 import '@tanstack/react-start/server-only'
 import { MAX_SHELF_BOOKS_PER_USER, MAX_SHELVES_PER_USER } from '~/shared/shelves/shelves'
 import { isUuid } from '../../shared/uuid.ts'
-import { onBook, onReadableBook, ownsBook } from '../book-ref/book.ts'
-import { type BookRef, bookOf } from '../book-ref/ref.ts'
+import { onBook, onReadableBook, ownsBook } from '../books/book.ts'
+import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
 export interface ShelfRow {

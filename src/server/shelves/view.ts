@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import type { ShelfView } from '~/shared/shelves/contract'
-import { slugOf } from '../book-ref/ref.ts'
+import { slugOf } from '../books/ref.ts'
 import type { ShelfRow } from './store.ts'
 
 const byName = new Intl.Collator('en', { sensitivity: 'base', numeric: true })

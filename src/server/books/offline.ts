@@ -6,11 +6,10 @@ import type { BookMeta } from '~/shared/content/schema'
 import { OFFLINE_BOOK_VERSION, type OfflineBook, trimCatalog } from '~/shared/offline/book'
 import { pictureUrls } from '~/shared/offline/pictures'
 import type { Db } from '../db.ts'
-import { privateContext, privateSpeechBook } from '../private-reading.ts'
-import { catalogueSpeechBook } from '../read-aloud.ts'
+import { catalogueVersion, privateVersion } from '../downloads/version.ts'
 import { catalogueBook, contentImageFile, coverFile, loadBook, loadCatalog } from '../repository.ts'
 import { loadWholeBook, toChapterBook } from '../user-books.ts'
-import { catalogueVersion, privateVersion } from './version.ts'
+import { catalogueSpeechBook, privateContext, privateSpeechBook } from './views.ts'
 
 const textBytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value))
 
@@ -31,6 +30,7 @@ async function catalogueFileBytes(meta: BookMeta, pictures: readonly string[]): 
 
 const catalogue = new Map<string, Promise<OfflineBook | null>>()
 
+/** A catalogue book whole, built once per slug for everyone. */
 export function catalogueOfflineBook(slug: string): Promise<OfflineBook | null> {
   let book = catalogue.get(slug)
   if (!book) {
@@ -67,14 +67,15 @@ async function buildCatalogueBook(slug: string): Promise<OfflineBook | null> {
   }
 }
 
-export async function privateOfflineBook(
-  db: Db,
-  userId: number,
-  username: string,
-  bookId: string,
-): Promise<OfflineBook | null> {
-  const book = await loadWholeBook(db, userId, bookId)
-  if (!book) return null
+/** A private book whole for its owner, naming the owner by the username on the book's own row. */
+export async function privateOfflineBook(db: Db, userId: number, bookId: string): Promise<OfflineBook | null> {
+  const [[owner], book] = await Promise.all([
+    db<{ username: string }[]>`
+      select u.username from user_books b join users u on u.id = b.user_id
+      where b.id = ${bookId} and b.user_id = ${userId}`,
+    loadWholeBook(db, userId, bookId),
+  ])
+  if (!owner || !book) return null
   const slug = privateBookSlug(bookId)
   const context = privateContext(bookId, book, book.chapters.length)
   const content = toChapterBook(slug, book.chapters)
@@ -85,7 +86,7 @@ export async function privateOfflineBook(
     version: privateVersion(context, outline),
     title: book.title,
     author: book.author,
-    owner: username,
+    owner: owner.username,
     context,
     content,
     cover: context.meta.cover,

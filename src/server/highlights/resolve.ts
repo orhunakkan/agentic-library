@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import type { HighlightView } from '~/shared/highlights/group'
-import { findBook, labelsFor, type TextBook } from '../book-ref/book.ts'
-import { refFor } from '../book-ref/ref.ts'
+import { labelsFor, openBook, type TextBook } from '../books/book.ts'
+import { refFor } from '../books/ref.ts'
 import type { Db } from '../db.ts'
 import { listForBook } from './store.ts'
 import { toViews } from './view.ts'
@@ -22,7 +22,7 @@ export interface BookHighlights {
 }
 
 export async function highlightsFor(db: Db, userId: number, slug: string): Promise<BookHighlights | null> {
-  const book = await findBook(db, userId, slug, 'text')
+  const book = await openBook(db, userId, slug).then((b) => (b?.format === 'text' ? b : null))
   if (book) {
     return {
       book: { slug, title: book.title, author: book.author, removed: false },

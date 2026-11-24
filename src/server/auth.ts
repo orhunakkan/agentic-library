@@ -3,7 +3,7 @@ import type { Plan } from '../shared/plans/plans.ts'
 import { parseAuthorization } from './access-tokens/input.ts'
 import { findAccessToken, type TokenUser } from './access-tokens/store.ts'
 import { getConfig } from './config.ts'
-import { getDb, isDatabaseConfigured } from './db.ts'
+import { type Db, getDb, isDatabaseConfigured } from './db.ts'
 import { logError } from './redact.ts'
 import { clientIp, hashToken, isSameOrigin, isWellFormedToken } from './security.ts'
 import { findSession, type SessionUser } from './sessions.ts'
@@ -71,6 +71,13 @@ export function sessionForRequest(request: Request): Promise<SessionUser | null>
     lookups.set(request, lookup)
   }
   return lookup
+}
+
+/** Who reads a book on this request, for `openBook`: the database and the signed-in user's id, or null for each when there is no database or nobody is signed in. */
+export async function readerOf(request: Request): Promise<{ db: Db | null; userId: number | null }> {
+  if (!isDatabaseConfigured()) return { db: null, userId: null }
+  const session = await sessionForRequest(request)
+  return { db: getDb(), userId: session?.userId ?? null }
 }
 
 export type Caller = { ok: true; session: SessionUser } | { ok: false; response: Response }

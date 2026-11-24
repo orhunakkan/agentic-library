@@ -9,9 +9,9 @@ vi.mock('~/server/repository', async (importOriginal) => {
 })
 
 import { saveKey } from '~/server/api-keys'
+import { openBook } from '~/server/books/book'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
-import { loadSpeechChapterData } from '~/server/read-aloud'
 import { loadBook } from '~/server/repository'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
@@ -90,7 +90,10 @@ async function privateBook(userId: number, ready = true) {
 
 let chapter1: SpeechChapter
 beforeAll(async () => {
-  chapter1 = (await loadSpeechChapterData(BOOK, 0)).chapter
+  const book = await openBook(null, null, BOOK)
+  const found = book?.format === 'text' ? await book.speechChapter(0) : null
+  if (!found) throw new Error(`${BOOK} has no first chapter`)
+  chapter1 = found.chapter
 })
 
 const said = (chapter: SpeechChapter, page: number) => utterances(chapter.pages[page] ?? { text: '', blocks: [] }, 'en')

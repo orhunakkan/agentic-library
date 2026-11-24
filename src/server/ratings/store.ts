@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import type { Stars } from '~/shared/ratings/ratings'
-import { onBook, ownedBook, ownsBook } from '../book-ref/book.ts'
-import type { BookRef } from '../book-ref/ref.ts'
+import { onBook, ownedBook, ownsBook } from '../books/book.ts'
+import type { BookRef } from '../books/ref.ts'
 import type { Db } from '../db.ts'
 
 export async function getRating(db: Db, userId: number, book: BookRef): Promise<Stars | null> {

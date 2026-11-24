@@ -72,14 +72,6 @@ export function buildBookPage(
   const siblings = nearbyVolumes(volumes, index).map(toShelfBook)
 
   const startHref = firstReadingHref(content)
-  const chapterHref = (ref: string | undefined) => {
-    if (!ref) return startHref
-    if (content.kind === 'paged') {
-      const chapter = content.chapters.find((c) => c.id === ref)
-      return chapter ? pagedHref(content.slug, chapter.startPage) : startHref
-    }
-    return content.chapters.some((c) => c.slug === ref) ? chapterPageHref(content.slug, ref, 1) : startHref
-  }
 
   return {
     meta,
@@ -95,15 +87,21 @@ export function buildBookPage(
     startHref,
     toc,
     siblings,
-    audio: audio ? playerAudio(meta, audio, chapterHref) : null,
+    audio: audio ? bookAudio(meta, content, audio) : null,
   }
 }
 
-function playerAudio(
-  meta: BookMeta,
-  audio: AudioBook,
-  pageHref: (chapterRef: string | undefined) => string,
-): NonNullable<BookPage['audio']> {
+/** A catalogue book's audiobook as the player shows it, each episode linked to the page its chapter starts on. */
+export function bookAudio(meta: BookMeta, content: BookContent, audio: AudioBook): NonNullable<BookPage['audio']> {
+  const startHref = firstReadingHref(content)
+  const pageHref = (ref: string | undefined) => {
+    if (!ref) return startHref
+    if (content.kind === 'paged') {
+      const chapter = content.chapters.find((c) => c.id === ref)
+      return chapter ? pagedHref(content.slug, chapter.startPage) : startHref
+    }
+    return content.chapters.some((c) => c.slug === ref) ? chapterPageHref(content.slug, ref, 1) : startHref
+  }
   return {
     book: {
       slug: meta.slug,

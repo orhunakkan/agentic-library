@@ -4,8 +4,8 @@ import { pageIndexOf } from '~/shared/highlights/page-text'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson, seeOther } from '../auth.ts'
-import { findBook } from '../book-ref/book.ts'
-import { refFor, slugOf } from '../book-ref/ref.ts'
+import { openBook } from '../books/book.ts'
+import { refFor, slugOf } from '../books/ref.ts'
 import { requirePro } from '../plans/plan.ts'
 import { signedInEndpoints, signedInForm } from '../signed-in.ts'
 import { parseCardChange, parseNewCard } from './input.ts'
@@ -29,7 +29,7 @@ export const handleCardSave = (request: Request) =>
     },
     async ({ session, db, input }) => {
       const { userId } = session
-      const book = await findBook(db, userId, input.book, 'text')
+      const book = await openBook(db, userId, input.book).then((b) => (b?.format === 'text' ? b : null))
       if (!book) return fail(404, 'not_found')
       const pages = await book.pages()
       const page = pages[pageIndexOf(pages, input.position)]
@@ -68,7 +68,7 @@ export const handleCardChange = (request: Request, id: string) =>
       if (notPro) return notPro
       const row = await reviewCard(db, userId, id, change.review, new Date())
       if (!row) return fail(404, 'not_found')
-      const book = await findBook(db, userId, slugOf(row.book), 'text')
+      const book = await openBook(db, userId, slugOf(row.book)).then((b) => (b?.format === 'text' ? b : null))
       return noStoreJson(200, { card: toCardView(row, (await book?.pages()) ?? null) })
     },
   )

@@ -1,8 +1,8 @@
 import postgres, { type Sql } from 'postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { sessionCookie, sessionCookieName, sessionForRequest, viewerForRequest } from '~/server/auth'
+import { readerOf, sessionCookie, sessionCookieName, sessionForRequest, viewerForRequest } from '~/server/auth'
 import { getConfig } from '~/server/config'
-import { closeDb, getDb } from '~/server/db'
+import { closeDb, getDb, isDatabaseConfigured } from '~/server/db'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { createUser } from '~/server/users'
@@ -10,7 +10,7 @@ import { databaseUrl, freshDatabase } from './testing/db'
 
 vi.mock('./db.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./db.ts')>()
-  return { ...actual, getDb: vi.fn(actual.getDb) }
+  return { ...actual, getDb: vi.fn(actual.getDb), isDatabaseConfigured: vi.fn(actual.isDatabaseConfigured) }
 })
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -56,6 +56,16 @@ describe('the session cookie', () => {
     } finally {
       config.cookieSecure = secure
     }
+  })
+})
+
+describe('readerOf', () => {
+  it('names the signed-in reader, nobody when signed out, and no database when there is none', async () => {
+    const { user, cookie } = await signedIn()
+    expect(await readerOf(request(cookie))).toEqual({ db: getDb(), userId: user.id })
+    expect(await readerOf(request())).toEqual({ db: getDb(), userId: null })
+    vi.mocked(isDatabaseConfigured).mockReturnValueOnce(false)
+    expect(await readerOf(request(cookie))).toEqual({ db: null, userId: null })
   })
 })
 

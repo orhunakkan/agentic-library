@@ -9,7 +9,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { type BookRef, slugOf } from '~/server/book-ref/ref'
+import { type BookRef, slugOf } from '~/server/books/ref'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { handleChange, handleCreate, handleHighlightsForm } from '~/server/highlights/actions'

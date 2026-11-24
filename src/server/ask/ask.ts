@@ -7,7 +7,7 @@ import { hasKey, withApiKey } from '../api-keys.ts'
 import { findPrompt } from '../ask-prompts/store.ts'
 import { eventTimes, recordEvent } from '../audit.ts'
 import { NO_STORE, requestIp } from '../auth.ts'
-import { findBook, type TextBook } from '../book-ref/book.ts'
+import { openBook, type TextBook } from '../books/book.ts'
 import { getConfig } from '../config.ts'
 import type { Db } from '../db.ts'
 import { resolvedHighlights } from '../highlights/resolve.ts'
@@ -85,7 +85,7 @@ export interface AskOptions {
 async function askedBook({ session, db }: Gate, slug: string) {
   const notPro = requirePro(session, 'ask')
   if (notPro) return notPro
-  const found = await findBook(db, session.userId, slug, 'text')
+  const found = await openBook(db, session.userId, slug).then((b) => (b?.format === 'text' ? b : null))
   if (!found) return refuse(404, 'not_found')
   return { found, text: textOf(await found.content()) }
 }

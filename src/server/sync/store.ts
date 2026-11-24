@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
-import { onBook, ownedBook } from '../book-ref/book.ts'
-import { type BookRef, bookOf } from '../book-ref/ref.ts'
+import { onBook, ownedBook } from '../books/book.ts'
+import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
 export interface ReadingItem {

@@ -21,7 +21,7 @@ export default defineConfig({
       exclude: ['**/*.test.ts', 'src/server/testing/**'],
       thresholds: {
         statements: 95,
-        branches: 92,
+        branches: 93,
         functions: 94,
         lines: 96,
         'src/server/auth.ts': FULL,
@@ -32,7 +32,7 @@ export default defineConfig({
         'src/server/security.ts': FULL,
         'src/server/redact.ts': FULL,
         'src/server/rate-limit.ts': FULL,
-        'src/server/private-reading.ts': { statements: 96, branches: 95, functions: 100, lines: 100 },
+        'src/server/books/private.ts': { statements: 96, branches: 95, functions: 100, lines: 100 },
         'src/server/json-body.ts': FULL,
         'src/server/signed-in.ts': FULL,
         'src/server/articles/address-guard.ts': { statements: 95, branches: 90, functions: 100, lines: 100 },

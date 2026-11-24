@@ -6,7 +6,7 @@ import {
   type ReadingPlace,
   type SyncState,
 } from '~/shared/sync/sync'
-import { slugOf } from '../book-ref/ref.ts'
+import { slugOf } from '../books/ref.ts'
 import type { Db } from '../db.ts'
 import { signedInRead } from '../signed-in.ts'
 import { bookFor, newPlaceCache, type PlaceCache, placeForRead, positionFor, preloadBooks } from './places.ts'

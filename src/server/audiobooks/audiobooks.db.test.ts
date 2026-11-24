@@ -13,7 +13,7 @@ vi.mock('~/server/db', async (importOriginal) => {
 
 import { deleteAccount } from '~/server/admin/store'
 import { handleBooksForm } from '~/server/book-actions'
-import { findAudio, findBook } from '~/server/book-ref/book'
+import { openBook } from '~/server/books/book'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
 import { hashToken, newSessionToken } from '~/server/security'
@@ -585,9 +585,10 @@ describe('the text paths', () => {
     expect(await loadBookText(db(), userId, id)).toBeNull()
     expect(await loadBookPage(db(), userId, id)).toBeNull()
     expect(await loadOutlines(db(), userId, [id])).toEqual(new Map())
-    expect(await findBook(db(), userId, privateBookSlug(id), 'text')).toBeNull()
-    expect((await findAudio(db(), userId, privateBookSlug(id)))?.episodes.map((e) => e.id)).toEqual(['1', '2', '3'])
-    expect(await findAudio(db(), bob.user.id, privateBookSlug(id))).toBeNull()
+    const book = await openBook(db(), userId, privateBookSlug(id))
+    expect(book?.format).toBe('audio')
+    expect((await book?.audio())?.episodes.map((e) => e.id)).toEqual(['1', '2', '3'])
+    expect(await openBook(db(), bob.user.id, privateBookSlug(id))).toBeNull()
   })
 })
 

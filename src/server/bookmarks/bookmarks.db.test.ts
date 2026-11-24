@@ -15,8 +15,8 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { findBook } from '~/server/book-ref/book'
-import { type BookRef, slugOf } from '~/server/book-ref/ref'
+import { openBook } from '~/server/books/book'
+import { type BookRef, slugOf } from '~/server/books/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -385,9 +385,11 @@ describe('the endpoints', () => {
 describe('the view', () => {
   it('opens a bookmark where its words are now, and lists one found nowhere as missing', async () => {
     const user = await newUser()
-    const book = await findBook(db(), user.id, 'pride-and-prejudice', 'text')
-    const page2 = (await book?.pages())?.find((p) => p.chapterSlug === 'chapter-6' && p.page === 2)
-    if (!book || !page2) throw new Error('fixture page missing')
+    const book = await openBook(db(), user.id, 'pride-and-prejudice')
+    const page2 = (book?.format === 'text' ? await book.pages() : [])?.find(
+      (p) => p.chapterSlug === 'chapter-6' && p.page === 2,
+    )
+    if (book?.format !== 'text' || !page2) throw new Error('fixture page missing')
     await created(user.id, PRIDE, { chapter: 'chapter-6', page: 1, ...pageAnchor(page2.text) })
     await created(user.id, PRIDE, { page: 3, start: 0, end: 23, exact: 'Words in no book at all', suffix: '' })
     const [moved, missing] = toBookmarkViews(await listForBook(db(), user.id, PRIDE), await book.pages())
