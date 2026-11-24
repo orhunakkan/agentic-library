@@ -31,10 +31,6 @@ type Setup = Awaited<ReturnType<typeof getAskSetup>>
 
 const COUNT_FROM = 1_800
 
-export const askPosition = positionOf
-
-export const scopeLabel = labelOf
-
 function useSetup(active: boolean, signedIn: boolean) {
   const [setup, setSetup] = useState<Setup | null>(null)
   const [version, setVersion] = useState(0)
@@ -229,7 +225,7 @@ function ScopeLine({ view, ask }: { view: ReaderView; ask: AskState }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-r-line px-5 py-2.5 text-[13px]">
       <p className="min-w-0 text-r-muted" aria-live="polite" data-testid="ask-scope">
-        {whole ? 'Using the whole book (may include spoilers)' : `Using pages up to ${scopeLabel(view)}`}
+        {whole ? 'Using the whole book (may include spoilers)' : `Using pages up to ${labelOf(view)}`}
       </p>
       {/* biome-ignore lint/a11y/noLabelWithoutControl: Switch.Root renders the switch button this label wraps */}
       <label className="flex shrink-0 cursor-pointer items-center gap-2 text-r-ink">
@@ -463,7 +459,7 @@ function Suggestions({
   noPrompts: boolean
 }) {
   const hasCode = view.page.kind === 'chapter' && view.page.html.includes('<pre>')
-  const page = pageOf(askPosition(view))
+  const page = pageOf(positionOf(view))
   const highlights = ask.thread.wholeBook ? highlightPages.length : highlightPages.filter((p) => p <= page).length
   const chip =
     'block w-full rounded-xl border border-r-line px-3.5 py-2.5 text-left text-[14px] transition hover:border-r-accent/60 disabled:opacity-50'

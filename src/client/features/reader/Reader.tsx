@@ -5,7 +5,7 @@ import { useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AppLink } from '~/client/components/AppLink'
 import { useToast } from '~/client/components/Toast'
-import { AskPanel, askPosition, scopeLabel } from '~/client/features/ask/AskPanel'
+import { AskPanel } from '~/client/features/ask/AskPanel'
 import { QUOTE_MAX } from '~/client/features/ask/ask-client'
 import { EXPLAIN_QUESTION } from '~/client/features/ask/suggestions'
 import { useAsk } from '~/client/features/ask/use-ask'
@@ -33,7 +33,7 @@ import { useMediaQuery } from '~/client/lib/use-media-query'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import type { NavTarget } from '~/shared/content/navigation'
 import { toStored } from '~/shared/content/position'
-import type { ReaderView } from '~/shared/content/reader-view'
+import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
 import { AskButton, IconButton, ReadAloudButton } from './ChromeButtons'
 import { ContentsDrawer, TocPanel, type TocTab } from './Contents'
 import { rememberReading } from './continue-reading'
@@ -80,7 +80,7 @@ export function Reader({
   const [footnoteAt, setFootnoteAt] = useState<{ path: string; id: string } | null>(null)
   const [turn, setTurn] = useState<Turn>('fade')
   const intent = useNavigationIntent()
-  const ask = useAsk(view.book.slug, askPosition(view))
+  const ask = useAsk(view.book.slug, positionOf(view))
   const [askSheetOpen, setAskSheetOpen] = useState(false)
   const askButton = useRef<HTMLButtonElement>(null)
   const askBox = useRef<HTMLTextAreaElement>(null)
@@ -746,7 +746,7 @@ function OfflineChip() {
 }
 
 function newHighlight(view: ReaderView, passage: Selected): NewHighlight {
-  const position = askPosition(view)
+  const position = positionOf(view)
   return {
     position,
     start: passage.start,
@@ -757,7 +757,7 @@ function newHighlight(view: ReaderView, passage: Selected): NewHighlight {
       chapterTitle: view.chapterTitle,
       ...toStored(position),
       pageHref: view.canonicalPath,
-      label: scopeLabel(view),
+      label: labelOf(view),
       position: view.nav.progress.position - 1,
       start: passage.start,
       end: passage.end,
@@ -791,7 +791,7 @@ function useVoiceOnPage(
       readAloud.toggle()
       return
     }
-    readAloud.start(view.book.slug, { kind: 'page', chapter: view.chapterIndex, position: askPosition(view) })
+    readAloud.start(view.book.slug, { kind: 'page', chapter: view.chapterIndex, position: positionOf(view) })
   }
   const readAloudFrom = (offset: number, path: string) => {
     document.getSelection()?.removeAllRanges()
@@ -799,7 +799,7 @@ function useVoiceOnPage(
     readAloud.start(page.book.slug, {
       kind: 'offset',
       chapter: page.chapterIndex,
-      position: askPosition(page),
+      position: positionOf(page),
       offset,
     })
   }
