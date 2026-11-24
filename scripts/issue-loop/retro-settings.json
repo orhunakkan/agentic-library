@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Skill",
+      "Agent",
+      "Task",
+      "TodoWrite",
+      "ToolSearch",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(jq *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git diff *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+      "Bash(gh issue create *)"
+    ],
+    "deny": [
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh issue edit *)",
+      "Bash(gh issue close *)"
+    ]
+  }
+}
