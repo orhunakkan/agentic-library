@@ -2,7 +2,7 @@ import type { Arbiter } from '~/client/features/player/arbitration'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { type PagePosition, samePosition } from '~/shared/content/position'
 import { primarySubtag, type SpeechVoicesState } from '~/shared/read-aloud/cloud'
-import { ENGINE_BYTES, type FolioVoice, folioVoicesFor } from '~/shared/read-aloud/folio-voices'
+import type { FolioVoice } from '~/shared/read-aloud/folio-voices'
 import { chapterIntro } from '~/shared/read-aloud/sentences'
 import type { SpeechBook, SpeechChapter, SpeechChapterData } from '~/shared/read-aloud/speech-text'
 import { CLOUD_VOICE_PREFIX } from './cloud-speaker'
@@ -21,12 +21,11 @@ import {
   utteranceAt,
 } from './cursor'
 import type { DownloadNotice } from './messages'
+import { createFolioDownloads, type LocalState, NO_LOCAL } from './piper/folio-downloads'
 import type { VoiceStore } from './piper/voice-store'
 import {
-  dismissOffer,
   finishPosition,
   forgetVoice,
-  offerDismissed,
   readPosition,
   readSpeed,
   readVoices,
@@ -70,21 +69,6 @@ export type Problem =
 export type CloudVoices = 'off' | 'loading' | 'failed' | 'permission' | 'pro' | 'no-key' | VoiceLike[]
 
 export type Status = 'loading' | 'playing' | 'paused' | 'ended' | 'error'
-
-export interface LocalVoiceState {
-  id: string
-  voice: VoiceLike
-  state: 'absent' | 'downloading' | 'ready'
-  percent: number
-  bytes: number
-}
-
-export interface LocalState {
-  voices: LocalVoiceState[]
-  offer: boolean
-  slow: boolean
-  removable: number
-}
 
 export interface ReadAloudState {
   book: SpeechBook | null
@@ -165,8 +149,6 @@ const sameCursor = (a: Cursor | null, b: Cursor | null) =>
 const hasNextChapter = (chapter: Pick<SpeechChapter, 'index' | 'chapterCount'>) =>
   chapter.index + 1 < chapter.chapterCount
 
-const NO_LOCAL: LocalState = { voices: [], offer: false, slow: false, removable: 0 }
-
 export const closedState = (rate: number): ReadAloudState => ({
   book: null,
   chapter: null,
@@ -207,8 +189,6 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   const now = deps.now ?? Date.now
   const closed = () => closedState(readSpeed(deps.storage))
   let state = closed()
-  let download: { id: string; percent: number; controller: AbortController } | null = null
-  let slow = false
   let cloudList: { book: string; answer: Promise<SpeechVoicesState> } | null = null
   let session = 0
   let slug: string | null = null
@@ -284,34 +264,27 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     return 'device'
   }
 
-  const localStateFor = (lang: string, downloaded: readonly FolioVoice[]): LocalState => {
-    if (!deps.voiceStore) return NO_LOCAL
-    const ready = new Set(downloaded.map((v) => v.id))
-    const folioVoices = folioVoicesFor(lang, deps.locale)
-    const voices = folioVoices.map(
-      (v): LocalVoiceState => ({
-        id: v.id,
-        voice: folioVoiceLike(v),
-        state: ready.has(v.id) ? 'ready' : download?.id === v.id ? 'downloading' : 'absent',
-        percent: download?.id === v.id ? download.percent : 0,
-        bytes: v.bytes + (downloaded.length > 0 ? 0 : ENGINE_BYTES),
-      }),
-    )
-    const removable = folioVoices.filter((v) => ready.has(v.id)).reduce((n, v) => n + v.bytes, 0)
-    const offer =
-      voices.length > 0 && voices.every((v) => v.state !== 'ready') && !download && !offerDismissed(deps.storage)
-    return { voices, offer, slow, removable }
-  }
+  const localFor = (lang: string): LocalState => folio?.local(lang) ?? NO_LOCAL
 
-  const downloadedVoices = async (): Promise<FolioVoice[]> =>
-    deps.voiceStore ? deps.voiceStore.downloaded().catch(() => []) : []
+  const folio = deps.voiceStore
+    ? createFolioDownloads({
+        voiceStore: deps.voiceStore,
+        storage: deps.storage,
+        locale: deps.locale,
+        onChange: () => {
+          if (state.book) emit({ local: localFor(state.book.language) })
+        },
+      })
+    : null
+
+  const downloadedVoices = async (): Promise<FolioVoice[]> => (folio ? folio.refresh() : [])
 
   const refreshLocal = async (mine: number) => {
     const lang = state.book?.language
-    if (!lang || !deps.voiceStore) return
-    const downloaded = await downloadedVoices()
+    if (!lang || !folio) return
+    await folio.refresh()
     if (mine !== session || state.book?.language !== lang) return
-    emit({ local: localStateFor(lang, downloaded) })
+    emit({ local: localFor(lang) })
   }
 
   const refAt = (at: Cursor, asIntro: boolean): SpeakRef | null => {
@@ -641,7 +614,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         voices: resolved.device,
         voice,
         engine: engineOf(voice),
-        local: localStateFor(language, downloaded),
+        local: localFor(language),
       }
       if (downloaded.length > 0) void deps.voiceStore?.ensureEngine().catch(() => {})
       const pages = result.data.chapter.pages
@@ -770,102 +743,61 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       })
     },
     downloadLocal: (id) => {
-      const store = deps.voiceStore
-      const entry = state.local.voices.find((v) => v.id === id)
-      const folio = folioVoicesFor(state.book?.language ?? '', deps.locale).find((v) => v.id === id)
-      if (!store || !entry || !folio || entry.state !== 'absent' || download) return
-      const mine = { id, percent: 0, controller: new AbortController() }
-      download = mine
-      const show = () => {
-        if (!state.book?.language) return
-        state = {
-          ...state,
-          local: {
-            ...state.local,
-            offer: false,
-            voices: state.local.voices.map((v) =>
-              v.id === id ? { ...v, state: 'downloading', percent: mine.percent } : v,
-            ),
-          },
-        }
-        emit()
-      }
-      show()
-      void store
-        .download(
-          folio,
-          (percent) => {
-            if (download !== mine || percent === mine.percent) return
-            mine.percent = percent
-            if (state.local.voices.some((v) => v.id === id)) show()
-          },
-          mine.controller.signal,
-        )
-        .then(async (outcome) => {
-          download = null
-          const like = folioVoiceLike(folio)
-          if (outcome === 'ok') {
-            const base = primarySubtag(state.book?.language ?? folio.lang)
-            rememberVoice(deps.storage, voiceChoiceKey(base, false), like.voiceURI)
-            rememberVoice(deps.storage, voiceChoiceKey(base, true), like.voiceURI)
-          }
-          const downloaded = await downloadedVoices()
-          const language = state.book?.language
-          if (language && folioVoicesFor(language, deps.locale).some((v) => v.id === id)) {
-            const patch: Partial<ReadAloudState> = { local: localStateFor(language, downloaded) }
-            if (outcome === 'ok' && deps.localSpeaker) Object.assign(patch, { voice: like, engine: 'local' as const })
-            if (outcome === 'ok' && state.problem?.kind === 'local') patch.problem = null
-            emit(patch)
-          }
-          if (outcome === 'ok') deps.onNotice?.({ kind: 'ready' })
-          else if (outcome === 'failed') deps.onNotice?.({ kind: 'failed' })
-          else if (outcome === 'no_room') deps.onNotice?.({ kind: 'no_room', bytes: entry.bytes })
-        })
-    },
-    cancelDownload: () => download?.controller.abort(),
-    removeLocal: () => {
-      const store = deps.voiceStore
       const language = state.book?.language
-      if (!store || !language) return
+      if (!folio || !language) return
+      void folio.download(id, language).then((finished) => {
+        if (!finished) return
+        const { voice, outcome, bytes } = finished
+        const like = folioVoiceLike(voice)
+        if (outcome === 'ok') {
+          const base = primarySubtag(state.book?.language ?? voice.lang)
+          rememberVoice(deps.storage, voiceChoiceKey(base, false), like.voiceURI)
+          rememberVoice(deps.storage, voiceChoiceKey(base, true), like.voiceURI)
+        }
+        const lang = state.book?.language
+        const local = lang ? localFor(lang) : null
+        if (local?.voices.some((v) => v.id === voice.id)) {
+          const patch: Partial<ReadAloudState> = { local }
+          if (outcome === 'ok' && deps.localSpeaker) Object.assign(patch, { voice: like, engine: 'local' as const })
+          if (outcome === 'ok' && state.problem?.kind === 'local') patch.problem = null
+          emit(patch)
+        }
+        if (outcome === 'ok') deps.onNotice?.({ kind: 'ready' })
+        else if (outcome === 'failed') deps.onNotice?.({ kind: 'failed' })
+        else if (outcome === 'no_room') deps.onNotice?.({ kind: 'no_room', bytes })
+      })
+    },
+    cancelDownload: () => folio?.cancel(),
+    removeLocal: () => {
+      const language = state.book?.language
+      if (!folio || !language) return
       const mine = session
-      const voices = folioVoicesFor(language, deps.locale)
-      void store
-        .remove(voices)
-        .catch(() => {})
-        .then(async () => {
-          const key = choiceKey()
-          const base = primarySubtag(language)
-          for (const v of voices) {
-            const uri = folioVoiceLike(v).voiceURI
-            if (key) forgetVoice(deps.storage, key, uri)
-            forgetVoice(deps.storage, voiceChoiceKey(base, false), uri)
-            forgetVoice(deps.storage, voiceChoiceKey(base, true), uri)
+      void folio.remove(language).then((voices) => {
+        const key = choiceKey()
+        const base = primarySubtag(language)
+        for (const v of voices) {
+          const uri = folioVoiceLike(v).voiceURI
+          if (key) forgetVoice(deps.storage, key, uri)
+          forgetVoice(deps.storage, voiceChoiceKey(base, false), uri)
+          forgetVoice(deps.storage, voiceChoiceKey(base, true), uri)
+        }
+        if (mine !== session) return
+        const wasLocal = isLocalVoice(state.voice)
+        state = { ...state, local: localFor(language) }
+        if (wasLocal) {
+          const voice = pickVoice(state.voices, undefined)
+          state = {
+            ...state,
+            voice,
+            engine: 'device',
+            problem: state.problem?.kind === 'local' ? null : state.problem,
           }
-          if (mine !== session) return
-          const downloaded = await downloadedVoices()
-          if (mine !== session) return
-          const wasLocal = isLocalVoice(state.voice)
-          state = { ...state, local: localStateFor(language, downloaded) }
-          if (wasLocal) {
-            const voice = pickVoice(state.voices, undefined)
-            state = {
-              ...state,
-              voice,
-              engine: 'device',
-              problem: state.problem?.kind === 'local' ? null : state.problem,
-            }
-            restartIfPlaying()
-          } else emit()
-        })
+          restartIfPlaying()
+        } else emit()
+      })
     },
-    dismissOffer: () => {
-      dismissOffer(deps.storage)
-      emit({ local: { ...state.local, offer: false } })
-    },
-    noteSlow: () => {
-      slow = true
-      emit({ local: { ...state.local, slow: true } })
-    },
+    dismissOffer: () => folio?.dismissOffer(),
+    noteSlow: () => folio?.noteSlow(),
     setFollowing: (following) => {
       if (state.following !== following) emit({ following })
     },
