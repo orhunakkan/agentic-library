@@ -216,6 +216,12 @@ const SEAMS: Seam[] = [
       'src/server/sync/places.ts': "find: a private book's outline has no printed pages",
     },
   },
+  {
+    name: 'a position is read from untrusted data only by parsePosition, in the position module (#91 retro)',
+    pattern: /(typeof |is[A-Za-z]+\()[A-Za-z_.]+\.printedPage\b/,
+    under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
+    allowed: { 'src/shared/content/position.ts': 'parsePosition' },
+  },
 ]
 
 function withoutComments(source: string): string {

@@ -13,7 +13,7 @@ export default defineConfig({
     fileParallelism: false,
     testTimeout: 20_000,
     coverage: {
-      enabled: true,
+      enabled: false,
       provider: 'v8',
       reporter: ['text-summary', ['text-summary', { file: 'summary.txt' }], 'html', 'lcovonly'],
       reportsDirectory: 'coverage/server',

@@ -9,7 +9,7 @@ export default defineConfig({
     environment: 'node',
     env: { CONTENT_DIR },
     coverage: {
-      enabled: true,
+      enabled: false,
       provider: 'v8',
       reporter: ['text-summary', ['text-summary', { file: 'summary.txt' }], 'html', 'lcovonly'],
       reportsDirectory: 'coverage/unit',

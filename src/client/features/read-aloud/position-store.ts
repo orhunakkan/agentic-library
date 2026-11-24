@@ -1,6 +1,6 @@
 import { removeKeys } from '~/client/lib/storage-keys'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
-import type { PagePosition } from '~/shared/content/position'
+import { type PagePosition, parsePosition as parsePagePosition } from '~/shared/content/position'
 import type { ListeningWrite } from '~/shared/sync/sync'
 
 export interface SavedPosition {
@@ -27,22 +27,13 @@ const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2]
 
 const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0
 
-function pagePosition(value: unknown): PagePosition | null {
-  if (!value || typeof value !== 'object') return null
-  const p = value as Record<string, unknown>
-  if (isCount(p.printedPage)) return { printedPage: p.printedPage }
-  if (typeof p.chapter === 'string' && p.chapter && isCount(p.page) && p.page >= 1)
-    return { chapter: p.chapter, page: p.page }
-  return null
-}
-
 function parseEntry(raw: string | null): SavedPosition | { done: true; at: number } | null {
   try {
     const value = raw ? (JSON.parse(raw) as Record<string, unknown>) : null
     if (value?.v !== 1) return null
     const at = isCount(value.at) ? value.at : 0
     if (value.done === true) return { done: true, at }
-    const position = pagePosition(value.position)
+    const position = parsePagePosition(value.position)
     if (!isCount(value.chapter) || !isCount(value.offset) || !position) return null
     return { v: 1, chapter: value.chapter, position, offset: value.offset, at }
   } catch {
