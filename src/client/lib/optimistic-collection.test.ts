@@ -76,6 +76,76 @@ describe('OptimisticCollection, reloads', () => {
     ])
   })
 
+  it('leaves out an item removed while a late reload was on its way, though the reload still lists it', async () => {
+    const late = later<CollectionLoadAnswer<Note>>()
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] })
+      .mockReturnValueOnce(late.promise)
+    const { list, shown } = setup({ load })
+    await list.load()
+    const reloading = list.load()
+    await list.remove(ID(1))
+    late.settle({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] })
+    await reloading
+    expect(shown()).toEqual([])
+  })
+
+  it('applies a reload sent after a remove answered as usual', async () => {
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] })
+      .mockResolvedValueOnce({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] })
+    const { list, shown } = setup({ load })
+    await list.load()
+    await list.remove(ID(1))
+    await list.load()
+    expect(shown()).toEqual([[ID(1), ID(1), 'Bingley']])
+  })
+
+  it('keeps an update answered before a late reload that carries the old value', async () => {
+    const late = later<CollectionLoadAnswer<Note>>()
+    const old = { state: 'ready' as const, items: [{ id: ID(1), text: 'Bingley' }] }
+    const load = vi.fn().mockResolvedValueOnce(old).mockReturnValueOnce(late.promise).mockResolvedValueOnce(old)
+    const { list, shown } = setup({ load })
+    await list.load()
+    const reloading = list.load()
+    expect(await list.update(ID(1), { text: 'Jane' })).toBe(true)
+    late.settle(old)
+    await reloading
+    expect(shown()).toEqual([[ID(1), ID(1), 'Jane']])
+
+    await list.load()
+    expect(shown()).toEqual([[ID(1), ID(1), 'Bingley']])
+  })
+
+  it('keeps an update still on its way when a reload answers with the old value', async () => {
+    const updated = later<ChangeResult<Note, Problem>>()
+    const old = { state: 'ready' as const, items: [{ id: ID(1), text: 'Bingley' }] }
+    const { list, shown } = setup({ load: async () => old, update: () => updated.promise })
+    await list.load()
+    const updating = list.update(ID(1), { text: 'Jane' })
+    await list.load()
+    expect(shown()).toEqual([[ID(1), ID(1), 'Jane']])
+    updated.settle({ ok: true, value: { id: ID(1), text: 'Jane' } })
+    expect(await updating).toBe(true)
+    expect(shown()).toEqual([[ID(1), ID(1), 'Jane']])
+  })
+
+  it('ignores an older reload that answers after a newer one', async () => {
+    const older = later<CollectionLoadAnswer<Note>>()
+    const newer = later<CollectionLoadAnswer<Note>>()
+    const load = vi.fn().mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise)
+    const { list, shown } = setup({ load })
+    const first = list.load()
+    const second = list.load()
+    newer.settle({ state: 'ready', items: [{ id: ID(2), text: 'Jane' }] })
+    await second
+    older.settle({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] })
+    await first
+    expect(shown()).toEqual([[ID(2), ID(2), 'Jane']])
+  })
+
   it('forgets what it made when the reader signs in again', async () => {
     const load = vi.fn(async (): Promise<CollectionLoadAnswer<Note>> => ({ state: 'ready', items: [] }))
     const { list, shown } = setup({ load })

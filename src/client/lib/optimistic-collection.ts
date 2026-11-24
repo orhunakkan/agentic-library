@@ -30,18 +30,36 @@ export interface CollectionRules<T extends { id: string }, Input, P extends stri
   settle?: (shown: Entry<T>, saved: T) => T
 }
 
+/** A remove or update of one item: how many are on their way, and the last reload sent before the latest finished. */
+interface RecentChange {
+  inFlight: number
+  lastSentBefore: number
+}
+
+/** Whether a reload's answer predates `change`, so it must not put back the item's old state. */
+function predates(change: RecentChange | undefined, reload: number): boolean {
+  return change !== undefined && (change.inFlight > 0 || reload <= change.lastSentBefore)
+}
+
 /**
  * A reader-owned list that shows each change at once and sends it in the background. A create gets a temporary
  * key, and later changes to it wait for its id. A reload keeps creates still on their way, and creates that
- * finished after the reload was sent, so its answer can't drop them.
+ * finished after the reload was sent, so its answer can't drop them. Nor can it bring back an item removed, or an
+ * old value of an item updated, after it was sent; and an answer older than one already applied is ignored.
  */
 export class OptimisticCollection<T extends { id: string }, Input, P extends string> {
   private snapshot: CollectionSnapshot<T>
   private readonly listeners = new Set<() => void>()
   private readonly ids = new Map<string, Promise<string | null>>()
-  private readonly made = new Map<string, string>()
+  /** Temporary key → id of each create that finished, so a reload shows it under the key it was shown by. */
+  private readonly createdIds = new Map<string, string>()
+  /** The recent change to each id removed or updated. */
+  private readonly changes = new Map<string, RecentChange>()
   private counter = 0
   private generation = 0
+  /** How many reloads were sent, and the newest of them whose answer was applied. */
+  private reloadsSent = 0
+  private lastApplied = 0
 
   constructor(
     private readonly rules: CollectionRules<T, Input, P>,
@@ -84,7 +102,8 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
 
   start({ signedIn, embedded = false }: { signedIn: boolean; embedded?: boolean }): void {
     this.generation++
-    this.made.clear()
+    this.createdIds.clear()
+    this.changes.clear()
     if (embedded) this.set({ state: 'off', items: [] })
     else if (!signedIn) this.set({ state: 'signed_out', items: [] })
     else {
@@ -95,25 +114,35 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
 
   async load(): Promise<void> {
     const generation = this.generation
+    const reload = ++this.reloadsSent
     let answer: CollectionLoadAnswer<T>
     try {
       answer = await this.rules.load()
     } catch {
       answer = { state: 'unavailable' }
     }
-    if (generation !== this.generation) return
+    if (generation !== this.generation || reload < this.lastApplied) return
+    this.lastApplied = reload
     if (answer.state !== 'ready') {
       this.set({ state: answer.state === 'signed_out' ? 'signed_out' : 'unavailable' })
       return
     }
-    const keyOf = new Map([...this.made].map(([key, id]) => [id, key]))
+    const keyOf = new Map([...this.createdIds].map(([key, id]) => [id, key]))
+    const shown = new Map(this.snapshot.items.map((item) => [item.id, item]))
     const answered = new Set(answer.items.map((item) => item.id))
     const kept = this.snapshot.items.filter(
-      (item) => item.pending || (this.made.has(item.key) && !answered.has(item.id)),
+      (item) => item.pending || (this.createdIds.has(item.key) && !answered.has(item.id)),
     )
-    const loaded = answer.items.map(
-      (item): Entry<T> => ({ ...item, key: keyOf.get(item.id) ?? item.id, pending: false }),
-    )
+    const loaded = answer.items.flatMap((item): Entry<T>[] => {
+      if (!predates(this.changes.get(item.id), reload)) {
+        return [{ ...item, key: keyOf.get(item.id) ?? item.id, pending: false }]
+      }
+      const current = shown.get(item.id)
+      return current ? [current] : []
+    })
+    for (const [id, change] of this.changes) {
+      if (!predates(change, reload)) this.changes.delete(id)
+    }
     this.set({ state: 'ready', items: [...loaded, ...kept] })
   }
 
@@ -143,7 +172,7 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
       if (!shown) return result.value.id
       const kept = this.rules.settle ? this.rules.settle(shown, result.value) : result.value
       const entry: Entry<T> = { ...kept, key, pending: false }
-      this.made.set(key, entry.id)
+      this.createdIds.set(key, entry.id)
       this.setItems((items) =>
         items.flatMap((item) => {
           if (item.key === key) return [entry]
@@ -160,15 +189,46 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     return this.ids.get(key) ?? Promise.resolve(key)
   }
 
+  /**
+   * Marks `id` as changing, so no reload answer puts back its old state while the change is on its way, nor one
+   * sent before it finished. Returns what to call once the change's answer arrives.
+   */
+  private beginChange(id: string): () => void {
+    const change = this.changes.get(id) ?? { inFlight: 0, lastSentBefore: 0 }
+    this.changes.set(id, { ...change, inFlight: change.inFlight + 1 })
+    const generation = this.generation
+    return () => {
+      const now = this.changes.get(id)
+      if (generation !== this.generation || !now) return
+      this.changes.set(id, { inFlight: now.inFlight - 1, lastSentBefore: this.reloadsSent })
+    }
+  }
+
+  /** Sends a change to the item shown under `key` once it has an id, marking it as changing meanwhile; null when it never got one. */
+  private async sendChange<R>(key: string, shownId: string, send: (id: string) => Promise<R>): Promise<R | null> {
+    const endShown = this.beginChange(shownId)
+    try {
+      const id = await this.idOf(key)
+      if (!id) return null
+      const endSent = this.beginChange(id)
+      try {
+        return await send(id)
+      } finally {
+        endSent()
+      }
+    } finally {
+      endShown()
+    }
+  }
+
   /** Shows the change at once and sends it once the item has an id; true when the server kept it. */
   async update(key: string, patch: Partial<T>): Promise<boolean> {
     const before = this.find(key)
     const send = this.rules.update
     if (!before || !send) return false
     this.replace(key, { ...before, ...patch })
-    const id = await this.idOf(key)
-    if (!id) return false
-    const result = await send(id, patch)
+    const result = await this.sendChange(key, before.id, (id) => send(id, patch))
+    if (!result) return false
     if (result.ok) {
       this.replace(key, { ...result.value, key, pending: false })
       return true
@@ -183,11 +243,9 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     const before = this.find(key)
     if (!before) return
     this.replace(key, null)
-    this.made.delete(key)
-    const id = await this.idOf(key)
-    if (!id) return
-    const result = await this.rules.remove(id)
-    if (result.ok) return
+    this.createdIds.delete(key)
+    const result = await this.sendChange(key, before.id, (id) => this.rules.remove(id))
+    if (!result || result.ok) return
     if (result.problem !== 'not_found') this.setItems((items) => [...items, before])
     this.failed(result.problem)
   }
