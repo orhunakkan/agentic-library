@@ -33,8 +33,9 @@ cmd_start() {
   command -v tmux >/dev/null || die "tmux is not installed"
   tmux has-session -t "$tmux_session" 2>/dev/null && die "already running: tmux attach -t $tmux_session"
   rm -f "$stop_file"
-  local args
-  args=$(printf '%q ' "$@")
+  # With no options, printf '%q ' would print '' and pass run an empty argument.
+  local args=""
+  (($#)) && args=$(printf '%q ' "$@")
   # systemd-inhibit keeps the machine from idling or suspending while the loop runs.
   # The pane stays open after the loop ends, so its summary can still be read.
   tmux new-session -d -s "$tmux_session" -c "$repo_root" \
