@@ -1,16 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SpeakRequest, SpokenWord } from '~/shared/read-aloud/cloud'
 import { fakeAudio } from '../../../../tests/fixtures/fake-audio'
-import {
-  BUSY_RETRY_MS,
-  CACHE_SIZE,
-  type CloudSpeakOptions,
-  createCloudSpeaker,
-  END_SLACK_MS,
-  type SpeakRef,
-  START_WATCHDOG_MS,
-} from './cloud-speaker'
-import type { SpeakOptions } from './speaker'
+import { BUSY_RETRY_MS, CACHE_SIZE, createCloudSpeaker, END_SLACK_MS, START_WATCHDOG_MS } from './cloud-speaker'
+import type { SpeakOptions, SpeakRef } from './speaker'
 import type { SpeakResult } from './speech-client'
 
 function fakeServer() {
@@ -65,11 +57,18 @@ const ref = (start: number, page = 1): SpeakRef => ({
   end: start + 10,
 })
 
-const options = (cloud: Partial<CloudSpeakOptions> & { ref: SpeakRef }, rate = 1): SpeakOptions => ({
+const options = (cloud: { ref: SpeakRef; upcoming?: SpeakRef; model?: string }, rate = 1): SpeakOptions => ({
   lang: 'en',
   rate,
   voice: { voiceURI: 'elevenlabs:Aria01', name: 'Aria', lang: 'en' } as SpeechSynthesisVoice,
-  cloud: { upcoming: null, model: 'eleven_v4_turbo', ...cloud },
+  ref: cloud.ref,
+  model: cloud.model ?? 'eleven_v4_turbo',
+  ahead: cloud.upcoming
+    ? [
+        { text: 'Next.', ref: cloud.upcoming },
+        { text: 'After.', ref: ref(999) },
+      ]
+    : [],
 })
 
 const handlers = () => ({ onStart: vi.fn(), onEnd: vi.fn(), onError: vi.fn() })
@@ -103,15 +102,28 @@ describe('createCloudSpeaker', () => {
     speaker.speak('', options({ ref: ref(0) }), h)
     server.requests[0]?.answer({ ok: false, problem: 'no_credits' })
     await flush()
-    expect(h.onError).toHaveBeenCalledWith('no_credits')
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'cloud', code: 'no_credits' })
     const h2 = handlers()
     speaker.speak('', options({ ref: ref(20) }), h2)
     server.requests[1]?.answer(server.ok())
     await flush()
     audio.fire('error')
-    expect(h2.onError).toHaveBeenCalledWith('media')
+    expect(h2.onError).toHaveBeenCalledWith({ kind: 'failed' })
     speaker.speak('', options({ ref: ref(0) }), handlers())
     expect(server.requests).toHaveLength(3)
+  })
+
+  it('reports a missing book as not found, and a refused or failed request as failed', async () => {
+    const { server, speaker } = setup()
+    const seen = []
+    for (const problem of ['not_found', 'invalid', 'failed'] as const) {
+      const h = handlers()
+      speaker.speak('', options({ ref: ref(seen.length * 20) }), h)
+      server.requests.at(-1)?.answer({ ok: false, problem })
+      await flush()
+      seen.push(h.onError.mock.calls[0]?.[0])
+    }
+    expect(seen).toEqual([{ kind: 'not-found' }, { kind: 'failed' }, { kind: 'failed' }])
   })
 
   it('passes on when the hourly limit allows more', async () => {
@@ -120,7 +132,7 @@ describe('createCloudSpeaker', () => {
     speaker.speak('', options({ ref: ref(0) }), h)
     server.requests[0]?.answer({ ok: false, problem: 'rate', retryAt: new Date(5000) })
     await flush()
-    expect(h.onError).toHaveBeenCalledWith('rate', new Date(5000))
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'cloud', code: 'rate', retryAt: new Date(5000) })
   })
 
   it('says blocked when the browser wants a press first, and media when it can’t play the audio', async () => {
@@ -130,23 +142,23 @@ describe('createCloudSpeaker', () => {
     speaker.speak('', options({ ref: ref(0) }), h)
     server.requests[0]?.answer(server.ok())
     await flush()
-    expect(h.onError).toHaveBeenCalledWith('blocked')
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'cloud', code: 'blocked' })
     audio.refuse = 'NotSupportedError'
     const unplayable = handlers()
     speaker.speak('', options({ ref: ref(20) }), unplayable)
     server.requests[1]?.answer(server.ok())
     await flush()
-    expect(unplayable.onError).toHaveBeenCalledWith('media')
+    expect(unplayable.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
   it('fails at once without a cloud voice or a ref', () => {
     const { server, speaker } = setup()
     const h = handlers()
-    speaker.speak('', { lang: 'en', rate: 1, voice: null }, h)
-    expect(h.onError).toHaveBeenCalledWith('failed')
+    speaker.speak('', { ...options({ ref: ref(0) }), ref: undefined }, h)
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'failed' })
     const device = handlers()
     speaker.speak('', { ...options({ ref: ref(0) }), voice: { voiceURI: 'Samantha' } as SpeechSynthesisVoice }, device)
-    expect(device.onError).toHaveBeenCalledWith('failed')
+    expect(device.onError).toHaveBeenCalledWith({ kind: 'failed' })
     expect(server.requests).toHaveLength(0)
   })
 
@@ -230,7 +242,7 @@ describe('createCloudSpeaker', () => {
     const waiting = handlers()
     speaker.speak('', options({ ref: ref(0) }), waiting)
     await vi.advanceTimersByTimeAsync(START_WATCHDOG_MS)
-    expect(waiting.onError).toHaveBeenCalledWith('timeout')
+    expect(waiting.onError).toHaveBeenCalledWith({ kind: 'failed' })
 
     const stuck = handlers()
     speaker.speak('', options({ ref: ref(20) }, 2), stuck)
@@ -241,7 +253,7 @@ describe('createCloudSpeaker', () => {
     await vi.advanceTimersByTimeAsync(2000 + END_SLACK_MS - 1)
     expect(stuck.onError).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(1)
-    expect(stuck.onError).toHaveBeenCalledWith('timeout')
+    expect(stuck.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
   it('marks the word the audio is at, whatever the speed, and clears it when stopped', async () => {
@@ -312,7 +324,7 @@ describe('createCloudSpeaker', () => {
     expect(server.requests).toHaveLength(2)
     server.requests[1]?.answer({ ok: false, problem: 'busy' })
     await flush()
-    expect(h.onError).toHaveBeenCalledWith('busy')
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'cloud', code: 'busy' })
     expect(server.requests).toHaveLength(2)
   })
 

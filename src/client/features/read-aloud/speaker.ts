@@ -1,4 +1,4 @@
-import type { CloudSpeakOptions } from './cloud-speaker'
+import type { SpeakErrorCode, SpeakIntro, SpeakSpan } from '~/shared/read-aloud/cloud'
 
 export interface UtteranceLike {
   text: string
@@ -20,23 +20,53 @@ export interface Timers {
   clearTimeout: (id: unknown) => void
 }
 
+/** Where an utterance is in a book: a span of a page, or a chapter's intro. A cloud voice is asked for it by this. */
+export type SpeakRef = Omit<SpeakSpan, 'voice' | 'format'> | Omit<SpeakIntro, 'voice' | 'format'>
+
+/** Something read aloud will say: its text, where it is in the book, or both. */
+export interface Utterance {
+  text?: string
+  ref?: SpeakRef
+}
+
 export interface SpeakOptions {
   lang: string
   rate: number
   voice: SpeechSynthesisVoice | null
-  cloud?: CloudSpeakOptions
-  local?: { upcoming: string[] }
+  /** Where in the book the text being spoken is, when it is in one. */
+  ref?: SpeakRef
+  /** The cloud model to speak with, when the reader has one. */
+  model?: string
+  /** What read aloud will say next, nearest first, so a speaker can make it ahead. */
+  ahead: Utterance[]
 }
+
+export type CloudProblemCode = Exclude<SpeakErrorCode, 'invalid' | 'not_found' | 'failed'> | 'blocked'
+
+export type LocalProblemCode = 'local_missing' | 'local_failed'
+
+/** Why a speaker couldn't say an utterance. `failed` is a passing error, worth trying the next one. */
+export type SpeakProblem =
+  | { kind: 'cloud'; code: CloudProblemCode; retryAt?: Date }
+  | { kind: 'local'; code: LocalProblemCode }
+  | { kind: 'not-found' }
+  | { kind: 'failed' }
+
+export const FAILED: SpeakProblem = { kind: 'failed' }
 
 export interface SpeakHandlers {
   onStart?: () => void
   onEnd: () => void
-  onError: (error: string, retryAt?: Date) => void
+  onError: (problem: SpeakProblem) => void
 }
 
 export interface Speaker {
   speak: (text: string, options: SpeakOptions, handlers: SpeakHandlers) => void
   stop: () => void
+  /** Readies playback inside the reader's press, so a later utterance may play. */
+  prime: () => void
+  /** Stops and lets go of everything the speaker holds. */
+  close: () => void
 }
 
 export const watchdogMs = (text: string, rate: number) => Math.round((text.length / (8 * rate) + 5) * 1000)
@@ -80,14 +110,14 @@ export function createSpeaker(
     utterance.onend = () => {
       if (finish(utterance)) handlers.onEnd()
     }
-    utterance.onerror = (event) => {
-      if (finish(utterance)) handlers.onError(event?.error ?? 'unknown')
+    utterance.onerror = () => {
+      if (finish(utterance)) handlers.onError(FAILED)
     }
     const watchdog = timers.setTimeout(
       () => {
         if (!finish(utterance)) return
         synth.cancel()
-        handlers.onError('timeout')
+        handlers.onError(FAILED)
       },
       watchdogMs(text, options.rate),
     )
@@ -95,5 +125,5 @@ export function createSpeaker(
     synth.speak(utterance as never)
   }
 
-  return { speak, stop }
+  return { speak, stop, prime: () => {}, close: () => {} }
 }

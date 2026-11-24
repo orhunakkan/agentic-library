@@ -37,7 +37,7 @@ function fakeSpeaker(engine: string) {
   let handlers: SpeakHandlers | null = null
   let stops = 0
   const primes = { count: 0 }
-  const speaker: Speaker & { prime: () => void } = {
+  const speaker: Speaker = {
     speak: (text, options, h) => {
       said.push({ text, options, engine })
       handlers = h
@@ -47,6 +47,7 @@ function fakeSpeaker(engine: string) {
       handlers = null
     },
     prime: () => void primes.count++,
+    close: () => {},
   }
   return {
     speaker,
@@ -62,7 +63,7 @@ function fakeSpeaker(engine: string) {
     fail: async () => {
       const h = handlers
       handlers = null
-      h?.onError('synthesis-failed')
+      h?.onError({ kind: 'failed' })
       await flush()
     },
   }
@@ -170,7 +171,7 @@ describe('say', () => {
     await flush()
     expect(t.device.said).toEqual([])
     expect(t.local.said[0]?.text).toBe('One.')
-    expect(t.local.said[0]?.options.local).toEqual({ upcoming: ['Two.', 'Three.'] })
+    expect(t.local.said[0]?.options.ahead).toEqual([{ text: 'Two.' }, { text: 'Three.' }])
   })
 
   it('skips a failed utterance, and stops after three in a row', async () => {

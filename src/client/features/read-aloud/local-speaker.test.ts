@@ -51,7 +51,7 @@ const options = (upcoming: string[] = [], rate = 1, voice = CORI): SpeakOptions 
   lang: 'en-GB',
   rate,
   voice: { voiceURI: voice, name: 'Cori', lang: 'en-GB' } as SpeechSynthesisVoice,
-  local: { upcoming },
+  ahead: upcoming.map((text) => ({ text })),
 })
 const handlers = () => ({ onStart: vi.fn(), onEnd: vi.fn(), onError: vi.fn() })
 const flush = () => vi.advanceTimersByTimeAsync(0)
@@ -95,6 +95,13 @@ describe('createLocalSpeaker', () => {
     audio.fire('ended')
     expect(h.onStart).toHaveBeenCalled()
     expect(h.onEnd).toHaveBeenCalled()
+  })
+
+  it('makes nothing ahead for the next chapter’s intro, which has no text yet', () => {
+    const { speaker, texts } = setup()
+    const intro = { book: 'essays', chapter: 1, intro: true as const }
+    speaker.speak('One.', { ...options(), ahead: [{ text: 'Two.' }, { ref: intro }] }, handlers())
+    expect(texts()).toEqual(['One.', 'Two.'])
   })
 
   it('makes no job for a cached utterance, at any speed', async () => {
@@ -168,24 +175,24 @@ describe('createLocalSpeaker', () => {
     const a = handlers()
     speaker.speak('A.', options(), a)
     await flush()
-    expect(a.onError).toHaveBeenCalledWith('local_missing')
+    expect(a.onError).toHaveBeenCalledWith({ kind: 'local', code: 'local_missing' })
     const b = handlers()
     speaker.speak('B.', options(), b)
     job('B.').reject(new EngineError('local_failed'))
     await flush()
-    expect(b.onError).toHaveBeenCalledWith('local_failed')
+    expect(b.onError).toHaveBeenCalledWith({ kind: 'local', code: 'local_failed' })
     const c = handlers()
     speaker.speak('C.', options(), c)
     job('C.').reject(new EngineError('synth_failed'))
     await flush()
-    expect(c.onError).toHaveBeenCalledWith('failed')
+    expect(c.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
   it('fails at once without a Folio voice', () => {
     const { speaker } = setup()
     const h = handlers()
     speaker.speak('A.', options([], 1, 'Google UK English'), h)
-    expect(h.onError).toHaveBeenCalledWith('failed')
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
   it('gives up on an utterance that is never made', () => {
@@ -193,7 +200,7 @@ describe('createLocalSpeaker', () => {
     const h = handlers()
     speaker.speak('A.', options(), h)
     vi.advanceTimersByTime(START_WATCHDOG_MS)
-    expect(h.onError).toHaveBeenCalledWith('timeout')
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
   it('keeps the last 20 utterances, revoking the URL of the one it drops', async () => {

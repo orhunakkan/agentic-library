@@ -1,5 +1,5 @@
 import { writeWavHeader } from './piper/wav'
-import { browserTimers, type SpeakHandlers, type Timers } from './speaker'
+import { browserTimers, FAILED, type SpeakHandlers, type SpeakProblem, type Timers } from './speaker'
 
 export interface AudioLike {
   src: string
@@ -69,7 +69,7 @@ export interface AudioSpeaker {
   begin: (handlers: SpeakHandlers, rate: number, hooks?: TurnHooks) => Turn
   isCurrent: (turn: Turn) => boolean
   play: (turn: Turn, url: string) => void
-  fail: (turn: Turn, error: string, retryAt?: Date) => void
+  fail: (turn: Turn, problem: SpeakProblem) => void
   stop: () => void
   prime: () => void
   release: () => void
@@ -86,18 +86,17 @@ export function createAudioSpeaker(audio: AudioLike, timers: Timers = browserTim
     hooks.onClear?.()
   }
 
-  const finish = (mine: TurnState, outcome: { error?: string; retryAt?: Date }) => {
+  const finish = (mine: TurnState, problem: SpeakProblem | null) => {
     if (current !== mine) return
     const { handlers } = mine
     clearCurrent()
-    if (outcome.error && outcome.retryAt) handlers.onError(outcome.error, outcome.retryAt)
-    else if (outcome.error) handlers.onError(outcome.error)
+    if (problem) handlers.onError(problem)
     else handlers.onEnd()
   }
 
   const timeOut = (mine: TurnState) => {
     audio.pause()
-    finish(mine, { error: 'timeout' })
+    finish(mine, FAILED)
   }
 
   audio.addEventListener('playing', () => {
@@ -113,10 +112,10 @@ export function createAudioSpeaker(audio: AudioLike, timers: Timers = browserTim
     mine.hooks.onPlaying?.()
   })
   audio.addEventListener('ended', () => {
-    if (current?.started) finish(current, {})
+    if (current?.started) finish(current, null)
   })
   audio.addEventListener('error', () => {
-    if (current && audio.src && audio.src !== silence) finish(current, { error: 'media' })
+    if (current && audio.src && audio.src !== silence) finish(current, FAILED)
   })
 
   const stop = () => {
@@ -143,12 +142,13 @@ export function createAudioSpeaker(audio: AudioLike, timers: Timers = browserTim
       audio.playbackRate = mine.rate
       audio.play().catch((error: unknown) => {
         if (current !== mine) return
-        finish(mine, { error: (error as { name?: unknown } | null)?.name === 'NotAllowedError' ? 'blocked' : 'media' })
+        const blocked = (error as { name?: unknown } | null)?.name === 'NotAllowedError'
+        finish(mine, blocked ? { kind: 'cloud', code: 'blocked' } : FAILED)
       })
     },
-    fail: (turn, error, retryAt) => {
+    fail: (turn, problem) => {
       const mine = state(turn)
-      if (mine) finish(mine, retryAt ? { error, retryAt } : { error })
+      if (mine) finish(mine, problem)
     },
     stop,
     prime: () => {

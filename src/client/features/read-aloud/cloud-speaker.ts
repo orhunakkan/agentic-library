@@ -1,5 +1,5 @@
 import { positionKey } from '~/shared/content/position'
-import type { SpeakIntro, SpeakRequest, SpeakSpan, SpeechFormat, SpokenWord } from '~/shared/read-aloud/cloud'
+import type { SpeakErrorCode, SpeakRequest, SpeechFormat, SpokenWord } from '~/shared/read-aloud/cloud'
 import {
   type AudioLike,
   browserFrames,
@@ -11,16 +11,17 @@ import {
   START_WATCHDOG_MS,
   UrlCache,
 } from './audio-speaker'
-import { browserTimers, type Speaker, type SpeakHandlers, type SpeakOptions, type Timers } from './speaker'
+import {
+  browserTimers,
+  FAILED,
+  type Speaker,
+  type SpeakHandlers,
+  type SpeakOptions,
+  type SpeakProblem,
+  type SpeakRef,
+  type Timers,
+} from './speaker'
 import type { SpeakResult } from './speech-client'
-
-export type SpeakRef = Omit<SpeakSpan, 'voice' | 'format'> | Omit<SpeakIntro, 'voice' | 'format'>
-
-export interface CloudSpeakOptions {
-  ref: SpeakRef
-  upcoming: SpeakRef | null
-  model: string
-}
 
 export type { AudioLike }
 export { END_SLACK_MS, START_WATCHDOG_MS }
@@ -34,11 +35,6 @@ export interface CloudSpeakerDeps {
   frames?: Frames
 }
 
-export interface CloudSpeaker extends Speaker {
-  prime: () => void
-  close: () => void
-}
-
 export const CACHE_SIZE = 40
 export const MAX_IN_FLIGHT = 2
 export const BUSY_RETRY_MS = 1000
@@ -50,13 +46,19 @@ const refKey = (ref: SpeakRef) => {
   return `${ref.book}|${ref.chapter}|${positionKey(ref.position)}:${ref.start}-${ref.end}`
 }
 
+const problemOf = (code: SpeakErrorCode, retryAt?: Date): SpeakProblem => {
+  if (code === 'not_found') return { kind: 'not-found' }
+  if (code === 'invalid' || code === 'failed') return FAILED
+  return retryAt ? { kind: 'cloud', code, retryAt } : { kind: 'cloud', code }
+}
+
 interface Entry {
   result: Promise<SpeakResult>
   controller: AbortController | null
   url: string | null
 }
 
-export function createCloudSpeaker(deps: CloudSpeakerDeps): CloudSpeaker {
+export function createCloudSpeaker(deps: CloudSpeakerDeps): Speaker {
   const { audio } = deps
   const urls = deps.urls ?? browserUrls
   const timers = deps.timers ?? browserTimers
@@ -106,12 +108,12 @@ export function createCloudSpeaker(deps: CloudSpeakerDeps): CloudSpeaker {
 
   const speak = (_text: string, options: SpeakOptions, handlers: SpeakHandlers) => {
     element.stop()
-    const cloud = options.cloud
+    const { ref, model = '' } = options
     const voice = options.voice?.voiceURI.startsWith(CLOUD_VOICE_PREFIX)
       ? options.voice.voiceURI.slice(CLOUD_VOICE_PREFIX.length)
       : null
-    if (!cloud || !voice) {
-      handlers.onError('failed')
+    if (!ref || !voice) {
+      handlers.onError(FAILED)
       return
     }
     const words: { list: SpokenWord[]; frame: unknown; word: SpokenWord | null } = { list: [], frame: null, word: null }
@@ -135,15 +137,15 @@ export function createCloudSpeaker(deps: CloudSpeakerDeps): CloudSpeaker {
         if (words.word) deps.onWord(null)
       },
     })
-    const entry = entryFor(cloud.ref, voice, cloud.model, true) as Entry
+    const entry = entryFor(ref, voice, model, true) as Entry
     void entry.result.then((result) => {
       if (!element.isCurrent(turn)) return
       if (!result.ok || !entry.url) {
-        if (result.ok) element.fail(turn, 'failed')
-        else element.fail(turn, result.problem, result.retryAt)
+        element.fail(turn, result.ok ? FAILED : problemOf(result.problem, result.retryAt))
         return
       }
-      if (cloud.upcoming) entryFor(cloud.upcoming, voice, cloud.model, false)
+      const upcoming = options.ahead[0]?.ref
+      if (upcoming) entryFor(upcoming, voice, model, false)
       words.list = result.words
       element.play(turn, entry.url)
     })

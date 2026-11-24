@@ -1,12 +1,12 @@
 import type { FolioVoice } from '~/shared/read-aloud/folio-voices'
-import { MAX_FAILURES } from './controller'
+import { LOOK_AHEAD, MAX_FAILURES } from './controller'
 import { readSpeed } from './position-store'
 import type { Speaker } from './speaker'
 import { isLocalVoice, resolveVoice, type VoiceLike } from './voices'
 
 export interface AsideDeps {
   speaker: Speaker
-  localSpeaker?: Speaker & { prime: () => void }
+  localSpeaker?: Speaker
   loadVoices: () => Promise<VoiceLike[]>
   downloaded: () => Promise<readonly FolioVoice[]>
   storage: Storage | null
@@ -49,8 +49,6 @@ export function forwardAside(get: () => Aside | null): Aside {
   }
 }
 
-const AHEAD = 2
-
 interface Run {
   queue: string[]
   at: number
@@ -83,9 +81,10 @@ export function createAside(deps: AsideDeps): Aside {
   const speakerFor = (voice: VoiceLike | null): Speaker =>
     isLocalVoice(voice) && deps.localSpeaker ? deps.localSpeaker : deps.speaker
 
+  const speakers = (): Speaker[] => (deps.localSpeaker ? [deps.speaker, deps.localSpeaker] : [deps.speaker])
+
   const silence = () => {
-    deps.speaker.stop()
-    deps.localSpeaker?.stop()
+    for (const s of speakers()) s.stop()
   }
 
   const next = () => {
@@ -117,7 +116,7 @@ export function createAside(deps: AsideDeps): Aside {
         lang: voice?.lang ?? mine.lang,
         rate: readSpeed(deps.storage),
         voice: voice as SpeechSynthesisVoice | null,
-        ...(isLocalVoice(voice) ? { local: { upcoming: mine.queue.slice(mine.at + 1, mine.at + 1 + AHEAD) } } : {}),
+        ahead: mine.queue.slice(mine.at + 1, mine.at + 1 + LOOK_AHEAD).map((text) => ({ text })),
       },
       {
         onEnd: () => done(true),
@@ -128,7 +127,7 @@ export function createAside(deps: AsideDeps): Aside {
 
   const hush = () => {
     deps.pauseBook()
-    deps.localSpeaker?.prime()
+    for (const s of speakers()) s.prime()
   }
 
   const stop = () => {

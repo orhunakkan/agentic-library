@@ -5,7 +5,7 @@ import { primarySubtag, type SpeechVoicesState } from '~/shared/read-aloud/cloud
 import { ENGINE_BYTES, type FolioVoice, folioVoicesFor } from '~/shared/read-aloud/folio-voices'
 import { chapterIntro } from '~/shared/read-aloud/sentences'
 import type { SpeechBook, SpeechChapter, SpeechChapterData } from '~/shared/read-aloud/speech-text'
-import { CLOUD_VOICE_PREFIX, type SpeakRef } from './cloud-speaker'
+import { CLOUD_VOICE_PREFIX } from './cloud-speaker'
 import {
   atFraction,
   atOffset,
@@ -36,7 +36,15 @@ import {
   writePosition,
   writeSpeed,
 } from './position-store'
-import type { Speaker } from './speaker'
+import type {
+  CloudProblemCode,
+  LocalProblemCode,
+  Speaker,
+  SpeakOptions,
+  SpeakProblem,
+  SpeakRef,
+  Utterance,
+} from './speaker'
 import {
   folioVoiceLike,
   isCloudVoice,
@@ -58,29 +66,6 @@ export type Problem =
   | { kind: 'end-of-book' }
   | { kind: 'cloud'; code: CloudProblemCode; retryAt?: number }
   | { kind: 'local'; code: LocalProblemCode }
-
-const LOCAL_CODES = ['local_missing', 'local_failed'] as const
-
-export type LocalProblemCode = (typeof LOCAL_CODES)[number]
-
-const isLocalProblem = (error: string): error is LocalProblemCode => (LOCAL_CODES as readonly string[]).includes(error)
-
-const CLOUD_CODES = [
-  'key_rejected',
-  'no_credits',
-  'permission',
-  'voice_gone',
-  'busy',
-  'rate',
-  'no_key',
-  'signed_out',
-  'pro',
-  'blocked',
-] as const
-
-export type CloudProblemCode = (typeof CLOUD_CODES)[number]
-
-const isCloudProblem = (error: string): error is CloudProblemCode => (CLOUD_CODES as readonly string[]).includes(error)
 
 export type CloudVoices = 'off' | 'loading' | 'failed' | 'permission' | 'pro' | 'no-key' | VoiceLike[]
 
@@ -127,8 +112,8 @@ export type StartAt =
 
 export interface ControllerDeps {
   speaker: Speaker
-  cloudSpeaker?: Speaker & { prime: () => void; close: () => void }
-  localSpeaker?: Speaker & { prime: () => void; close: () => void }
+  cloudSpeaker?: Speaker
+  localSpeaker?: Speaker
   voiceStore?: VoiceStore
   onNotice?: (notice: DownloadNotice) => void
   loadCloudVoices?: (book: string) => Promise<SpeechVoicesState>
@@ -171,6 +156,8 @@ export interface ReadAloud {
 
 export const SAVE_EVERY_MS = 5000
 export const MAX_FAILURES = 3
+/** How many utterances read aloud tells a speaker about ahead of the one it is saying. */
+export const LOOK_AHEAD = 2
 
 const sameCursor = (a: Cursor | null, b: Cursor | null) =>
   a !== null && b !== null && a.pageIndex === b.pageIndex && a.utteranceIndex === b.utteranceIndex
@@ -280,34 +267,21 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     return found
   }
 
-  const cloudOn = () => isCloudVoice(state.voice) && deps.cloudSpeaker !== undefined
-  const localOn = () => isLocalVoice(state.voice) && deps.localSpeaker !== undefined
-  const speaker = (): Speaker => {
-    if (cloudOn()) return deps.cloudSpeaker as Speaker
-    if (localOn()) return deps.localSpeaker as Speaker
+  const speakers = (): Speaker[] =>
+    [deps.speaker, deps.cloudSpeaker, deps.localSpeaker].filter((s): s is Speaker => s !== undefined)
+  const speakerFor = (voice: VoiceLike | null): Speaker => {
+    if (isCloudVoice(voice) && deps.cloudSpeaker) return deps.cloudSpeaker
+    if (isLocalVoice(voice) && deps.localSpeaker) return deps.localSpeaker
     return deps.speaker
   }
+  const speaker = () => speakerFor(state.voice)
   const stopSpeaking = () => {
-    deps.speaker.stop()
-    deps.cloudSpeaker?.stop()
-    deps.localSpeaker?.stop()
+    for (const s of speakers()) s.stop()
   }
   const engineOf = (voice: VoiceLike | null): ReadAloudState['engine'] => {
     if (isCloudVoice(voice)) return 'cloud'
     if (isLocalVoice(voice)) return 'local'
     return 'device'
-  }
-
-  const upcomingTexts = (count: number): string[] => {
-    if (!current || !cursor) return []
-    const texts: string[] = []
-    let at: Cursor | null = intro ? cursor : next(current.plan, cursor)
-    while (at && texts.length < count) {
-      const u = utteranceAt(current.plan, at)
-      if (u) texts.push(u.say)
-      at = next(current.plan, at)
-    }
-    return texts
   }
 
   const localStateFor = (lang: string, downloaded: readonly FolioVoice[]): LocalState => {
@@ -349,23 +323,32 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     return u && page ? { book: slug, chapter, position: page.position, start: u.start, end: u.end } : null
   }
 
-  const upcomingRef = (): SpeakRef | null => {
-    if (!current || !cursor || !slug) return null
-    if (intro) return refAt(cursor, false)
-    const following = next(current.plan, cursor)
-    if (following) return refAt(following, false)
+  /** What follows the current utterance, up to the next chapter's intro, whose text isn't loaded yet. */
+  const ahead = (): Utterance[] => {
+    if (!current || !cursor || !slug) return []
+    const list: Utterance[] = []
+    let at: Cursor | null = intro ? cursor : next(current.plan, cursor)
+    while (at && list.length < LOOK_AHEAD) {
+      const u = utteranceAt(current.plan, at)
+      const ref = refAt(at, false)
+      if (u && ref) list.push({ text: u.say, ref })
+      at = next(current.plan, at)
+    }
     const chapter = current.data.chapter
-    return hasNextChapter(chapter) ? { book: slug, chapter: chapter.index + 1, intro: true } : null
+    if (!at && list.length < LOOK_AHEAD && hasNextChapter(chapter))
+      list.push({ ref: { book: slug, chapter: chapter.index + 1, intro: true } })
+    return list
   }
 
-  const options = () => {
-    const ref = cursor && cloudOn() ? refAt(cursor, intro) : null
+  const options = (): SpeakOptions => {
+    const ref = cursor ? refAt(cursor, intro) : null
     return {
       lang: state.voice?.lang ?? state.book?.language ?? 'en',
       rate: state.rate,
       voice: state.voice as SpeechSynthesisVoice | null,
-      ...(ref ? { cloud: { ref, upcoming: upcomingRef(), model: state.cloudModel ?? '' } } : {}),
-      ...(localOn() ? { local: { upcoming: upcomingTexts(2) } } : {}),
+      ahead: ahead(),
+      ...(ref ? { ref } : {}),
+      ...(state.cloudModel ? { model: state.cloudModel } : {}),
     }
   }
 
@@ -380,28 +363,39 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
 
   const hasCloudChoice = () => Object.values(readVoices(deps.storage)).some((uri) => uri.startsWith(CLOUD_VOICE_PREFIX))
 
-  const failWith = (session_: number, error: string, retryAt?: Date, wasIntro = false) => {
+  /**
+   * Primes inside the press that starts a book, before its voice is resolved: the cloud speaker when the
+   * reader has chosen a cloud voice, or else the Folio speaker, which a downloaded voice may need.
+   */
+  const primeBeforeVoice = () => {
+    if (deps.cloudSpeaker && (isCloudVoice(state.voice) || hasCloudChoice())) deps.cloudSpeaker.prime()
+    else deps.localSpeaker?.prime()
+  }
+
+  const failWith = (session_: number, problem: SpeakProblem, wasIntro = false) => {
     if (session_ !== session) return
-    if (error === 'not_found') {
-      close({ kind: 'unavailable' })
-      return
+    switch (problem.kind) {
+      case 'not-found':
+        close({ kind: 'unavailable' })
+        return
+      case 'local':
+        failures = 0
+        pause({ problem })
+        if (problem.code === 'local_missing') void refreshLocal(session_)
+        return
+      case 'cloud': {
+        const { code, retryAt } = problem
+        if (code === 'voice_gone' && state.voice) {
+          const key = choiceKey()
+          if (key) forgetVoice(deps.storage, key, state.voice.voiceURI)
+        }
+        failures = 0
+        pause({ problem: { kind: 'cloud', code, ...(retryAt ? { retryAt: retryAt.getTime() } : {}) } })
+        return
+      }
+      case 'failed':
+        fail(session_, wasIntro)
     }
-    if (isLocalProblem(error)) {
-      failures = 0
-      pause({ problem: { kind: 'local', code: error } })
-      if (error === 'local_missing') void refreshLocal(session_)
-      return
-    }
-    if (!isCloudProblem(error)) {
-      fail(session_, wasIntro)
-      return
-    }
-    if (error === 'voice_gone' && state.voice) {
-      const key = choiceKey()
-      if (key) forgetVoice(deps.storage, key, state.voice.voiceURI)
-    }
-    failures = 0
-    pause({ problem: { kind: 'cloud', code: error, ...(retryAt ? { retryAt: retryAt.getTime() } : {}) } })
   }
 
   const fail = (session_: number, wasIntro = false) => {
@@ -422,12 +416,11 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     const mine = session
     const chapter = current.data.chapter
     if (onLastPage(current.plan, cursor) && hasNextChapter(chapter)) void getChapter(chapter.index + 1)
-    if (!cloudOn()) deps.cloudSpeaker?.stop()
-    if (!localOn()) deps.localSpeaker?.stop()
-    if (cloudOn() || localOn()) deps.speaker.stop()
+    const active = speaker()
+    for (const s of speakers()) if (s !== active) s.stop()
     if (intro) {
       emit({ status: 'playing', problem: null })
-      speaker().speak(chapterIntro(chapter), options(), {
+      active.speak(chapterIntro(chapter), options(), {
         onEnd: () => {
           if (mine !== session) return
           failures = 0
@@ -435,11 +428,11 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
           if (stopAfter) return finishForSleep()
           speakNow()
         },
-        onError: (error, retryAt) => {
+        onError: (problem) => {
           if (mine !== session) return
-          const passOver = !isCloudProblem(error) && !isLocalProblem(error) && error !== 'not_found'
+          const passOver = problem.kind === 'failed'
           if (passOver) intro = false
-          failWith(mine, error, retryAt, passOver)
+          failWith(mine, problem, passOver)
         },
       })
       return
@@ -448,13 +441,13 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     if (!u) return
     emit({ status: 'playing', problem: null })
     if (now() - lastSave >= SAVE_EVERY_MS) save()
-    speaker().speak(u.say, options(), {
+    active.speak(u.say, options(), {
       onEnd: () => {
         if (mine !== session) return
         failures = 0
         advance()
       },
-      onError: (error, retryAt) => failWith(mine, error, retryAt),
+      onError: (problem) => failWith(mine, problem),
     })
   }
 
@@ -538,9 +531,10 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   const close = (problem: Problem | null = null) => {
     const wasOpen = slug !== null
     save()
-    deps.speaker.stop()
-    deps.cloudSpeaker?.close()
-    deps.localSpeaker?.close()
+    for (const s of speakers()) {
+      s.stop()
+      s.close()
+    }
     cloudList = null
     session++
     slug = null
@@ -585,8 +579,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         ? { book: state.book, chapter: state.chapter, cloudVoices: state.cloudVoices, cloudModel: state.cloudModel }
         : {}
     if (slug !== book) chapters = new Map()
-    if (deps.cloudSpeaker && (isCloudVoice(state.voice) || hasCloudChoice())) deps.cloudSpeaker.prime()
-    else deps.localSpeaker?.prime()
+    primeBeforeVoice()
     stopSpeaking()
     session++
     const mine = session
@@ -699,8 +692,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         return
       }
       failures = 0
-      if (cloudOn()) deps.cloudSpeaker?.prime()
-      if (localOn()) deps.localSpeaker?.prime()
+      speaker().prime()
       speakNow()
     },
     pause: () => {
@@ -754,8 +746,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       const key = choiceKey()
       if (!voice || !key) return
       rememberVoice(deps.storage, key, voiceURI)
-      if (isCloudVoice(voice)) deps.cloudSpeaker?.prime()
-      if (isLocalVoice(voice)) deps.localSpeaker?.prime()
+      speakerFor(voice).prime()
       state = { ...state, voice, engine: engineOf(voice) }
       if (state.problem?.kind === 'cloud' || state.problem?.kind === 'local') state = { ...state, problem: null }
       restartIfPlaying()

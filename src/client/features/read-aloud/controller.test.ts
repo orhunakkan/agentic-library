@@ -5,7 +5,6 @@ import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import { ENGINE_BYTES, FOLIO_VOICES } from '~/shared/read-aloud/folio-voices'
 import { type SpeechChapterData, speechChapter } from '~/shared/read-aloud/speech-text'
 import { createAside } from './aside'
-import type { CloudSpeakOptions } from './cloud-speaker'
 import {
   type ControllerDeps,
   createReadAloud,
@@ -16,7 +15,7 @@ import {
 } from './controller'
 import type { DownloadOutcome, VoiceStore } from './piper/voice-store'
 import { positionKey, readPosition, SPEED_KEY, VOICE_KEY, voiceChoiceKey, writePosition } from './position-store'
-import type { Speaker, SpeakHandlers, SpeakOptions } from './speaker'
+import type { Speaker, SpeakHandlers, SpeakOptions, SpeakProblem } from './speaker'
 import type { VoiceLike } from './voices'
 
 const book: ChapterBook = {
@@ -97,7 +96,8 @@ function setup(
   } = {},
 ) {
   const said: { text: string; rate: number; voice: string | null; lang: string; engine: 'device' | 'cloud' }[] = []
-  const cloudSaid: (CloudSpeakOptions | undefined)[] = []
+  const cloudSaid: Pick<SpeakOptions, 'ref' | 'model' | 'ahead'>[] = []
+  const aheads: SpeakOptions['ahead'][] = []
   let handlers: SpeakHandlers | null = null
   let stops = 0
   const primes = { count: 0 }
@@ -105,17 +105,21 @@ function setup(
   const speaker: Speaker = {
     speak: (text, opts, h) => {
       said.push({ text, rate: opts.rate, voice: opts.voice?.name ?? null, lang: opts.lang, engine: 'device' })
+      aheads.push(opts.ahead)
       handlers = h
     },
     stop: () => {
       stops++
       handlers = null
     },
+    prime: () => {},
+    close: () => {},
   }
   const cloudSpeaker = options.cloud && {
     speak: (text: string, opts: SpeakOptions, h: SpeakHandlers) => {
       said.push({ text, rate: opts.rate, voice: opts.voice?.name ?? null, lang: opts.lang, engine: 'cloud' })
-      cloudSaid.push(opts.cloud)
+      cloudSaid.push({ ref: opts.ref, model: opts.model, ahead: opts.ahead })
+      aheads.push(opts.ahead)
       handlers = h
     },
     stop: () => {
@@ -161,6 +165,7 @@ function setup(
     speaker,
     said,
     cloudSaid,
+    aheads,
     cloudLoads,
     primes,
     closes,
@@ -179,11 +184,10 @@ function setup(
       h?.onEnd()
       await flush()
     },
-    fail: async (error = 'synthesis-failed', retryAt?: Date) => {
+    fail: async (problem: SpeakProblem = { kind: 'failed' }) => {
       const h = handlers
       handlers = null
-      if (retryAt) h?.onError(error, retryAt)
-      else h?.onError(error)
+      h?.onError(problem)
       await flush()
     },
     start: async (at: StartAt, slug = 'essays') => {
@@ -394,6 +398,31 @@ describe('reading on', () => {
     expect(t.state()).toMatchObject({ status: 'paused', problem: { kind: 'voice-failed' } })
     t.ra.toggle()
     expect(t.state()).toMatchObject({ status: 'playing', problem: null })
+  })
+
+  it('looks two utterances ahead whatever the voice, ending at the next chapter’s intro, with no text yet', async () => {
+    const t = setup()
+    await t.start(page(0, 'history', 1))
+    const history = (page: number, start: number, end: number) => ({
+      book: 'essays',
+      chapter: 0,
+      position: { chapter: 'history', page },
+      start,
+      end,
+    })
+    expect(t.aheads.at(-1)).toEqual([
+      { text: 'One.', ref: history(1, 0, 4) },
+      { text: 'Two.', ref: history(1, 5, 9) },
+    ])
+    await t.end()
+    await t.end()
+    expect(t.texts().at(-1)).toBe('Two.')
+    expect(t.aheads.at(-1)).toEqual([
+      { text: 'Three.', ref: history(2, 0, 6) },
+      { ref: { book: 'essays', chapter: 1, intro: true } },
+    ])
+    await t.end()
+    expect(t.aheads.at(-1)).toEqual([{ ref: { book: 'essays', chapter: 1, intro: true } }])
   })
 
   it('stops for good when the next chapter fails to load, and Retry goes on', async () => {
@@ -825,21 +854,30 @@ describe('ElevenLabs voices', () => {
     expect(t.primes.count).toBe(1)
     expect(t.state().engine).toBe('cloud')
     expect(t.said.at(-1)).toMatchObject({ text: 'Chapter 1. History.', engine: 'cloud', voice: 'Aria' })
+    const one = { ...history1, start: 0, end: 4 }
+    const two = { ...history1, start: 5, end: 9 }
+    const three = { book: 'essays', chapter: 0, position: { chapter: 'history', page: 2 }, start: 0, end: 6 }
     expect(t.cloudSaid.at(-1)).toEqual({
       ref: { book: 'essays', chapter: 0, intro: true },
-      upcoming: { ...history1, start: 0, end: 4 },
+      ahead: [
+        { text: 'One.', ref: one },
+        { text: 'Two.', ref: two },
+      ],
       model: 'eleven_v4',
     })
     await t.end()
     expect(t.cloudSaid.at(-1)).toEqual({
-      ref: { ...history1, start: 0, end: 4 },
-      upcoming: { ...history1, start: 5, end: 9 },
+      ref: one,
+      ahead: [
+        { text: 'Two.', ref: two },
+        { text: 'Three.', ref: three },
+      ],
       model: 'eleven_v4',
     })
     await t.end()
     await t.end()
     expect(t.said.at(-1)?.text).toBe('Three.')
-    expect(t.cloudSaid.at(-1)?.upcoming).toEqual({ book: 'essays', chapter: 1, intro: true })
+    expect(t.cloudSaid.at(-1)?.ahead).toEqual([{ ref: { book: 'essays', chapter: 1, intro: true } }])
     expect(JSON.parse(t.storage.getItem(VOICE_KEY) ?? '{}')).toEqual({ en: ARIA })
   })
 
@@ -902,11 +940,11 @@ describe('ElevenLabs voices', () => {
       'no_key',
       'signed_out',
       'blocked',
-    ]) {
+    ] as const) {
       const t = setup({ cloud: ready })
       await t.start(page(0, 'history', 2))
       t.ra.setVoice(ARIA)
-      await t.fail(code)
+      await t.fail({ kind: 'cloud', code })
       expect(t.state(), code).toMatchObject({
         status: 'paused',
         problem: { kind: 'cloud', code },
@@ -916,7 +954,7 @@ describe('ElevenLabs voices', () => {
     const t = setup({ cloud: ready })
     await t.start(page(0, 'history', 2))
     t.ra.setVoice(ARIA)
-    await t.fail('rate', new Date(5000))
+    await t.fail({ kind: 'cloud', code: 'rate', retryAt: new Date(5000) })
     expect(t.state().problem).toEqual({ kind: 'cloud', code: 'rate', retryAt: 5000 })
   })
 
@@ -924,9 +962,9 @@ describe('ElevenLabs voices', () => {
     const t = setup({ cloud: ready })
     await t.start(page(0, 'history', 1))
     t.ra.setVoice(ARIA)
-    await t.fail('failed')
+    await t.fail({ kind: 'failed' })
     expect(t.said.at(-1)).toMatchObject({ text: 'One.', engine: 'cloud' })
-    await t.fail('not_found')
+    await t.fail({ kind: 'not-found' })
     expect(t.state()).toMatchObject({ book: null, problem: { kind: 'unavailable' } })
     expect(t.closes.count).toBe(1)
   })
@@ -935,7 +973,7 @@ describe('ElevenLabs voices', () => {
     const t = setup({ cloud: ready })
     await t.start(page(0, 'history', 1))
     t.ra.setVoice(ARIA)
-    await t.fail('no_credits')
+    await t.fail({ kind: 'cloud', code: 'no_credits' })
     t.ra.toggle()
     expect(t.said.at(-1)).toMatchObject({ text: 'Chapter 1. History.' })
   })
@@ -944,7 +982,7 @@ describe('ElevenLabs voices', () => {
     const t = setup({ cloud: ready })
     await t.start(page(0, 'history', 2))
     t.ra.setVoice(ARIA)
-    await t.fail('no_credits')
+    await t.fail({ kind: 'cloud', code: 'no_credits' })
     t.ra.useDeviceVoice()
     expect(t.said.at(-1)).toMatchObject({ text: 'Three.', engine: 'device', voice: 'Online (Natural)' })
     expect(t.state()).toMatchObject({ engine: 'device', problem: null, status: 'playing' })
@@ -962,7 +1000,7 @@ describe('ElevenLabs voices', () => {
     const t = setup({ cloud: ready })
     await t.start(page(0, 'history', 2))
     t.ra.setVoice(ARIA)
-    await t.fail('voice_gone')
+    await t.fail({ kind: 'cloud', code: 'voice_gone' })
     expect(JSON.parse(t.storage.getItem(VOICE_KEY) ?? '{}')).toEqual({})
     t.ra.setVoice('elevenlabs:Ben02')
     expect(t.state().problem).toBeNull()
@@ -1019,10 +1057,13 @@ describe('the Folio voice', () => {
       stop: () => {
         handlers = null
       },
+      prime: () => {},
+      close: () => {},
     }
     const localSpeaker = {
       speak: (text: string, opts: SpeakOptions, h: SpeakHandlers) => {
-        said.push({ text, engine: 'local', voice: opts.voice?.voiceURI ?? null, upcoming: opts.local?.upcoming })
+        const upcoming = opts.ahead.flatMap((u) => (u.text === undefined ? [] : [u.text]))
+        said.push({ text, engine: 'local', voice: opts.voice?.voiceURI ?? null, upcoming })
         handlers = h
       },
       stop: () => {
@@ -1096,10 +1137,10 @@ describe('the Folio voice', () => {
         h?.onEnd()
         await flush()
       },
-      fail: async (error: string) => {
+      fail: async (problem: SpeakProblem) => {
         const h = handlers
         handlers = null
-        h?.onError(error)
+        h?.onError(problem)
         await flush()
       },
     }
@@ -1204,7 +1245,7 @@ describe('the Folio voice', () => {
   it('pauses on its two problems, and Use device voice goes on from the same sentence', async () => {
     const t = localSetup({ downloaded: ['en_US-ljspeech-medium'] })
     await t.start()
-    await t.fail('local_failed')
+    await t.fail({ kind: 'local', code: 'local_failed' })
     expect(t.ra.state()).toMatchObject({ status: 'paused', problem: { kind: 'local', code: 'local_failed' } })
     t.ra.useDeviceVoice()
     await flush()
@@ -1212,7 +1253,7 @@ describe('the Folio voice', () => {
     const gone = localSetup({ downloaded: ['en_US-ljspeech-medium'] })
     await gone.start()
     await gone.voiceStore.remove(FOLIO_VOICES)
-    await gone.fail('local_missing')
+    await gone.fail({ kind: 'local', code: 'local_missing' })
     expect(gone.ra.state().problem).toEqual({ kind: 'local', code: 'local_missing' })
     expect(gone.ra.state().local.voices[0]?.state).toBe('absent')
   })
@@ -1221,7 +1262,7 @@ describe('the Folio voice', () => {
     const t = localSetup({ downloaded: ['en_US-ljspeech-medium'] })
     await t.start(page(0, 'history', 1))
     expect(t.said[0]?.text).toBe('Chapter 1. History.')
-    await t.fail('local_failed')
+    await t.fail({ kind: 'local', code: 'local_failed' })
     t.ra.toggle()
     expect(t.said.at(-1)?.text).toBe('Chapter 1. History.')
   })
@@ -1286,8 +1327,8 @@ describe('the Folio voice', () => {
       const t = localSetup({ downloaded: c.downloaded, storage, slug: c.slug })
       await t.start()
       const aside = createAside({
-        speaker: { speak: () => {}, stop: () => {} },
-        localSpeaker: { speak: () => {}, stop: () => {}, prime: () => {} },
+        speaker: { speak: () => {}, stop: () => {}, prime: () => {}, close: () => {} },
+        localSpeaker: { speak: () => {}, stop: () => {}, prime: () => {}, close: () => {} },
         loadVoices: async () => [local, online],
         downloaded: () => t.voiceStore.downloaded(),
         storage,

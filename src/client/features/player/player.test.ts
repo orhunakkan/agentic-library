@@ -66,6 +66,8 @@ function setup(options: { fetch?: () => Promise<FetchResult>; signedIn?: boolean
     stop: () => {
       handlers = null
     },
+    prime: () => {},
+    close: () => {},
   }
   const built: boolean[] = []
   const disposed = vi.fn()

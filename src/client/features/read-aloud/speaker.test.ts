@@ -37,7 +37,7 @@ describe('createSpeaker', () => {
   it('cancels before each speak, and sets the text, language, rate and voice', () => {
     const fake = fakeSynth()
     const speaker = createSpeaker(fake.synth, makeUtterance)
-    speaker.speak('Hello there.', { lang: 'en', rate: 1.5, voice }, { onEnd: vi.fn(), onError: vi.fn() })
+    speaker.speak('Hello there.', { lang: 'en', rate: 1.5, voice, ahead: [] }, { onEnd: vi.fn(), onError: vi.fn() })
     expect(fake.calls).toEqual(['cancel', 'speak'])
     expect(fake.last()).toMatchObject({ text: 'Hello there.', lang: 'en', rate: 1.5, voice })
   })
@@ -46,7 +46,7 @@ describe('createSpeaker', () => {
     const fake = fakeSynth()
     const speaker = createSpeaker(fake.synth, makeUtterance)
     const handlers = { onStart: vi.fn(), onEnd: vi.fn(), onError: vi.fn() }
-    speaker.speak('One.', { lang: 'en', rate: 1, voice: null }, handlers)
+    speaker.speak('One.', { lang: 'en', rate: 1, voice: null, ahead: [] }, handlers)
     fake.last().onstart?.({})
     fake.last().onend?.({})
     fake.last().onend?.({})
@@ -60,9 +60,9 @@ describe('createSpeaker', () => {
     const speaker = createSpeaker(fake.synth, makeUtterance)
     const first = { onStart: vi.fn(), onEnd: vi.fn(), onError: vi.fn() }
     const second = { onEnd: vi.fn(), onError: vi.fn() }
-    speaker.speak('One.', { lang: 'en', rate: 1, voice: null }, first)
+    speaker.speak('One.', { lang: 'en', rate: 1, voice: null, ahead: [] }, first)
     const old = fake.last()
-    speaker.speak('Two.', { lang: 'en', rate: 1, voice: null }, second)
+    speaker.speak('Two.', { lang: 'en', rate: 1, voice: null, ahead: [] }, second)
     old.onerror?.({ error: 'interrupted' })
     old.onend?.({})
     old.onstart?.({})
@@ -75,15 +75,25 @@ describe('createSpeaker', () => {
     expect(fake.calls).toEqual(['cancel', 'speak', 'cancel', 'speak', 'cancel'])
   })
 
-  it('passes errors on', () => {
+  it('reports an error as a failed utterance', () => {
     const fake = fakeSynth()
     const speaker = createSpeaker(fake.synth, makeUtterance)
     const handlers = { onEnd: vi.fn(), onError: vi.fn() }
-    speaker.speak('One.', { lang: 'en', rate: 1, voice: null }, handlers)
+    speaker.speak('One.', { lang: 'en', rate: 1, voice: null, ahead: [] }, handlers)
     fake.last().onerror?.({ error: 'synthesis-failed' })
-    speaker.speak('Two.', { lang: 'en', rate: 1, voice: null }, handlers)
+    speaker.speak('Two.', { lang: 'en', rate: 1, voice: null, ahead: [] }, handlers)
     fake.last().onerror?.({})
-    expect(handlers.onError.mock.calls).toEqual([['synthesis-failed'], ['unknown']])
+    expect(handlers.onError.mock.calls).toEqual([[{ kind: 'failed' }], [{ kind: 'failed' }]])
+  })
+
+  it('has nothing to prime or close', () => {
+    const fake = fakeSynth()
+    const speaker = createSpeaker(fake.synth, makeUtterance)
+    const handlers = { onEnd: vi.fn(), onError: vi.fn() }
+    speaker.speak('One.', { lang: 'en', rate: 1, voice: null, ahead: [] }, handlers)
+    speaker.prime()
+    speaker.close()
+    expect(fake.calls).toEqual(['cancel', 'speak'])
   })
 
   it('gives up on an utterance that never finishes, after its length at 8 characters a second plus 5 seconds', () => {
@@ -93,11 +103,11 @@ describe('createSpeaker', () => {
     const text = 'x'.repeat(80)
     expect(watchdogMs(text, 1)).toBe(15_000)
     expect(watchdogMs(text, 2)).toBe(10_000)
-    speaker.speak(text, { lang: 'en', rate: 2, voice: null }, handlers)
+    speaker.speak(text, { lang: 'en', rate: 2, voice: null, ahead: [] }, handlers)
     vi.advanceTimersByTime(9_999)
     expect(handlers.onError).not.toHaveBeenCalled()
     vi.advanceTimersByTime(1)
-    expect(handlers.onError).toHaveBeenCalledWith('timeout')
+    expect(handlers.onError).toHaveBeenCalledWith({ kind: 'failed' })
     expect(fake.calls.at(-1)).toBe('cancel')
     fake.last().onend?.({})
     expect(handlers.onEnd).not.toHaveBeenCalled()
@@ -107,9 +117,9 @@ describe('createSpeaker', () => {
     const fake = fakeSynth()
     const speaker = createSpeaker(fake.synth, makeUtterance)
     const handlers = { onEnd: vi.fn(), onError: vi.fn() }
-    speaker.speak('Short.', { lang: 'en', rate: 1, voice: null }, handlers)
+    speaker.speak('Short.', { lang: 'en', rate: 1, voice: null, ahead: [] }, handlers)
     fake.last().onend?.({})
-    speaker.speak('Short.', { lang: 'en', rate: 1, voice: null }, handlers)
+    speaker.speak('Short.', { lang: 'en', rate: 1, voice: null, ahead: [] }, handlers)
     speaker.stop()
     vi.advanceTimersByTime(60_000)
     expect(handlers.onError).not.toHaveBeenCalled()

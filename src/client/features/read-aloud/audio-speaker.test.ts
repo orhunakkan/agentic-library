@@ -28,23 +28,23 @@ describe('createAudioSpeaker', () => {
     expect(element.isCurrent(turn)).toBe(false)
   })
 
-  it('fails with media on an error, and blocked or media when play() is refused', async () => {
+  it('fails on a media error, and is blocked or fails when play() is refused', async () => {
     const audio = fakeAudio()
     const element = createAudioSpeaker(audio)
     const a = handlers()
     element.play(element.begin(a, 1), 'blob:1')
     audio.fire('error')
-    expect(a.onError).toHaveBeenCalledWith('media')
+    expect(a.onError).toHaveBeenCalledWith({ kind: 'failed' })
     audio.refuse = 'NotAllowedError'
     const b = handlers()
     element.play(element.begin(b, 1), 'blob:2')
     await flush()
-    expect(b.onError).toHaveBeenCalledWith('blocked')
+    expect(b.onError).toHaveBeenCalledWith({ kind: 'cloud', code: 'blocked' })
     audio.refuse = 'NotSupportedError'
     const c = handlers()
     element.play(element.begin(c, 1), 'blob:3')
     await flush()
-    expect(c.onError).toHaveBeenCalledWith('media')
+    expect(c.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
   it('gives up on a turn that never starts, or plays past its length at the speed', () => {
@@ -53,7 +53,7 @@ describe('createAudioSpeaker', () => {
     const a = handlers()
     element.begin(a, 1)
     vi.advanceTimersByTime(START_WATCHDOG_MS)
-    expect(a.onError).toHaveBeenCalledWith('timeout')
+    expect(a.onError).toHaveBeenCalledWith({ kind: 'failed' })
     const b = handlers()
     element.play(element.begin(b, 2), 'blob:1')
     audio.duration = 10
@@ -61,7 +61,7 @@ describe('createAudioSpeaker', () => {
     vi.advanceTimersByTime(5000 + END_SLACK_MS - 1)
     expect(b.onError).not.toHaveBeenCalled()
     vi.advanceTimersByTime(1)
-    expect(b.onError).toHaveBeenCalledWith('timeout')
+    expect(b.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
   it('once a turn plays, only its length counts: a slow start doesn’t cut a long sentence short', () => {
@@ -79,20 +79,20 @@ describe('createAudioSpeaker', () => {
     expect(h.onEnd).toHaveBeenCalledTimes(1)
   })
 
-  it('fails a turn with retryAt, and ignores a turn that is no longer current', () => {
+  it('fails a turn with its problem, and ignores a turn that is no longer current', () => {
     const audio = fakeAudio()
     const element = createAudioSpeaker(audio)
     const a = handlers()
     const old = element.begin(a, 1)
     const b = handlers()
     const turn = element.begin(b, 1)
-    element.fail(old, 'failed')
+    element.fail(old, { kind: 'failed' })
     element.play(old, 'blob:old')
     expect(a.onError).not.toHaveBeenCalled()
     expect(audio.src).toBe('')
-    const at = new Date(1000)
-    element.fail(turn, 'rate', at)
-    expect(b.onError).toHaveBeenCalledWith('rate', at)
+    const problem = { kind: 'cloud', code: 'rate', retryAt: new Date(1000) } as const
+    element.fail(turn, problem)
+    expect(b.onError).toHaveBeenCalledWith(problem)
   })
 
   it('stop() drops the turn without its handlers, and clears it', () => {

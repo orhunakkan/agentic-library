@@ -1,6 +1,7 @@
 import { proNotice } from '~/shared/plans/copy'
 import { aboutMegabytes, megabytes } from '~/shared/read-aloud/folio-voices'
-import type { CloudProblemCode, LocalProblemCode, Problem } from './controller'
+import type { Problem } from './controller'
+import type { CloudProblemCode, LocalProblemCode } from './speaker'
 
 const CLOUD_TEXT: Record<Exclude<CloudProblemCode, 'rate'>, string> = {
   key_rejected: 'ElevenLabs rejected your key. Check it on the API keys page.',

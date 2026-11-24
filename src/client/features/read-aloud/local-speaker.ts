@@ -2,7 +2,15 @@ import { folioVoice, voiceUrl } from '~/shared/read-aloud/folio-voices'
 import { type AudioLike, browserUrls, createAudioSpeaker, type ObjectUrls, UrlCache } from './audio-speaker'
 import { type Engine, EngineError, type Made } from './piper/engine'
 import type { WorkerVoice } from './piper/protocol'
-import type { Speaker, SpeakHandlers, SpeakOptions, Timers } from './speaker'
+import {
+  FAILED,
+  type LocalProblemCode,
+  type Speaker,
+  type SpeakHandlers,
+  type SpeakOptions,
+  type SpeakProblem,
+  type Timers,
+} from './speaker'
 
 export const LOCAL_VOICE_PREFIX = 'folio:'
 
@@ -16,11 +24,6 @@ export interface LocalSpeakerDeps {
   onSlow?: () => void
   urls?: ObjectUrls
   timers?: Timers
-}
-
-export interface LocalSpeaker extends Speaker {
-  prime: () => void
-  close: () => void
 }
 
 export function workerVoice(voiceURI: string | undefined): WorkerVoice | null {
@@ -48,9 +51,14 @@ interface Entry {
   counted: boolean
 }
 
-const PROBLEMS = new Set(['local_missing', 'local_failed'])
+const LOCAL_CODES: readonly string[] = ['local_missing', 'local_failed'] satisfies LocalProblemCode[]
 
-export function createLocalSpeaker(deps: LocalSpeakerDeps): LocalSpeaker {
+const localProblem = (error: unknown): SpeakProblem | null =>
+  error instanceof EngineError && LOCAL_CODES.includes(error.code)
+    ? { kind: 'local', code: error.code as LocalProblemCode }
+    : null
+
+export function createLocalSpeaker(deps: LocalSpeakerDeps): Speaker {
   const urls = deps.urls ?? browserUrls
   const element = createAudioSpeaker(deps.audio, deps.timers)
   const cache = new UrlCache<Entry>(LOCAL_CACHE_SIZE, (entry) => {
@@ -106,15 +114,18 @@ export function createLocalSpeaker(deps: LocalSpeakerDeps): LocalSpeaker {
     element.stop()
     const voice = workerVoice(options.voice?.voiceURI)
     if (!voice) {
-      handlers.onError('failed')
+      handlers.onError(FAILED)
       return
     }
     const turn = element.begin(handlers, options.rate)
     deps.engine.load(voice).catch((error: unknown) => {
-      if (error instanceof EngineError && PROBLEMS.has(error.code)) element.fail(turn, error.code)
+      const problem = localProblem(error)
+      if (problem) element.fail(turn, problem)
     })
     const entry = entryFor(voice.id, text)
-    const ahead = (options.local?.upcoming ?? []).slice(0, AHEAD).map((t) => entryFor(voice.id, t))
+    const ahead = options.ahead
+      .slice(0, AHEAD)
+      .flatMap((u) => (u.text === undefined ? [] : [entryFor(voice.id, u.text)]))
     dropAllBut(new Set([entry, ...ahead]))
     entry.result.then(
       (made) => {
@@ -125,8 +136,7 @@ export function createLocalSpeaker(deps: LocalSpeakerDeps): LocalSpeaker {
       },
       (error: unknown) => {
         if (!element.isCurrent(turn)) return
-        const code = error instanceof EngineError ? error.code : 'failed'
-        element.fail(turn, PROBLEMS.has(code) ? code : 'failed')
+        element.fail(turn, localProblem(error) ?? FAILED)
       },
     )
   }
