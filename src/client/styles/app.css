@@ -427,18 +427,17 @@
   margin: 1.5em 0;
   text-align: center;
 }
-.prose-reader figure > a {
+.prose-reader :where(figure) > a {
   display: inline-block;
   max-width: 100%;
   vertical-align: top;
   border-radius: 6px;
 }
-:root[data-reader-theme="sepia"] .prose-reader figure > a,
-:root[data-reader-theme="dark"] .prose-reader figure > a {
+:where(:root[data-reader-theme="sepia"], :root[data-reader-theme="dark"]) .prose-reader :where(figure) > a {
   padding: 8px;
   background: #fff;
 }
-.prose-reader figure img {
+.prose-reader :where(figure) img {
   display: block;
   max-width: 100%;
   height: auto;
