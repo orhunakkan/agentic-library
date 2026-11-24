@@ -167,6 +167,18 @@ const SEAMS: Seam[] = [
       'src/server/sync/input.ts': 'accepts uppercase too (the i flag), so it is not the same check',
     },
   },
+  {
+    name: "a user's usage is checked against its limit only by the quota module, which takes the unit (#89)",
+    pattern: /\b(nextAllowedAt|charactersRetryAt|usageSince)\(/,
+    under: ['src/server'],
+    allowed: {
+      'src/server/rate-limit.ts': 'the arithmetic itself',
+      'src/server/quota.ts': 'take, and the import check under its lock',
+      'src/server/speech/store.ts': 'defines usageSince over the speech usage table',
+      'src/server/articles/pacing.ts': 'in-memory pacing of outbound fetches, not a quota on users',
+      'src/server/github-repos/pacing.ts': 'in-memory pacing of outbound GitHub calls, not a quota on users',
+    },
+  },
 ]
 
 function withoutComments(source: string): string {

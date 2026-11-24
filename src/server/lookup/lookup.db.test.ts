@@ -13,6 +13,7 @@ import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { handleTranslate, handleWordLookup } from '~/server/lookup/actions'
 import { MAX_IN_FLIGHT, requestsInFlight, resetWikimedia } from '~/server/lookup/wikimedia'
+import { take } from '~/server/quota'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -100,10 +101,10 @@ async function details(event: string, userId: number) {
   return rows.map((r) => r.detail)
 }
 
-async function fill(userId: number, event: string, count: number) {
-  await raw`
-    insert into audit_events (user_id, event, detail, at)
-    select ${userId}, ${event}, '{}'::jsonb, now() - interval '1 minute' from generate_series(1, ${count})`
+/** Spends `count` units of a usage quota a minute ago. */
+async function spend(userId: number, kind: 'word-lookup' | 'translate', count: number) {
+  const now = new Date(Date.now() - 60_000)
+  for (let i = 0; i < count; i++) await take(db(), userId, kind, { now })
 }
 
 describe('both handlers', () => {
@@ -265,7 +266,7 @@ describe('POST /account/lookup/word', () => {
 
   it('refuses the 301st lookup within an hour, with when to try again', async () => {
     const { user, cookie } = await reader()
-    await fill(user.id, 'word.looked_up', 300)
+    await spend(user.id, 'word-lookup', 300)
     const res = await word(cookie, { book: BOOK, term: 'chaise', source: 'dictionary' })
     expect(res.status).toBe(429)
     const body = await res.json()
@@ -384,7 +385,7 @@ describe('POST /account/lookup/translate', () => {
 
   it('refuses the 121st translation within an hour, with when to try again', async () => {
     const { user, cookie } = await reader()
-    await fill(user.id, 'word.translated', 120)
+    await spend(user.id, 'translate', 120)
     const res = await translate(cookie, { book: BOOK, text: 'chaise', to: 'tr' })
     expect(res.status).toBe(429)
     expect((await res.json()).error).toBe('rate')

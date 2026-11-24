@@ -2,7 +2,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { handleAccount, handleApiKeys } from '~/server/account-actions'
 import { deleteKey, getKeyStatuses, rotateKeys, saveKey, withApiKey } from '~/server/api-keys'
-import { eventTimes, recordEvent } from '~/server/audit'
+import { recordEvent } from '~/server/audit'
 import { getConfig, type Kek, kekId } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
 import {
@@ -316,15 +316,6 @@ describe('API keys', () => {
     }
     expect((await raw`select 1 from api_keys`).count).toBe(0)
   })
-
-  it('counts recent key changes for the hourly limit', async () => {
-    const user = await newUser()
-    await recordEvent(db(), 'api_key.saved', { userId: user.id, detail: { provider: 'anthropic' } })
-    await recordEvent(db(), 'api_key.rejected', { userId: user.id })
-    await recordEvent(db(), 'login.succeeded', { userId: user.id })
-    const since = new Date(Date.now() - 60 * 60_000)
-    expect(await eventTimes(db(), user.id, ['api_key.saved', 'api_key.rejected'], since)).toHaveLength(2)
-  })
 })
 
 describe('the model for agent features', () => {
@@ -475,7 +466,7 @@ describe('the key form posts', () => {
     expect(await getKeyStatuses(db(), user.id)).toEqual([])
   })
 
-  it('maps what ElevenLabs says about a key: 401 rejected, 403 permission, anything else try again', async () => {
+  it('maps what ElevenLabs says about a key: 401 rejected, 403 permission, anything else try again; every check counts', async () => {
     const { user, cookie } = await signedIn()
     const rejected = await save(cookie, 'elevenlabs', elevenLabsKey(STUB_ELEVENLABS_KEYS.rejected))
     expect(rejected.headers.get('location')).toBe(at('error=rejected&provider=elevenlabs', 'elevenlabs'))
@@ -490,8 +481,9 @@ describe('the key form posts', () => {
     expect(logged).not.toContain(elevenLabsKey(STUB_ELEVENLABS_KEYS.down))
     expect(await getKeyStatuses(db(), user.id)).toEqual([])
     expect((await keyEvents(user.id)).map((e) => [e.event, e.detail])).toEqual([
-      ['api_key.rejected', { provider: 'elevenlabs' }],
-      ['api_key.rejected', { provider: 'elevenlabs' }],
+      ['api_key.rejected', { provider: 'elevenlabs', outcome: 'rejected' }],
+      ['api_key.rejected', { provider: 'elevenlabs', outcome: 'permission' }],
+      ['api_key.rejected', { provider: 'elevenlabs', outcome: 'unavailable' }],
     ])
   })
 

@@ -311,7 +311,7 @@ describe('POST /account/read-aloud/speak', () => {
     })
   })
 
-  it('answers each ElevenLabs failure with its code, logs only the status, and counts nothing', async () => {
+  it('answers each ElevenLabs failure with its code, logs only the status, and still counts the characters', async () => {
     const cases = [
       [STUB_ELEVENLABS_KEYS.rejected, 502, 'key_rejected'],
       [STUB_ELEVENLABS_KEYS.noCredits, 502, 'no_credits'],
@@ -323,7 +323,7 @@ describe('POST /account/read-aloud/speak', () => {
       const { user, cookie } = await reader({ key: elevenLabsKey(ending) })
       const response = await speak(cookie, spanOf(0))
       expect([response.status, await response.json()], ending).toEqual([status, { error }])
-      expect(await usageRows(user.id)).toEqual([])
+      expect(await usageRows(user.id)).toEqual([{ characters: said(chapter1, 0)[0]?.say.length, requests: 1 }])
     }
     const failing = (async () => new Response('<html>down</html>', { status: 500 })) as typeof fetch
     const { cookie } = await reader()
@@ -349,13 +349,13 @@ describe('POST /account/read-aloud/speak', () => {
     expect(stubSpeechRequests().map((r) => r.format)).toEqual(['mp3_44100_128'])
   })
 
-  it('answers permission when both rates are refused, counting nothing', async () => {
+  it('answers permission when both rates are refused, counting the characters once', async () => {
     quiet()
     const { user, cookie } = await reader({ key: elevenLabsKey(STUB_ELEVENLABS_KEYS.noPermission) })
     const response = await speak(cookie, spanOf(0))
     expect([response.status, await response.json()]).toEqual([502, { error: 'permission' }])
     expect(stubSpeechRequests().map((r) => r.format)).toEqual(['mp3_44100_64', 'mp3_44100_128'])
-    expect(await usageRows(user.id)).toEqual([])
+    expect(await usageRows(user.id)).toEqual([{ characters: said(chapter1, 0)[0]?.say.length, requests: 1 }])
   })
 
   it('answers failed when a chapter can’t be read, as when a content file is broken', async () => {

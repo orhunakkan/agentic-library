@@ -4,10 +4,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { saveKey } from '~/server/api-keys'
 import { handleAsk } from '~/server/ask/ask'
 import { createPrompt } from '~/server/ask-prompts/store'
-import { recordEvent } from '~/server/audit'
 import { refFor } from '~/server/books/ref'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
+import { take } from '~/server/quota'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -76,14 +76,16 @@ const events = async (response: Response): Promise<Event[]> =>
     .filter(Boolean)
     .map((line) => JSON.parse(line) as Event)
 
+/** Waits until the latest question's reservation is settled with its outcome. */
 async function askedEvents(userId: number) {
+  let rows: { detail: Record<string, unknown> }[] = []
   for (let i = 0; i < 50; i++) {
-    const rows = await raw<{ detail: Record<string, unknown> }[]>`
+    rows = await raw<{ detail: Record<string, unknown> }[]>`
       select detail from audit_events where event = 'book.asked' and user_id = ${userId} order by id`
-    if (rows.length) return rows.map((r) => r.detail)
+    if (rows.length && 'servedBy' in (rows.at(-1)?.detail ?? {})) break
     await new Promise((r) => setTimeout(r, 20))
   }
-  return []
+  return rows.map((r) => r.detail)
 }
 
 describe('POST /read/<book>/ask', () => {
@@ -195,7 +197,7 @@ describe('POST /read/<book>/ask', () => {
 
     it('over 60 questions an hour, counted from book.asked events, saying when to try again (429)', async () => {
       const { user, cookie } = await reader()
-      for (let i = 0; i < 59; i++) await recordEvent(db(), 'book.asked', { userId: user.id })
+      for (let i = 0; i < 59; i++) await take(db(), user.id, 'ask')
       expect((await ask('pride-and-prejudice', cookie)).status).toBe(200)
       await askedEvents(user.id)
       await new Promise((r) => setTimeout(r, 50))
@@ -614,7 +616,7 @@ describe('Ask with a saved prompt', () => {
     expect(audit).toMatchObject({ action: 'prompt', stop: 'end_turn', highlights: 0 })
     const detail = JSON.stringify(audit)
     for (const secret of ['Secret', id, 'Who’s who']) expect(detail).not.toContain(secret)
-    for (let i = 0; i < 59; i++) await recordEvent(db(), 'book.asked', { userId: user.id })
+    for (let i = 0; i < 59; i++) await take(db(), user.id, 'ask')
     const limited = await askWith(cookie, run(id), stubFetch)
     expect([limited.status, ((await limited.json()) as { error: string }).error]).toEqual([429, 'limit'])
   })

@@ -4,11 +4,11 @@ import { checkCoverImage } from '../../shared/import/image.ts'
 import { MAX_COVER_BYTES } from '../../shared/import/limits.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { isObject } from '../ask/input.ts'
-import { eventTimes, recordEvent } from '../audit.ts'
+import { recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp, seeOther, sessionForRequest } from '../auth.ts'
-import { type Db, getDb, isDatabaseConfigured } from '../db.ts'
+import { getDb, isDatabaseConfigured } from '../db.ts'
 import { readBytesBody } from '../json-body.ts'
-import { LOOKUP_LIMIT, nextAllowedAt } from '../rate-limit.ts'
+import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
 import { signedInEndpoints, signedInForm } from '../signed-in.ts'
 import { parseApply, parseDetailsForm, parseLookup } from './input.ts'
@@ -151,11 +151,6 @@ function recentFacts(userId: number, work: string): { isbn: string | null; year:
   return { isbn: recent.isbn, year: recent.years.get(work) ?? null }
 }
 
-async function lookupRetryAt(db: Db, userId: number, now = new Date()): Promise<Date | null> {
-  const times = await eventTimes(db, userId, ['book.looked_up'], new Date(now.getTime() - LOOKUP_LIMIT.windowMs))
-  return nextAllowedAt(times, LOOKUP_LIMIT, now)
-}
-
 const openLibraryFailure = (problem: OpenLibraryProblem) =>
   problem === 'busy' ? fail(503, 'busy') : fail(502, 'unavailable')
 
@@ -172,16 +167,13 @@ export const handleLookup = (request: Request, options: OpenLibraryOptions = {})
     if (!(await isReadyBook(db, userId, book))) return notFound()
     const query = parseLookup(fields)
     if (!query) return fail(400, 'invalid')
-    const retryAt = await lookupRetryAt(db, userId)
-    if (retryAt) return fail(429, 'rate', { retryAt: retryAt.toISOString() })
-    const found = await search(query, options)
-    await recordEvent(db, 'book.looked_up', {
-      userId,
+    const taken = await take(db, userId, 'book-lookup', {
       ip: requestIp(request),
-      detail: found.ok
-        ? { bookId: book, kind: 'search', by: query.by, matches: found.value.length }
-        : { bookId: book, kind: 'search', by: query.by, problem: found.problem },
+      detail: { bookId: book, kind: 'search', by: query.by },
     })
+    if (!taken.ok) return fail(429, 'rate', { retryAt: taken.retryAt.toISOString() })
+    const found = await search(query, options)
+    await taken.settle(found.ok ? { matches: found.value.length } : { problem: found.problem })
     if (!found.ok) return openLibraryFailure(found.problem)
     rememberSearch(userId, query.by === 'isbn' ? query.isbn : null, found.value)
     return noStoreJson(200, {
@@ -202,8 +194,9 @@ export const handleApply = (request: Request, id: string, options: OpenLibraryOp
     async ({ session, db, input }) => {
       const { userId } = session
       if (!(await isReadyBook(db, userId, id))) return notFound()
-      const retryAt = await lookupRetryAt(db, userId)
-      if (retryAt) return fail(429, 'rate', { retryAt: retryAt.toISOString() })
+      const ip = requestIp(request)
+      const taken = await take(db, userId, 'book-lookup', { ip, detail: { bookId: id, kind: 'apply' } })
+      if (!taken.ok) return fail(429, 'rate', { retryAt: taken.retryAt.toISOString() })
 
       let description: string | null = null
       let workProblem: OpenLibraryProblem | null = null
@@ -223,12 +216,9 @@ export const handleApply = (request: Request, id: string, options: OpenLibraryOp
         } else coverProblem = fetched.problem === 'too-large' ? 'cover-too-large' : 'cover-failed'
       }
 
-      const audit = { userId, ip: requestIp(request) }
+      const audit = { userId, ip }
       if (workProblem && !cover) {
-        await recordEvent(db, 'book.looked_up', {
-          ...audit,
-          detail: { bookId: id, kind: 'apply', problem: workProblem },
-        })
+        await taken.settle({ problem: workProblem })
         return openLibraryFailure(workProblem)
       }
       const facts = recentFacts(userId, input.work)
@@ -242,15 +232,10 @@ export const handleApply = (request: Request, id: string, options: OpenLibraryOp
       if (applied === 'missing') return notFound()
       const { changed } = applied
       const problem = coverProblem ?? workProblem
-      await recordEvent(db, 'book.looked_up', {
-        ...audit,
-        detail: {
-          bookId: id,
-          kind: 'apply',
-          cover: changed.cover,
-          description: changed.description,
-          ...(problem ? { problem } : {}),
-        },
+      await taken.settle({
+        cover: changed.cover,
+        description: changed.description,
+        ...(problem ? { problem } : {}),
       })
       const fields = [changed.description && 'description', changed.isbn && 'isbn', changed.year && 'publishedYear']
       const named = fields.filter((f): f is string => typeof f === 'string')

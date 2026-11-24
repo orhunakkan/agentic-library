@@ -71,10 +71,3 @@ export async function ipEventTimes(db: Db, ip: string, event: AuditEvent, since:
     select at from audit_events where event = ${event} and ip = ${ip}::inet and at > ${since}::timestamptz`
   return rows.map((r) => r.at)
 }
-
-export async function eventTimes(db: Db, userId: number, events: AuditEvent[], since: Date): Promise<Date[]> {
-  const rows = await db<{ at: Date }[]>`
-    select at from audit_events
-    where user_id = ${userId} and event = any(${events}::text[]) and at > ${since}::timestamptz`
-  return rows.map((r) => r.at)
-}

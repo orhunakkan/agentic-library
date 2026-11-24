@@ -8,7 +8,7 @@ import { endedDetail, endUserAccess, revokeAccessToken } from './access-tokens/s
 import { deleteAccount } from './admin/store.ts'
 import { checkAnthropicKey, isAnthropicKeyShape } from './anthropic.ts'
 import { deleteKey, PROVIDERS, type Provider, saveKey } from './api-keys.ts'
-import { eventTimes, recordEvent } from './audit.ts'
+import { recordEvent } from './audit.ts'
 import {
   clearSessionCookie,
   forbidden,
@@ -26,7 +26,7 @@ import { formField, readForm } from './json-body.ts'
 import { parsePasskeyId } from './passkeys/input.ts'
 import { removePasskey } from './passkeys/store.ts'
 import { hashPassword, passwordProblem } from './passwords.ts'
-import { API_KEY_LIMIT, overLimit } from './rate-limit.ts'
+import { take } from './quota.ts'
 import { logError } from './redact.ts'
 import { hashToken, isSameOrigin, newSessionToken } from './security.ts'
 import { createSession, deleteSession } from './sessions.ts'
@@ -167,19 +167,17 @@ export interface ApiKeysOptions {
   fetch?: typeof fetch
 }
 
-async function checkProviderKey(
+function keyShapeProblem(provider: Provider, key: string): 'shape' | 'anthropic' | null {
+  if (provider === 'anthropic') return isAnthropicKeyShape(key) ? null : 'shape'
+  return elevenLabsKeyProblem(key)
+}
+
+function checkProviderKey(
   provider: Provider,
   key: string,
   options: ApiKeysOptions,
-): Promise<
-  { problem: 'shape' | 'anthropic' } | { result: 'valid' | 'rejected' | 'permission' | 'unavailable'; status?: number }
-> {
-  if (provider === 'anthropic') {
-    if (!isAnthropicKeyShape(key)) return { problem: 'shape' }
-    return checkAnthropicKey(key, getConfig().anthropicApiBase, options.fetch)
-  }
-  const problem = elevenLabsKeyProblem(key)
-  if (problem) return { problem }
+): Promise<{ result: 'valid' | 'rejected' | 'permission' | 'unavailable'; status?: number }> {
+  if (provider === 'anthropic') return checkAnthropicKey(key, getConfig().anthropicApiBase, options.fetch)
   return checkElevenLabsKey(key, { fetch: options.fetch })
 }
 
@@ -199,39 +197,28 @@ export function handleApiKeys(request: Request, options: ApiKeysOptions = {}): P
     if (intent === 'speech-model') return saveSpeechModel(db, session.userId, ip, formField(form, 'model'))
     const provider = formField(form, 'provider') as Provider
     if (!PROVIDERS.includes(provider)) return seeOther(`${page}?error=invalid`)
-    const recent = await eventTimes(
-      db,
-      session.userId,
-      ['api_key.saved', 'api_key.deleted', 'api_key.rejected'],
-      new Date(Date.now() - API_KEY_LIMIT.windowMs),
-    )
-    if (overLimit(recent, API_KEY_LIMIT, new Date())) return back(provider, 'error=limit')
+    if (intent !== 'save' && intent !== 'delete') return back(provider, 'error=invalid')
+    if (intent === 'save' && provider === 'elevenlabs' && !canUse(session.plan, 'elevenlabs'))
+      return back(provider, 'error=pro')
+    const key = formField(form, 'key').trim()
+    const shape = intent === 'save' ? keyShapeProblem(provider, key) : null
+    if (shape) return back(provider, `error=${shape}`)
+    const as = intent === 'save' ? 'api_key.saved' : 'api_key.deleted'
+    const taken = await take(db, session.userId, 'api-key', { ip, as, detail: { provider } })
+    if (!taken.ok) return back(provider, 'error=limit')
 
-    switch (intent) {
-      case 'save': {
-        if (provider === 'elevenlabs' && !canUse(session.plan, 'elevenlabs')) return back(provider, 'error=pro')
-        const key = formField(form, 'key').trim()
-        const check = await checkProviderKey(provider, key, options)
-        if ('problem' in check) return back(provider, `error=${check.problem}`)
-        if (check.result === 'rejected' || check.result === 'permission') {
-          await recordEvent(db, 'api_key.rejected', { userId: session.userId, ip, detail: { provider } })
-          return back(provider, `error=${check.result}`)
-        }
-        if (check.result !== 'valid') {
-          logError('api key check', `${provider} check failed with status ${check.status ?? 'none'}`)
-          return back(provider, 'error=unavailable')
-        }
-        await saveKey(db, session.userId, provider, key)
-        await recordEvent(db, 'api_key.saved', { userId: session.userId, ip, detail: { provider } })
-        return back(provider, 'status=saved')
-      }
-      case 'delete': {
-        if (await deleteKey(db, session.userId, provider))
-          await recordEvent(db, 'api_key.deleted', { userId: session.userId, ip, detail: { provider } })
-        return back(provider, 'status=deleted')
-      }
-      default:
-        return back(provider, 'error=invalid')
+    if (intent === 'delete') {
+      if (!(await deleteKey(db, session.userId, provider))) await taken.settle({ deleted: false })
+      return back(provider, 'status=deleted')
     }
+    const check = await checkProviderKey(provider, key, options)
+    if (check.result === 'unavailable')
+      logError('api key check', `${provider} check failed with status ${check.status ?? 'none'}`)
+    if (check.result !== 'valid') {
+      await taken.settle({ outcome: check.result }, 'api_key.rejected')
+      return back(provider, `error=${check.result}`)
+    }
+    await saveKey(db, session.userId, provider, key)
+    return back(provider, 'status=saved')
   })
 }

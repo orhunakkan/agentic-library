@@ -5,10 +5,11 @@ import { AUDIO_MEDIA_TYPE, type AudioFileType, MAX_USER_AUDIO_BYTES } from '../.
 import type { PrivateCoverMeta } from '../../shared/content/private-book.ts'
 import type { BookDetails } from '../../shared/import/details.ts'
 import { MAX_BOOKS } from '../../shared/import/limits.ts'
-import { eventTimes, recordEvent } from '../audit.ts'
+import { recordEvent } from '../audit.ts'
 import { type CoverColumns, coverMetaOf } from '../book-details/store.ts'
 import type { Db, Pool } from '../db.ts'
-import { IMPORT_LIMIT, overLimit } from '../rate-limit.ts'
+import { retryAtLocked } from '../quota.ts'
+import { IMPORT_LIMIT } from '../rate-limit.ts'
 import { COVER_COLUMNS, countedBooks, sweepStaleUploads } from '../user-books.ts'
 
 export type MediaType = 'audio/mp4' | 'audio/mpeg'
@@ -36,8 +37,7 @@ export function startAudiobook(
   return pool.begin(async (tx): Promise<StartResult> => {
     await tx`select id from users where id = ${userId} for update`
     await sweepStaleUploads(tx, userId)
-    const recent = await eventTimes(tx, userId, ['book.imported'], new Date(now.getTime() - IMPORT_LIMIT.windowMs))
-    if (overLimit(recent, IMPORT_LIMIT, now)) return { ok: false, quota: 'rate', max: IMPORT_LIMIT.max }
+    if (await retryAtLocked(tx, userId, 'import', now)) return { ok: false, quota: 'rate', max: IMPORT_LIMIT.max }
     if ((await countedBooks(tx, userId)) >= maxBooks) return { ok: false, quota: 'books', max: maxBooks }
     if ((await audioBytesUsed(tx, userId)) + bytes > MAX_USER_AUDIO_BYTES)
       return { ok: false, quota: 'audio', max: MAX_USER_AUDIO_BYTES }

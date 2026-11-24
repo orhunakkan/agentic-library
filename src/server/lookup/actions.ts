@@ -2,12 +2,11 @@ import '@tanstack/react-start/server-only'
 import type { TranslateErrorCode, WordAnswer, WordErrorCode } from '../../shared/lookup/contract.ts'
 import { primaryLanguage } from '../../shared/lookup/languages.ts'
 import { hasKey } from '../api-keys.ts'
-import { eventTimes, recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp } from '../auth.ts'
 import { openBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
 import { requirePro } from '../plans/plan.ts'
-import { type Limit, nextAllowedAt, TRANSLATE_LIMIT, WORD_LOOKUP_LIMIT } from '../rate-limit.ts'
+import { take } from '../quota.ts'
 import { signedInEndpoints } from '../signed-in.ts'
 import { getAiModel } from '../users.ts'
 import { parseTranslateInput, parseWordInput } from './input.ts'
@@ -35,12 +34,6 @@ interface LookupBook {
 async function lookupBook(db: Db, userId: number, slug: string): Promise<LookupBook | null> {
   const book = await openBook(db, userId, slug).then((b) => (b?.format === 'text' ? b : null))
   return book && { title: book.title, lang: primaryLanguage(book.language) }
-}
-
-async function retryAt(db: Db, userId: number, event: 'word.looked_up' | 'word.translated', limit: Limit) {
-  const now = new Date()
-  const times = await eventTimes(db, userId, [event], new Date(now.getTime() - limit.windowMs))
-  return nextAllowedAt(times, limit, now)
 }
 
 export interface LookupOptions {
@@ -80,8 +73,11 @@ export const handleWordLookup = (request: Request, options: LookupOptions = {}) 
     const { userId } = session
     const book = await lookupBook(db, userId, input.book)
     if (!book) return fail(404, 'not_found')
-    const wait = await retryAt(db, userId, 'word.looked_up', WORD_LOOKUP_LIMIT)
-    if (wait) return fail(429, 'rate', { retryAt: wait.toISOString() })
+    const taken = await take(db, userId, 'word-lookup', {
+      ip: requestIp(request),
+      detail: { book: input.book, source: input.source },
+    })
+    if (!taken.ok) return fail(429, 'rate', { retryAt: taken.retryAt.toISOString() })
 
     const wikimedia: WikimediaOptions = { fetch: options.fetch, signal: request.signal }
     const found =
@@ -91,11 +87,7 @@ export const handleWordLookup = (request: Request, options: LookupOptions = {}) 
     const outcome: Outcome = found.ok ? found.value.answer.state : found.problem
     const retried = found.ok && found.value.retried
 
-    await recordEvent(db, 'word.looked_up', {
-      userId,
-      ip: requestIp(request),
-      detail: { book: input.book, source: input.source, outcome, retried },
-    })
+    await taken.settle({ outcome, retried })
     if (!found.ok) return found.problem === 'busy' ? fail(503, 'busy') : fail(502, 'unavailable')
     return noStoreJson(200, found.value.answer)
   })
@@ -114,10 +106,13 @@ export const handleTranslate = (request: Request, options: LookupOptions = {}) =
       const book = await lookupBook(db, userId, input.book)
       if (!book) return fail(404, 'not_found')
       if (!(await hasKey(db, userId, 'anthropic'))) return fail(409, 'no_key')
-      const wait = await retryAt(db, userId, 'word.translated', TRANSLATE_LIMIT)
-      if (wait) return fail(429, 'rate', { retryAt: wait.toISOString() })
-
       const model = await getAiModel(db, userId)
+      const taken = await take(db, userId, 'translate', {
+        ip: requestIp(request),
+        detail: { book: input.book, kind: input.kind, to: input.to, model },
+      })
+      if (!taken.ok) return fail(429, 'rate', { retryAt: taken.retryAt.toISOString() })
+
       const params = translateRequest({
         text: input.text,
         context: input.context,
@@ -127,19 +122,11 @@ export const handleTranslate = (request: Request, options: LookupOptions = {}) =
         model,
       })
       const result = await runTranslation(db, userId, params, { signal: request.signal, fetch: options.fetch })
-      await recordEvent(db, 'word.translated', {
-        userId,
-        ip: requestIp(request),
-        detail: {
-          book: input.book,
-          kind: input.kind,
-          to: input.to,
-          model,
-          servedBy: result.servedBy,
-          inputTokens: result.inputTokens,
-          outputTokens: result.outputTokens,
-          error: result.ok ? null : result.code,
-        },
+      await taken.settle({
+        servedBy: result.servedBy,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        error: result.ok ? null : result.code,
       })
       if (result.ok) return noStoreJson(200, { translation: result.translation, model: result.servedBy ?? model })
       if (result.code === 'busy') return fail(503, 'busy')

@@ -11,10 +11,10 @@ import {
 } from '../../shared/github-repos/contract.ts'
 import { parseRepoUrl } from '../../shared/github-repos/github-url.ts'
 import { isSvg, sniffImage } from '../../shared/import/image.ts'
-import { eventTimes, recordEvent } from '../audit.ts'
+import { recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp, sessionForRequest } from '../auth.ts'
-import { type Db, getDb, isDatabaseConfigured } from '../db.ts'
-import { nextAllowedAt, REPO_ADD_LIMIT, REPO_REFRESH_LIMIT } from '../rate-limit.ts'
+import { type Db, getDb, isDatabaseConfigured, type Pool } from '../db.ts'
+import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
 import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import {
@@ -72,12 +72,6 @@ const readProblem = (problem: Problem): RepoReadProblem =>
   problem.problem === 'busy'
     ? { state: 'busy', retryAt: problem.retryAt?.toISOString() ?? null }
     : { state: 'unavailable' }
-
-async function retryAfter(db: Db, userId: number, event: 'repo.added' | 'repo.refreshed', now = new Date()) {
-  const limit = event === 'repo.added' ? REPO_ADD_LIMIT : REPO_REFRESH_LIMIT
-  const times = await eventTimes(db, userId, [event], new Date(now.getTime() - limit.windowMs))
-  return nextAllowedAt(times, limit, now)
-}
 
 interface ResolvedRef {
   ref: string | null
@@ -147,13 +141,19 @@ export const handleRepoAdd = (request: Request, options: GitHubOptions = {}) =>
     { log: 'repo add', body: { json: ADD_BODY_BYTES }, parse: parseAddress },
     async ({ session, db, input: address }) => {
       const { userId } = session
-      if (await retryAfter(db, userId, 'repo.added')) return fail(429, 'limited')
       if (takeView(userId)) return fail(429, 'limited')
+      const taken = await take(db, userId, 'repo-add', { ip: requestIp(request) })
+      if (!taken.ok) return fail(429, 'limited')
       const info = await getRepo(address.owner, address.name, options)
-      if (!info.ok) return info.problem === 'not-found' ? notFound() : githubFailure(info)
+      if (!info.ok) {
+        await taken.settle({ problem: info.problem })
+        return info.problem === 'not-found' ? notFound() : githubFailure(info)
+      }
       const resolved = await resolveAddress(info.value, address.mode, address.segments, options)
-      if (!resolved.ok)
+      if (!resolved.ok) {
+        await taken.settle({ problem: resolved.problem })
         return resolved.problem === 'ref-not-found' ? fail(404, 'ref_not_found') : githubFailure(resolved)
+      }
       const { ref, refKind, commit, path } = resolved.value
       const added = await addRepo(db, userId, {
         githubId: info.value.githubId,
@@ -165,9 +165,15 @@ export const handleRepoAdd = (request: Request, options: GitHubOptions = {}) =>
         refKind,
         commitSha: commit,
       })
-      if (added === 'quota') return fail(409, 'quota', { max: MAX_REPOS })
-      if ('exists' in added) return fail(409, 'exists', { id: added.exists })
-      await recordEvent(db, 'repo.added', { userId, ip: requestIp(request), detail: { id: added.id } })
+      if (added === 'quota') {
+        await taken.settle({ problem: 'quota' })
+        return fail(409, 'quota', { max: MAX_REPOS })
+      }
+      if ('exists' in added) {
+        await taken.settle({ problem: 'exists', id: added.exists })
+        return fail(409, 'exists', { id: added.exists })
+      }
+      await taken.settle({ id: added.id })
       return noStoreJson(201, { repo: toRepoView(added), path })
     },
   )
@@ -183,26 +189,27 @@ function refToResolve(row: RepoRow, defaultBranch: string): string {
 }
 
 async function refreshRepo(
-  db: Db,
+  db: Pool,
   request: Request,
   userId: number,
   row: RepoRow,
   options: GitHubOptions,
 ): Promise<Refreshed> {
-  if (await retryAfter(db, userId, 'repo.refreshed')) return { ok: false, problem: 'limited' }
+  const taken = await take(db, userId, 'repo-refresh', { ip: requestIp(request), detail: { id: row.id } })
+  if (!taken.ok) return { ok: false, problem: 'limited' }
   const gone = async (): Promise<Refreshed> => {
     const marked = (await markGone(db, userId, row.id)) ?? row
-    await recordEvent(db, 'repo.refreshed', {
-      userId,
-      ip: requestIp(request),
-      detail: { id: row.id, changed: false, gone: true },
-    })
+    await taken.settle({ changed: false, gone: true })
     return { ok: true, row: marked, changed: false }
+  }
+  const failed = async (failure: Problem & Refreshed): Promise<Refreshed> => {
+    await taken.settle({ problem: failure.problem })
+    return failure
   }
   let facts = { owner: row.owner, name: row.name, defaultBranch: row.defaultBranch, description: row.description }
   if (row.ref === null) {
     const info = await getRepoById(row.githubId, options)
-    if (!info.ok) return info.problem === 'not-found' ? gone() : info
+    if (!info.ok) return info.problem === 'not-found' ? gone() : failed(info)
     facts = {
       owner: info.value.owner,
       name: info.value.name,
@@ -215,10 +222,10 @@ async function refreshRepo(
   if (head.ok) commit = head.value
   else if (head.problem === 'empty' && row.ref === null) commit = EMPTY_COMMIT
   else if (head.problem === 'not-found' || head.problem === 'empty') return gone()
-  else return head
+  else return failed(head)
   const changed = commit !== row.commitSha
   const updated = (await markChecked(db, userId, row.id, { ...facts, commitSha: commit })) ?? row
-  await recordEvent(db, 'repo.refreshed', { userId, ip: requestIp(request), detail: { id: row.id, changed } })
+  await taken.settle({ changed })
   return { ok: true, row: updated, changed }
 }
 

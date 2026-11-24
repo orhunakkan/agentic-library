@@ -634,6 +634,7 @@ describe('bookkeeping', () => {
     expect(events.map((e) => [e.event, Object.keys(e.detail as object).sort()])).toEqual([
       ['repo.added', ['id']],
       ['repo.refreshed', ['changed', 'id']],
+      ['repo.added', ['problem']],
       ['repo.removed', ['id']],
     ])
     expect(lines.length).toBeGreaterThan(0)

@@ -6,11 +6,11 @@ import type { BookDetails } from '../shared/import/details.ts'
 import { MAX_BOOK_HTML_BYTES, MAX_BOOKS, MAX_USER_IMAGE_BYTES, STALE_UPLOAD_HOURS } from '../shared/import/limits.ts'
 import { slugify, uniqueSlug } from '../shared/import/slug.ts'
 import { isUuid } from '../shared/uuid.ts'
-import { eventTimes, recordEvent } from './audit.ts'
+import { recordEvent } from './audit.ts'
 import { type CoverColumns, coverMetaOf } from './book-details/store.ts'
 import { imageBytesUsed } from './book-images/store.ts'
 import type { Db, Pool } from './db.ts'
-import { ARTICLE_SAVE_LIMIT, IMPORT_LIMIT, nextAllowedAt, overLimit } from './rate-limit.ts'
+import { retryAtLocked } from './quota.ts'
 
 export interface UserBook {
   id: string
@@ -108,20 +108,13 @@ export async function startImport(
     await tx`select id from users where id = ${userId} for update`
     await sweepStaleUploads(tx, userId)
     if (article) {
-      const saves = await eventTimes(
-        tx,
-        userId,
-        ['article.saved'],
-        new Date(now.getTime() - ARTICLE_SAVE_LIMIT.windowMs),
-      )
-      const retryAt = nextAllowedAt(saves, ARTICLE_SAVE_LIMIT, now)
+      const retryAt = await retryAtLocked(tx, userId, 'article-save', now)
       if (retryAt) return { ok: false, reason: 'rate', retryAt }
       const existing = await findArticle(tx, userId, article.url)
       if (existing) return { ok: false, reason: 'exists', id: existing }
       if ((await countedArticles(tx, userId)) >= article.max) return { ok: false, reason: 'quota', max: article.max }
     } else {
-      const recent = await eventTimes(tx, userId, ['book.imported'], new Date(now.getTime() - IMPORT_LIMIT.windowMs))
-      if (overLimit(recent, IMPORT_LIMIT, now)) return { ok: false, reason: 'rate' }
+      if (await retryAtLocked(tx, userId, 'import', now)) return { ok: false, reason: 'rate' }
       if ((await countedBooks(tx, userId)) >= maxBooks) return { ok: false, reason: 'quota', max: maxBooks }
     }
     const left = MAX_USER_IMAGE_BYTES - (await imageBytesUsed(tx, userId))

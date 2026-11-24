@@ -1,18 +1,16 @@
 import '@tanstack/react-start/server-only'
 import Anthropic from '@anthropic-ai/sdk'
 import type { BookContent } from '~/shared/content/schema'
-import type { AiModelId } from '~/shared/lib/ai-models'
 import { ANTHROPIC_VERSION } from '../anthropic.ts'
 import { hasKey, withApiKey } from '../api-keys.ts'
 import { findPrompt } from '../ask-prompts/store.ts'
-import { eventTimes, recordEvent } from '../audit.ts'
 import { NO_STORE, requestIp } from '../auth.ts'
 import { openBook, type TextBook } from '../books/book.ts'
 import { getConfig } from '../config.ts'
 import type { Db } from '../db.ts'
 import { resolvedHighlights } from '../highlights/resolve.ts'
 import { requirePro } from '../plans/plan.ts'
-import { ASK_LIMIT, nextAllowedAt } from '../rate-limit.ts'
+import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
 import { type Gate, signedInEndpoints } from '../signed-in.ts'
 import { getAiModel } from '../users.ts'
@@ -109,11 +107,6 @@ export const handleAsk = (request: Request, slug: string, options: AskOptions = 
       const scope = isStudyAction(input.action) ? studyScope(book.text, pageIndex) : null
       if (scope && scope.chars < STUDY_MIN_CHARS) return refuse(422, 'too_little')
 
-      const now = new Date()
-      const asked = await eventTimes(db, userId, ['book.asked'], new Date(now.getTime() - ASK_LIMIT.windowMs))
-      const retryAt = nextAllowedAt(asked, ASK_LIMIT, now)
-      if (retryAt) return refuse(429, 'limit', { retryAt: retryAt.toISOString() })
-
       if (!(await hasKey(db, userId, 'anthropic'))) return refuse(409, 'no_key')
 
       const built = buildContext(book.text, pageIndex, { bookTitle: book.title, wholeBook: input.wholeBook })
@@ -145,16 +138,25 @@ export const handleAsk = (request: Request, slug: string, options: AskOptions = 
         }),
       }
 
+      const action = prompt ? 'prompt' : input.action
+      const taken = await take(db, userId, 'ask', {
+        ip: requestIp(request),
+        detail: {
+          book: slug,
+          model,
+          wholeBook: input.wholeBook,
+          highlights: highlights.length,
+          action,
+          ...(input.spoken ? { spoken: true } : {}),
+        },
+      })
+      if (!taken.ok) return refuse(429, 'limit', { retryAt: taken.retryAt.toISOString() })
+
       return answerResponse(request, {
         db,
         userId,
-        ip: requestIp(request),
-        slug,
-        model,
-        wholeBook: input.wholeBook,
-        highlights: highlights.length,
-        action: prompt ? 'prompt' : input.action,
-        spoken: input.spoken,
+        settle: taken.settle,
+        action,
         study: scope && {
           scope,
           sourceOf: (index: number | null) => {
@@ -172,13 +174,9 @@ export const handleAsk = (request: Request, slug: string, options: AskOptions = 
 interface AnswerJob {
   db: Db
   userId: number
-  ip: string | null
-  slug: string
-  model: AiModelId
-  wholeBook: boolean
-  highlights: number
+  /** Adds the outcome to this question's reservation. */
+  settle: (detail: object) => Promise<void>
   action: AskAction | 'prompt' | null
-  spoken: boolean
   study: { scope: StudyScope; sourceOf: Parameters<typeof studyEvent>[3] } | null
   params: AskParams
   context: BookContext
@@ -271,24 +269,14 @@ async function answer(job: AnswerJob): Promise<void> {
     outcome = { error: code ?? 'stopped' }
   }
   try {
-    await recordEvent(job.db, 'book.asked', {
-      userId: job.userId,
-      ip: job.ip,
-      detail: {
-        book: job.slug,
-        model: job.model,
-        servedBy: servedBy ?? null,
-        inputTokens: usage?.input_tokens ?? 0,
-        cacheReadTokens: usage?.cache_read_input_tokens ?? 0,
-        cacheWriteTokens: usage?.cache_creation_input_tokens ?? 0,
-        outputTokens: usage?.output_tokens ?? 0,
-        wholeBook: job.wholeBook,
-        highlights: job.highlights,
-        action: job.action,
-        ...(job.spoken ? { spoken: true } : {}),
-        items,
-        ...outcome,
-      },
+    await job.settle({
+      servedBy: servedBy ?? null,
+      inputTokens: usage?.input_tokens ?? 0,
+      cacheReadTokens: usage?.cache_read_input_tokens ?? 0,
+      cacheWriteTokens: usage?.cache_creation_input_tokens ?? 0,
+      outputTokens: usage?.output_tokens ?? 0,
+      items,
+      ...outcome,
     })
   } catch (error) {
     logError('ask audit', error)

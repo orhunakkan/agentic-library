@@ -153,7 +153,11 @@ describe('GET /account/export', () => {
     expect(data.account.timeZone).toBe('Europe/Istanbul')
     const [sessionId] = await raw<{ id: string }[]>`select id from reading_time where user_id = ${ada.userId}`
     expect(text).not.toContain(sessionId?.id ?? 'missing')
-    expect(data.activity.map((e: { event: string }) => e.event)).toEqual(['logout', 'login.succeeded'])
+    expect(data.activity.map((e: { event: string }) => e.event)).toEqual([
+      'account.exported',
+      'logout',
+      'login.succeeded',
+    ])
 
     expect(text).not.toContain('bob')
     expect(text).not.toContain(PASSWORD_HASH)

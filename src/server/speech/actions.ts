@@ -16,13 +16,12 @@ import { noStoreJson } from '../auth.ts'
 import { openBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
 import { requirePro } from '../plans/plan.ts'
-import { charactersRetryAt, SPEECH_LIMIT } from '../rate-limit.ts'
+import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
 import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import { getSpeechModel } from '../users.ts'
 import { type ElevenLabsOptions, listVoices, type SpeechResult, synthesize } from './elevenlabs.ts'
 import { parseSpeakInput, type SpeakInput } from './input.ts'
-import { recordUsage, usageSince } from './store.ts'
 
 const SPEAK_BODY_BYTES = 2 * 1024
 
@@ -117,9 +116,8 @@ export const handleSpeak = (request: Request, options: SpeechOptions = {}) =>
       if (!spoken) return fail(400, 'invalid')
       if (!(await hasKey(db, userId, 'elevenlabs'))) return fail(409, 'no_key')
       const now = options.now?.() ?? new Date()
-      const minutes = await usageSince(db, userId, new Date(now.getTime() - SPEECH_LIMIT.windowMs))
-      const wait = charactersRetryAt(minutes, spoken.say.length, SPEECH_LIMIT, now)
-      if (wait) return fail(429, 'rate', { retryAt: wait.toISOString() })
+      const taken = await take(db, userId, 'speech', { amount: spoken.say.length, now })
+      if (!taken.ok) return fail(429, 'rate', { retryAt: taken.retryAt.toISOString() })
 
       const model = await getSpeechModel(db, userId)
       const job = (format: SpeechFormat) => ({
@@ -147,7 +145,6 @@ export const handleSpeak = (request: Request, options: SpeechOptions = {}) =>
         const status = UPSTREAM_STATUS[result.code]
         return status ? fail(status, result.code) : fail(502, 'failed')
       }
-      await recordUsage(db, userId, spoken.say.length, now)
       const words = spoken.words
         ? wordsFrom(sayMap(spoken.words.text, spoken.words.start, spoken.words.end), result.alignment)
         : []

@@ -6,7 +6,7 @@ vi.mock('../shared/import/blocks.ts', async (importOriginal) => {
   return { ...actual, checkChapterUpload: vi.fn(actual.checkChapterUpload) }
 })
 
-import { eventTimes, recordEvent } from '~/server/audit'
+import { recordEvent } from '~/server/audit'
 import { handleBooksForm, handleChapter, handleFinish, handleNewBook } from '~/server/book-actions'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
@@ -315,8 +315,9 @@ describe('the upload endpoints', () => {
     expect((await handleBooksForm(keep)).headers.get('location')).toBe('/account/books?error=invalid')
     expect((await handleBooksForm(form(alice.cookie))).headers.get('location')).toBe('/account/books?status=deleted')
     expect(await raw`select 1 from user_books`).toHaveLength(0)
-    const events = await eventTimes(db(), alice.user.id, ['book.deleted'], new Date(0))
-    expect(events).toHaveLength(1)
+    expect(
+      await raw`select 1 from audit_events where user_id = ${alice.user.id} and event = 'book.deleted'`,
+    ).toHaveLength(1)
   })
 
   it('holds a Free reader to 2 books, with Free’s answer', async () => {
