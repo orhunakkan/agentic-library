@@ -89,8 +89,8 @@ describe('ShelfStore', () => {
 
   it('takes a refused new shelf back out', async () => {
     const { store, requests, changed, shelves } = setup([])
-    requests.createShelf.mockResolvedValue(no('quota_shelves'))
-    expect(await store.create('Banana', 'book')).toBe('quota_shelves')
+    requests.createShelf.mockResolvedValue(no('limit_shelves'))
+    expect(await store.create('Banana', 'book')).toBe('limit_shelves')
     expect(shelves()).toEqual([])
     expect(changed).not.toHaveBeenCalled()
   })
@@ -105,8 +105,8 @@ describe('ShelfStore', () => {
     expect(await done).toBeNull()
     expect(changed).toHaveBeenCalledTimes(1)
 
-    requests.setShelfBook.mockResolvedValue(no('quota_books'))
-    expect(await store.toggle('a', 'z', true)).toBe('quota_books')
+    requests.setShelfBook.mockResolvedValue(no('limit_books'))
+    expect(await store.toggle('a', 'z', true)).toBe('limit_books')
     expect(shelves()[0]?.books).toEqual(['y', 'x'])
     requests.setShelfBook.mockResolvedValue(no('offline'))
     expect(await store.toggle('a', 'x', false)).toBe('offline')

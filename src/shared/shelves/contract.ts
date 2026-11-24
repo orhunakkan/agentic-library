@@ -29,6 +29,7 @@ export interface ShelfDeletedAnswer {
   deleted: true
 }
 
+/** `'quota'` is the app-wide wire code for a plan-limit refusal; it is not renamed for shelves alone. */
 export type ShelfErrorCode = 'signed_out' | 'not_found' | 'invalid' | 'duplicate' | 'quota' | 'failed'
 
 export type ShelfErrorAnswer =

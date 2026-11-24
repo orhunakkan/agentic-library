@@ -15,8 +15,8 @@ export type ShelfProblem =
   | 'signed_out'
   | 'not_found'
   | 'duplicate'
-  | 'quota_shelves'
-  | 'quota_books'
+  | 'limit_shelves'
+  | 'limit_books'
   | 'invalid'
   | 'failed'
   | 'offline'
@@ -27,7 +27,7 @@ export type ShelfResult<T> = ChangeResult<T, ShelfProblem>
 function problemOf(refusal: ShelfErrorAnswer | CallFailure): ShelfProblem {
   switch (refusal.error) {
     case 'quota':
-      return refusal.scope === 'shelves' ? 'quota_shelves' : 'quota_books'
+      return refusal.scope === 'shelves' ? 'limit_shelves' : 'limit_books'
     case 'signed_out':
     case 'not_found':
     case 'invalid':

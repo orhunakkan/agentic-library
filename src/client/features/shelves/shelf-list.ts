@@ -50,9 +50,9 @@ export function problemText(problem: ShelfProblem, context: { name?: string; boo
       return context.name
         ? `You already have a shelf called “${context.name}”.`
         : 'You already have a shelf by that name.'
-    case 'quota_shelves':
+    case 'limit_shelves':
       return `You can have up to ${MAX_SHELVES_PER_USER} shelves.`
-    case 'quota_books':
+    case 'limit_books':
       return `Your shelves can hold up to ${MAX_SHELF_BOOKS_PER_USER.toLocaleString('en-GB')} books in all.`
     case 'not_found':
       return context.book ? 'This book is no longer available.' : 'That shelf was deleted on another device.'

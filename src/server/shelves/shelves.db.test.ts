@@ -233,13 +233,13 @@ describe('the store', () => {
   })
 })
 
-describe('the quotas', () => {
+describe('the plan limits', () => {
   it('allow 50 shelves per user', async () => {
     const user = await newUser()
     await raw`
       insert into shelves (user_id, name, name_key)
       select ${user.id}, 'Shelf ' || g, 'shelf ' || g from generate_series(1, ${MAX_SHELVES_PER_USER}) g`
-    expect(await createShelf(db(), user.id, named('One more'), null)).toBe('quota-shelves')
+    expect(await createShelf(db(), user.id, named('One more'), null)).toBe('limit-shelves')
     const other = await newUser()
     expect((await shelf(other.id, 'One more')).name).toBe('One more')
   })
@@ -249,8 +249,8 @@ describe('the quotas', () => {
     await fillBooks(user.id, MAX_SHELF_BOOKS_PER_USER - 1)
     const s = await shelf(user.id, 'Last', PRIDE)
     expect(s.books).toEqual([PRIDE])
-    expect(await setShelfBook(db(), user.id, s.id, CODE_BOOK, true)).toBe('quota-books')
-    expect(await createShelf(db(), user.id, named('With a book'), CODE_BOOK)).toBe('quota-books')
+    expect(await setShelfBook(db(), user.id, s.id, CODE_BOOK, true)).toBe('limit-books')
+    expect(await createShelf(db(), user.id, named('With a book'), CODE_BOOK)).toBe('limit-books')
     const empty = await shelf(user.id, 'Empty')
     expect(await setShelfBook(db(), user.id, s.id, PRIDE, true)).toEqual({ id: s.id, name: 'Last', books: [PRIDE] })
     await setShelfBook(db(), user.id, s.id, PRIDE, false)
@@ -265,7 +265,7 @@ describe('the quotas', () => {
       setShelfBook(db(), user.id, s.id, PRIDE, true),
       setShelfBook(db(), user.id, s.id, CODE_BOOK, true),
     ])
-    expect(results.filter((r) => r === 'quota-books')).toHaveLength(1)
+    expect(results.filter((r) => r === 'limit-books')).toHaveLength(1)
   })
 })
 
@@ -388,7 +388,7 @@ describe('the endpoints', () => {
     expect(await raw`select name from shelves where user_id = ${alice.user.id}`).toEqual([{ name: 'To read' }])
   })
 
-  it('says quota with its scope and limit, for shelves and for books on them', async () => {
+  it("answers 409 'quota' with its scope and limit, for shelves and for books on them", async () => {
     const { user, cookie } = await signedIn()
     await raw`
       insert into shelves (user_id, name, name_key)
@@ -402,11 +402,11 @@ describe('the endpoints', () => {
     const other = await signedIn()
     await fillBooks(other.user.id, MAX_SHELF_BOOKS_PER_USER)
     const withBook = await create(other.cookie)
-    const quotaBooks = { error: 'quota', scope: 'shelf_books', max: MAX_SHELF_BOOKS_PER_USER }
-    expect([withBook.status, await withBook.json()]).toEqual([409, quotaBooks])
+    const booksRefusal = { error: 'quota', scope: 'shelf_books', max: MAX_SHELF_BOOKS_PER_USER }
+    expect([withBook.status, await withBook.json()]).toEqual([409, booksRefusal])
     const empty = await shelfOf(await create(other.cookie, { name: 'Empty' }))
     const put = await book(other.cookie, empty.id, { book: 'pride-and-prejudice', on: true })
-    expect([put.status, await put.json()]).toEqual([409, quotaBooks])
+    expect([put.status, await put.json()]).toEqual([409, booksRefusal])
   })
 
   it('answers 500 failed when the database fails after sign-in, and logs it without the body', async () => {

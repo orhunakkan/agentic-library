@@ -71,8 +71,8 @@ describe('problemText', () => {
   it('has the copy for each problem', () => {
     expect(problemText('duplicate', { name: 'To read' })).toBe('You already have a shelf called “To read”.')
     expect(problemText('duplicate')).toBe('You already have a shelf by that name.')
-    expect(problemText('quota_shelves')).toBe('You can have up to 50 shelves.')
-    expect(problemText('quota_books')).toBe('Your shelves can hold up to 2,000 books in all.')
+    expect(problemText('limit_shelves')).toBe('You can have up to 50 shelves.')
+    expect(problemText('limit_books')).toBe('Your shelves can hold up to 2,000 books in all.')
     expect(problemText('not_found')).toBe('That shelf was deleted on another device.')
     expect(problemText('not_found', { book: true })).toBe('This book is no longer available.')
     expect(problemText('signed_out')).toBe('Your session ended.')

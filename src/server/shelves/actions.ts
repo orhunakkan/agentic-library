@@ -24,8 +24,8 @@ const MAX_BODY_BYTES = 2 * 1024
 const shelves = signedInEndpoints<ShelfErrorCode, ShelfErrorAnswer>({ via: 'api', maxBytes: MAX_BODY_BYTES })
 const { fail } = shelves
 
-const QUOTA_SHELVES = () => fail(409, 'quota', { scope: 'shelves', max: MAX_SHELVES_PER_USER })
-const QUOTA_BOOKS = () => fail(409, 'quota', { scope: 'shelf_books', max: MAX_SHELF_BOOKS_PER_USER })
+const LIMIT_SHELVES = () => fail(409, 'quota', { scope: 'shelves', max: MAX_SHELVES_PER_USER })
+const LIMIT_BOOKS = () => fail(409, 'quota', { scope: 'shelf_books', max: MAX_SHELF_BOOKS_PER_USER })
 
 const shelfId = (id: string) => () => (isUuid(id) ? undefined : fail(404, 'not_found'))
 
@@ -46,8 +46,8 @@ export const handleShelfCreate = (request: Request) =>
     if (input.book !== null && !book) return fail(404, 'not_found')
     const name = { name: input.name, key: shelfNameKey(input.name) }
     const result = await createShelf(db, session.userId, name, book)
-    if (result === 'quota-shelves') return QUOTA_SHELVES()
-    if (result === 'quota-books') return QUOTA_BOOKS()
+    if (result === 'limit-shelves') return LIMIT_SHELVES()
+    if (result === 'limit-books') return LIMIT_BOOKS()
     if (result === 'duplicate') return fail(409, 'duplicate')
     if (result === 'missing') return fail(404, 'not_found')
     return answer(201, result, slugs)
@@ -79,7 +79,7 @@ export const handleShelfBook = (request: Request, id: string) =>
     if (!book) return fail(404, 'not_found')
     const result = await setShelfBook(db, session.userId, id, book, input.on)
     if (result === 'missing') return fail(404, 'not_found')
-    if (result === 'quota-books') return QUOTA_BOOKS()
+    if (result === 'limit-books') return LIMIT_BOOKS()
     return answer(200, result, slugs)
   })
 

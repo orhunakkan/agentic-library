@@ -91,13 +91,13 @@ describe('the shelves client against the shelves endpoints', () => {
       select ${user.id}, 'Shelf ' || g, 'shelf ' || g from generate_series(1, ${MAX_SHELVES_PER_USER - 1}) g`
     const last = await createShelf('Last')
     if (!last.ok) throw new Error(last.problem)
-    expect(await createShelf('One more')).toEqual({ ok: false, problem: 'quota_shelves' })
+    expect(await createShelf('One more')).toEqual({ ok: false, problem: 'limit_shelves' })
     await raw`
       insert into shelf_books (shelf_id, user_id, book_slug)
       select ${last.value.id}, ${user.id}, 'book-' || g from generate_series(1, ${MAX_SHELF_BOOKS_PER_USER}) g`
     expect(await setShelfBook(last.value.id, 'pride-and-prejudice', true)).toEqual({
       ok: false,
-      problem: 'quota_books',
+      problem: 'limit_books',
     })
   })
 
@@ -110,14 +110,14 @@ describe('the shelves client against the shelves endpoints', () => {
 describe("the shelves gate's refusals", () => {
   type Shelves = ReturnType<typeof signedInEndpoints<ShelfErrorCode, ShelfErrorAnswer>>
 
-  it('type a quota refusal’s extras, and give other codes none', () => {
+  it('type a plan-limit refusal’s extras, and give other codes none', () => {
     /** Never run: tsc checks these calls. */
     const typed = (fail: Shelves['fail']) => [
       fail(409, 'quota', { scope: 'shelves', max: 50 }),
       fail(404, 'not_found'),
-      // @ts-expect-error a quota refusal needs its scope and limit
+      // @ts-expect-error a plan-limit refusal needs its scope and limit
       fail(409, 'quota'),
-      // @ts-expect-error the scope is one of the two quotas
+      // @ts-expect-error the scope is one of the two limits
       fail(409, 'quota', { scope: 'books', max: 50 }),
       // @ts-expect-error a code the shelves endpoints don't send
       fail(409, 'stale'),

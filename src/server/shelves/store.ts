@@ -75,16 +75,16 @@ async function shelfBookCount(db: Db, userId: number): Promise<number> {
   return Number(row?.n ?? 0)
 }
 
-export type CreateResult = ShelfRow | 'quota-shelves' | 'duplicate' | 'missing' | 'quota-books'
+export type CreateResult = ShelfRow | 'limit-shelves' | 'duplicate' | 'missing' | 'limit-books'
 
 export function createShelf(pool: Pool, userId: number, name: ShelfName, book: BookRef | null): Promise<CreateResult> {
   return pool.begin(async (tx): Promise<CreateResult> => {
     await tx`select id from users where id = ${userId} for update`
     const [count] = await tx<{ n: string }[]>`select count(*) as n from shelves where user_id = ${userId}`
-    if (Number(count?.n ?? 0) >= MAX_SHELVES_PER_USER) return 'quota-shelves'
+    if (Number(count?.n ?? 0) >= MAX_SHELVES_PER_USER) return 'limit-shelves'
     if (book) {
       if (!(await ownsBook(tx, userId, book))) return 'missing'
-      if ((await shelfBookCount(tx, userId)) >= MAX_SHELF_BOOKS_PER_USER) return 'quota-books'
+      if ((await shelfBookCount(tx, userId)) >= MAX_SHELF_BOOKS_PER_USER) return 'limit-books'
     }
     const [shelf] = await tx<RawShelf[]>`
       insert into shelves (user_id, name, name_key) values (${userId}, ${name.name}, ${name.key})
@@ -131,9 +131,9 @@ export function setShelfBook(
   id: string,
   book: BookRef,
   on: boolean,
-): Promise<ShelfRow | 'missing' | 'quota-books'> {
+): Promise<ShelfRow | 'missing' | 'limit-books'> {
   if (!isUuid(id)) return Promise.resolve('missing')
-  return pool.begin(async (tx): Promise<ShelfRow | 'missing' | 'quota-books'> => {
+  return pool.begin(async (tx): Promise<ShelfRow | 'missing' | 'limit-books'> => {
     await tx`select id from users where id = ${userId} for update`
     const [shelf] = await tx`select 1 from shelves where id = ${id} and user_id = ${userId}`
     if (!shelf) return 'missing'
@@ -144,7 +144,7 @@ export function setShelfBook(
       const [already] = await tx`
         select 1 from shelf_books where shelf_id = ${id} and user_id = ${userId} and ${onBook(tx, book)}`
       if (!already) {
-        if ((await shelfBookCount(tx, userId)) >= MAX_SHELF_BOOKS_PER_USER) return 'quota-books'
+        if ((await shelfBookCount(tx, userId)) >= MAX_SHELF_BOOKS_PER_USER) return 'limit-books'
         await tx`
           insert into shelf_books (shelf_id, user_id, book_slug, user_book_id)
           values (${id}, ${userId}, ${book.slug}, ${book.userBookId})
