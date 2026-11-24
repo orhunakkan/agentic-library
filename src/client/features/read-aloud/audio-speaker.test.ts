@@ -124,6 +124,33 @@ describe('createAudioSpeaker', () => {
     expect(audio.removeAttribute).toHaveBeenCalledWith('src')
     expect(audio.load).toHaveBeenCalled()
   })
+
+  it('two speakers on one element prime it once per press, and either then plays its first turn', async () => {
+    const audio = fakeAudio()
+    const cloud = createAudioSpeaker(audio)
+    const folio = createAudioSpeaker(audio)
+    cloud.prime()
+    folio.prime()
+    expect(audio.play).toHaveBeenCalledTimes(1)
+    await flush()
+    for (const [speaker, url] of [
+      [cloud, 'blob:cloud'],
+      [folio, 'blob:folio'],
+    ] as const) {
+      cloud.stop()
+      folio.stop()
+      const h = handlers()
+      speaker.play(speaker.begin(h, 1), url)
+      expect(audio.src).toBe(url)
+      audio.fire('playing')
+      audio.fire('ended')
+      expect(h.onStart).toHaveBeenCalledTimes(1)
+      expect(h.onEnd).toHaveBeenCalledTimes(1)
+    }
+    cloud.prime()
+    folio.prime()
+    expect(audio.play).toHaveBeenCalledTimes(4)
+  })
 })
 
 describe('UrlCache', () => {

@@ -5,6 +5,7 @@ import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import { ENGINE_BYTES, FOLIO_VOICES } from '~/shared/read-aloud/folio-voices'
 import { type SpeechChapterData, speechChapter } from '~/shared/read-aloud/speech-text'
 import { createAside } from './aside'
+import { CLOUD_VOICE_PREFIX } from './cloud-speaker'
 import {
   type ControllerDeps,
   createReadAloud,
@@ -218,6 +219,42 @@ describe('starting again', () => {
     await t.start(page(0, 'history', 2))
     t.ra.start('other', { kind: 'saved' })
     expect(t.state()).toMatchObject({ status: 'loading', book: null, chapter: null })
+  })
+})
+
+describe('priming at start', () => {
+  const primeCounter = () => {
+    const primes = { count: 0 }
+    const speaker: Speaker = { speak: () => {}, stop: () => {}, prime: () => void primes.count++, close: () => {} }
+    return { speaker, primes }
+  }
+
+  it.each([
+    ['without a cloud choice', {}],
+    ['with a cloud choice', { en: `${CLOUD_VOICE_PREFIX}Aria01` }],
+  ])('primes every speaker once on the press, %s', async (_, choices) => {
+    const storage = memoryStorage()
+    storage.setItem(VOICE_KEY, JSON.stringify(choices))
+    const device = primeCounter()
+    const cloud = primeCounter()
+    const folio = primeCounter()
+    const ra = createReadAloud({
+      speaker: device.speaker,
+      cloudSpeaker: cloud.speaker,
+      localSpeaker: folio.speaker,
+      loadCloudVoices: () => new Promise(() => {}),
+      loadVoices: async () => [local, online],
+      fetchChapter: async (_s, index) => {
+        const chapter = speechChapter(book, index)
+        return chapter ? { ok: true, data: { book: bookInfo, chapter } } : { ok: false, reason: 'failed' }
+      },
+      storage,
+      onState: () => {},
+      arbiter: fakeArbiter(),
+      locale: 'en-US',
+    })
+    ra.start('essays', page(0, 'history', 2))
+    expect([device.primes.count, cloud.primes.count, folio.primes.count]).toEqual([1, 1, 1])
   })
 })
 
@@ -844,14 +881,13 @@ describe('ElevenLabs voices', () => {
     expect(t.state().cloudModel).toBe('eleven_v4')
     expect(t.state()).toMatchObject({ engine: 'device', voice: { name: 'Online (Natural)' } })
     expect(t.said.at(-1)).toMatchObject({ text: 'Three.', engine: 'device' })
-    expect(t.primes.count).toBe(0)
   })
 
   it('reads with the cloud speaker once one is picked, with the utterance’s place and the next one’s', async () => {
     const t = setup({ cloud: ready })
     await t.start(page(0, 'history', 1))
     t.ra.setVoice(ARIA)
-    expect(t.primes.count).toBe(1)
+    expect(t.primes.count).toBe(2)
     expect(t.state().engine).toBe('cloud')
     expect(t.said.at(-1)).toMatchObject({ text: 'Chapter 1. History.', engine: 'cloud', voice: 'Aria' })
     const one = { ...history1, start: 0, end: 4 }
@@ -1029,13 +1065,14 @@ describe('ElevenLabs voices', () => {
   it('primes on Play with an ElevenLabs voice, not with a device one', async () => {
     const t = setup({ cloud: ready })
     await t.start(page(0, 'history', 2))
+    expect(t.primes.count).toBe(1)
     t.ra.toggle()
     t.ra.toggle()
-    expect(t.primes.count).toBe(0)
+    expect(t.primes.count).toBe(1)
     t.ra.setVoice(ARIA)
     t.ra.toggle()
     t.ra.toggle()
-    expect(t.primes.count).toBe(2)
+    expect(t.primes.count).toBe(3)
     expect(t.said.at(-1)).toMatchObject({ text: 'Three.', engine: 'cloud' })
     t.ra.close()
     expect(t.closes.count).toBe(1)

@@ -34,6 +34,12 @@ function silentWavUrl(): string {
 
 let silence: string | null = null
 
+/**
+ * Elements already primed in the running task. The speakers built on one element are all primed in
+ * the same press, and a second `play()` there would restart the silence and abort the first.
+ */
+const primedThisTask = new WeakSet<AudioLike>()
+
 export interface ObjectUrls {
   create: (blob: Blob) => string
   revoke: (url: string) => void
@@ -152,6 +158,9 @@ export function createAudioSpeaker(audio: AudioLike, timers: Timers = browserTim
     },
     stop,
     prime: () => {
+      if (primedThisTask.has(audio)) return
+      primedThisTask.add(audio)
+      queueMicrotask(() => primedThisTask.delete(audio))
       silence ??= silentWavUrl()
       audio.src = silence
       audio.play().catch(() => {})

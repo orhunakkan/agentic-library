@@ -63,7 +63,7 @@ export interface SpeakHandlers {
 export interface Speaker {
   speak: (text: string, options: SpeakOptions, handlers: SpeakHandlers) => void
   stop: () => void
-  /** Readies playback inside the reader's press, so a later utterance may play. */
+  /** Readies playback inside the reader's press, so a later utterance may play. Safe to call on every speaker. */
   prime: () => void
   /** Stops and lets go of everything the speaker holds. */
   close: () => void

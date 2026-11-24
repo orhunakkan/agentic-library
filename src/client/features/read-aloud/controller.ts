@@ -5,7 +5,6 @@ import { primarySubtag, type SpeechVoicesState } from '~/shared/read-aloud/cloud
 import type { FolioVoice } from '~/shared/read-aloud/folio-voices'
 import { chapterIntro } from '~/shared/read-aloud/sentences'
 import type { SpeechBook, SpeechChapter, SpeechChapterData } from '~/shared/read-aloud/speech-text'
-import { CLOUD_VOICE_PREFIX } from './cloud-speaker'
 import {
   atFraction,
   atOffset,
@@ -28,7 +27,6 @@ import {
   forgetVoice,
   readPosition,
   readSpeed,
-  readVoices,
   rememberVoice,
   type SavedPosition,
   voiceChoiceKey,
@@ -334,15 +332,9 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   const choiceKey = () =>
     state.book ? voiceChoiceKey(primarySubtag(state.book.language), isPrivateBookSlug(state.book.slug)) : null
 
-  const hasCloudChoice = () => Object.values(readVoices(deps.storage)).some((uri) => uri.startsWith(CLOUD_VOICE_PREFIX))
-
-  /**
-   * Primes inside the press that starts a book, before its voice is resolved: the cloud speaker when the
-   * reader has chosen a cloud voice, or else the Folio speaker, which a downloaded voice may need.
-   */
+  /** Primes every speaker inside the press that starts a book, since its voice is resolved only after. */
   const primeBeforeVoice = () => {
-    if (deps.cloudSpeaker && (isCloudVoice(state.voice) || hasCloudChoice())) deps.cloudSpeaker.prime()
-    else deps.localSpeaker?.prime()
+    for (const s of speakers()) s.prime()
   }
 
   const failWith = (session_: number, problem: SpeakProblem, wasIntro = false) => {
