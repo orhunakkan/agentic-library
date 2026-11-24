@@ -1,4 +1,5 @@
 import type { SpeakErrorCode, SpeakIntro, SpeakSpan } from '~/shared/read-aloud/cloud'
+import type { VoiceLike } from './voices'
 
 export interface UtteranceLike {
   text: string
@@ -24,10 +25,7 @@ export interface Timers {
 export type SpeakRef = Omit<SpeakSpan, 'voice' | 'format'> | Omit<SpeakIntro, 'voice' | 'format'>
 
 /** Something read aloud will say: its text, where it is in the book, or both. */
-export interface Utterance {
-  text?: string
-  ref?: SpeakRef
-}
+export type Utterance = { text: string; ref?: SpeakRef } | { ref: SpeakRef }
 
 export interface SpeakOptions {
   lang: string
@@ -35,8 +33,8 @@ export interface SpeakOptions {
   voice: SpeechSynthesisVoice | null
   /** Where in the book the text being spoken is, when it is in one. */
   ref?: SpeakRef
-  /** The cloud model to speak with, when the reader has one. */
-  model?: string
+  /** The cloud model to speak with, or null when the reader has none yet. */
+  model?: string | null
   /** What read aloud will say next, nearest first, so a speaker can make it ahead. */
   ahead: Utterance[]
 }
@@ -71,6 +69,31 @@ export interface Speaker {
   prime: () => void
   /** Stops and lets go of everything the speaker holds. */
   close: () => void
+}
+
+/** The speakers a caller has, one per kind of voice. The device speaker is always there. */
+export interface VoiceSpeakers {
+  device: Speaker
+  cloud?: Speaker
+  folio?: Speaker
+}
+
+export interface SpeakerChoice {
+  /** Every speaker the caller has, for stopping or priming them all. */
+  all: readonly Speaker[]
+  /** The speaker that says a voice: its own kind's when the caller has one, else the device speaker. */
+  speakerFor: (voice: Pick<VoiceLike, 'engine'> | null) => Speaker
+}
+
+export function speakersFor({ device, cloud, folio }: VoiceSpeakers): SpeakerChoice {
+  const all = [device, cloud, folio].filter((s): s is Speaker => s !== undefined)
+  const speakerFor = (voice: Pick<VoiceLike, 'engine'> | null): Speaker => {
+    /** Not isCloudVoice/isLocalVoice: voices.ts imports the cloud and Folio speakers, which import this module. */
+    if (voice?.engine === 'cloud') return cloud ?? device
+    if (voice?.engine === 'local') return folio ?? device
+    return device
+  }
+  return { all, speakerFor }
 }
 
 export const watchdogMs = (text: string, rate: number) => Math.round((text.length / (8 * rate) + 5) * 1000)

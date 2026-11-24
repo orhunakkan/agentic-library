@@ -1114,7 +1114,7 @@ describe('the Folio voice', () => {
     }
     const localSpeaker = {
       speak: (text: string, opts: SpeakOptions, h: SpeakHandlers) => {
-        const upcoming = opts.ahead.flatMap((u) => (u.text === undefined ? [] : [u.text]))
+        const upcoming = opts.ahead.flatMap((u) => ('text' in u ? [u.text] : []))
         said.push({ text, engine: 'local', voice: opts.voice?.voiceURI ?? null, upcoming })
         handlers = h
       },

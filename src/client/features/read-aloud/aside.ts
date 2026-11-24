@@ -1,8 +1,8 @@
 import type { FolioVoice } from '~/shared/read-aloud/folio-voices'
 import { LOOK_AHEAD, MAX_FAILURES } from './controller'
 import { readSpeed } from './position-store'
-import type { Speaker } from './speaker'
-import { isLocalVoice, resolveVoice, type VoiceLike } from './voices'
+import { type Speaker, speakersFor } from './speaker'
+import { resolveVoice, type VoiceLike } from './voices'
 
 export interface AsideDeps {
   speaker: Speaker
@@ -78,13 +78,10 @@ export function createAside(deps: AsideDeps): Aside {
     return { voice, skippedCloud: cloudChoice !== null }
   }
 
-  const speakerFor = (voice: VoiceLike | null): Speaker =>
-    isLocalVoice(voice) && deps.localSpeaker ? deps.localSpeaker : deps.speaker
-
-  const speakers = (): Speaker[] => (deps.localSpeaker ? [deps.speaker, deps.localSpeaker] : [deps.speaker])
+  const { all: speakers, speakerFor } = speakersFor({ device: deps.speaker, folio: deps.localSpeaker })
 
   const silence = () => {
-    for (const s of speakers()) s.stop()
+    for (const s of speakers) s.stop()
   }
 
   const next = () => {
@@ -127,7 +124,7 @@ export function createAside(deps: AsideDeps): Aside {
 
   const hush = () => {
     deps.pauseBook()
-    for (const s of speakers()) s.prime()
+    for (const s of speakers) s.prime()
   }
 
   const stop = () => {

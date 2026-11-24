@@ -123,9 +123,7 @@ export function createLocalSpeaker(deps: LocalSpeakerDeps): Speaker {
       if (problem) element.fail(turn, problem)
     })
     const entry = entryFor(voice.id, text)
-    const ahead = options.ahead
-      .slice(0, AHEAD)
-      .flatMap((u) => (u.text === undefined ? [] : [entryFor(voice.id, u.text)]))
+    const ahead = options.ahead.slice(0, AHEAD).flatMap((u) => ('text' in u ? [entryFor(voice.id, u.text)] : []))
     dropAllBut(new Set([entry, ...ahead]))
     entry.result.then(
       (made) => {

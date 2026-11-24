@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSpeaker, type UtteranceLike, watchdogMs } from './speaker'
+import { createSpeaker, type Speaker, speakersFor, type Utterance, type UtteranceLike, watchdogMs } from './speaker'
+import type { VoiceLike } from './voices'
 
 function fakeSynth() {
   const spoken: UtteranceLike[] = []
@@ -124,5 +125,56 @@ describe('createSpeaker', () => {
     vi.advanceTimersByTime(60_000)
     expect(handlers.onError).not.toHaveBeenCalled()
     expect(handlers.onEnd).toHaveBeenCalledOnce()
+  })
+})
+
+describe('speakersFor', () => {
+  const fakeSpeaker = (): Speaker => ({ speak: vi.fn(), stop: vi.fn(), prime: vi.fn(), close: vi.fn() })
+  const voiceOf = (engine: VoiceLike['engine']): VoiceLike => ({
+    name: 'Amy',
+    lang: 'en-US',
+    voiceURI: 'amy',
+    localService: true,
+    default: false,
+    engine,
+  })
+
+  it('lists every speaker it has', () => {
+    const device = fakeSpeaker()
+    const cloud = fakeSpeaker()
+    const folio = fakeSpeaker()
+    expect(speakersFor({ device }).all).toEqual([device])
+    expect(speakersFor({ device, cloud, folio }).all).toEqual([device, cloud, folio])
+  })
+
+  it('speaks a device voice, or no voice, with the device speaker', () => {
+    const device = fakeSpeaker()
+    const { speakerFor } = speakersFor({ device, cloud: fakeSpeaker(), folio: fakeSpeaker() })
+    expect(speakerFor(voiceOf('device'))).toBe(device)
+    expect(speakerFor(null)).toBe(device)
+  })
+
+  it('speaks a cloud voice with the cloud speaker, or the device speaker when there is none', () => {
+    const device = fakeSpeaker()
+    const cloud = fakeSpeaker()
+    expect(speakersFor({ device, cloud }).speakerFor(voiceOf('cloud'))).toBe(cloud)
+    expect(speakersFor({ device }).speakerFor(voiceOf('cloud'))).toBe(device)
+  })
+
+  it('speaks a Folio voice with the Folio speaker, or the device speaker when there is none', () => {
+    const device = fakeSpeaker()
+    const folio = fakeSpeaker()
+    expect(speakersFor({ device, folio }).speakerFor(voiceOf('local'))).toBe(folio)
+    expect(speakersFor({ device }).speakerFor(voiceOf('local'))).toBe(device)
+  })
+})
+
+describe('Utterance', () => {
+  it('has its text, its place in the book, or both, never neither', () => {
+    const ref = { book: 'pride-and-prejudice', chapter: 1, intro: true } as const
+    const said: Utterance[] = [{ text: 'Hi.' }, { ref }, { text: 'Hi.', ref }]
+    // @ts-expect-error an utterance with neither text nor a place in the book says nothing
+    const empty: Utterance = {}
+    expect([...said, empty]).toHaveLength(4)
   })
 })

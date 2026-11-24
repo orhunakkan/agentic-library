@@ -108,7 +108,8 @@ export function createCloudSpeaker(deps: CloudSpeakerDeps): Speaker {
 
   const speak = (_text: string, options: SpeakOptions, handlers: SpeakHandlers) => {
     element.stop()
-    const { ref, model = '' } = options
+    const { ref } = options
+    const model = options.model ?? ''
     const voice = options.voice?.voiceURI.startsWith(CLOUD_VOICE_PREFIX)
       ? options.voice.voiceURI.slice(CLOUD_VOICE_PREFIX.length)
       : null

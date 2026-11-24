@@ -33,14 +33,15 @@ import {
   writePosition,
   writeSpeed,
 } from './position-store'
-import type {
-  CloudProblemCode,
-  LocalProblemCode,
-  Speaker,
-  SpeakOptions,
-  SpeakProblem,
-  SpeakRef,
-  Utterance,
+import {
+  type CloudProblemCode,
+  type LocalProblemCode,
+  type Speaker,
+  type SpeakOptions,
+  type SpeakProblem,
+  type SpeakRef,
+  speakersFor,
+  type Utterance,
 } from './speaker'
 import {
   folioVoiceLike,
@@ -246,16 +247,14 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     return found
   }
 
-  const speakers = (): Speaker[] =>
-    [deps.speaker, deps.cloudSpeaker, deps.localSpeaker].filter((s): s is Speaker => s !== undefined)
-  const speakerFor = (voice: VoiceLike | null): Speaker => {
-    if (isCloudVoice(voice) && deps.cloudSpeaker) return deps.cloudSpeaker
-    if (isLocalVoice(voice) && deps.localSpeaker) return deps.localSpeaker
-    return deps.speaker
-  }
+  const { all: speakers, speakerFor } = speakersFor({
+    device: deps.speaker,
+    cloud: deps.cloudSpeaker,
+    folio: deps.localSpeaker,
+  })
   const speaker = () => speakerFor(state.voice)
   const stopSpeaking = () => {
-    for (const s of speakers()) s.stop()
+    for (const s of speakers) s.stop()
   }
   const engineOf = (voice: VoiceLike | null): ReadAloudState['engine'] => {
     if (isCloudVoice(voice)) return 'cloud'
@@ -320,7 +319,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       voice: state.voice as SpeechSynthesisVoice | null,
       ahead: ahead(),
       ...(ref ? { ref } : {}),
-      ...(state.cloudModel ? { model: state.cloudModel } : {}),
+      model: state.cloudModel,
     }
   }
 
@@ -335,7 +334,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
 
   /** Primes every speaker inside the press that starts a book, since its voice is resolved only after. */
   const primeBeforeVoice = () => {
-    for (const s of speakers()) s.prime()
+    for (const s of speakers) s.prime()
   }
 
   const failWith = (session_: number, problem: SpeakProblem, wasIntro = false) => {
@@ -387,7 +386,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     const chapter = current.data.chapter
     if (onLastPage(current.plan, cursor) && hasNextChapter(chapter)) void getChapter(chapter.index + 1)
     const active = speaker()
-    for (const s of speakers()) if (s !== active) s.stop()
+    for (const s of speakers) if (s !== active) s.stop()
     if (intro) {
       emit({ status: 'playing', problem: null })
       active.speak(chapterIntro(chapter), options(), {
@@ -501,7 +500,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
   const close = (problem: Problem | null = null) => {
     const wasOpen = slug !== null
     save()
-    for (const s of speakers()) {
+    for (const s of speakers) {
       s.stop()
       s.close()
     }
