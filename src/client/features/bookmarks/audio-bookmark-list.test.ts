@@ -123,7 +123,7 @@ describe('AudioBookmarkList, add', () => {
       },
     )
     await list.load()
-    const adding = list.add(moment(2, 50))
+    const adding = list.bookmark(moment(2, 50))
     expect(snap().items.map((b) => [b.pending, b.kind])).toEqual([
       [false, 'voice'],
       [true, 'voice'],
@@ -144,7 +144,7 @@ describe('AudioBookmarkList, add', () => {
       },
     )
     await list.load()
-    await list.add(moment(2, 50))
+    await list.bookmark(moment(2, 50))
     expect(ids(snap().items)).toEqual([ID(9)])
   })
 
@@ -154,7 +154,7 @@ describe('AudioBookmarkList, add', () => {
         create: vi.fn(async () => ({ ok: false as const, problem })),
       })
       await list.load()
-      await list.add(moment(2, 50))
+      await list.bookmark(moment(2, 50))
       expect(snap().items, problem).toEqual([])
       expect(toasts.at(-1), problem).toBe(AUDIO_PROBLEM_TEXT[problem])
       if (problem === 'signed_out') expect(snap().state).toBe('signed_out')
@@ -167,7 +167,7 @@ describe('AudioBookmarkList, add', () => {
       create: vi.fn(async () => ({ ok: false as const, problem: 'not_found' as const })),
     })
     await list.load()
-    await list.add(moment(2, 50))
+    await list.bookmark(moment(2, 50))
     expect(toasts.at(-1)).toBe(AUDIO_PROBLEM_TEXT.failed)
   })
 
@@ -175,7 +175,7 @@ describe('AudioBookmarkList, add', () => {
     const loaded = later<AudioLoadAnswer>()
     const { list, snap } = setup(undefined, { load: vi.fn(() => loaded.promise) })
     list.start({ signedIn: true })
-    await list.add(moment(2, 50))
+    await list.bookmark(moment(2, 50))
     expect(ids(snap().items)).toEqual([ID(9)])
     loaded.settle({ state: 'ready', bookmarks: [saved(1, 4)] })
     await loaded.promise
@@ -187,7 +187,7 @@ describe('AudioBookmarkList, add', () => {
   it('does nothing signed out', async () => {
     const { list, deps, snap, toasts } = setup()
     list.start({ signedIn: false })
-    await list.add(moment(2, 50))
+    await list.bookmark(moment(2, 50))
     expect(deps.create).not.toHaveBeenCalled()
     expect(snap().items).toEqual([])
     expect(toasts).toEqual([])
@@ -208,7 +208,7 @@ describe('AudioBookmarkList, remove', () => {
     const created = later<Awaited<ReturnType<AudioDeps['create']>>>()
     const { list, deps, snap } = setup(undefined, { create: vi.fn(() => created.promise) })
     await list.load()
-    const adding = list.add(moment(2, 50))
+    const adding = list.bookmark(moment(2, 50))
     const key = snap().items[0]?.key as string
     const removing = list.remove(key)
     expect(snap().items).toEqual([])

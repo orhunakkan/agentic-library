@@ -2,6 +2,8 @@ import {
   type CollectionSnapshot,
   type CollectionState,
   type Entry,
+  itemsUnder,
+  type NamedLoadAnswer,
   OptimisticCollection,
 } from '~/client/lib/optimistic-collection'
 import { type AudioBookmarkView, type EpisodeRef, inListeningOrder, type VoicePlace } from '~/shared/bookmarks/audio'
@@ -13,7 +15,9 @@ export type AudioBookmarksState = Exclude<CollectionState, 'off'>
 
 export type AudioBookmarkItem = Entry<AudioBookmarkView>
 
-export type AudioSnapshot = CollectionSnapshot<AudioBookmarkView>
+export interface AudioSnapshot extends CollectionSnapshot<AudioBookmarkView> {
+  state: AudioBookmarksState
+}
 
 export interface NewAudioBookmark {
   request: AudioBookmarkRequest
@@ -31,9 +35,7 @@ export const AUDIO_PROBLEM_TEXT: Record<BookmarkProblem, string> = {
   failed: 'Couldn’t save that. Try again.',
 }
 
-export type AudioLoadAnswer =
-  | { state: 'ready'; bookmarks: AudioBookmarkView[] }
-  | { state: 'signed_out' | 'not_found' | 'unavailable' }
+export type AudioLoadAnswer = NamedLoadAnswer<'bookmarks', AudioBookmarkView>
 
 export interface AudioDeps {
   load: (book: string) => Promise<AudioLoadAnswer>
@@ -47,26 +49,23 @@ const ordered = (items: readonly AudioBookmarkItem[]) => [
   ...items.filter((b) => b.pending),
 ]
 
-export class AudioBookmarkList {
-  private readonly list: OptimisticCollection<AudioBookmarkView, NewAudioBookmark, BookmarkProblem>
-
+/** The reader's audio bookmarks in one book. */
+export class AudioBookmarkList extends OptimisticCollection<AudioBookmarkView, NewAudioBookmark, BookmarkProblem> {
   constructor(
     readonly book: string,
     private readonly deps: AudioDeps,
     state: AudioBookmarksState,
   ) {
-    this.list = new OptimisticCollection(
+    super(
       {
-        load: async () => {
-          const answer = await deps.load(book)
-          return answer.state === 'ready' ? { state: 'ready', items: answer.bookmarks } : answer
-        },
+        load: () => itemsUnder('bookmarks', deps.load(book)),
         create: async (input) => {
           const result = await deps.create(input.request)
           if (result.ok) return { ok: true, value: result.value.bookmark }
           return { ok: false, problem: result.problem === 'not_found' ? 'failed' : result.problem }
         },
         remove: deps.remove,
+        removed: () => deps.toast('Bookmark removed'),
         draft: (input, key) =>
           ({ ...input.view, id: key, status: 'ok', createdAt: new Date().toISOString() }) as AudioBookmarkView,
         refused: (problem) => deps.toast(AUDIO_PROBLEM_TEXT[problem]),
@@ -76,34 +75,19 @@ export class AudioBookmarkList {
     )
   }
 
-  subscribe = (listener: () => void): (() => void) => this.list.subscribe(listener)
+  /** Never off: the list starts in an `AudioBookmarksState`, and `start` takes no `embedded`. */
+  override getSnapshot = (): AudioSnapshot => this.snapshot as AudioSnapshot
 
-  getSnapshot = (): AudioSnapshot => this.list.getSnapshot()
-
-  start({ signedIn }: { signedIn: boolean }): void {
-    this.list.start({ signedIn })
+  override start({ signedIn }: { signedIn: boolean }): void {
+    super.start({ signedIn })
   }
 
-  load(): Promise<void> {
-    return this.list.load()
-  }
-
-  retry(): void {
-    this.list.retry()
-  }
-
-  async add(input: NewAudioBookmark): Promise<void> {
-    if (this.list.state === 'signed_out') return
-    const { saved } = this.list.add(input)
+  /** Bookmarks the moment and says so; nothing while the reader is signed out. */
+  async bookmark(input: NewAudioBookmark): Promise<void> {
+    if (this.state === 'signed_out') return
+    const { saved } = this.add(input)
     this.deps.toast(`Moment bookmarked · ${input.label}`)
     await saved
-  }
-
-  async remove(key: string): Promise<void> {
-    if (!this.list.find(key)) return
-    const removing = this.list.remove(key)
-    this.deps.toast('Bookmark removed')
-    await removing
   }
 }
 

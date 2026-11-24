@@ -1,4 +1,10 @@
-import { type CollectionSnapshot, type Entry, OptimisticCollection } from '~/client/lib/optimistic-collection'
+import {
+  type CollectionSnapshot,
+  type Entry,
+  itemsUnder,
+  type NamedLoadAnswer,
+  OptimisticCollection,
+} from '~/client/lib/optimistic-collection'
 import type { ChangeResult } from '~/client/lib/post'
 import type { PagePosition } from '~/shared/content/position'
 import { DEFAULT_COLOR, type HighlightColor } from '~/shared/highlights/colors'
@@ -36,9 +42,7 @@ export interface NewHighlight {
   place: Omit<HighlightPlace, 'href'>
 }
 
-export type HighlightLoadAnswer =
-  | { state: 'ready'; highlights: HighlightView[] }
-  | { state: 'signed_out' | 'not_found' | 'unavailable' }
+export type HighlightLoadAnswer = NamedLoadAnswer<'highlights', HighlightView>
 
 type HighlightChange = { color?: HighlightColor; note?: string | null }
 
@@ -51,26 +55,24 @@ export interface HighlightDeps {
 }
 
 /** The reader's highlights in one book, and the color the next one is made in. */
-export class HighlightList {
-  private readonly list: OptimisticCollection<HighlightView, NewHighlight & { color: HighlightColor }, HighlightProblem>
-  private readonly listeners = new Set<() => void>()
-  private color: HighlightColor = DEFAULT_COLOR
-  private snapshot: HighlightsSnapshot
-
+export class HighlightList extends OptimisticCollection<
+  HighlightView,
+  NewHighlight & { color: HighlightColor },
+  HighlightProblem,
+  { color: HighlightColor }
+> {
   constructor(
     book: string,
     private readonly deps: HighlightDeps,
     state: HighlightsState,
   ) {
-    this.list = new OptimisticCollection(
+    super(
       {
-        load: async () => {
-          const answer = await deps.load(book)
-          return answer.state === 'ready' ? { state: 'ready', items: answer.highlights } : answer
-        },
+        load: () => itemsUnder('highlights', deps.load(book)),
         create: ({ position, start, end, text, color }) => deps.create({ book, position, start, end, text, color }),
         update: deps.update,
         remove: deps.remove,
+        removed: () => deps.toast('Highlight deleted'),
         draft: (input, key) => {
           const now = new Date().toISOString()
           return {
@@ -88,57 +90,24 @@ export class HighlightList {
         settle: (shown, saved) => ({ ...saved, color: shown.color, note: shown.note }),
       },
       state,
+      { color: DEFAULT_COLOR },
     )
-    this.snapshot = { ...this.list.getSnapshot(), color: this.color }
-    this.list.subscribe(() => this.changed())
-  }
-
-  private changed() {
-    this.snapshot = { ...this.list.getSnapshot(), color: this.color }
-    for (const listener of this.listeners) listener()
-  }
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
-  }
-
-  getSnapshot = (): HighlightsSnapshot => this.snapshot
-
-  start({ signedIn, embedded }: { signedIn: boolean; embedded: boolean }): void {
-    this.list.start({ signedIn, embedded })
-  }
-
-  load(): Promise<void> {
-    return this.list.load()
-  }
-
-  retry(): void {
-    this.list.retry()
   }
 
   /** Shows the new highlight at once, in the current color, and returns the key it is shown by. */
   create(input: NewHighlight): string {
-    return this.list.add({ ...input, color: this.color }).key
+    return this.add({ ...input, color: this.snapshot.color }).key
   }
 
   recolor(key: string, color: HighlightColor): void {
-    this.color = color
-    this.changed()
-    void this.list.update(key, { color })
+    this.extend({ color })
+    void this.update(key, { color })
   }
 
   async saveNote(key: string, note: string): Promise<boolean> {
     const text = note.trim()
-    const ok = await this.list.update(key, { note: text || null })
+    const ok = await this.update(key, { note: text || null })
     if (ok) this.deps.toast('Note saved')
     return ok
-  }
-
-  async remove(key: string): Promise<void> {
-    if (!this.list.find(key)) return
-    const removing = this.list.remove(key)
-    this.deps.toast('Highlight deleted')
-    await removing
   }
 }

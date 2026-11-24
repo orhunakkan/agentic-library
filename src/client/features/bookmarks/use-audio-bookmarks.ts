@@ -44,7 +44,7 @@ export function useAudioBookmarks(book: string) {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [signedIn, list])
 
-  const add = useCallback((input: NewAudioBookmark) => void list.add(input), [list])
+  const add = useCallback((input: NewAudioBookmark) => void list.bookmark(input), [list])
   const remove = useCallback((key: string) => void list.remove(key), [list])
   const retry = useCallback(() => list.retry(), [list])
 

@@ -1,4 +1,10 @@
-import { type CollectionSnapshot, type Entry, OptimisticCollection } from '~/client/lib/optimistic-collection'
+import {
+  type CollectionSnapshot,
+  type Entry,
+  itemsUnder,
+  type NamedLoadAnswer,
+  OptimisticCollection,
+} from '~/client/lib/optimistic-collection'
 import { type BookmarkPlace, type BookmarkView, onPage } from '~/shared/bookmarks/bookmarks'
 import type { PagePosition } from '~/shared/content/position'
 import type { BookmarkProblem, BookmarkResult } from './bookmarks-client'
@@ -22,9 +28,7 @@ export const PROBLEM_TEXT: Record<BookmarkProblem, string> = {
   failed: 'Couldn’t save that. Try again.',
 }
 
-export type LoadAnswer =
-  | { state: 'ready'; bookmarks: BookmarkView[] }
-  | { state: 'signed_out' | 'not_found' | 'unavailable' }
+export type LoadAnswer = NamedLoadAnswer<'bookmarks', BookmarkView>
 
 export interface Deps {
   load: (book: string) => Promise<LoadAnswer>
@@ -36,25 +40,22 @@ export interface Deps {
   toast: (text: string) => void
 }
 
-export class BookmarkList {
-  private readonly list: OptimisticCollection<BookmarkView, NewBookmark, BookmarkProblem>
-
+/** The reader's page bookmarks in one book; the ribbon toggles the one on the page. */
+export class BookmarkList extends OptimisticCollection<BookmarkView, NewBookmark, BookmarkProblem> {
   constructor(
     book: string,
     private readonly deps: Deps,
     state: BookmarksState,
   ) {
-    this.list = new OptimisticCollection(
+    super(
       {
-        load: async () => {
-          const answer = await deps.load(book)
-          return answer.state === 'ready' ? { state: 'ready', items: answer.bookmarks } : answer
-        },
+        load: () => itemsUnder('bookmarks', deps.load(book)),
         create: async (input) => {
           const result = await deps.create({ book, position: input.position })
           return result.ok ? { ok: true, value: result.value.bookmark } : result
         },
         remove: deps.remove,
+        removed: () => deps.toast('Bookmark removed'),
         draft: (input, key) => ({
           id: key,
           status: 'ok',
@@ -68,42 +69,15 @@ export class BookmarkList {
     )
   }
 
-  subscribe = (listener: () => void): (() => void) => this.list.subscribe(listener)
-
-  getSnapshot = (): Snapshot => this.list.getSnapshot()
-
-  start({ signedIn, embedded }: { signedIn: boolean; embedded: boolean }): void {
-    this.list.start({ signedIn, embedded })
-  }
-
-  load(): Promise<void> {
-    return this.list.load()
-  }
-
-  retry(): void {
-    this.list.retry()
-  }
-
   toggle(input: NewBookmark): Promise<void> {
-    if (this.list.state !== 'ready') return Promise.resolve()
-    const here = onPage(this.list.getSnapshot().items, input.place.pageHref)
-    return here.length ? this.removeKeys(here.map((b) => b.key)) : this.create(input)
-  }
-
-  remove(key: string): Promise<void> {
-    return this.removeKeys([key])
+    if (this.state !== 'ready') return Promise.resolve()
+    const here = onPage(this.snapshot.items, input.place.pageHref)
+    return here.length ? this.remove(here.map((b) => b.key)) : this.create(input)
   }
 
   private async create(input: NewBookmark): Promise<void> {
-    const { saved } = this.list.add(input)
+    const { saved } = this.add(input)
     this.deps.toast('Page bookmarked')
     await saved
-  }
-
-  private async removeKeys(keys: readonly string[]): Promise<void> {
-    if (!keys.some((key) => this.list.find(key))) return
-    const removing = keys.map((key) => this.list.remove(key))
-    this.deps.toast('Bookmark removed')
-    await Promise.all(removing)
   }
 }

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   type CollectionLoadAnswer,
   type CollectionRules,
+  itemsUnder,
   OptimisticCollection,
   reloadWhenBack,
 } from './optimistic-collection'
@@ -189,11 +190,69 @@ describe('OptimisticCollection, update', () => {
     expect(gone.shown()).toEqual([])
   })
 
+  it('throws when the list was built without an update rule', async () => {
+    const { rules } = setup({ load: async () => ({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] }) })
+    const { update: _, ...withoutUpdate } = rules
+    const bare = new OptimisticCollection(withoutUpdate, 'loading')
+    await bare.load()
+    await expect(bare.update(ID(1), { text: 'Jane' })).rejects.toThrow('built without an update rule')
+    expect(bare.getSnapshot().items.map((n) => n.text)).toEqual(['Bingley'])
+  })
+
   it('signs the list out when the server says the reader signed out', async () => {
     const { list } = setup({ create: async () => ({ ok: false, problem: 'signed_out' }) })
     await list.load()
     await list.add('Darcy').saved
     expect(list.getSnapshot()).toEqual({ state: 'signed_out', items: [] })
+  })
+})
+
+describe('OptimisticCollection, remove', () => {
+  it('takes several items away at once and says so once, and says nothing when none is shown', async () => {
+    const removed = vi.fn()
+    const answer = {
+      state: 'ready' as const,
+      items: [
+        { id: ID(1), text: 'Bingley' },
+        { id: ID(2), text: 'Jane' },
+        { id: ID(3), text: 'Darcy' },
+      ],
+    }
+    const { list, rules, shown } = setup({ load: async () => answer, removed })
+    await list.load()
+    const removing = list.remove([ID(1), ID(2)])
+    expect(shown()).toEqual([[ID(3), ID(3), 'Darcy']])
+    expect(removed).toHaveBeenCalledTimes(1)
+    await removing
+    expect(rules.remove).toHaveBeenCalledTimes(2)
+
+    await list.remove(ID(1))
+    expect(removed).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('OptimisticCollection, extra snapshot fields', () => {
+  it('carries a feature’s own fields in the snapshot, and tells listeners when they change', async () => {
+    const { rules } = setup()
+    const list = new OptimisticCollection(rules, 'loading', { mood: 'calm' })
+    const heard = vi.fn()
+    list.subscribe(heard)
+    expect(list.getSnapshot()).toEqual({ state: 'loading', items: [], mood: 'calm' })
+    list.extend({ mood: 'cross' })
+    expect(heard).toHaveBeenCalledTimes(1)
+    await list.load()
+    expect(list.getSnapshot()).toEqual({ state: 'ready', items: [], mood: 'cross' })
+  })
+})
+
+describe('itemsUnder', () => {
+  it('names a feature’s loaded things as the list’s items, and passes other answers through', async () => {
+    const notes = [{ id: ID(1), text: 'Bingley' }]
+    expect(await itemsUnder('notes', Promise.resolve({ state: 'ready', notes }))).toEqual({
+      state: 'ready',
+      items: notes,
+    })
+    expect(await itemsUnder('notes', Promise.resolve({ state: 'signed_out' }))).toEqual({ state: 'signed_out' })
   })
 })
 

@@ -11,16 +11,34 @@ export interface CollectionSnapshot<T> {
   items: Entry<T>[]
 }
 
-export type CollectionLoadAnswer<T> =
-  | { state: 'ready'; items: T[] }
-  | { state: 'signed_out' | 'not_found' | 'unavailable' }
+/** The fields a list adds to its snapshot when it adds none. */
+export type NoExtra = Record<never, never>
+
+type LoadRefusal = { state: 'signed_out' | 'not_found' | 'unavailable' }
+
+export type CollectionLoadAnswer<T> = { state: 'ready'; items: T[] } | LoadRefusal
+
+/** A feature's load answer, which names its things after what they are: `{ state: 'ready', bookmarks }`. */
+export type NamedLoadAnswer<K extends string, T> = ({ state: 'ready' } & { [key in K]: T[] }) | LoadRefusal
+
+/** Turns a feature's load answer into the list's, taking its things from under `key`. */
+export async function itemsUnder<K extends string, T>(
+  key: K,
+  answer: Promise<NamedLoadAnswer<K, T>>,
+): Promise<CollectionLoadAnswer<T>> {
+  const loaded = await answer
+  return loaded.state === 'ready' ? { state: 'ready', items: loaded[key] } : loaded
+}
 
 /** What one feature passes in: its endpoints, how it shows a refusal, and its own order and merge rules. */
 export interface CollectionRules<T extends { id: string }, Input, P extends string> {
   load: () => Promise<CollectionLoadAnswer<T>>
   create: (input: Input) => Promise<ChangeResult<T, P>>
+  /** Lists without it offer no updates: `update` throws. */
   update?: (id: string, patch: Partial<T>) => Promise<ChangeResult<T, P>>
   remove: (id: string) => Promise<ChangeResult<true, P>>
+  /** Called once when a remove takes something away, for example to say so. */
+  removed?: () => void
   /** What the list shows while a create is on its way; `id` is the temporary key until the server answers. */
   draft: (input: Input, key: string) => T
   /** Says why a change was refused. A `signed_out` refusal also signs the list out. */
@@ -46,9 +64,10 @@ function predates(change: RecentChange | undefined, reload: number): boolean {
  * key, and later changes to it wait for its id. A reload keeps creates still on their way, and creates that
  * finished after the reload was sent, so its answer can't drop them. Nor can it bring back an item removed, or an
  * old value of an item updated, after it was sent; and an answer older than one already applied is ignored.
+ * A feature can carry fields of its own in the snapshot (`X`), and extend the collection with its own behaviour.
  */
-export class OptimisticCollection<T extends { id: string }, Input, P extends string> {
-  private snapshot: CollectionSnapshot<T>
+export class OptimisticCollection<T extends { id: string }, Input, P extends string, X extends object = NoExtra> {
+  protected snapshot: CollectionSnapshot<T> & X
   private readonly listeners = new Set<() => void>()
   private readonly ids = new Map<string, Promise<string | null>>()
   /** Temporary key → id of each create that finished, so a reload shows it under the key it was shown by. */
@@ -64,8 +83,9 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
   constructor(
     private readonly rules: CollectionRules<T, Input, P>,
     state: CollectionState,
+    ...[extra]: NoExtra extends X ? [extra?: X] : [extra: X]
   ) {
-    this.snapshot = { state, items: [] }
+    this.snapshot = { ...(extra as X), state, items: [] }
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -73,7 +93,17 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     return () => this.listeners.delete(listener)
   }
 
-  getSnapshot = (): CollectionSnapshot<T> => this.snapshot
+  getSnapshot = (): CollectionSnapshot<T> & X => this.snapshot
+
+  /** Changes the feature's own fields in the snapshot. */
+  extend(next: Partial<X>): void {
+    this.snapshot = { ...this.snapshot, ...next }
+    this.notify()
+  }
+
+  private notify() {
+    for (const listener of this.listeners) listener()
+  }
 
   get state(): CollectionState {
     return this.snapshot.state
@@ -87,7 +117,7 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     const { order } = this.rules
     const items = next.items ? (order ? order(next.items) : next.items) : this.snapshot.items
     this.snapshot = { ...this.snapshot, ...next, items }
-    for (const listener of this.listeners) listener()
+    this.notify()
   }
 
   private setItems(change: (items: Entry<T>[]) => Entry<T>[]) {
@@ -223,9 +253,10 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
 
   /** Shows the change at once and sends it once the item has an id; true when the server kept it. */
   async update(key: string, patch: Partial<T>): Promise<boolean> {
-    const before = this.find(key)
     const send = this.rules.update
-    if (!before || !send) return false
+    if (!send) throw new Error('This list was built without an update rule, so it offers no updates')
+    const before = this.find(key)
+    if (!before) return false
     this.replace(key, { ...before, ...patch })
     const result = await this.sendChange(key, before.id, (id) => send(id, patch))
     if (!result) return false
@@ -238,10 +269,17 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     return false
   }
 
-  /** Takes the item away at once, and puts it back if the server couldn't remove it. */
-  async remove(key: string): Promise<void> {
-    const before = this.find(key)
-    if (!before) return
+  /** Takes the items away at once, and puts back any the server couldn't remove. */
+  async remove(keys: string | readonly string[]): Promise<void> {
+    const shown = (typeof keys === 'string' ? [keys] : keys).flatMap((key) => this.find(key) ?? [])
+    if (!shown.length) return
+    const removing = shown.map((item) => this.removeOne(item))
+    this.rules.removed?.()
+    await Promise.all(removing)
+  }
+
+  private async removeOne(before: Entry<T>): Promise<void> {
+    const { key } = before
     this.replace(key, null)
     this.createdIds.delete(key)
     const result = await this.sendChange(key, before.id, (id) => this.rules.remove(id))
