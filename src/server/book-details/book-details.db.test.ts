@@ -7,7 +7,6 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { recordEvent } from '~/server/audit'
 import {
   handleApply,
   handleBookForm,
@@ -19,6 +18,7 @@ import { resetOpenLibrary, search } from '~/server/book-details/open-library'
 import { applyMatch, newCover, readCover, removeCover, saveDetails, setCover } from '~/server/book-details/store'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { LOOKUP_LIMIT } from '~/server/rate-limit'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, listBooks, loadBookPage, startImport, storeChapter } from '~/server/user-books'
@@ -26,6 +26,7 @@ import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
 import { openLibraryStub, STUB_COVERS, STUB_TITLES } from '../../../tests/e2e/support/open-library-stub'
 import { databaseUrl, freshDatabase } from '../testing/db'
+import { spend } from '../testing/quota'
 import { testUser } from '../testing/users'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -516,8 +517,7 @@ describe('looking up a book', () => {
   it('refuses the 31st lookup within an hour, with when to try again', async () => {
     const { user, bookId } = await ready('reader')
     const cookie = await signIn(user.id)
-    for (let i = 0; i < 30; i++)
-      await recordEvent(db(), 'book.looked_up', { userId: user.id, detail: { bookId, kind: 'search' } })
+    await spend(db(), user.id, 'book-lookup', LOOKUP_LIMIT.max)
     const res = await lookup(cookie, { book: bookId, title: 'One more' })
     expect(res.status).toBe(429)
     const body = (await res.json()) as { error: string; retryAt: string }
@@ -655,8 +655,7 @@ describe('applying a match', () => {
   it('counts toward the 30 an hour', async () => {
     const { user, bookId } = await ready('reader')
     const cookie = await signIn(user.id)
-    for (let i = 0; i < 30; i++)
-      await recordEvent(db(), 'book.looked_up', { userId: user.id, detail: { bookId, kind: 'apply' } })
+    await spend(db(), user.id, 'book-lookup', LOOKUP_LIMIT.max)
     expect((await apply(cookie, bookId, body)).status).toBe(429)
   })
 })

@@ -16,6 +16,7 @@ import {
   usernameLockedUntil,
 } from '~/server/login-attempts'
 import { hashPassword } from '~/server/passwords'
+import { API_KEY_LIMIT } from '~/server/rate-limit'
 import { hashToken, newSessionToken } from '~/server/security'
 import {
   createSession,
@@ -37,6 +38,7 @@ import {
 import { anthropicStub } from '../../tests/e2e/support/anthropic-stub'
 import { elevenLabsKey, elevenLabsStub, STUB_ELEVENLABS_KEYS } from '../../tests/e2e/support/elevenlabs-stub'
 import { databaseUrl, freshDatabase } from './testing/db'
+import { spend } from './testing/quota'
 import { testUser } from './testing/users'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -390,7 +392,7 @@ describe('the model for agent features', () => {
 
     it('is not held back by the key-change limit', async () => {
       const { user, cookie } = await signedIn()
-      for (let i = 0; i < 10; i++) await recordEvent(db(), 'api_key.saved', { userId: user.id })
+      await spend(db(), user.id, 'api-key', API_KEY_LIMIT.max)
       const saved = await post(cookie, { intent: 'model', model: 'claude-haiku-5-5' })
       expect(saved.headers.get('location')).toBe('/account/api-keys?status=model-saved#model')
     })
@@ -501,7 +503,7 @@ describe('the key form posts', () => {
 
   it('counts both providers’ changes against the one limit', async () => {
     const { user, cookie } = await signedIn()
-    for (let i = 0; i < 10; i++) await recordEvent(db(), 'api_key.saved', { userId: user.id })
+    await spend(db(), user.id, 'api-key', API_KEY_LIMIT.max)
     const limited = await save(cookie, 'elevenlabs', elevenLabsKey())
     expect(limited.headers.get('location')).toBe(at('error=limit&provider=elevenlabs', 'elevenlabs'))
   })
@@ -566,7 +568,7 @@ describe('the voice model for read aloud', () => {
     const bad = await post(cookie, 'eleven_made_up')
     expect(bad.headers.get('location')).toBe('/account/api-keys?error=invalid&provider=elevenlabs#speech-model')
     expect(await getSpeechModel(db(), user.id)).toBe('eleven_v4')
-    for (let i = 0; i < 10; i++) await recordEvent(db(), 'api_key.saved', { userId: user.id })
+    await spend(db(), user.id, 'api-key', API_KEY_LIMIT.max)
     expect((await post(cookie, 'eleven_v4_turbo')).headers.get('location')).toContain('status=speech-model-saved')
   })
 

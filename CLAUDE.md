@@ -14,7 +14,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ### Tests
 
-`pnpm test:db` uses `DATABASE_URL`, or else local Postgres at `127.0.0.1:5432/agentic_test` (`tests/test-databases.ts`). E2e runs only in CI.
+`pnpm test:db` (about 2–3 minutes for the full run, so set a longer command timeout) uses `DATABASE_URL`, or else local Postgres at `127.0.0.1:5432/agentic_test` (`tests/test-databases.ts`). E2e runs only in CI.
 
 ### Branches
 

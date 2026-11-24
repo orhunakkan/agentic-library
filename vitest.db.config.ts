@@ -32,6 +32,7 @@ export default defineConfig({
         'src/server/security.ts': FULL,
         'src/server/redact.ts': FULL,
         'src/server/rate-limit.ts': FULL,
+        'src/server/quota.ts': FULL,
         'src/server/books/private.ts': { statements: 96, branches: 95, functions: 100, lines: 100 },
         'src/server/json-body.ts': FULL,
         'src/server/signed-in.ts': FULL,

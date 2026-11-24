@@ -179,6 +179,14 @@ const SEAMS: Seam[] = [
       'src/server/github-repos/pacing.ts': 'in-memory pacing of outbound GitHub calls, not a quota on users',
     },
   },
+  {
+    name: 'a test reaches a usage-quota limit through take (testing/quota.ts spend), never by writing its events (#89)',
+    pattern:
+      /(recordEvent\([^,]+, |insert into audit_events[^`]*)'(book\.asked|word\.(looked_up|translated)|book\.looked_up|repo\.(added|refreshed)|account\.exported|api_key\.(saved|deleted|rejected))'/,
+    under: ['src/server'],
+    tests: true,
+    allowed: { 'src/server/quota.db.test.ts': "take's own test: a kind counts every event it names" },
+  },
 ]
 
 function withoutComments(source: string): string {

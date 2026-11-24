@@ -7,7 +7,7 @@ import { createPrompt } from '~/server/ask-prompts/store'
 import { refFor } from '~/server/books/ref'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
-import { take } from '~/server/quota'
+import { ASK_LIMIT } from '~/server/rate-limit'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -18,6 +18,7 @@ import { bookPages } from '~/shared/highlights/page-text'
 import { anthropicStub, STUB_KEYS, STUB_RIGHT_ANSWER } from '../../../tests/e2e/support/anthropic-stub'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { databaseUrl, freshDatabase } from '../testing/db'
+import { spend } from '../testing/quota'
 import { testUser } from '../testing/users'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -197,7 +198,7 @@ describe('POST /read/<book>/ask', () => {
 
     it('over 60 questions an hour, counted from book.asked events, saying when to try again (429)', async () => {
       const { user, cookie } = await reader()
-      for (let i = 0; i < 59; i++) await take(db(), user.id, 'ask')
+      await spend(db(), user.id, 'ask', ASK_LIMIT.max - 1)
       expect((await ask('pride-and-prejudice', cookie)).status).toBe(200)
       await askedEvents(user.id)
       await new Promise((r) => setTimeout(r, 50))
@@ -616,7 +617,7 @@ describe('Ask with a saved prompt', () => {
     expect(audit).toMatchObject({ action: 'prompt', stop: 'end_turn', highlights: 0 })
     const detail = JSON.stringify(audit)
     for (const secret of ['Secret', id, 'Who’s who']) expect(detail).not.toContain(secret)
-    for (let i = 0; i < 59; i++) await take(db(), user.id, 'ask')
+    await spend(db(), user.id, 'ask', ASK_LIMIT.max - 1)
     const limited = await askWith(cookie, run(id), stubFetch)
     expect([limited.status, ((await limited.json()) as { error: string }).error]).toEqual([429, 'limit'])
   })

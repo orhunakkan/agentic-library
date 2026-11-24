@@ -47,10 +47,11 @@ export type QuotaKind = EventKind | 'speech'
 /** Imports are counted when they finish, so their callers only check, under their own lock. */
 type CheckedKind = 'import' | 'article-save'
 
+/** The kinds a request takes one reserved event of; imports only check. */
+export type EventTakeKind = Exclude<EventKind, CheckedKind>
+
 export interface TakeOptions {
   now?: Date
-  /** Speech only: how many characters to take. */
-  amount?: number
   ip?: string | null
   /** What is known before the call; the reservation starts with it. */
   detail?: object
@@ -58,13 +59,15 @@ export interface TakeOptions {
   as?: AuditEvent
 }
 
+export type Refused = { ok: false; retryAt: Date }
+
 export type Taken =
   | {
       ok: true
       /** Adds the outcome to the reservation's detail, optionally renaming it to another event the kind counts. */
       settle: (detail: object, event?: AuditEvent) => Promise<void>
     }
-  | { ok: false; retryAt: Date }
+  | Refused
 
 async function eventRetryAt(db: Db, userId: number, kind: EventKind, now: Date): Promise<Date | null> {
   const { limit, events } = EVENT_QUOTAS[kind] as EventQuota
@@ -79,39 +82,60 @@ async function eventRetryAt(db: Db, userId: number, kind: EventKind, now: Date):
   )
 }
 
+/** Checks and spends in one transaction, with the user row locked, so parallel takes queue behind each other. */
+function locked<T>(pool: Pool, userId: number, spend: (tx: Db) => Promise<T>): Promise<T> {
+  return pool.begin(async (tx) => {
+    await tx`select id from users where id = ${userId} for update`
+    return spend(tx)
+  }) as Promise<T>
+}
+
 /**
  * Takes a unit of `kind` for the user before it is spent: with the user row locked, it checks the
  * limit and writes the reservation in one transaction, so parallel requests can't all pass the check.
  * A reservation counts whatever the outcome; the caller settles it with the outcome afterwards.
+ * Speech takes `amount` read-aloud characters into its usage table, and has nothing to settle.
  */
 export function take(
   pool: Pool,
   userId: number,
-  kind: Exclude<QuotaKind, CheckedKind>,
-  { now = new Date(), amount = 0, ip = null, detail = {}, as }: TakeOptions = {},
-): Promise<Taken> {
-  return pool.begin(async (tx): Promise<Taken> => {
-    await tx`select id from users where id = ${userId} for update`
-    if (kind === 'speech') {
+  kind: 'speech',
+  options: { amount: number; now?: Date },
+): Promise<{ ok: true } | Refused>
+export function take(pool: Pool, userId: number, kind: EventTakeKind, options?: TakeOptions): Promise<Taken>
+export function take(
+  pool: Pool,
+  userId: number,
+  kind: EventTakeKind | 'speech',
+  options: TakeOptions & { amount?: number } = {},
+): Promise<Taken | { ok: true } | Refused> {
+  const now = options.now ?? new Date()
+  if (kind === 'speech') {
+    /** The speech overload makes amount required. */
+    const { amount } = options as { amount: number }
+    return locked(pool, userId, async (tx): Promise<{ ok: true } | Refused> => {
       const minutes = await usageSince(tx, userId, new Date(now.getTime() - SPEECH_LIMIT.windowMs))
       const retryAt = charactersRetryAt(minutes, amount, SPEECH_LIMIT, now)
       if (retryAt) return { ok: false, retryAt }
       await recordUsage(tx, userId, amount, now)
-      return { ok: true, settle: async () => {} }
-    }
+      return { ok: true }
+    })
+  }
+  const { ip = null, detail = {}, as } = options
+  return locked(pool, userId, async (tx): Promise<Taken> => {
     const retryAt = await eventRetryAt(tx, userId, kind, now)
     if (retryAt) return { ok: false, retryAt }
-    const [row] = await tx<{ id: string }[]>`
+    /** An insert with returning yields exactly its one row. */
+    const [{ id }] = await tx<[{ id: string }]>`
       insert into audit_events (user_id, event, ip, detail, at)
       values (${userId}, ${as ?? EVENT_QUOTAS[kind].events[0]}, ${ip}, ${tx.json(detail as never)}, ${now})
       returning id`
-    const id = row?.id
     return {
       ok: true,
       settle: async (outcome, event) => {
         await pool`
           update audit_events set detail = detail || ${pool.json(outcome as never)}, event = coalesce(${event ?? null}, event)
-          where id = ${id ?? null}`
+          where id = ${id}`
       },
     }
   })

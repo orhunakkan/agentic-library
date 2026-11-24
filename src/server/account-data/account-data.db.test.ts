@@ -11,10 +11,11 @@ vi.mock('~/server/db', async (importOriginal) => {
 
 import { handleAccountExport } from '~/server/account-data/handler'
 import { readAccount } from '~/server/account-data/store'
-import { recordEvent } from '~/server/audit'
+import { EXPORT_LIMIT } from '~/server/rate-limit'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { databaseUrl, freshDatabase } from '../testing/db'
+import { spend } from '../testing/quota'
 import { KEY_CIPHERTEXT, PASSWORD_HASH, userWithEveryRow } from '../testing/user-rows'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -173,9 +174,8 @@ describe('GET /account/export', () => {
 
   it('refuses the 11th download within the hour', async () => {
     const ada = await signedIn()
-    for (let i = 0; i < 9; i++) await recordEvent(getDb(), 'account.exported', { userId: ada.userId })
-    await raw`
-      insert into audit_events (user_id, event, at) values (${ada.userId}, 'account.exported', now() - interval '61 minutes')`
+    await spend(getDb(), ada.userId, 'export', 1, new Date(Date.now() - 61 * 60_000))
+    await spend(getDb(), ada.userId, 'export', EXPORT_LIMIT.max - 1)
     expect((await download(ada.cookie)).status).toBe(200)
     const limited = await download(ada.cookie)
     expect(limited.status).toBe(429)

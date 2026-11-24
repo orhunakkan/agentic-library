@@ -17,6 +17,7 @@ import { MOVING_FIRST, MOVING_SECOND, SAMPLE_COMMIT } from '../../../tests/e2e/s
 import { githubStubFetch, githubStubState, resetGitHubStub } from '../../../tests/e2e/support/github-stub'
 import { REPO_ADD_LIMIT, REPO_REFRESH_LIMIT, REPO_VIEW_LIMIT } from '../rate-limit'
 import { databaseUrl, freshDatabase } from '../testing/db'
+import { spend } from '../testing/quota'
 import { testUser } from '../testing/users'
 import {
   handleRepoAction,
@@ -222,9 +223,7 @@ describe('adding', () => {
 
   it('allows 30 adds an hour', async () => {
     const { user, cookie } = await signedIn()
-    await raw`
-      insert into audit_events (user_id, event, detail)
-      select ${user.id}, 'repo.added', '{}'::jsonb from generate_series(1, ${REPO_ADD_LIMIT.max})`
+    await spend(db(), user.id, 'repo-add', REPO_ADD_LIMIT.max)
     expect(await answer(await add(cookie, 'https://github.com/folio-test/sample'))).toEqual([429, 'limited'])
   })
 
@@ -367,9 +366,7 @@ describe('refreshing', () => {
     const { repo } = await added(cookie, 'https://github.com/folio-test/moving')
     const limited = await signedIn()
     const other = await added(limited.cookie, 'https://github.com/folio-test/moving')
-    await raw`
-      insert into audit_events (user_id, event, detail)
-      select ${limited.user.id}, 'repo.refreshed', '{}'::jsonb from generate_series(1, ${REPO_REFRESH_LIMIT.max})`
+    await spend(db(), limited.user.id, 'repo-refresh', REPO_REFRESH_LIMIT.max)
     expect(await answer(await act(limited.cookie, other.repo.id, 'refresh'))).toEqual([429, 'limited'])
     expect(user.id).not.toBe(limited.user.id)
     await raw`update github_repos set github_id = 1006 where id = ${repo.id}`
@@ -790,9 +787,7 @@ describe('GitHub failing part of the way', () => {
     const { user, cookie } = await signedIn()
     const { repo } = await added(cookie, 'https://github.com/folio-test/moving')
     await raw`update github_repos set checked_at = now() - interval '2 hours' where id = ${repo.id}`
-    await raw`
-      insert into audit_events (user_id, event, detail)
-      select ${user.id}, 'repo.refreshed', '{}'::jsonb from generate_series(1, ${REPO_REFRESH_LIMIT.max})`
+    await spend(db(), user.id, 'repo-refresh', REPO_REFRESH_LIMIT.max)
     expect(await view(cookie, repo.id)).toMatchObject({
       state: 'ready',
       refreshed: null,
