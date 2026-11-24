@@ -1,4 +1,4 @@
-import { type ChangeResult, post, readAnswer } from '~/client/features/highlights/highlights-client'
+import { type ChangeResult, post, readAnswer } from '~/client/lib/post'
 import type { PagePosition } from '~/shared/content/position'
 import type { FlashcardView } from '~/shared/flashcards/contract'
 import type { CardOrigin } from '~/shared/flashcards/limits'

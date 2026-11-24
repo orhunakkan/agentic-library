@@ -11,7 +11,7 @@ import {
   type PlanState,
   type SubscriptionView,
 } from '~/shared/billing/billing'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 import { recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp } from '../auth.ts'
 import { getConfig } from '../config.ts'

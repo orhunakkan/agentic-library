@@ -1,5 +1,5 @@
-import { type ChangeResult, post } from '~/client/features/highlights/highlights-client'
 import type { BookStart } from '~/client/features/import/import-client'
+import { type ChangeResult, post } from '~/client/lib/post'
 import type { ArticleFetch, ArticleUrlProblem, WebFetchProblem } from '~/shared/articles/contract'
 import { isPlan, type Plan } from '~/shared/plans/plans'
 import type { ArticleProblem } from './article-messages'

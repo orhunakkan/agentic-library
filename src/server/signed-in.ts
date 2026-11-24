@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import type { Endpoint, ErrorAnswer } from '../shared/lib/endpoint.ts'
 import {
   type ApiCaller,
   apiCaller,
@@ -70,9 +71,29 @@ export interface Group<C extends string> {
 
 type Grouping<C extends string> = Group<C> & (SnakeCode extends C ? unknown : { codes: Codes<C> })
 
-export function signedInEndpoints<C extends string>(group: Grouping<C>) {
+/** The extras a refusal with code `K` carries, from the group's error answers. */
+type ExtraOf<E extends ErrorAnswer, K extends string> = E extends unknown
+  ? K extends E['error']
+    ? Omit<E, 'error'>
+    : never
+  : never
+
+type ExtraArgs<X> = Record<never, never> extends X ? [extra?: X] : [extra: X]
+
+/** What a handler answers on success: the endpoint's answer, with its status. */
+export interface Answered<A> {
+  status: number
+  answer: A
+}
+
+export function signedInEndpoints<C extends string, E extends ErrorAnswer = { error: C } & Record<string, unknown>>(
+  group: Grouping<C>,
+) {
   const codes: Codes<C> = group.codes ?? (SNAKE as Codes<SnakeCode> as Codes<C>)
-  const fail = (status: number, error: C, extra: object = {}) => noStoreJson(status, { error, ...extra })
+  /** The gate's own refusals, which carry no extras, so they skip `fail`'s per-code extras type. */
+  const refusal = (status: number, error: C) => noStoreJson(status, { error })
+  const fail = <K extends C>(status: number, error: K, ...[extra]: ExtraArgs<ExtraOf<E, K>>) =>
+    noStoreJson(status, { error, ...extra })
 
   async function caller(request: Request, signedOut: () => Response): Promise<ApiCaller> {
     if (group.via === 'api') return apiCaller(request, signedOut)
@@ -92,7 +113,7 @@ export function signedInEndpoints<C extends string>(group: Grouping<C>) {
 
   function refuse(problem: JsonBodyProblem): Response {
     const code = problem === 'too-large' ? (codes.tooLarge ?? codes.invalid) : codes.invalid
-    return fail(PROBLEM_STATUS[problem], code)
+    return refusal(PROBLEM_STATUS[problem], code)
   }
 
   async function post<B extends Body = { json: number }, P = undefined, I = BodyValue<B>>(
@@ -101,7 +122,7 @@ export function signedInEndpoints<C extends string>(group: Grouping<C>) {
     work: (ctx: Gate & { pre: P; input: I }) => Promise<Response>,
   ): Promise<Response> {
     const signedOut = () =>
-      spec.signedOut === 404 ? fail(404, codes.notFound ?? codes.signedOut) : fail(401, codes.signedOut)
+      spec.signedOut === 404 ? refusal(404, codes.notFound ?? codes.signedOut) : refusal(401, codes.signedOut)
     const who = await caller(request, signedOut)
     if (!who.ok) return who.response
     try {
@@ -111,16 +132,29 @@ export function signedInEndpoints<C extends string>(group: Grouping<C>) {
       const body = await readBody(request, spec.body ?? { json: group.maxBytes })
       if (body instanceof Response) return body
       const input = spec.parse ? spec.parse(body.value as BodyValue<B>, pre) : (body.value as I)
-      if (input === null) return fail(400, codes.invalid)
+      if (input === null) return refusal(400, codes.invalid)
       if (input instanceof Response) return input
       return await work(Object.assign(gate, { pre, input }))
     } catch (error) {
       logError(spec.log, error)
-      return fail(500, codes.failed)
+      return refusal(500, codes.failed)
     }
   }
 
-  return { fail, post }
+  /** Serves one endpoint: its parser reads the body, and the handler answers with its answer type or a refusal. */
+  function serve<B, I, A extends object, P = undefined>(
+    endpoint: Endpoint<B, I, A, E>,
+    request: Request,
+    spec: Omit<HandlerSpec<{ json: number }, P, I>, 'body' | 'parse'>,
+    work: (ctx: Gate & { pre: P; input: I }) => Promise<Answered<A> | Response>,
+  ): Promise<Response> {
+    return post(request, { ...spec, parse: endpoint.parse }, async (ctx) => {
+      const reply = await work(ctx)
+      return reply instanceof Response ? reply : noStoreJson(reply.status, reply.answer)
+    })
+  }
+
+  return { fail, post, serve }
 }
 
 export const MAX_FORM_BYTES = 64 * 1024

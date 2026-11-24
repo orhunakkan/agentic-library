@@ -87,7 +87,7 @@ const SEAMS: Seam[] = [
   },
   {
     name: "a handler's error answer comes from its gate group, not a local fail (#71)",
-    pattern: /const fail\b[^\n]*noStoreJson/,
+    pattern: /const fail\b[^\n]*\n?[^\n]*noStoreJson/,
     under: ['src/server'],
     allowed: {
       'src/server/signed-in.ts': 'the gate',

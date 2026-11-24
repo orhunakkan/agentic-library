@@ -1,5 +1,5 @@
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 import { isReservedSignupName, USERNAME_PATTERN } from '../../shared/signup/signup.ts'
-import { isObject, only } from '../ask/input.ts'
 import { parseEmail } from '../email/input.ts'
 import { formField } from '../json-body.ts'
 import { normalizeUsername } from '../users.ts'

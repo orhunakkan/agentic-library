@@ -1,4 +1,4 @@
-import { type ChangeResult, post } from '~/client/features/highlights/highlights-client'
+import { type ChangeResult, post } from '~/client/lib/post'
 import { isStars, type Stars } from '~/shared/ratings/ratings'
 
 export type RatingProblem = 'signed_out' | 'not_found' | 'failed' | 'offline'

@@ -1,5 +1,5 @@
 import type { AdminRole, NewUser, UserChange } from '../../shared/admin/users.ts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 import { isValidUsername, normalizeUsername, ROLES } from '../users.ts'
 
 const RAW_USERNAME_MAX = 64

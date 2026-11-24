@@ -7,7 +7,7 @@ import type {
   RequestOptionsJSON,
   SignInError,
 } from '~/shared/passkeys/passkeys'
-import { type ChangeResult, post } from '../highlights/highlights-client'
+import { type ChangeResult, post } from '../../lib/post'
 import { authenticationJSON, creationOptions, registrationJSON, requestOptions } from './passkey-json'
 
 export type AddProblem = AddPasskeyError | 'network'

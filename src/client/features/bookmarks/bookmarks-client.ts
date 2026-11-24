@@ -1,4 +1,4 @@
-import { type ChangeResult, post, readAnswer } from '~/client/features/highlights/highlights-client'
+import { type ChangeResult, post, readAnswer } from '~/client/lib/post'
 import type { BookmarkView } from '~/shared/bookmarks/bookmarks'
 import type { PagePosition } from '~/shared/content/position'
 

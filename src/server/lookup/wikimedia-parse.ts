@@ -1,9 +1,9 @@
 import { decodeEntities } from '../../shared/content/html-text.ts'
+import { isObject } from '../../shared/lib/json-shape.ts'
 import type { Sense } from '../../shared/lookup/contract.ts'
 import { englishName } from '../../shared/lookup/languages.ts'
 import { lookupTerm } from '../../shared/lookup/term.ts'
 import { sentenceSpans } from '../../shared/read-aloud/sentences.ts'
-import { isObject } from '../ask/input.ts'
 
 export const MAX_PARTS = 3
 export const MAX_DEFINITIONS = 4

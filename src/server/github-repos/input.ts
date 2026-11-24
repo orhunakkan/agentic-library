@@ -1,5 +1,5 @@
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 import { isUuid } from '../../shared/uuid.ts'
-import { isObject, only } from '../ask/input.ts'
 
 const RAW_URL_MAX = 2000
 export const PATH_MAX = 1024

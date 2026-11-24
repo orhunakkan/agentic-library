@@ -1,4 +1,4 @@
-import { type ChangeResult, post } from '~/client/features/highlights/highlights-client'
+import { type ChangeResult, post } from '~/client/lib/post'
 import type { AskPromptView, PromptFields } from '~/shared/ask-prompts/prompts'
 import type { PromptProblem } from './prompt-messages'
 

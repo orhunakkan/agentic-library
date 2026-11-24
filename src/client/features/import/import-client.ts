@@ -1,5 +1,5 @@
 import { uploadCover } from '~/client/features/book-details/details-client'
-import type { ChangeResult } from '~/client/features/highlights/highlights-client'
+import type { ChangeResult } from '~/client/lib/post'
 import type { PrivateBookSteps } from './private-book-save'
 
 export type ImportProblem =

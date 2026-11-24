@@ -3,7 +3,7 @@ import { type HighlightColor, isHighlightColor } from '~/shared/highlights/color
 import { MAX_NOTE, MAX_PASSAGE } from '~/shared/highlights/limits'
 import { cleanText } from '~/shared/import/blocks'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 
 const OFFSET_MAX = 10_000_000
 

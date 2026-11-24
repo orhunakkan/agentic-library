@@ -1,6 +1,7 @@
 import { isPromptId } from '~/shared/ask-prompts/prompts'
 import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { cleanText } from '~/shared/import/blocks'
+import { isObject, only } from '~/shared/lib/json-shape'
 
 export const QUESTION_MAX = 2_000
 export const QUOTE_MAX = 1_000
@@ -37,12 +38,6 @@ export interface AskInput {
 const length = (text: string) => [...text].length
 
 export const clean = (text: string) => cleanText(text, true).trim()
-
-export const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-export const only = (value: Record<string, unknown>, keys: readonly string[]) =>
-  Object.keys(value).every((k) => keys.includes(k))
 
 function history(value: unknown): AskTurn[] | null {
   if (!Array.isArray(value) || value.length > HISTORY_TURNS_MAX) return null

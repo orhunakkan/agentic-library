@@ -1,5 +1,5 @@
 import { checkPrompt, type PromptReason } from '~/shared/ask-prompts/prompts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 import type { MoveDirection, PromptInput } from './store.ts'
 
 export { isPromptId } from '~/shared/ask-prompts/prompts'

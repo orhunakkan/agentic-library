@@ -3,7 +3,8 @@ import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { BACK_MAX, CARD_ORIGINS, type CardOrigin, FRONT_MAX } from '~/shared/flashcards/limits'
 import type { ReviewResult } from '~/shared/flashcards/schedule'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { clean, isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
+import { clean } from '../ask/input.ts'
 
 export interface NewCardInput {
   book: string

@@ -1,8 +1,9 @@
 import { isBookSlug } from '../../shared/content/book-slug.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 import type { WordSource } from '../../shared/lookup/contract.ts'
 import { isTranslateLanguage, type TranslateLanguage } from '../../shared/lookup/languages.ts'
 import { collapse, lookupTerm, PASSAGE_MAX } from '../../shared/lookup/term.ts'
-import { clean, isObject, only } from '../ask/input.ts'
+import { clean } from '../ask/input.ts'
 
 const RAW_TERM_MAX = 200
 

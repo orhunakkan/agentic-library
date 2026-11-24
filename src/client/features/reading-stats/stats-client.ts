@@ -1,4 +1,4 @@
-import { type ChangeResult, post } from '~/client/features/highlights/highlights-client'
+import { type ChangeResult, post } from '~/client/lib/post'
 import type { FinishedErrorCode, GoalErrorCode } from '~/shared/reading-stats/contract'
 
 export type GoalProblem = GoalErrorCode

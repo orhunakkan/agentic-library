@@ -1,6 +1,6 @@
 import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 
 export type AudioBookmarkCreateInput =
   | { book: string; kind: 'voice'; position: PagePosition; offset: number }

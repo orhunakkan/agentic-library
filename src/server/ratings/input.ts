@@ -1,6 +1,6 @@
 import { isStars, type RatingBody } from '~/shared/ratings/ratings'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 
 export function parseRating(value: unknown): RatingBody | null {
   if (!isObject(value) || !only(value, ['book', 'stars']) || !('stars' in value)) return null

@@ -1,5 +1,5 @@
 import { isCatalogueBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 
 export interface RemovedBookInput {
   book: string

@@ -1,5 +1,15 @@
-import { type ChangeResult, post } from '~/client/features/highlights/highlights-client'
-import type { ShelfView } from '~/shared/shelves/contract'
+import { type CallFailure, call } from '~/client/lib/call'
+import type { ChangeResult } from '~/client/lib/post'
+import type { Endpoint } from '~/shared/lib/endpoint'
+import {
+  SHELF_CREATE,
+  type ShelfAnswer,
+  type ShelfDeletedAnswer,
+  type ShelfErrorAnswer,
+  type ShelfView,
+  shelfBook,
+  shelfChange,
+} from '~/shared/shelves/contract'
 
 export type ShelfProblem =
   | 'signed_out'
@@ -13,59 +23,50 @@ export type ShelfProblem =
 
 export type ShelfResult<T> = ChangeResult<T, ShelfProblem>
 
-const PROBLEMS: Record<string, ShelfProblem> = {
-  signed_out: 'signed_out',
-  not_found: 'not_found',
-  duplicate: 'duplicate',
-  invalid: 'invalid',
-}
-
-async function readShelfAnswer<T>(
-  response: Response,
-  pick: (body: Record<string, unknown>) => T | undefined,
-): Promise<ShelfResult<T>> {
-  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
-  if (response.ok) {
-    const value = pick(body)
-    return value === undefined ? { ok: false, problem: 'failed' } : { ok: true, value }
+/** Reads a refusal as its problem; a code the endpoint doesn't send (a proxy's, a newer server's) is a failure. */
+function problemOf(refusal: ShelfErrorAnswer | CallFailure): ShelfProblem {
+  switch (refusal.error) {
+    case 'quota':
+      return refusal.scope === 'shelves' ? 'quota_shelves' : 'quota_books'
+    case 'signed_out':
+    case 'not_found':
+    case 'invalid':
+    case 'duplicate':
+    case 'offline':
+      return refusal.error
+    default:
+      return 'failed'
   }
-  if (body.error === 'quota') return { ok: false, problem: body.scope === 'shelves' ? 'quota_shelves' : 'quota_books' }
-  const code = body.error
-  const known = typeof code === 'string' && Object.hasOwn(PROBLEMS, code) ? PROBLEMS[code] : undefined
-  return { ok: false, problem: known ?? 'failed' }
 }
 
-async function send<T>(
-  path: string,
-  body: unknown,
-  pick: (body: Record<string, unknown>) => T | undefined,
+async function send<B, A, T>(
+  endpoint: Endpoint<B, unknown, A, ShelfErrorAnswer>,
+  body: B,
+  pick: (answer: A) => T | undefined,
 ): Promise<ShelfResult<T>> {
-  let response: Response
-  try {
-    response = await post(path, body)
-  } catch {
-    return { ok: false, problem: 'offline' }
-  }
-  return readShelfAnswer(response, pick)
+  const result = await call(endpoint, body)
+  if (!result.ok) return { ok: false, problem: problemOf(result.refusal) }
+  const value = pick(result.answer)
+  return value === undefined ? { ok: false, problem: 'failed' } : { ok: true, value }
 }
 
-const shelfOf = (body: Record<string, unknown>) =>
-  body.shelf && typeof body.shelf === 'object' ? (body.shelf as ShelfView) : undefined
-
-const shelfPath = (id: string) => `/account/shelves/${encodeURIComponent(id)}`
+const shelfOf = (answer: ShelfAnswer | ShelfDeletedAnswer): ShelfView | undefined =>
+  'shelf' in answer ? answer.shelf : undefined
 
 export function createShelf(name: string, book?: string): Promise<ShelfResult<ShelfView>> {
-  return send('/account/shelves/new', book === undefined ? { name } : { name, book }, shelfOf)
+  return send(SHELF_CREATE, book === undefined ? { name } : { name, book }, shelfOf)
 }
 
 export function renameShelf(id: string, name: string): Promise<ShelfResult<ShelfView>> {
-  return send(shelfPath(id), { name }, shelfOf)
+  return send(shelfChange(id), { name }, shelfOf)
 }
 
 export function deleteShelf(id: string): Promise<ShelfResult<true>> {
-  return send(shelfPath(id), { intent: 'delete' }, (b) => (b.deleted === true ? true : undefined))
+  return send(shelfChange(id), { intent: 'delete' }, (answer) =>
+    'deleted' in answer && answer.deleted === true ? true : undefined,
+  )
 }
 
 export function setShelfBook(id: string, book: string, on: boolean): Promise<ShelfResult<ShelfView>> {
-  return send(`${shelfPath(id)}/books`, { book, on }, shelfOf)
+  return send(shelfBook(id), { book, on }, shelfOf)
 }

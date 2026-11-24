@@ -1,4 +1,4 @@
-import { type ChangeResult, post } from '~/client/features/highlights/highlights-client'
+import { type ChangeResult, post } from '~/client/lib/post'
 import type { RepoUrlProblem, RepoView } from '~/shared/github-repos/contract'
 import type { RepoProblem } from './repo-messages'
 

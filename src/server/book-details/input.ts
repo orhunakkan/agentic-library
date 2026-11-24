@@ -2,7 +2,7 @@ import { cleanText } from '../../shared/import/blocks.ts'
 import { type BookDetails, cleanDescription } from '../../shared/import/details.ts'
 import { normalizeIsbn } from '../../shared/import/isbn.ts'
 import { DESCRIPTION_MAX, PUBLISHER_MAX } from '../../shared/import/limits.ts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 
 export const TITLE_MAX = 300
 export const AUTHOR_MAX = 200

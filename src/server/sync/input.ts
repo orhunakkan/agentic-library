@@ -13,7 +13,7 @@ import {
   type TimeWrite,
 } from '~/shared/sync/sync'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only } from '../ask/input.ts'
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 
 const MAX_OFFSET = 1_000_000
 const MAX_POSITION_MS = 86_400_000

@@ -1,5 +1,5 @@
 import { cleanDescription } from '../../shared/import/details.ts'
-import { isObject } from '../ask/input.ts'
+import { isObject } from '../../shared/lib/json-shape.ts'
 import { WORK_ID } from './input.ts'
 
 export interface OpenLibraryMatch {

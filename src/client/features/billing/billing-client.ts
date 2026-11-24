@@ -5,7 +5,7 @@ import {
   isBillingProblem,
   type PlanState,
 } from '~/shared/billing/billing'
-import { type ChangeResult, post } from '../highlights/highlights-client'
+import { type ChangeResult, post } from '../../lib/post'
 
 export type BillingResult<T> = ChangeResult<T, BillingProblem | 'network'>
 

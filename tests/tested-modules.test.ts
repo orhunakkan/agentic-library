@@ -27,7 +27,6 @@ const ALLOWLIST: Record<string, string> = {
     'the React hook over repos-client.ts, which is tested; covered by github-repos.spec',
   'src/client/features/admin/use-users.ts':
     'wiring only; the logic is in users-store.ts, admin-client.ts and shared/admin/users.ts; covered by users.spec.ts',
-  'src/shared/shelves/contract.ts': 'types only: the bodies and answers of the shelves routes; nothing to run',
   'src/shared/flashcards/contract.ts': 'types only: the answers of the flashcards routes and reads; nothing to run',
   'src/shared/removed-books/contract.ts':
     'types only: the body and answers of the removed books route and its read; nothing to run',
