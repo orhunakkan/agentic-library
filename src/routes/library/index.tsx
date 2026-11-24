@@ -11,6 +11,7 @@ import { QUERY_MAX, queryOf, textForQuery } from '~/client/features/library/sear
 import { LibraryStatsCard } from '~/client/features/reading-stats/LibraryStatsCard'
 import { RemovedBooks } from '~/client/features/removed-books/RemovedBooks'
 import { ShelfActions } from '~/client/features/shelves/ShelfActions'
+import type { ShelfItem } from '~/client/features/shelves/shelf-store'
 import { type ShelvesApi, useShelves } from '~/client/features/shelves/use-shelves'
 import { cn } from '~/client/lib/cn'
 import { HUE_CLASSES } from '~/client/lib/hue-classes'
@@ -446,7 +447,7 @@ function ReaderShelfRow({
   onDeleted,
 }: {
   shelf: Shelf
-  readerShelf: ShelfView
+  readerShelf: ShelfItem
   api: ShelvesApi
   searching: boolean
   onDeleted: () => void

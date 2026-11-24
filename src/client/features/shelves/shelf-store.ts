@@ -1,13 +1,29 @@
+import {
+  type CollectionState,
+  type Entry,
+  itemsUnder,
+  type NoExtra,
+  OptimisticCollection,
+} from '~/client/lib/optimistic-collection'
 import type { ShelfView, ShelvesState } from '~/shared/shelves/contract'
-import { confirmed, PENDING_PREFIX, removed, renamed, withBook, withPending } from './shelf-list'
+import { sortShelves, withBook } from './shelf-list'
 import type { ShelfProblem, ShelfResult } from './shelves-client'
+
+export type ShelfItem = Entry<ShelfView>
 
 export type ShelvesStatus = 'loading' | 'ready' | 'unavailable'
 
-export interface ShelvesSnapshot {
-  shelves: ShelfView[]
-  status: ShelvesStatus
+/** How the reader's shelves show where they are: a list that can't be shown, signed out included, is unavailable. */
+export const statusOf = (state: CollectionState): ShelvesStatus =>
+  state === 'loading' || state === 'ready' ? state : 'unavailable'
+
+export interface NewShelf {
+  name: string
+  book: string
 }
+
+/** A change to one shelf: a new name, or a book put on or taken off it. */
+export type ShelfChange = { name: string } | { book: string; on: boolean }
 
 export interface ShelfRequests {
   createShelf(name: string, book?: string): Promise<ShelfResult<ShelfView>>
@@ -16,102 +32,75 @@ export interface ShelfRequests {
   setShelfBook(id: string, book: string, on: boolean): Promise<ShelfResult<ShelfView>>
 }
 
-export class ShelfStore {
-  private snapshot: ShelvesSnapshot
-  private readonly listeners = new Set<() => void>()
-  private pending = 0
+export interface ShelfDeps extends ShelfRequests {
+  load: () => Promise<ShelvesState>
+  /** Called once the server has kept a change, so pages that show the shelves load them again. */
+  changed: () => void
+}
 
-  constructor(
-    private readonly requests: ShelfRequests,
-    private readonly changed: () => void,
-    initial?: readonly ShelfView[],
-  ) {
-    this.snapshot = initial ? { shelves: [...initial], status: 'ready' } : { shelves: [], status: 'loading' }
-  }
+type Refused = (problem: ShelfProblem) => void
 
-  subscribe = (listener: () => void) => {
-    this.listeners.add(listener)
-    return () => {
-      this.listeners.delete(listener)
+/**
+ * The reader's shelves, sorted by name. A new shelf, a rename and a ticked book show at once; a delete waits for
+ * the server, which asks first. Each change answers with the problem that stopped it, or null.
+ */
+export class ShelfStore extends OptimisticCollection<ShelfView, NewShelf, ShelfProblem, NoExtra, ShelfChange> {
+  constructor(deps: ShelfDeps, initial?: readonly ShelfView[]) {
+    const kept = <T>(result: ShelfResult<T>): ShelfResult<T> => {
+      if (result.ok) deps.changed()
+      return result
     }
-  }
-
-  getSnapshot = (): ShelvesSnapshot => this.snapshot
-
-  private set(next: Partial<ShelvesSnapshot>) {
-    this.snapshot = { ...this.snapshot, ...next }
-    for (const listener of this.listeners) listener()
-  }
-
-  private update(change: (shelves: ShelfView[]) => ShelfView[]) {
-    this.set({ shelves: change(this.snapshot.shelves) })
-  }
-
-  reset = (shelves: readonly ShelfView[]) => this.set({ shelves: [...shelves], status: 'ready' })
-
-  load = (read: () => Promise<ShelvesState>): (() => void) => {
-    let live = true
-    read().then(
-      (state) => {
-        if (!live) return
-        if (state.state === 'ready') this.reset(state.shelves)
-        else this.set({ status: 'unavailable' })
+    super(
+      {
+        load: () => itemsUnder('shelves', deps.load()),
+        create: async ({ name, book }) => kept(await deps.createShelf(name, book)),
+        update: async (id, change) =>
+          kept(
+            await ('name' in change
+              ? deps.renameShelf(id, change.name)
+              : deps.setShelfBook(id, change.book, change.on)),
+          ),
+        apply: (shelf, change) =>
+          'name' in change ? { ...shelf, name: change.name } : withBook(shelf, change.book, change.on),
+        remove: async (id) => {
+          const result = await deps.deleteShelf(id)
+          if (result.ok || result.problem === 'not_found') deps.changed()
+          return result
+        },
+        confirmRemoves: true,
+        draft: ({ name, book }, key) => ({ id: key, name, books: [book] }),
+        refused: () => {},
+        order: sortShelves,
       },
-      () => live && this.set({ status: 'unavailable' }),
+      initial ? 'ready' : 'loading',
     )
-    return () => {
-      live = false
-    }
+    if (initial) this.loaded([...initial])
   }
 
-  private refused(id: string, problem: ShelfProblem): ShelfProblem {
-    if (problem === 'not_found') this.update((list) => removed(list, id))
-    return problem
+  /** What became of a change: the problem it was refused for, or null when kept; one never sent was not found. */
+  private async outcome(send: (refused: Refused) => Promise<boolean>): Promise<ShelfProblem | null> {
+    const said: { problem?: ShelfProblem } = {}
+    const kept = await send((problem) => {
+      said.problem = problem
+    })
+    return said.problem ?? (kept ? null : 'not_found')
   }
 
-  create = async (name: string, slug: string): Promise<ShelfProblem | null> => {
-    const tempId = `${PENDING_PREFIX}${++this.pending}`
-    this.update((list) => withPending(list, tempId, name, slug))
-    const result = await this.requests.createShelf(name, slug)
-    if (!result.ok) {
-      this.update((list) => removed(list, tempId))
-      return result.problem
-    }
-    this.update((list) => confirmed(list, tempId, result.value))
-    this.changed()
-    return null
-  }
+  create = (name: string, book: string): Promise<ShelfProblem | null> =>
+    this.outcome(async (refused) => (await this.add({ name, book }, refused).saved) !== null)
 
-  toggle = async (id: string, slug: string, on: boolean): Promise<ShelfProblem | null> => {
-    this.update((list) => withBook(list, id, slug, on))
-    const result = await this.requests.setShelfBook(id, slug, on)
-    if (!result.ok) {
-      this.update((list) => withBook(list, id, slug, !on))
-      return this.refused(id, result.problem)
-    }
-    this.changed()
-    return null
-  }
+  toggle = (key: string, book: string, on: boolean): Promise<ShelfProblem | null> =>
+    this.outcome((refused) => this.update(key, { book, on }, refused))
 
-  rename = async (id: string, name: string): Promise<ShelfProblem | null> => {
-    const before = this.snapshot.shelves.find((s) => s.id === id)?.name
-    if (before === undefined) return 'not_found'
-    this.update((list) => renamed(list, id, name))
-    const result = await this.requests.renameShelf(id, name)
-    if (!result.ok) {
-      this.update((list) => renamed(list, id, before))
-      return this.refused(id, result.problem)
-    }
-    this.update((list) => renamed(list, id, result.value.name))
-    this.changed()
-    return null
-  }
+  rename = (key: string, name: string): Promise<ShelfProblem | null> =>
+    this.outcome((refused) => this.update(key, { name }, refused))
 
-  remove = async (id: string): Promise<ShelfProblem | null> => {
-    const result = await this.requests.deleteShelf(id)
-    if (!result.ok && result.problem !== 'not_found') return result.problem
-    this.update((list) => removed(list, id))
-    this.changed()
-    return null
+  /** Deletes the shelf once the server has; one already gone counts as deleted. */
+  removeShelf = async (key: string): Promise<ShelfProblem | null> => {
+    const problem = await this.outcome(async (refused) => {
+      await this.remove(key, refused)
+      return true
+    })
+    return problem === 'not_found' ? null : problem
   }
 }

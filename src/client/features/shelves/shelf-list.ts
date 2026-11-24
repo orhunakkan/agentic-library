@@ -4,33 +4,16 @@ import type { ShelfProblem } from './shelves-client'
 
 const byName = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
 
-export const sortShelves = (shelves: readonly ShelfView[]): ShelfView[] =>
+export const sortShelves = <S extends ShelfView>(shelves: readonly S[]): S[] =>
   [...shelves].sort((a, b) => byName.compare(a.name, b.name))
 
-export function withBook(shelves: readonly ShelfView[], id: string, slug: string, on: boolean): ShelfView[] {
-  return shelves.map((s) => {
-    if (s.id !== id) return s
-    const rest = s.books.filter((b) => b !== slug)
-    return { ...s, books: on ? [slug, ...rest] : rest }
-  })
+/** The shelf with the book put first on it, without a second copy, or taken off. */
+export function withBook(shelf: ShelfView, slug: string, on: boolean): ShelfView {
+  const rest = shelf.books.filter((b) => b !== slug)
+  return { ...shelf, books: on ? [slug, ...rest] : rest }
 }
 
-export const renamed = (shelves: readonly ShelfView[], id: string, name: string): ShelfView[] =>
-  sortShelves(shelves.map((s) => (s.id === id ? { ...s, name } : s)))
-
-export const removed = (shelves: readonly ShelfView[], id: string): ShelfView[] => shelves.filter((s) => s.id !== id)
-
-export const PENDING_PREFIX = 'pending-'
-
-export const isPending = (id: string) => id.startsWith(PENDING_PREFIX)
-
-export const withPending = (shelves: readonly ShelfView[], tempId: string, name: string, slug: string): ShelfView[] =>
-  sortShelves([...shelves, { id: tempId, name, books: [slug] }])
-
-export const confirmed = (shelves: readonly ShelfView[], tempId: string, shelf: ShelfView): ShelfView[] =>
-  sortShelves(shelves.map((s) => (s.id === tempId ? shelf : s)))
-
-export function findByName(shelves: readonly ShelfView[], name: string): ShelfView | undefined {
+export function findByName<S extends ShelfView>(shelves: readonly S[], name: string): S | undefined {
   const key = shelfNameKey(name)
   return key ? shelves.find((s) => shelfNameKey(s.name) === key) : undefined
 }

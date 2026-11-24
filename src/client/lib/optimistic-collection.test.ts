@@ -3,6 +3,7 @@ import {
   type CollectionLoadAnswer,
   type CollectionRules,
   itemsUnder,
+  type NoExtra,
   OptimisticCollection,
   reloadWhenBack,
 } from './optimistic-collection'
@@ -147,6 +148,29 @@ describe('OptimisticCollection, reloads', () => {
     expect(shown()).toEqual([[ID(2), ID(2), 'Jane']])
   })
 
+  it('merges a list the server sent another way like a reload, keeping a create still on its way', async () => {
+    const created = later<ChangeResult<Note, Problem>>()
+    const { list, shown } = setup({ create: () => created.promise })
+    list.loaded([{ id: ID(1), text: 'Bingley' }])
+    expect(list.state).toBe('ready')
+    list.add('Darcy')
+    list.loaded([{ id: ID(1), text: 'Bingley' }])
+    expect(shown()).toEqual([
+      [ID(1), ID(1), 'Bingley'],
+      ['new-1', 'new-1', 'Darcy'],
+    ])
+    created.settle({ ok: true, value: { id: ID(9), text: 'Darcy' } })
+    await created.promise
+    list.loaded([
+      { id: ID(1), text: 'Bingley' },
+      { id: ID(9), text: 'Darcy' },
+    ])
+    expect(shown()).toEqual([
+      [ID(1), ID(1), 'Bingley'],
+      ['new-1', ID(9), 'Darcy'],
+    ])
+  })
+
   it('forgets what it made when the reader signs in again', async () => {
     const load = vi.fn(async (): Promise<CollectionLoadAnswer<Note>> => ({ state: 'ready', items: [] }))
     const { list, shown } = setup({ load })
@@ -176,6 +200,25 @@ describe('OptimisticCollection, update', () => {
     expect(shown()).toEqual([['new-1', ID(9), 'Mr Darcy']])
   })
 
+  it('keeps showing a later change while it is on its way, though an earlier one answers first', async () => {
+    const first = later<ChangeResult<Note, Problem>>()
+    const second = later<ChangeResult<Note, Problem>>()
+    const update = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const { list, shown } = setup({
+      load: async () => ({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] }),
+      update,
+    })
+    await list.load()
+    const jane = list.update(ID(1), { text: 'Jane' })
+    const darcy = list.update(ID(1), { text: 'Darcy' })
+    first.settle({ ok: true, value: { id: ID(1), text: 'Jane' } })
+    expect(await jane).toBe(true)
+    expect(shown()).toEqual([[ID(1), ID(1), 'Darcy']])
+    second.settle({ ok: true, value: { id: ID(1), text: 'Darcy' } })
+    expect(await darcy).toBe(true)
+    expect(shown()).toEqual([[ID(1), ID(1), 'Darcy']])
+  })
+
   it('puts back what it showed when the server refuses, and drops an item already gone', async () => {
     const answer = { state: 'ready' as const, items: [{ id: ID(1), text: 'Bingley' }] }
     const failing = setup({ load: async () => answer, update: async () => ({ ok: false, problem: 'failed' }) })
@@ -197,6 +240,46 @@ describe('OptimisticCollection, update', () => {
     await bare.load()
     await expect(bare.update(ID(1), { text: 'Jane' })).rejects.toThrow('built without an update rule')
     expect(bare.getSnapshot().items.map((n) => n.text)).toEqual(['Bingley'])
+  })
+
+  it('tells a caller that passes its own refused why its change was refused, instead of the rule', async () => {
+    const answer = { state: 'ready' as const, items: [{ id: ID(1), text: 'Bingley' }] }
+    const { list, refusals } = setup({
+      load: async () => answer,
+      create: async () => ({ ok: false, problem: 'failed' }),
+      update: async () => ({ ok: false, problem: 'failed' }),
+      remove: async () => ({ ok: false, problem: 'not_found' }),
+    })
+    await list.load()
+    const heard: Problem[] = []
+    const said = (problem: Problem) => heard.push(problem)
+    await list.add('Darcy', said).saved
+    await list.update(ID(1), { text: 'Jane' }, said)
+    await list.remove(ID(1), said)
+    expect(heard).toEqual(['failed', 'failed', 'not_found'])
+    expect(refusals).toEqual([])
+  })
+
+  it('shows a change that isn’t a patch of fields through the apply rule', async () => {
+    type Edit = { append: string }
+    const rules: CollectionRules<Note, string, Problem, Edit> = {
+      load: async () => ({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] }),
+      create: async (text) => ({ ok: true, value: { id: ID(9), text } }),
+      update: vi.fn(async (id: string, edit: Edit) => ({
+        ok: true as const,
+        value: { id, text: `Bingley${edit.append}` },
+      })),
+      remove: async () => ({ ok: true, value: true }),
+      draft: (text, key) => ({ id: key, text }),
+      refused: () => {},
+      apply: (note, edit) => ({ ...note, text: note.text + edit.append }),
+    }
+    const list = new OptimisticCollection<Note, string, Problem, NoExtra, Edit>(rules, 'loading')
+    await list.load()
+    const updating = list.update(ID(1), { append: '!' })
+    expect(list.find(ID(1))?.text).toBe('Bingley!')
+    expect(await updating).toBe(true)
+    expect(rules.update).toHaveBeenCalledWith(ID(1), { append: '!' })
   })
 
   it('signs the list out when the server says the reader signed out', async () => {
@@ -228,6 +311,37 @@ describe('OptimisticCollection, remove', () => {
 
     await list.remove(ID(1))
     expect(removed).toHaveBeenCalledTimes(1)
+  })
+
+  it('takes an item away only once the server has removed it, when removes are confirmed', async () => {
+    const answer = {
+      state: 'ready' as const,
+      items: [
+        { id: ID(1), text: 'Bingley' },
+        { id: ID(2), text: 'Jane' },
+        { id: ID(3), text: 'Darcy' },
+      ],
+    }
+    const removing = later<ChangeResult<true, Problem>>()
+    const removed = vi.fn()
+    const remove = vi
+      .fn()
+      .mockReturnValueOnce(removing.promise)
+      .mockResolvedValueOnce({ ok: false, problem: 'failed' })
+      .mockResolvedValueOnce({ ok: false, problem: 'not_found' })
+    const { list, refusals, shown } = setup({ load: async () => answer, remove, removed, confirmRemoves: true })
+    await list.load()
+    const done = list.remove(ID(1))
+    expect(shown()).toHaveLength(3)
+    expect(removed).not.toHaveBeenCalled()
+    removing.settle({ ok: true, value: true })
+    await done
+    expect(removed).toHaveBeenCalledTimes(1)
+    await list.remove(ID(2))
+    expect(shown().map(([key]) => key)).toEqual([ID(2), ID(3)])
+    await list.remove(ID(3))
+    expect(shown().map(([key]) => key)).toEqual([ID(2)])
+    expect(refusals).toEqual(['failed', 'not_found'])
   })
 })
 

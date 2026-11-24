@@ -1,17 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ShelfView } from '~/shared/shelves/contract'
-import {
-  confirmed,
-  findByName,
-  isPending,
-  problemText,
-  removed,
-  renamed,
-  shelfButton,
-  sortShelves,
-  withBook,
-  withPending,
-} from './shelf-list'
+import { findByName, problemText, shelfButton, sortShelves, withBook } from './shelf-list'
 
 const shelf = (id: string, name: string, books: string[] = []): ShelfView => ({ id, name, books })
 const names = (shelves: readonly ShelfView[]) => shelves.map((s) => s.name)
@@ -23,27 +12,11 @@ describe('the list', () => {
   })
 
   it('puts a book first, without a second copy, and takes it off', () => {
-    const list = [shelf('a', 'A', ['x', 'y']), shelf('b', 'B', ['x'])]
-    expect(withBook(list, 'a', 'y', true)[0]?.books).toEqual(['y', 'x'])
-    expect(withBook(list, 'a', 'z', true)[0]?.books).toEqual(['z', 'x', 'y'])
-    expect(withBook(list, 'a', 'x', false)).toEqual([shelf('a', 'A', ['y']), shelf('b', 'B', ['x'])])
-    expect(withBook(list, 'a', 'missing', false)[0]?.books).toEqual(['x', 'y'])
-  })
-
-  it('renames in place and sorts again, and removes', () => {
-    const list = [shelf('a', 'Apple'), shelf('b', 'Banana')]
-    expect(names(renamed(list, 'a', 'Cherry'))).toEqual(['Banana', 'Cherry'])
-    expect(removed(list, 'a')).toEqual([shelf('b', 'Banana')])
-  })
-
-  it('swaps a pending shelf for the server’s, keeping the order', () => {
-    const list = [shelf('a', 'Apple'), shelf('c', 'Cherry')]
-    const pending = withPending(list, 'pending-1', 'Banana', 'x')
-    expect(pending.map((s) => s.id)).toEqual(['a', 'pending-1', 'c'])
-    expect(isPending('pending-1')).toBe(true)
-    expect(isPending('a')).toBe(false)
-    const real = shelf('b', 'Banana', ['x'])
-    expect(confirmed(pending, 'pending-1', real)).toEqual([list[0], real, list[1]])
+    const a = shelf('a', 'A', ['x', 'y'])
+    expect(withBook(a, 'y', true).books).toEqual(['y', 'x'])
+    expect(withBook(a, 'z', true).books).toEqual(['z', 'x', 'y'])
+    expect(withBook(a, 'x', false)).toEqual(shelf('a', 'A', ['y']))
+    expect(withBook(a, 'missing', false).books).toEqual(['x', 'y'])
   })
 
   it('finds a shelf by name, ignoring case and accents', () => {

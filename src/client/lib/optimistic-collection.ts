@@ -30,13 +30,20 @@ export async function itemsUnder<K extends string, T>(
   return loaded.state === 'ready' ? { state: 'ready', items: loaded[key] } : loaded
 }
 
-/** What one feature passes in: its endpoints, how it shows a refusal, and its own order and merge rules. */
-export interface CollectionRules<T extends { id: string }, Input, P extends string> {
+/**
+ * What one feature passes in: its endpoints, how it shows a refusal, and its own order and merge rules. An update
+ * sends a change `C`, a patch of fields unless the feature names its own changes and says how each `apply`s.
+ */
+export type CollectionRules<T extends { id: string }, Input, P extends string, C extends object = Partial<T>> = {
   load: () => Promise<CollectionLoadAnswer<T>>
   create: (input: Input) => Promise<ChangeResult<T, P>>
   /** Lists without it offer no updates: `update` throws. */
-  update?: (id: string, patch: Partial<T>) => Promise<ChangeResult<T, P>>
+  update?: (id: string, change: C) => Promise<ChangeResult<T, P>>
+  /** What an item looks like with a change made; the change's fields laid over it by default. */
+  apply?: (item: T, change: C) => T
   remove: (id: string) => Promise<ChangeResult<true, P>>
+  /** Takes an item away only once the server has removed it, rather than at once. */
+  confirmRemoves?: boolean
   /** Called once when a remove takes something away, for example to say so. */
   removed?: () => void
   /** What the list shows while a create is on its way; `id` is the temporary key until the server answers. */
@@ -46,7 +53,7 @@ export interface CollectionRules<T extends { id: string }, Input, P extends stri
   order?: (items: Entry<T>[]) => Entry<T>[]
   /** What to keep when a create's answer arrives, given what the list shows by then; the server's answer by default. */
   settle?: (shown: Entry<T>, saved: T) => T
-}
+} & ([C] extends [Partial<T>] ? unknown : { apply: (item: T, change: C) => T })
 
 /** A remove or update of one item: how many are on their way, and the last reload sent before the latest finished. */
 interface RecentChange {
@@ -65,8 +72,15 @@ function predates(change: RecentChange | undefined, reload: number): boolean {
  * finished after the reload was sent, so its answer can't drop them. Nor can it bring back an item removed, or an
  * old value of an item updated, after it was sent; and an answer older than one already applied is ignored.
  * A feature can carry fields of its own in the snapshot (`X`), and extend the collection with its own behaviour.
+ * A change's caller can pass its own `refused`, to show the refusal where the change was made.
  */
-export class OptimisticCollection<T extends { id: string }, Input, P extends string, X extends object = NoExtra> {
+export class OptimisticCollection<
+  T extends { id: string },
+  Input,
+  P extends string,
+  X extends object = NoExtra,
+  C extends object = Partial<T>,
+> {
   protected snapshot: CollectionSnapshot<T> & X
   private readonly listeners = new Set<() => void>()
   private readonly ids = new Map<string, Promise<string | null>>()
@@ -81,7 +95,7 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
   private lastApplied = 0
 
   constructor(
-    private readonly rules: CollectionRules<T, Input, P>,
+    private readonly rules: CollectionRules<T, Input, P, C>,
     state: CollectionState,
     ...[extra]: NoExtra extends X ? [extra?: X] : [extra: X]
   ) {
@@ -151,6 +165,18 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     } catch {
       answer = { state: 'unavailable' }
     }
+    this.merge(generation, reload, answer)
+  }
+
+  /**
+   * Shows a list the server sent some other way, such as a page's loader, merged as a reload sent now: it keeps
+   * what a reload keeps, and an answer to a reload sent before it is then ignored.
+   */
+  loaded(items: T[]): void {
+    this.merge(this.generation, ++this.reloadsSent, { state: 'ready', items })
+  }
+
+  private merge(generation: number, reload: number, answer: CollectionLoadAnswer<T>) {
     if (generation !== this.generation || reload < this.lastApplied) return
     this.lastApplied = reload
     if (answer.state !== 'ready') {
@@ -181,13 +207,16 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     void this.load()
   }
 
-  private failed(problem: P) {
-    this.rules.refused(problem)
+  private failed(problem: P, refused: (problem: P) => void) {
+    refused(problem)
     if (problem === 'signed_out') this.set({ state: 'signed_out' })
   }
 
   /** Shows the new item at once under a temporary key; `saved` is its id once the server keeps it, or null. */
-  add(input: Input): { key: string; saved: Promise<string | null> } {
+  add(
+    input: Input,
+    refused: (problem: P) => void = this.rules.refused,
+  ): { key: string; saved: Promise<string | null> } {
     const key = `new-${++this.counter}`
     this.setItems((items) => [...items, { ...this.rules.draft(input, key), key, pending: true }])
     const generation = this.generation
@@ -195,7 +224,7 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
       if (generation !== this.generation) return null
       if (!result.ok) {
         this.replace(key, null)
-        this.failed(result.problem)
+        this.failed(result.problem, refused)
         return null
       }
       const shown = this.find(key)
@@ -251,41 +280,61 @@ export class OptimisticCollection<T extends { id: string }, Input, P extends str
     }
   }
 
-  /** Shows the change at once and sends it once the item has an id; true when the server kept it. */
-  async update(key: string, patch: Partial<T>): Promise<boolean> {
-    const send = this.rules.update
+  /**
+   * Shows the change at once and sends it once the item has an id; true when the server kept it. The server's
+   * answer replaces what is shown unless a later change to the item is still on its way, which then settles it.
+   */
+  async update(key: string, change: C, refused: (problem: P) => void = this.rules.refused): Promise<boolean> {
+    const { update: send, apply } = this.rules
     if (!send) throw new Error('This list was built without an update rule, so it offers no updates')
     const before = this.find(key)
     if (!before) return false
-    this.replace(key, { ...before, ...patch })
-    const result = await this.sendChange(key, before.id, (id) => send(id, patch))
+    const changed = apply ? apply(before, change) : { ...before, ...change }
+    this.replace(key, { ...changed, key, pending: before.pending })
+    const result = await this.sendChange(key, before.id, (id) => send(id, change))
     if (!result) return false
     if (result.ok) {
-      this.replace(key, { ...result.value, key, pending: false })
+      const later = this.changes.get(result.value.id)?.inFlight ?? 0
+      if (!later) this.replace(key, { ...result.value, key, pending: false })
       return true
     }
     this.replace(key, result.problem === 'not_found' ? null : before)
-    this.failed(result.problem)
+    this.failed(result.problem, refused)
     return false
   }
 
-  /** Takes the items away at once, and puts back any the server couldn't remove. */
-  async remove(keys: string | readonly string[]): Promise<void> {
+  /**
+   * Takes the items away, and puts back any the server couldn't remove; at once, or once the server has removed
+   * them when the list confirms removes. A remove the server finds already done counts as done.
+   */
+  async remove(keys: string | readonly string[], refused: (problem: P) => void = this.rules.refused): Promise<void> {
     const shown = (typeof keys === 'string' ? [keys] : keys).flatMap((key) => this.find(key) ?? [])
     if (!shown.length) return
-    const removing = shown.map((item) => this.removeOne(item))
-    this.rules.removed?.()
-    await Promise.all(removing)
+    const removing = shown.map((item) => this.removeOne(item, refused))
+    if (!this.rules.confirmRemoves) {
+      this.rules.removed?.()
+      await Promise.all(removing)
+    } else if ((await Promise.all(removing)).includes(true)) this.rules.removed?.()
   }
 
-  private async removeOne(before: Entry<T>): Promise<void> {
+  /** Whether the item was taken away. */
+  private async removeOne(before: Entry<T>, refused: (problem: P) => void): Promise<boolean> {
     const { key } = before
-    this.replace(key, null)
-    this.createdIds.delete(key)
+    const takeAway = () => {
+      this.replace(key, null)
+      this.createdIds.delete(key)
+    }
+    const waits = this.rules.confirmRemoves
+    if (!waits) takeAway()
     const result = await this.sendChange(key, before.id, (id) => this.rules.remove(id))
-    if (!result || result.ok) return
-    if (result.problem !== 'not_found') this.setItems((items) => [...items, before])
-    this.failed(result.problem)
+    if (!result || result.ok || result.problem === 'not_found') {
+      if (waits) takeAway()
+      if (result && !result.ok) this.failed(result.problem, refused)
+      return true
+    }
+    if (!waits) this.setItems((items) => [...items, before])
+    this.failed(result.problem, refused)
+    return false
   }
 }
 

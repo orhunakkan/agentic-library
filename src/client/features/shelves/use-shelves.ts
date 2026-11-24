@@ -1,28 +1,41 @@
 import { useRouter } from '@tanstack/react-router'
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import type { ShelfView, ShelvesState } from '~/shared/shelves/contract'
-import { ShelfStore } from './shelf-store'
+import { getShelves } from '~/server/account-functions'
+import type { ShelfView } from '~/shared/shelves/contract'
+import { ShelfStore, statusOf } from './shelf-store'
 import * as requests from './shelves-client'
 
-export function useShelves({ initial, load }: { initial?: readonly ShelfView[]; load?: () => Promise<ShelvesState> }) {
+const load = () => getShelves()
+
+/** The reader's shelves: the page's list when it has one, kept up to date with it, or else loaded here. */
+export function useShelves({ initial }: { initial?: readonly ShelfView[] } = {}) {
   const router = useRouter()
   const [store] = useState(
     () =>
       new ShelfStore(
-        requests,
-        () => void router.invalidate({ filter: (match) => match.routeId === '/library/' }),
+        {
+          ...requests,
+          load,
+          changed: () => void router.invalidate({ filter: (match) => match.routeId === '/library/' }),
+        },
         initial,
       ),
   )
-  const { shelves, status } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+  const { items: shelves, state } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
 
   useEffect(() => {
-    if (initial) store.reset(initial)
+    if (initial) store.loaded([...initial])
+    else store.start({ signedIn: true })
   }, [store, initial])
 
-  useEffect(() => (load ? store.load(load) : undefined), [store, load])
-
-  return { shelves, status, create: store.create, toggle: store.toggle, rename: store.rename, remove: store.remove }
+  return {
+    shelves,
+    status: statusOf(state),
+    create: store.create,
+    toggle: store.toggle,
+    rename: store.rename,
+    remove: store.removeShelf,
+  }
 }
 
 export type ShelvesApi = ReturnType<typeof useShelves>

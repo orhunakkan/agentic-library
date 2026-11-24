@@ -1,13 +1,10 @@
 import { Link, useRouteContext, useRouterState } from '@tanstack/react-router'
 import { Check, LibraryBig, ListPlus, X } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { getShelves } from '~/server/account-functions'
 import { cleanShelfName, SHELF_NAME_MAX } from '~/shared/shelves/shelves'
-import { findByName, isPending, problemText, shelfButton } from './shelf-list'
+import { findByName, problemText, shelfButton } from './shelf-list'
 import type { ShelfProblem } from './shelves-client'
 import { useShelves } from './use-shelves'
-
-const loadShelves = () => getShelves()
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), a[href]'
 
@@ -18,7 +15,7 @@ export function AddToShelf({ slug }: { slug: string }) {
 
 function ShelfPicker({ slug }: { slug: string }) {
   const id = useId()
-  const api = useShelves({ load: loadShelves })
+  const api = useShelves()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [problem, setProblem] = useState<{ text: string; signIn: boolean } | null>(null)
@@ -65,9 +62,9 @@ function ShelfPicker({ slug }: { slug: string }) {
   const show = (found: ShelfProblem, context: { name?: string; book?: boolean } = {}) =>
     setProblem({ text: problemText(found, context), signIn: found === 'signed_out' })
 
-  async function toggle(shelfId: string, on: boolean) {
+  async function toggle(key: string, on: boolean) {
     setProblem(null)
-    const found = await api.toggle(shelfId, slug, on)
+    const found = await api.toggle(key, slug, on)
     if (found) show(found)
   }
 
@@ -77,7 +74,7 @@ function ShelfPicker({ slug }: { slug: string }) {
     setProblem(null)
     setName('')
     if (existing) {
-      if (!isPending(existing.id) && !existing.books.includes(slug)) await toggle(existing.id, true)
+      if (!existing.pending && !existing.books.includes(slug)) await toggle(existing.key, true)
       return
     }
     const found = await api.create(cleaned, slug)
@@ -158,7 +155,7 @@ function ShelfPicker({ slug }: { slug: string }) {
               Loading your shelves…
             </p>
           )}
-          {api.status === 'unavailable' && (
+          {api.status === 'unavailable' && api.shelves.length === 0 && (
             <p className="mt-2 text-[14px] text-muted" data-testid="shelf-picker-unavailable">
               Your shelves couldn’t be loaded.
             </p>
@@ -172,18 +169,17 @@ function ShelfPicker({ slug }: { slug: string }) {
             <ul className="mt-2 max-h-[min(280px,40vh)] space-y-0.5 overflow-y-auto">
               {api.shelves.map((shelf) => {
                 const on = shelf.books.includes(slug)
-                const pending = isPending(shelf.id)
                 return (
-                  <li key={shelf.id}>
+                  <li key={shelf.key}>
                     <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 text-[15px] hover:bg-panel has-[:disabled]:cursor-default has-[:disabled]:opacity-60">
                       <span className="relative inline-flex size-5 shrink-0">
                         <input
                           type="checkbox"
                           data-testid="shelf-picker-shelf"
-                          data-key={shelf.id}
+                          data-key={shelf.key}
                           checked={on}
-                          disabled={pending}
-                          onChange={(e) => void toggle(shelf.id, e.target.checked)}
+                          disabled={shelf.pending}
+                          onChange={(e) => void toggle(shelf.key, e.target.checked)}
                           className="peer size-5 cursor-pointer appearance-none rounded-md border border-line bg-surface checked:border-accent-fill checked:bg-accent-fill focus-visible:ring-4 focus-visible:ring-accent/25 focus-visible:outline-none disabled:cursor-default"
                         />
                         <Check

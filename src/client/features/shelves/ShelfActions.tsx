@@ -1,9 +1,9 @@
 import { Pencil, Trash2 } from 'lucide-react'
 import { type FormEvent, type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { Button } from '~/client/features/account/ui'
-import type { ShelfView } from '~/shared/shelves/contract'
 import { cleanShelfName, SHELF_NAME_MAX } from '~/shared/shelves/shelves'
 import { findByName, problemText } from './shelf-list'
+import type { ShelfItem } from './shelf-store'
 import type { ShelvesApi } from './use-shelves'
 
 const textButton =
@@ -22,7 +22,7 @@ export function ShelfActions({
   onDeleted,
   children,
 }: {
-  shelf: ShelfView
+  shelf: ShelfItem
   titleId: string
   api: Pick<ShelvesApi, 'shelves' | 'rename' | 'remove'>
   onDeleted: () => void
@@ -83,7 +83,7 @@ export function ShelfActions({
     }
     const attempted = draft ?? cleaned
     closeRename()
-    const problem = await api.rename(shelf.id, cleaned)
+    const problem = await api.rename(shelf.key, cleaned)
     if (problem && problem !== 'not_found') {
       setDraft(attempted)
       setRenameError(problemText(problem, { name: cleaned }))
@@ -97,7 +97,7 @@ export function ShelfActions({
 
   async function confirmDelete() {
     setDeleting(true)
-    const problem = await api.remove(shelf.id)
+    const problem = await api.remove(shelf.key)
     setDeleting(false)
     setConfirming(false)
     if (problem) {
