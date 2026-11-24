@@ -63,6 +63,7 @@ export type Problem =
   | { kind: 'end-of-book' }
   | { kind: 'cloud'; code: CloudProblemCode; retryAt?: number }
   | { kind: 'local'; code: LocalProblemCode }
+  | { kind: 'blocked' }
 
 export type CloudVoices = 'off' | 'loading' | 'failed' | 'permission' | 'pro' | 'no-key' | VoiceLike[]
 
@@ -342,6 +343,10 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     switch (problem.kind) {
       case 'not-found':
         close({ kind: 'unavailable' })
+        return
+      case 'blocked':
+        failures = 0
+        pause({ problem })
         return
       case 'local':
         failures = 0
@@ -713,7 +718,8 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       rememberVoice(deps.storage, key, voiceURI)
       speakerFor(voice).prime()
       state = { ...state, voice, engine: engineOf(voice) }
-      if (state.problem?.kind === 'cloud' || state.problem?.kind === 'local') state = { ...state, problem: null }
+      const kind = state.problem?.kind
+      if (kind === 'cloud' || kind === 'local' || kind === 'blocked') state = { ...state, problem: null }
       restartIfPlaying()
     },
     useDeviceVoice: () => {

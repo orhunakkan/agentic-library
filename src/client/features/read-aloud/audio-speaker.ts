@@ -149,7 +149,7 @@ export function createAudioSpeaker(audio: AudioLike, timers: Timers = browserTim
       audio.play().catch((error: unknown) => {
         if (current !== mine) return
         const blocked = (error as { name?: unknown } | null)?.name === 'NotAllowedError'
-        finish(mine, blocked ? { kind: 'cloud', code: 'blocked' } : FAILED)
+        finish(mine, blocked ? { kind: 'blocked' } : FAILED)
       })
     },
     fail: (turn, problem) => {

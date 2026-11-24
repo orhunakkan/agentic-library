@@ -41,14 +41,18 @@ export interface SpeakOptions {
   ahead: Utterance[]
 }
 
-export type CloudProblemCode = Exclude<SpeakErrorCode, 'invalid' | 'not_found' | 'failed'> | 'blocked'
+export type CloudProblemCode = Exclude<SpeakErrorCode, 'invalid' | 'not_found' | 'failed'>
 
 export type LocalProblemCode = 'local_missing' | 'local_failed'
 
-/** Why a speaker couldn't say an utterance. `failed` is a passing error, worth trying the next one. */
+/**
+ * Why a speaker couldn't say an utterance. `failed` is a passing error, worth trying the next one.
+ * `blocked` is the browser refusing to play until the reader presses, whichever voice was speaking.
+ */
 export type SpeakProblem =
   | { kind: 'cloud'; code: CloudProblemCode; retryAt?: Date }
   | { kind: 'local'; code: LocalProblemCode }
+  | { kind: 'blocked' }
   | { kind: 'not-found' }
   | { kind: 'failed' }
 

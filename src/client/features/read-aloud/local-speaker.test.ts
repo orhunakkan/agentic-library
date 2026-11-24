@@ -188,6 +188,16 @@ describe('createLocalSpeaker', () => {
     expect(c.onError).toHaveBeenCalledWith({ kind: 'failed' })
   })
 
+  it('says blocked when the browser wants a press first, as the cloud speaker does', async () => {
+    const { audio, speaker, job } = setup()
+    audio.refuse = 'NotAllowedError'
+    const h = handlers()
+    speaker.speak('A.', options(), h)
+    job('A.').resolve({ wav: wavOf(1000), ms: 100 })
+    await flush()
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'blocked' })
+  })
+
   it('fails at once without a Folio voice', () => {
     const { speaker } = setup()
     const h = handlers()

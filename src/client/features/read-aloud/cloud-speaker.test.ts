@@ -142,7 +142,7 @@ describe('createCloudSpeaker', () => {
     speaker.speak('', options({ ref: ref(0) }), h)
     server.requests[0]?.answer(server.ok())
     await flush()
-    expect(h.onError).toHaveBeenCalledWith({ kind: 'cloud', code: 'blocked' })
+    expect(h.onError).toHaveBeenCalledWith({ kind: 'blocked' })
     audio.refuse = 'NotSupportedError'
     const unplayable = handlers()
     speaker.speak('', options({ ref: ref(20) }), unplayable)

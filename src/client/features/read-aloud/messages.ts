@@ -12,7 +12,6 @@ const CLOUD_TEXT: Record<Exclude<CloudProblemCode, 'rate'>, string> = {
   no_key: 'Your ElevenLabs key was removed. Add it again on the API keys page.',
   signed_out: 'Sign in again to use your ElevenLabs voice.',
   pro: proNotice('elevenlabs').heading,
-  blocked: 'Press play to start.',
 }
 
 const LOCAL_TEXT: Record<LocalProblemCode, string> = {
@@ -35,6 +34,8 @@ export function problemMessage(problem: Problem, timeZone?: string): string {
       return 'The voice stopped working. Try another voice.'
     case 'end-of-book':
       return 'End of the book'
+    case 'blocked':
+      return 'Press play to start.'
     case 'local':
       return LOCAL_TEXT[problem.code]
     case 'cloud':
@@ -53,7 +54,7 @@ export function problemLink(problem: Problem | null): string | null {
 
 export function offersDeviceVoice(problem: Problem | null): boolean {
   if (problem?.kind === 'local') return true
-  return problem?.kind === 'cloud' && problem.code !== 'busy' && problem.code !== 'blocked'
+  return problem?.kind === 'cloud' && problem.code !== 'busy'
 }
 
 export function timeLeft(minutes: number): string {

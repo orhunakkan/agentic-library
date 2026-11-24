@@ -39,7 +39,7 @@ describe('createAudioSpeaker', () => {
     const b = handlers()
     element.play(element.begin(b, 1), 'blob:2')
     await flush()
-    expect(b.onError).toHaveBeenCalledWith({ kind: 'cloud', code: 'blocked' })
+    expect(b.onError).toHaveBeenCalledWith({ kind: 'blocked' })
     audio.refuse = 'NotSupportedError'
     const c = handlers()
     element.play(element.begin(c, 1), 'blob:3')

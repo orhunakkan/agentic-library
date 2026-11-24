@@ -10,6 +10,7 @@ import {
   type ControllerDeps,
   createReadAloud,
   type FetchResult,
+  MAX_FAILURES,
   type ReadAloudState,
   SAVE_EVERY_MS,
   type StartAt,
@@ -975,7 +976,6 @@ describe('ElevenLabs voices', () => {
       'busy',
       'no_key',
       'signed_out',
-      'blocked',
     ] as const) {
       const t = setup({ cloud: ready })
       await t.start(page(0, 'history', 2))
@@ -1003,6 +1003,21 @@ describe('ElevenLabs voices', () => {
     await t.fail({ kind: 'not-found' })
     expect(t.state()).toMatchObject({ book: null, problem: { kind: 'unavailable' } })
     expect(t.closes.count).toBe(1)
+  })
+
+  it('pauses when the browser blocks the cloud voice, counting no failure and keeping the voice', async () => {
+    const t = setup({ cloud: ready })
+    await t.start(page(0, 'history', 2))
+    t.ra.setVoice(ARIA)
+    for (let i = 0; i < MAX_FAILURES; i++) {
+      await t.fail({ kind: 'blocked' })
+      expect(t.state(), `block ${i}`).toMatchObject({ status: 'paused', problem: { kind: 'blocked' }, engine: 'cloud' })
+      t.ra.toggle()
+      await flush()
+      expect(t.said.at(-1), `block ${i}`).toMatchObject({ text: 'Three.', engine: 'cloud' })
+    }
+    await t.fail({ kind: 'failed' })
+    expect(t.state()).toMatchObject({ status: 'playing', problem: null, engine: 'cloud' })
   })
 
   it('an ElevenLabs problem in the intro says the intro again on Play', async () => {
@@ -1293,6 +1308,24 @@ describe('the Folio voice', () => {
     await gone.fail({ kind: 'local', code: 'local_missing' })
     expect(gone.ra.state().problem).toEqual({ kind: 'local', code: 'local_missing' })
     expect(gone.ra.state().local.voices[0]?.state).toBe('absent')
+  })
+
+  it('pauses when the browser blocks it, counting no failure and keeping the voice', async () => {
+    const t = localSetup({ downloaded: ['en_US-ljspeech-medium'] })
+    await t.start()
+    for (let i = 0; i < MAX_FAILURES; i++) {
+      await t.fail({ kind: 'blocked' })
+      expect(t.ra.state(), `block ${i}`).toMatchObject({
+        status: 'paused',
+        problem: { kind: 'blocked' },
+        engine: 'local',
+      })
+      t.ra.toggle()
+      await flush()
+      expect(t.said.at(-1), `block ${i}`).toMatchObject({ text: 'Three.', engine: 'local', voice: LJ })
+    }
+    await t.fail({ kind: 'failed' })
+    expect(t.ra.state()).toMatchObject({ status: 'playing', problem: null, engine: 'local' })
   })
 
   it('says the chapter title again after a problem, rather than passing over it', async () => {

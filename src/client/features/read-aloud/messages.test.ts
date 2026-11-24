@@ -24,6 +24,12 @@ describe('problemMessage', () => {
     expect(problemMessage({ kind: 'voice-failed' })).toBe('The voice stopped working. Try another voice.')
     expect(problemMessage({ kind: 'end-of-book' })).toBe('End of the book')
   })
+
+  it('asks for a press when the browser blocked playback, whichever voice was speaking', () => {
+    expect(problemMessage({ kind: 'blocked' })).toBe('Press play to start.')
+    expect(problemLink({ kind: 'blocked' })).toBeNull()
+    expect(offersDeviceVoice({ kind: 'blocked' })).toBe(false)
+  })
 })
 
 describe('ElevenLabs problems', () => {
@@ -39,7 +45,6 @@ describe('ElevenLabs problems', () => {
     expect(say('no_key')).toBe('Your ElevenLabs key was removed. Add it again on the API keys page.')
     expect(say('signed_out')).toBe('Sign in again to use your ElevenLabs voice.')
     expect(say('pro')).toBe('ElevenLabs voices are part of Pro.')
-    expect(say('blocked')).toBe('Press play to start.')
   })
 
   it('say when the hourly limit allows more, in the reader’s time', () => {
@@ -62,7 +67,6 @@ describe('ElevenLabs problems', () => {
     expect(offersDeviceVoice({ kind: 'cloud', code: 'no_credits' })).toBe(true)
     expect(offersDeviceVoice({ kind: 'cloud', code: 'voice_gone' })).toBe(true)
     expect(offersDeviceVoice({ kind: 'cloud', code: 'busy' })).toBe(false)
-    expect(offersDeviceVoice({ kind: 'cloud', code: 'blocked' })).toBe(false)
     expect(offersDeviceVoice({ kind: 'load-failed' })).toBe(false)
     expect(offersDeviceVoice(null)).toBe(false)
   })
