@@ -28,6 +28,18 @@ const SEAMS: Seam[] = [
     },
   },
   {
+    name: 'a book ref is built only by the book slug codec, or by bookOf from a row, in tests too (#88)',
+    pattern: /\{ slug: [^,{}]+, userBookId: [^,{}]+ \}/,
+    under: ['src'],
+    tests: true,
+    allowed: {
+      'src/shared/content/book-slug.ts': 'the codec (refFor)',
+      'src/server/books/ref.ts': 'bookOf, from a row',
+      'src/shared/content/book-slug.test.ts': "the codec's own round-trips",
+      'src/server/books/ref.test.ts': "bookOf's own round-trips",
+    },
+  },
+  {
     name: 'the catalogue is searched for a book only by repository.ts (#70)',
     pattern: /\.books\.(find|some)\(/,
     under: ['src/server'],

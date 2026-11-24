@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -9,7 +10,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { type BookRef, slugOf } from '~/server/books/ref'
+import { type BookRef, refFor, slugOf } from '~/server/books/ref'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { handleChange, handleCreate, handleHighlightsForm } from '~/server/highlights/actions'
@@ -52,8 +53,8 @@ let users = 0
 const newUser = (plan: 'free' | 'pro' = 'pro') =>
   testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member', { plan })
 
-const PRIDE: BookRef = { slug: 'pride-and-prejudice', userBookId: null }
-const CODE_BOOK: BookRef = { slug: 'fixture-code-book', userBookId: null }
+const PRIDE: BookRef = refFor('pride-and-prejudice')
+const CODE_BOOK: BookRef = refFor('fixture-code-book')
 
 const row = (over: Partial<NewHighlight> = {}): NewHighlight => ({
   chapter: 'chapter-6',
@@ -85,7 +86,7 @@ async function privateBook(userId: number): Promise<BookRef> {
   if (!start.ok) throw new Error('could not start')
   await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
-  return { slug: null, userBookId: start.id }
+  return privateRef(start.id)
 }
 
 describe('the highlights table', () => {
@@ -156,7 +157,7 @@ describe('the store', () => {
       chapterCount: 1,
     })
     if (!start.ok) throw new Error('could not start')
-    expect(await createHighlight(db(), user.id, { slug: null, userBookId: start.id }, row())).toBe('missing')
+    expect(await createHighlight(db(), user.id, privateRef(start.id), row())).toBe('missing')
   })
 
   it('deletes a private book’s highlights with the book, and every highlight with the user', async () => {
@@ -210,7 +211,7 @@ describe('a book’s highlights, resolved (highlightsFor)', () => {
     })
     expect(found?.highlights).toHaveLength(1)
 
-    await created(owner.id, { slug: 'gone-book', userBookId: null })
+    await created(owner.id, refFor('gone-book'))
     const gone = await highlightsFor(db(), owner.id, 'gone-book')
     expect(gone?.book).toEqual({
       slug: 'gone-book',
@@ -512,7 +513,7 @@ describe('the endpoints', () => {
     await created(user.id, CODE_BOOK, { exact: 'Code that moved away.' })
     const book = await privateBook(user.id)
     await created(user.id, book, { chapter: 'only', page: 1, start: 0, end: 3, exact: 'one' })
-    await created(user.id, { slug: 'gone-book', userBookId: null }, { exact: 'From a book that left.' })
+    await created(user.id, refFor('gone-book'), { exact: 'From a book that left.' })
     const other = await signedIn()
     await created(other.user.id, PRIDE, { exact: 'Not yours.' })
     const theirs = await privateBook(other.user.id)

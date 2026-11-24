@@ -8,7 +8,7 @@ When a module exports a named guard, call it rather than reaching through its pa
 
 ## Build fixtures with the domain's own codec
 
-A test builds a domain value the way the app does: `privateBookSlug(id)`, `slugOf(ref)`, `threadKey(slug)`. Hand-written strings are only for inputs the test expects to be rejected (`'u-not-a-uuid'`), and those should be visibly invalid.
+A test builds a domain value the way the app does: `privateBookSlug(id)`, `refFor(slug)`, `slugOf(ref)`, `threadKey(slug)`. A hand-built book ref is already a seams check. Hand-written strings are only for inputs the test expects to be rejected (`'u-not-a-uuid'`), and those should be visibly invalid.
 
 ## Match the file's import style
 
@@ -16,4 +16,4 @@ A file's imports follow one style. Files that Node runs (reached from `scripts/`
 
 ## Name things with the glossary
 
-Use the terms in `GLOSSARY.md` for names, test titles and comments, and the words it lists under _Avoid_ nowhere.
+Use the terms in `GLOSSARY.md` for new names, test titles, comments and anything a reader sees. An _Avoid_ word is a finding only where the glossary's own qualifier applies (`audio` _as the playback source_), and only in code the diff introduces. Names that already exist (`AudioBook`, `speech-text.ts`) and names the issue specifies are not findings: suggest the rename as a follow-up instead.

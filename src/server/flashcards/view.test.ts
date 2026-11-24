@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { refFor } from '~/server/books/ref'
 import type { BookPage } from '~/shared/highlights/page-text'
 import type { CardRow } from './store'
 import { toCardView } from './view'
@@ -15,7 +16,7 @@ const page = (over: Partial<BookPage>): BookPage => ({
 })
 const row: CardRow = {
   id: 'c1',
-  book: { slug: 'b', userBookId: null },
+  book: refFor('b'),
   chapter: 'one',
   page: 2,
   front: 'Front',

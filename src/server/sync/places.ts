@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { chapterPageHref, pageLabel } from '~/shared/content/navigation'
 import { type BookPage, type PagePosition, pageIndexOf } from '~/shared/highlights/page-text'
+import { privateBookSlug } from '../../shared/content/book-slug.ts'
 import { openBook } from '../books/book.ts'
 import { type BookRef, refFor } from '../books/ref.ts'
 import type { Db } from '../db.ts'
@@ -94,7 +95,7 @@ function privateBook(slug: string, ref: BookRef, outline: BookOutline): PlaceBoo
 
 function fromOutlines(outlines: ReadonlyMap<string, BookOutline>, slug: string, id: string): PlaceBook | null {
   const outline = outlines.get(id)
-  return outline ? privateBook(slug, { slug: null, userBookId: id }, outline) : null
+  return outline ? privateBook(slug, refFor(privateBookSlug(id)), outline) : null
 }
 
 export async function preloadBooks(db: Db, userId: number, slugs: readonly string[], cache: PlaceCache): Promise<void> {

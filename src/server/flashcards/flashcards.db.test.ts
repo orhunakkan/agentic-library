@@ -10,7 +10,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import type { BookRef } from '~/server/books/ref'
+import { type BookRef, refFor } from '~/server/books/ref'
 import { handleCardChange, handleCardSave } from '~/server/flashcards/actions'
 import { bookFlashcardsState, flashcardBooksState } from '~/server/flashcards/page'
 import { bookCards, cardBooks, dueCards, reviewCard, saveCard } from '~/server/flashcards/store'
@@ -36,7 +36,7 @@ beforeEach(async () => {
 
 const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
-const PRIDE: BookRef = { slug: 'pride-and-prejudice', userBookId: null }
+const PRIDE: BookRef = refFor('pride-and-prejudice')
 const DAY = 86_400_000
 
 let users = 0

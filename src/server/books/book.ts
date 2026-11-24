@@ -9,13 +9,13 @@ import type { BookPage } from '~/shared/highlights/page-text'
 import { MAX_CHAPTERS } from '~/shared/import/limits'
 import type { OfflineBook } from '~/shared/offline/book'
 import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
-import { isBookSlug } from '../../shared/content/book-slug.ts'
+import { isBookSlug, privateBookSlug } from '../../shared/content/book-slug.ts'
 import { audiobookAudio } from '../audiobooks/view.ts'
 import type { Db } from '../db.ts'
 import { catalogueBook, catalogueBooks, loadBook } from '../repository.ts'
 import { openCatalogueBook } from './catalogue.ts'
 import { openPrivateText } from './private.ts'
-import { type BookRef, refFor, slugOf } from './ref.ts'
+import { type BookRef, refFor } from './ref.ts'
 
 /** What every opened book carries, whether it is read or listened to. */
 export interface OpenedBook {
@@ -133,7 +133,7 @@ export async function labelsFor(db: Db, userId: number, refs: readonly BookRef[]
     labels.set(ref.slug, meta ? { title: meta.title, author: meta.author, href: bookHref(meta), removed: false } : GONE)
   }
   for (const row of rows) {
-    labels.set(slugOf({ slug: null, userBookId: row.id }), {
+    labels.set(privateBookSlug(row.id), {
       title: row.title,
       author: row.author,
       href: privateBookHref(row.id),

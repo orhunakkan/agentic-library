@@ -9,6 +9,7 @@ import { catalogueVersion } from '../downloads/version.ts'
 import { loadAudio, loadCatalog } from '../repository.ts'
 import type { BuiltTextBook } from './book.ts'
 import { catalogueOfflineBook } from './offline.ts'
+import { refFor } from './ref.ts'
 import { catalogueSpeechBook } from './views.ts'
 
 const cataloguePages = new WeakMap<BookContent, readonly BookPage[]>()
@@ -29,7 +30,7 @@ export function openCatalogueBook(meta: BookMeta, loaded: BookContent): BuiltTex
   const audio = () => loadAudio(meta.slug)
   return {
     slug: meta.slug,
-    ref: { slug: meta.slug, userBookId: null },
+    ref: refFor(meta.slug),
     title: meta.title,
     author: meta.author,
     language: meta.language,

@@ -5,6 +5,7 @@ import { saveKey } from '~/server/api-keys'
 import { handleAsk } from '~/server/ask/ask'
 import { createPrompt } from '~/server/ask-prompts/store'
 import { recordEvent } from '~/server/audit'
+import { refFor } from '~/server/books/ref'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
 import { hashToken, newSessionToken } from '~/server/security'
@@ -294,7 +295,7 @@ describe('Ask with the reader’s highlights', () => {
   const pride = bookPages(
     JSON.parse(readFileSync('tests/e2e/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook,
   )
-  const book = { slug: 'pride-and-prejudice', userBookId: null }
+  const book = refFor('pride-and-prejudice')
 
   async function mark(userId: number, chapter: string, page: number, note: string | null = null) {
     const p = pride.find((x) => x.chapterSlug === chapter && x.page === page)

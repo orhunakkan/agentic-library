@@ -4,6 +4,7 @@ import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -11,7 +12,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { type BookRef, slugOf } from '~/server/books/ref'
+import { type BookRef, refFor, slugOf } from '~/server/books/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { handleSync } from '~/server/sync/actions'
@@ -39,8 +40,8 @@ beforeEach(async () => {
 let users = 0
 const newUser = () => testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
-const PRIDE: BookRef = { slug: 'pride-and-prejudice', userBookId: null }
-const PROPHET: BookRef = { slug: 'the-prophet', userBookId: null }
+const PRIDE: BookRef = refFor('pride-and-prejudice')
+const PROPHET: BookRef = refFor('the-prophet')
 
 async function privateBook(userId: number, title = 'Notes'): Promise<BookRef & { userBookId: string }> {
   const start = await startImport(db(), userId, {
@@ -54,7 +55,7 @@ async function privateBook(userId: number, title = 'Notes'): Promise<BookRef & {
   await storeChapter(db(), userId, start.id, 0, { title: 'Opening', pages: ['<p>one</p>', '<p>two</p>'] })
   await storeChapter(db(), userId, start.id, 1, { title: 'Second', pages: ['<p>three</p>'] })
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
-  return { slug: null, userBookId: start.id }
+  return privateRef(start.id)
 }
 
 const none: SyncItems = { reading: [], listening: [], settings: null }
@@ -119,13 +120,13 @@ describe('the store', () => {
       reading: [
         { ref: PRIDE, chapter: 'chapter-1', page: 1, at: 1 },
         { ref: book, chapter: 'opening', page: 2, at: 3 },
-        { ref: { slug: 'confessions-of-al-ghazzali', userBookId: null }, chapter: null, page: 9, at: 2 },
+        { ref: refFor('confessions-of-al-ghazzali'), chapter: null, page: 9, at: 2 },
       ],
     })
     await save(other.id, { reading: [{ ref: PRIDE, chapter: 'chapter-9', page: 1, at: 9 }] })
     expect((await listReading(db(), user.id, 50)).map((r) => [r.ref, r.chapter, r.page])).toEqual([
       [book, 'opening', 2],
-      [{ slug: 'confessions-of-al-ghazzali', userBookId: null }, null, 9],
+      [refFor('confessions-of-al-ghazzali'), null, 9],
       [PRIDE, 'chapter-1', 1],
     ])
     expect(await listReading(db(), user.id, 1)).toHaveLength(1)

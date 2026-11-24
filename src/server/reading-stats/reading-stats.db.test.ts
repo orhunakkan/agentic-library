@@ -1,9 +1,11 @@
 import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { refFor } from '~/server/books/ref'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -99,7 +101,7 @@ describe('the store', () => {
   it('marks a book finished once, takes the mark off, and keeps each reader’s to themselves', async () => {
     const ada = await newUser()
     const bob = await newUser()
-    const ref = { slug: PRIDE, userBookId: null } as const
+    const ref = refFor(PRIDE)
     expect(await markFinished(db(), ada.id, ref)).toBe('added')
     expect(await markFinished(db(), ada.id, ref)).toBe('exists')
     expect(await markFinished(db(), bob.id, ref)).toBe('added')
@@ -113,11 +115,9 @@ describe('the store', () => {
     const ada = await newUser()
     const bob = await newUser()
     const id = await privateBook(ada.id)
-    expect(await markFinished(db(), bob.id, { slug: null, userBookId: id })).toBe('missing')
-    expect(await markFinished(db(), ada.id, { slug: null, userBookId: id })).toBe('added')
-    expect(await listFinished(db(), ada.id)).toEqual([
-      { ref: { slug: null, userBookId: id }, finishedAt: expect.any(Date) },
-    ])
+    expect(await markFinished(db(), bob.id, privateRef(id))).toBe('missing')
+    expect(await markFinished(db(), ada.id, privateRef(id))).toBe('added')
+    expect(await listFinished(db(), ada.id)).toEqual([{ ref: privateRef(id), finishedAt: expect.any(Date) }])
   })
 
   it('refuses a session outside the column’s checks', async () => {

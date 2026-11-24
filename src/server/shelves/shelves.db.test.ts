@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -10,7 +11,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { type BookRef, slugOf } from '~/server/books/ref'
+import { type BookRef, refFor, slugOf } from '~/server/books/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { handleShelfBook, handleShelfChange, handleShelfCreate, shelvesState } from '~/server/shelves/actions'
@@ -44,8 +45,8 @@ beforeEach(async () => {
 let users = 0
 const newUser = () => testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
-const PRIDE: BookRef = { slug: 'pride-and-prejudice', userBookId: null }
-const CODE_BOOK: BookRef = { slug: 'fixture-code-book', userBookId: null }
+const PRIDE: BookRef = refFor('pride-and-prejudice')
+const CODE_BOOK: BookRef = refFor('fixture-code-book')
 const NOWHERE = '6f1c0000-0000-4000-8000-000000000000'
 
 const named = (name: string): ShelfName => ({ name, key: shelfNameKey(name) })
@@ -69,7 +70,7 @@ async function privateBook(userId: number, finish = true): Promise<BookRef & { u
     await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
-  return { slug: null, userBookId: start.id }
+  return privateRef(start.id)
 }
 
 async function fillBooks(userId: number, n: number) {

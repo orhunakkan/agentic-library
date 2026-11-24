@@ -18,6 +18,7 @@ import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -26,7 +27,7 @@ vi.mock('~/server/db', async (importOriginal) => {
 })
 
 import { openBook } from '~/server/books/book'
-import { type BookRef, slugOf } from '~/server/books/ref'
+import { type BookRef, refFor, slugOf } from '~/server/books/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -56,9 +57,9 @@ beforeEach(async () => {
 let users = 0
 const newUser = () => testUser(db(), `listener-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
-const PRIDE: BookRef = { slug: 'pride-and-prejudice', userBookId: null }
-const PROPHET: BookRef = { slug: 'the-prophet', userBookId: null }
-const PAGED: BookRef = { slug: 'confessions-of-al-ghazzali', userBookId: null }
+const PRIDE: BookRef = refFor('pride-and-prejudice')
+const PROPHET: BookRef = refFor('the-prophet')
+const PAGED: BookRef = refFor('confessions-of-al-ghazzali')
 
 const voice = (over: Partial<Extract<NewAudioBookmark, { kind: 'voice' }>> = {}): NewAudioBookmark => ({
   kind: 'voice',
@@ -95,7 +96,7 @@ async function privateBook(userId: number): Promise<BookRef> {
   if (!start.ok) throw new Error('could not start')
   await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>One sentence. Another one.</p>'] })
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
-  return { slug: null, userBookId: start.id }
+  return privateRef(start.id)
 }
 
 describe('the audio_bookmarks table', () => {
@@ -214,7 +215,7 @@ describe('the store', () => {
       chapterCount: 1,
     })
     if (!start.ok) throw new Error('could not start')
-    expect(await createAudioBookmark(db(), user.id, { slug: null, userBookId: start.id }, voice())).toBe('missing')
+    expect(await createAudioBookmark(db(), user.id, privateRef(start.id), voice())).toBe('missing')
   })
 
   it('deletes a private book’s audio bookmarks with the book, and every one with the user', async () => {

@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import type { ArticlesState } from '~/shared/articles/contract'
 import type { PlanState } from '~/shared/billing/billing'
-import { privateBookSlug } from '~/shared/content/book-slug'
+import { privateBookSlug, refFor } from '~/shared/content/book-slug'
 import { chapterPageHref } from '~/shared/content/navigation'
 import {
   buildPrivateAudiobookPage,
@@ -225,7 +225,7 @@ export const getPrivateBookPage = createServerFn({ method: 'GET' })
       if (!isUuid(data.id)) throw notFound()
       const [book, stars] = await Promise.all([
         loadBookPage(getDb(), session.userId, data.id),
-        getRating(getDb(), session.userId, { slug: null, userBookId: data.id }),
+        getRating(getDb(), session.userId, refFor(privateBookSlug(data.id))),
       ])
       const rating: RatingState = { state: 'ready', stars }
       if (book) return { format: 'text', page: buildPrivateBookPage(book), rating }

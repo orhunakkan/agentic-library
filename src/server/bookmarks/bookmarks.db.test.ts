@@ -8,6 +8,7 @@ import { toBookmarkViews } from '~/server/bookmarks/view'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -16,7 +17,7 @@ vi.mock('~/server/db', async (importOriginal) => {
 })
 
 import { openBook } from '~/server/books/book'
-import { type BookRef, slugOf } from '~/server/books/ref'
+import { type BookRef, refFor, slugOf } from '~/server/books/ref'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
@@ -45,8 +46,8 @@ beforeEach(async () => {
 let users = 0
 const newUser = () => testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
-const PRIDE: BookRef = { slug: 'pride-and-prejudice', userBookId: null }
-const CODE_BOOK: BookRef = { slug: 'fixture-code-book', userBookId: null }
+const PRIDE: BookRef = refFor('pride-and-prejudice')
+const CODE_BOOK: BookRef = refFor('fixture-code-book')
 
 const row = (over: Partial<NewBookmark> = {}): NewBookmark => ({
   chapter: 'chapter-6',
@@ -76,7 +77,7 @@ async function privateBook(userId: number): Promise<BookRef> {
   if (!start.ok) throw new Error('could not start')
   await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
-  return { slug: null, userBookId: start.id }
+  return privateRef(start.id)
 }
 
 describe('the bookmarks table', () => {
@@ -110,7 +111,7 @@ describe('the store', () => {
 
   it('creates once per page of a paged book too, whose chapter is null', async () => {
     const user = await newUser()
-    const paged: BookRef = { slug: 'confessions-of-al-ghazzali', userBookId: null }
+    const paged: BookRef = refFor('confessions-of-al-ghazzali')
     const first = await created(user.id, paged, { chapter: null, page: 112 })
     const again = await created(user.id, paged, { chapter: null, page: 112 })
     expect(again).toEqual({ row: first.row, created: false })
@@ -149,7 +150,7 @@ describe('the store', () => {
       chapterCount: 1,
     })
     if (!start.ok) throw new Error('could not start')
-    expect(await createBookmark(db(), user.id, { slug: null, userBookId: start.id }, row())).toBe('missing')
+    expect(await createBookmark(db(), user.id, privateRef(start.id), row())).toBe('missing')
   })
 
   it('deletes a private book’s bookmarks with the book, and every bookmark with the user', async () => {

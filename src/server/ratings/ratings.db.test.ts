@@ -4,6 +4,7 @@ import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -11,7 +12,7 @@ vi.mock('~/server/db', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb) }
 })
 
-import { type BookRef, slugOf } from '~/server/books/ref'
+import { type BookRef, refFor, slugOf } from '~/server/books/ref'
 import { handleRating, ratingState } from '~/server/ratings/actions'
 import { clearRating, getRating, setRating } from '~/server/ratings/store'
 import { hashToken, newSessionToken } from '~/server/security'
@@ -34,7 +35,7 @@ beforeEach(async () => {
 let users = 0
 const newUser = () => testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
-const PROPHET: BookRef = { slug: 'the-prophet', userBookId: null }
+const PROPHET: BookRef = refFor('the-prophet')
 const NOWHERE = '6f1c0000-0000-4000-8000-000000000000'
 
 async function privateBook(userId: number, finish = true): Promise<BookRef & { userBookId: string }> {
@@ -50,7 +51,7 @@ async function privateBook(userId: number, finish = true): Promise<BookRef & { u
     await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
-  return { slug: null, userBookId: start.id }
+  return privateRef(start.id)
 }
 
 const rows = () =>
@@ -94,7 +95,7 @@ describe('the store', () => {
     const bob = await newUser()
     const adas = await privateBook(ada.id)
     const uploading = await privateBook(bob.id, false)
-    const nowhere: BookRef = { slug: null, userBookId: NOWHERE }
+    const nowhere: BookRef = privateRef(NOWHERE)
     for (const book of [adas, uploading, nowhere]) {
       expect(await setRating(db(), bob.id, book, 4)).toBe('missing')
       expect(await clearRating(db(), bob.id, book)).toBe('missing')
@@ -229,11 +230,11 @@ describe('the endpoint and the read', () => {
     const rated = await post(cookie, { book: PRIDE, stars: 4 })
     expect([rated.status, await rated.json()]).toEqual([200, { book: PRIDE, stars: 4 }])
     expect(rated.headers.get('cache-control')).toBe('private, no-store')
-    expect(await getRating(db(), user.id, { slug: PRIDE, userBookId: null })).toBe(4)
+    expect(await getRating(db(), user.id, refFor(PRIDE))).toBe(4)
 
     const cleared = await post(cookie, { book: PRIDE, stars: null })
     expect([cleared.status, await cleared.json()]).toEqual([200, { book: PRIDE, stars: null }])
-    expect(await getRating(db(), user.id, { slug: PRIDE, userBookId: null })).toBeNull()
+    expect(await getRating(db(), user.id, refFor(PRIDE))).toBeNull()
     expect((await post(cookie, { book: PRIDE, stars: null })).status).toBe(200)
     expect(await rows()).toHaveLength(0)
   })
@@ -282,7 +283,7 @@ describe('the endpoint and the read', () => {
     expect(await ratingState(get(cookie), 'the-prophet')).toEqual({ state: 'ready', stars: 4 })
     expect(await ratingState(get(null), 'the-prophet')).toEqual({ state: 'hidden' })
     expect(await ratingState(get(cookie), PRIDE)).toEqual({ state: 'ready', stars: null })
-    await setRating(db(), user.id, { slug: PRIDE, userBookId: null }, 5)
+    await setRating(db(), user.id, refFor(PRIDE), 5)
     expect(await ratingState(get(cookie), PRIDE)).toEqual({ state: 'ready', stars: 5 })
   })
 
