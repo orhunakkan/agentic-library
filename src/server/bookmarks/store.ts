@@ -45,7 +45,7 @@ const toRow = (r: Raw): BookmarkRow => ({
   createdAt: r.created_at,
 })
 
-export type CreateResult = { row: BookmarkRow; created: boolean } | 'missing' | 'quota-book' | 'quota-user'
+export type CreateResult = { row: BookmarkRow; created: boolean } | 'missing' | 'limit-book' | 'limit-user'
 
 export async function createBookmark(
   pool: Pool,

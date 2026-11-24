@@ -42,8 +42,8 @@ export const handleCardSave = (request: Request) =>
         origin: input.origin,
       })
       if (result === 'missing') return fail(404, 'not_found')
-      if (result === 'quota-book') return fail(409, 'quota', { scope: 'book', max: MAX_CARDS_PER_BOOK })
-      if (result === 'quota-user') return fail(409, 'quota', { scope: 'user', max: MAX_CARDS_PER_USER })
+      if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: MAX_CARDS_PER_BOOK })
+      if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: MAX_CARDS_PER_USER })
       return noStoreJson(result.existed ? 200 : 201, {
         card: toCardView(result.row, pages),
         existed: result.existed,

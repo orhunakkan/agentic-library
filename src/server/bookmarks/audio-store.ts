@@ -67,7 +67,7 @@ function toRow(r: Raw): AudioBookmarkRow {
   }
 }
 
-export type AudioCreateResult = { row: AudioBookmarkRow; created: boolean } | 'missing' | 'quota-book' | 'quota-user'
+export type AudioCreateResult = { row: AudioBookmarkRow; created: boolean } | 'missing' | 'limit-book' | 'limit-user'
 
 export async function createAudioBookmark(
   pool: Pool,

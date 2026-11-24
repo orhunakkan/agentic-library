@@ -198,7 +198,7 @@ export interface CappedRow {
   same?: Record<string, Value>
 }
 
-export type Capped<Raw> = { row: Raw; created: boolean } | 'missing' | 'quota-book' | 'quota-user'
+export type Capped<Raw> = { row: Raw; created: boolean } | 'missing' | 'limit-book' | 'limit-user'
 
 /**
  * Inserts one row about a book, under the reader's lock so parallel inserts can't both take the last slot. It answers
@@ -232,8 +232,8 @@ export function insertCapped<Raw extends object>(
     const [counts] = await tx<{ in_book: string; in_all: string }[]>`
       select count(*) filter (where ${onBook(tx, book)}) as in_book, count(*) as in_all
       from ${table} where user_id = ${userId}`
-    if (Number(counts?.in_book ?? 0) >= row.limits.perBook) return 'quota-book'
-    if (Number(counts?.in_all ?? 0) >= row.limits.perUser) return 'quota-user'
+    if (Number(counts?.in_book ?? 0) >= row.limits.perBook) return 'limit-book'
+    if (Number(counts?.in_all ?? 0) >= row.limits.perUser) return 'limit-user'
     const values = { user_id: userId, book_slug: book.slug, user_book_id: book.userBookId, ...row.values }
     const [created] = await tx<Raw[]>`
       insert into ${table} ${tx(values)}

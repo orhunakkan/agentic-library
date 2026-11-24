@@ -53,7 +53,7 @@ const toRow = (r: Raw): CardRow => ({
   createdAt: r.created_at,
 })
 
-export type SaveResult = { row: CardRow; existed: boolean } | 'missing' | 'quota-book' | 'quota-user'
+export type SaveResult = { row: CardRow; existed: boolean } | 'missing' | 'limit-book' | 'limit-user'
 
 export async function saveCard(pool: Pool, userId: number, book: BookRef, card: NewCard): Promise<SaveResult> {
   const result = await insertCapped<Raw>(pool, userId, book, {

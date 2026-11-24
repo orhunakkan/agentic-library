@@ -495,15 +495,15 @@ describe('insertCapped', () => {
     const user = await newUser()
     await fill(user.id, PRIDE, 3)
     await fill(user.id, refFor('fixture-code-book'), 2)
-    expect(await save(user.id, PRIDE, 'over both')).toBe('quota-book')
-    expect(await save(user.id, refFor('another-book'), 'over the user')).toBe('quota-user')
+    expect(await save(user.id, PRIDE, 'over both')).toBe('limit-book')
+    expect(await save(user.id, refFor('another-book'), 'over the user')).toBe('limit-user')
   })
 
   it('lets only one of two parallel inserts take the last slot', async () => {
     const user = await newUser()
     await fill(user.id, PRIDE, 2)
     const results = await Promise.all([save(user.id, PRIDE, 'a'), save(user.id, PRIDE, 'b')])
-    expect(results.filter((r) => r === 'quota-book')).toHaveLength(1)
+    expect(results.filter((r) => r === 'limit-book')).toHaveLength(1)
     expect(results.filter((r) => typeof r === 'object')).toHaveLength(1)
   })
 })

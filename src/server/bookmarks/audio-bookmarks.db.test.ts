@@ -241,7 +241,7 @@ describe('the store', () => {
   })
 })
 
-describe('the quotas', () => {
+describe('the plan limits', () => {
   async function fill(userId: number, slug: string, n: number) {
     await raw`
       insert into audio_bookmarks (user_id, book_slug, kind, episode, position_ms)
@@ -255,7 +255,7 @@ describe('the quotas', () => {
       select ${user.id}, 'pride-and-prejudice', 'chapter-1', g, 0, 1, 'x' from generate_series(1, 5) g`
     await fill(user.id, 'pride-and-prejudice', MAX_AUDIO_BOOKMARKS_PER_BOOK - 1)
     expect((await created(user.id, PRIDE, voice())).created).toBe(true)
-    expect(await createAudioBookmark(db(), user.id, PRIDE, voice({ start: 400, end: 464 }))).toBe('quota-book')
+    expect(await createAudioBookmark(db(), user.id, PRIDE, voice({ start: 400, end: 464 }))).toBe('limit-book')
     expect((await created(user.id, PRIDE, voice())).created).toBe(false)
     expect((await created(user.id, PROPHET, episode())).created).toBe(true)
   })
@@ -269,7 +269,7 @@ describe('the quotas', () => {
       createAudioBookmark(db(), user.id, PRIDE, voice({ start: 1, end: 65 })),
       createAudioBookmark(db(), user.id, PRIDE, voice({ start: 2, end: 66 })),
     ])
-    expect(results.filter((r) => r === 'quota-user')).toHaveLength(1)
+    expect(results.filter((r) => r === 'limit-user')).toHaveLength(1)
     expect(results.filter((r) => typeof r === 'object')).toHaveLength(1)
   })
 })

@@ -165,7 +165,7 @@ describe('the store', () => {
   })
 })
 
-describe('the quotas', () => {
+describe('the plan limits', () => {
   async function fill(userId: number, slug: string, n: number) {
     await raw`
       insert into bookmarks (user_id, book_slug, chapter, page, start_offset, end_offset, exact)
@@ -176,7 +176,7 @@ describe('the quotas', () => {
     const user = await newUser()
     await fill(user.id, 'pride-and-prejudice', MAX_BOOKMARKS_PER_BOOK - 1)
     expect((await created(user.id, PRIDE)).created).toBe(true)
-    expect(await createBookmark(db(), user.id, PRIDE, row({ page: 3 }))).toBe('quota-book')
+    expect(await createBookmark(db(), user.id, PRIDE, row({ page: 3 }))).toBe('limit-book')
     expect((await created(user.id, PRIDE)).created).toBe(false)
     expect((await created(user.id, CODE_BOOK)).created).toBe(true)
   })
@@ -190,7 +190,7 @@ describe('the quotas', () => {
       createBookmark(db(), user.id, PRIDE, row({ page: 1 })),
       createBookmark(db(), user.id, PRIDE, row({ page: 2 })),
     ])
-    expect(results.filter((r) => r === 'quota-user')).toHaveLength(1)
+    expect(results.filter((r) => r === 'limit-user')).toHaveLength(1)
     expect(results.filter((r) => typeof r === 'object')).toHaveLength(1)
   })
 })

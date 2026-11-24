@@ -29,8 +29,8 @@ export const handleBookmarkCreate = (request: Request) =>
       ...pageAnchor(page.text),
     })
     if (result === 'missing') return fail(404, 'not_found')
-    if (result === 'quota-book') return fail(409, 'quota', { scope: 'book', max: MAX_BOOKMARKS_PER_BOOK })
-    if (result === 'quota-user') return fail(409, 'quota', { scope: 'user', max: MAX_BOOKMARKS_PER_USER })
+    if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: MAX_BOOKMARKS_PER_BOOK })
+    if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: MAX_BOOKMARKS_PER_USER })
     return noStoreJson(result.created ? 201 : 200, { bookmark: toBookmarkView(result.row, pages) })
   })
 

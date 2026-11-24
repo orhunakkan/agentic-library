@@ -229,7 +229,7 @@ describe('a book’s highlights, resolved (highlightsFor)', () => {
   })
 })
 
-describe('the quotas', () => {
+describe('the plan limits', () => {
   async function fill(userId: number, book: BookRef, n: number) {
     await raw`
       insert into highlights (user_id, book_slug, user_book_id, chapter, page, start_offset, end_offset, exact, color)
@@ -244,7 +244,7 @@ describe('the quotas', () => {
       createHighlight(db(), user.id, PRIDE, row()),
       createHighlight(db(), user.id, PRIDE, row()),
     ])
-    expect(results.filter((r) => r === 'quota-book')).toHaveLength(1)
+    expect(results.filter((r) => r === 'limit-book')).toHaveLength(1)
     expect(results.filter((r) => typeof r === 'object')).toHaveLength(1)
     expect(typeof (await createHighlight(db(), user.id, CODE_BOOK, row()))).toBe('object')
   })
@@ -258,14 +258,14 @@ describe('the quotas', () => {
       createHighlight(db(), user.id, PRIDE, row()),
       createHighlight(db(), user.id, PRIDE, row()),
     ])
-    expect(results.filter((r) => r === 'quota-user')).toHaveLength(1)
+    expect(results.filter((r) => r === 'limit-user')).toHaveLength(1)
     expect(results.filter((r) => typeof r === 'object')).toHaveLength(1)
   })
 
   it('answer the per-book cap when a book and the reader are both full', async () => {
     const user = await newUser()
     await fill(user.id, PRIDE, 2)
-    expect(await createHighlight(db(), user.id, PRIDE, row(), { perBook: 2, perUser: 2 })).toBe('quota-book')
+    expect(await createHighlight(db(), user.id, PRIDE, row(), { perBook: 2, perUser: 2 })).toBe('limit-book')
   })
 })
 

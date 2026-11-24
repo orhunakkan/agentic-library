@@ -59,7 +59,7 @@ const toRow = (r: Raw): HighlightRow => ({
   updatedAt: r.updated_at,
 })
 
-export type CreateResult = HighlightRow | 'missing' | 'quota-book' | 'quota-user'
+export type CreateResult = HighlightRow | 'missing' | 'limit-book' | 'limit-user'
 
 export async function createHighlight(
   pool: Pool,

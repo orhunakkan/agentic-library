@@ -60,8 +60,8 @@ export const handleAudioBookmarkCreate = (request: Request) =>
       if (!found.ok) return found.response
       const result = await createAudioBookmark(db, session.userId, found.ref, found.moment)
       if (result === 'missing') return fail(404, 'not_found')
-      if (result === 'quota-book') return fail(409, 'quota', { scope: 'book', max: MAX_AUDIO_BOOKMARKS_PER_BOOK })
-      if (result === 'quota-user') return fail(409, 'quota', { scope: 'user', max: MAX_AUDIO_BOOKMARKS_PER_USER })
+      if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: MAX_AUDIO_BOOKMARKS_PER_BOOK })
+      if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: MAX_AUDIO_BOOKMARKS_PER_USER })
       const bookmark = toAudioBookmarkView(result.row, found.pages, found.audio)
       return noStoreJson(result.created ? 201 : 200, { bookmark })
     },
