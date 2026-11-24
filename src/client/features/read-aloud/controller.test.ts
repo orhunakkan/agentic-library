@@ -15,7 +15,7 @@ import {
   type StartAt,
 } from './controller'
 import type { DownloadOutcome, VoiceStore } from './piper/voice-store'
-import { positionKey, readPosition, SPEED_KEY, VOICE_KEY, writePosition } from './position-store'
+import { positionKey, readPosition, SPEED_KEY, VOICE_KEY, voiceChoiceKey, writePosition } from './position-store'
 import type { Speaker, SpeakHandlers, SpeakOptions } from './speaker'
 import type { VoiceLike } from './voices'
 
@@ -1265,5 +1265,37 @@ describe('the Folio voice', () => {
     await t.start()
     expect(t.ra.state().problem).toBeNull()
     expect(t.said[0]).toMatchObject({ engine: 'local' })
+  })
+
+  it('is chosen the same way by read aloud and the aside', async () => {
+    const own = privateBookSlug('00000000-0000-4000-8000-000000000000')
+    const cases: { downloaded: string[]; remembered?: Record<string, string>; slug?: string }[] = [
+      { downloaded: [] },
+      { downloaded: ['en_US-ljspeech-medium'] },
+      { downloaded: ['en_US-ljspeech-medium'], remembered: { en: 'Online (Natural)' } },
+      { downloaded: ['en_US-ljspeech-medium', 'en_GB-cori-medium'], remembered: { en: 'folio:en_GB-cori-medium' } },
+      { downloaded: ['en_US-ljspeech-medium'], remembered: { en: 'folio:en_GB-cori-medium' } },
+      { downloaded: [], remembered: { en: 'Gone' } },
+      { downloaded: [], slug: own },
+      { downloaded: [], remembered: { en: 'Online (Natural)' }, slug: own },
+      { downloaded: ['en_US-ljspeech-medium'], remembered: { [voiceChoiceKey('en', true)]: 'Local' }, slug: own },
+    ]
+    for (const c of cases) {
+      const storage = memoryStorage()
+      if (c.remembered) storage.setItem(VOICE_KEY, JSON.stringify(c.remembered))
+      const t = localSetup({ downloaded: c.downloaded, storage, slug: c.slug })
+      await t.start()
+      const aside = createAside({
+        speaker: { speak: () => {}, stop: () => {} },
+        localSpeaker: { speak: () => {}, stop: () => {}, prime: () => {} },
+        loadVoices: async () => [local, online],
+        downloaded: () => t.voiceStore.downloaded(),
+        storage,
+        locale: 'en-US',
+        pauseBook: () => {},
+      })
+      const picked = await aside.voiceFor(bookInfo.language, c.slug !== undefined)
+      expect(picked.voice?.voiceURI, JSON.stringify(c)).toBe(t.ra.state().voice?.voiceURI)
+    }
   })
 })

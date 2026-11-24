@@ -30,7 +30,6 @@ import {
   readPosition,
   readSpeed,
   readVoices,
-  rememberedVoice,
   rememberVoice,
   type SavedPosition,
   voiceChoiceKey,
@@ -45,8 +44,7 @@ import {
   languageName,
   pickVoice,
   rankCloudVoices,
-  rankLocalVoices,
-  rankVoices,
+  resolveVoice,
   type VoiceLike,
 } from './voices'
 
@@ -619,20 +617,26 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       }
       const language = result.data.book.language
       const privateBook = isPrivateBookSlug(book)
-      const ranked = rankVoices(voices, language, { privateBook, locale: deps.locale })
-      const local = deps.localSpeaker ? rankLocalVoices(downloaded, language, deps.locale) : []
-      if (voices.length > 0 && ranked.length === 0 && local.length === 0) {
+      const resolved = resolveVoice({
+        voices,
+        downloaded: deps.localSpeaker ? downloaded : [],
+        lang: language,
+        privateBook,
+        locale: deps.locale,
+        storage: deps.storage,
+      })
+      if (voices.length > 0 && resolved.device.length === 0 && resolved.folio.length === 0) {
         close({ kind: 'no-voice', language: languageName(language) })
         return
       }
-      const remembered = rememberedVoice(deps.storage, primarySubtag(language), privateBook)
-      let voice = pickVoice([...local, ...ranked], remembered)
-      if (remembered?.startsWith(CLOUD_VOICE_PREFIX) && deps.cloudSpeaker) {
+      const { cloudChoice } = resolved
+      let voice = resolved.voice
+      if (cloudChoice && deps.cloudSpeaker) {
         const answer = await cloud
         if (mine !== session) return
         showCloudVoices(mine, answer, language)
         const list = state.cloudVoices
-        voice = (Array.isArray(list) ? list.find((v) => v.voiceURI === remembered) : undefined) ?? voice
+        voice = (Array.isArray(list) ? list.find((v) => v.voiceURI === cloudChoice) : undefined) ?? voice
       } else {
         void cloud.then((answer) => {
           showCloudVoices(mine, answer, language)
@@ -641,7 +645,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       }
       state = {
         ...state,
-        voices: ranked,
+        voices: resolved.device,
         voice,
         engine: engineOf(voice),
         local: localStateFor(language, downloaded),

@@ -1,10 +1,8 @@
-import { primarySubtag } from '~/shared/read-aloud/cloud'
 import type { FolioVoice } from '~/shared/read-aloud/folio-voices'
-import { CLOUD_VOICE_PREFIX } from './cloud-speaker'
 import { MAX_FAILURES } from './controller'
-import { readSpeed, rememberedVoice } from './position-store'
+import { readSpeed } from './position-store'
 import type { Speaker } from './speaker'
-import { isLocalVoice, pickVoice, rankLocalVoices, rankVoices, type VoiceLike } from './voices'
+import { isLocalVoice, resolveVoice, type VoiceLike } from './voices'
 
 export interface AsideDeps {
   speaker: Speaker
@@ -71,11 +69,15 @@ export function createAside(deps: AsideDeps): Aside {
       deps.loadVoices().catch(() => [] as VoiceLike[]),
       deps.localSpeaker ? deps.downloaded().catch(() => [] as FolioVoice[]) : Promise.resolve([] as FolioVoice[]),
     ])
-    const ranked = rankVoices(voices, lang, { privateBook, locale: deps.locale })
-    const local = deps.localSpeaker ? rankLocalVoices(downloaded, lang, deps.locale) : []
-    const remembered = rememberedVoice(deps.storage, primarySubtag(lang), privateBook)
-    const skippedCloud = remembered?.startsWith(CLOUD_VOICE_PREFIX) === true
-    return { voice: pickVoice([...local, ...ranked], skippedCloud ? undefined : remembered), skippedCloud }
+    const { voice, cloudChoice } = resolveVoice({
+      voices,
+      downloaded,
+      lang,
+      privateBook,
+      locale: deps.locale,
+      storage: deps.storage,
+    })
+    return { voice, skippedCloud: cloudChoice !== null }
   }
 
   const speakerFor = (voice: VoiceLike | null): Speaker =>

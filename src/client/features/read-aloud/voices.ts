@@ -1,8 +1,9 @@
 import { hourlyCost, resolveSpeechModel } from '~/shared/lib/speech-models'
-import { type CloudVoice, rankCloudVoices as rankCloud } from '~/shared/read-aloud/cloud'
+import { type CloudVoice, primarySubtag, rankCloudVoices as rankCloud } from '~/shared/read-aloud/cloud'
 import { type FolioVoice, folioVoicesFor } from '~/shared/read-aloud/folio-voices'
 import { CLOUD_VOICE_PREFIX } from './cloud-speaker'
 import { LOCAL_VOICE_PREFIX } from './local-speaker'
+import { rememberedVoice } from './position-store'
 
 export interface VoiceLike {
   name: string
@@ -134,6 +135,30 @@ export function rankLocalVoices(downloaded: readonly FolioVoice[], lang: string,
   return folioVoicesFor(lang, locale)
     .filter((v) => ids.has(v.id))
     .map(folioVoiceLike)
+}
+
+export interface VoiceResolution {
+  voice: VoiceLike | null
+  device: VoiceLike[]
+  folio: VoiceLike[]
+  cloudChoice: string | null
+}
+
+/** Picks the remembered device or Folio voice, else the best ranked one; a remembered cloud voice is reported as `cloudChoice`, for a caller that can wait for the cloud voice list. */
+export function resolveVoice(input: {
+  voices: readonly VoiceLike[]
+  downloaded: readonly FolioVoice[]
+  lang: string
+  privateBook: boolean
+  locale?: string
+  storage: Storage | null
+}): VoiceResolution {
+  const { lang, privateBook, locale } = input
+  const device = rankVoices(input.voices, lang, { privateBook, locale })
+  const folio = rankLocalVoices(input.downloaded, lang, locale)
+  const remembered = rememberedVoice(input.storage, primarySubtag(lang), privateBook)
+  const cloudChoice = remembered?.startsWith(CLOUD_VOICE_PREFIX) ? remembered : null
+  return { voice: pickVoice([...folio, ...device], cloudChoice ? undefined : remembered), device, folio, cloudChoice }
 }
 
 const capitalised = (text: string) =>

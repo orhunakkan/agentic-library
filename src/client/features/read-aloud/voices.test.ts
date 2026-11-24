@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { folioVoice } from '~/shared/read-aloud/folio-voices'
+import { type FolioVoice, folioVoice } from '~/shared/read-aloud/folio-voices'
+import { memoryStorage } from '../../../../tests/fixtures/cache-storage'
+import { rememberVoice, voiceChoiceKey } from './position-store'
 import {
   cloudNote,
   folioVoiceLike,
@@ -13,6 +15,7 @@ import {
   rankLocalVoices,
   rankVoices,
   regionName,
+  resolveVoice,
   type VoiceLike,
   type VoiceSource,
   vendorOf,
@@ -239,5 +242,52 @@ describe('Folio voices', () => {
     expect(pickVoice([...local, device], undefined)?.name).toBe('Cori')
     expect(pickVoice([...local, device], 'Daniel')?.name).toBe('Daniel')
     expect(pickVoice([device], 'folio:en_GB-cori-medium')?.name).toBe('Daniel')
+  })
+})
+
+describe('resolveVoice', () => {
+  const cori = folioVoice('en_GB-cori-medium')
+  const thorsten = folioVoice('de_DE-thorsten-medium')
+  if (!cori || !thorsten) throw new Error('in the catalogue')
+
+  function storageWith(choices: Record<string, string> = {}): Storage {
+    const storage = memoryStorage()
+    for (const [key, uri] of Object.entries(choices)) rememberVoice(storage, key, uri)
+    return storage
+  }
+  const resolve = (
+    storage: Storage | null,
+    options: { privateBook?: boolean; downloaded?: readonly FolioVoice[] } = {},
+  ) =>
+    resolveVoice({
+      voices: [david, daniel, yelda],
+      downloaded: options.downloaded ?? [cori, thorsten],
+      lang: 'en-GB',
+      privateBook: options.privateBook ?? false,
+      locale: 'en-GB',
+      storage,
+    })
+
+  it("ranks the device and Folio voices for the book's language, and picks the first Folio voice", () => {
+    const r = resolve(null)
+    expect(names(r.device)).toEqual(['Daniel', david.name])
+    expect(names(r.folio)).toEqual(['Cori'])
+    expect(r.voice?.name).toBe('Cori')
+    expect(r.cloudChoice).toBeNull()
+  })
+
+  it('picks the remembered device or Folio voice, and ranks again when the remembered one is gone', () => {
+    expect(resolve(storageWith({ en: 'Daniel' })).voice?.name).toBe('Daniel')
+    expect(resolve(storageWith({ en: 'folio:en_GB-cori-medium' }), { downloaded: [] }).voice?.name).toBe('Daniel')
+    expect(resolve(storageWith({ en: 'Gone' })).voice?.name).toBe('Cori')
+    const own = storageWith({ [voiceChoiceKey('en', true)]: 'Daniel' })
+    expect(resolve(own, { privateBook: true }).voice?.name).toBe('Daniel')
+  })
+
+  it('reports a remembered cloud voice, with the best device or Folio voice to fall back on', () => {
+    const r = resolve(storageWith({ en: 'elevenlabs:Aria01' }))
+    expect(r.cloudChoice).toBe('elevenlabs:Aria01')
+    expect(r.voice?.name).toBe('Cori')
+    expect(resolve(storageWith({ en: 'elevenlabs:Aria01' }), { privateBook: true }).cloudChoice).toBeNull()
   })
 })
