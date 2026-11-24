@@ -70,7 +70,8 @@ Skills from the `mattpocock-skills` plugin are shown in brackets. `implement` an
 │                                    [/codebase-design]        │
 │  5. Build it test-first                [/tdd]                │
 │     stuck on a failing test? ──►       [/diagnosing-bugs]    │
-│  6. Run checks: pnpm check (+ pnpm test:db if server)        │
+│  6. Run checks: pnpm lint:fix, then pnpm check               │
+│     (+ pnpm test:db if server)                               │
 │  7. Review its own work                [/code-review]        │
 │     fix what it finds, run the checks again                  │
 │  8. Comment what's left undone, open "needs-triage"          │
