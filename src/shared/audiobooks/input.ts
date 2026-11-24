@@ -1,5 +1,6 @@
 import { AUTHOR_MAX, checkDetails, cleanText, LANGUAGE_TAG, TITLE_MAX } from '../import/blocks.ts'
 import type { BookDetails } from '../import/details.ts'
+import { isObject } from '../lib/json-shape.ts'
 import { type AudioChapter, CHAPTER_TITLE_MAX, chaptersTile, cleanTitle } from './chapters.ts'
 import {
   type AudioFileType,
@@ -22,9 +23,6 @@ export interface AudiobookStart {
   chapters: AudioChapter[]
   cover: boolean
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const only = (value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []) =>
   Object.keys(value).every((k) => required.includes(k) || optional.includes(k)) && required.every((k) => k in value)

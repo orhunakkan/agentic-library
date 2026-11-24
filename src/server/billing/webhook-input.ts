@@ -1,4 +1,5 @@
 import { type BillingStatus, type Cadence, isBillingStatus } from '../../shared/billing/billing.ts'
+import { isObject } from '../../shared/lib/json-shape.ts'
 
 export const WEBHOOK_EVENTS = [
   'subscription.created',
@@ -39,11 +40,6 @@ export type MappedSubscription =
   | { ok: true; row: SubscriptionRow }
   | { ok: false; reason: 'invalid' }
   | { ok: false; reason: 'unknown_status'; status: string }
-
-type Fields = Record<string, unknown>
-
-export const isObject = (value: unknown): value is Fields =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 function dateOf(value: unknown): Date | null {
   if (typeof value !== 'string' || value.length > 40) return null

@@ -1,3 +1,4 @@
+import { isObject } from '~/shared/lib/json-shape'
 import type {
   Definition,
   Sense,
@@ -38,7 +39,6 @@ const TRANSLATE_CODES: readonly TranslateProblem[] = [
 ]
 
 type Json = Record<string, unknown>
-const isObject = (value: unknown): value is Json => typeof value === 'object' && value !== null && !Array.isArray(value)
 const isText = (value: unknown): value is string => typeof value === 'string'
 
 function isDefinition(value: unknown): value is Definition {

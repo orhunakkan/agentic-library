@@ -222,6 +222,13 @@ const SEAMS: Seam[] = [
     under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
     allowed: { 'src/shared/content/position.ts': 'parsePosition' },
   },
+  {
+    name: 'isObject is defined only by the JSON-shape module (#103)',
+    pattern: /\b(const|let|var|function)\s+isObject\b/,
+    under: ['src'],
+    tests: true,
+    allowed: { 'src/shared/lib/json-shape.ts': 'the one definition' },
+  },
 ]
 
 function withoutComments(source: string): string {

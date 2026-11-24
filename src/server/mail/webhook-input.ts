@@ -1,3 +1,4 @@
+import { isObject } from '../../shared/lib/json-shape.ts'
 import { parseEmail } from '../email/input.ts'
 
 export type MailEventKind = 'bounce' | 'complaint' | 'suppressed'
@@ -6,9 +7,6 @@ export interface MailEvent {
   kind: MailEventKind
   to: string[]
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 function kindOf(type: unknown, data: Record<string, unknown>): MailEventKind | null {
   if (type === 'email.complained') return 'complaint'

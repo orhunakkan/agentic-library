@@ -1,3 +1,4 @@
+import { isObject, only } from '../../shared/lib/json-shape.ts'
 import {
   type AuthenticationCredentialJSON,
   isTransport,
@@ -5,11 +6,6 @@ import {
   type Transport,
 } from '../../shared/passkeys/passkeys.ts'
 import { isUuid } from '../../shared/uuid.ts'
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-const only = (value: Record<string, unknown>, keys: readonly string[]) =>
-  Object.keys(value).every((k) => keys.includes(k))
 
 const LIMITS = {
   credentialId: 1023,

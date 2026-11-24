@@ -1,10 +1,11 @@
 import '@tanstack/react-start/server-only'
+import { isObject } from '../../shared/lib/json-shape.ts'
 import { recordEvent } from '../audit.ts'
 import type { BillingConfig } from '../config.ts'
 import type { Pool } from '../db.ts'
 import { listSubscriptions, type PaddleOptions } from './paddle-api.ts'
 import { upsertFromPaddle } from './store.ts'
-import { isObject, subscriptionRow } from './webhook-input.ts'
+import { subscriptionRow } from './webhook-input.ts'
 
 export interface ReconcileCounts {
   listed: number

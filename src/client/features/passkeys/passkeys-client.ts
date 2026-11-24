@@ -1,3 +1,4 @@
+import { isObject } from '~/shared/lib/json-shape'
 import type {
   AddPasskeyError,
   AuthenticationCredentialJSON,
@@ -30,8 +31,6 @@ const ADD_ERRORS: readonly AddPasskeyError[] = [
   'failed',
 ]
 const SIGN_IN_ERRORS: readonly SignInError[] = ['invalid', 'refused', 'limited', 'unavailable']
-
-const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
 async function send<T, P extends string>(
   request: () => Promise<Response>,

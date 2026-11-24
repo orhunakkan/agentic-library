@@ -1,3 +1,4 @@
+import { isObject } from '~/shared/lib/json-shape'
 import type { RunLang } from '~/shared/run-code/langs'
 
 export const MAX_RUN_CODE = 100_000
@@ -51,10 +52,6 @@ const MAX_ID = 64
 const LEVELS: readonly string[] = ['log', 'info', 'warn', 'error']
 
 type Fields = Record<string, unknown>
-
-function isObject(value: unknown): value is Fields {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 function hasKeys(value: Fields, required: readonly string[], optional: readonly string[] = []): boolean {
   const keys = Object.keys(value)

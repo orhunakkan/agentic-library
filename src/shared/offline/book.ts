@@ -2,6 +2,7 @@ import { isBookSlug, isPrivateBookSlug } from '../content/book-slug'
 import { coverUrlFor } from '../content/library'
 import type { ReaderContext } from '../content/reader-view'
 import type { BookContent, BookMeta, Catalog, CoverStyle } from '../content/schema'
+import { isObject } from '../lib/json-shape'
 import type { SpeechBook } from '../read-aloud/speech-text'
 
 export const OFFLINE_BOOK_VERSION = 1
@@ -43,9 +44,6 @@ const KEYS = [
 export const isOfflineSlug = (value: unknown): value is string => isBookSlug(value) && value !== 'nav'
 
 export const offlineBookUrl = (slug: string) => `/offline/${slug}.json`
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const isSitePath = (value: unknown): value is string =>
   typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && value.length <= 500

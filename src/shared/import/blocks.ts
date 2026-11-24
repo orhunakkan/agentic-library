@@ -1,3 +1,4 @@
+import { isObject } from '../lib/json-shape.ts'
 import { isRunLang, type RunLang } from '../run-code/langs.ts'
 import { type BookDetails, cleanDescription } from './details.ts'
 import type { ImageInfo } from './image.ts'
@@ -116,10 +117,6 @@ export function cleanText(text: string, code = false): string {
   return code
     ? normal.replace(/\r\n?/g, '\n').replace(CONTROL_IN_CODE, '')
     : normal.replace(/[\t\n\r]/g, ' ').replace(CONTROL, '')
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function shape(value: unknown, required: readonly string[], optional: readonly string[] = []): Record<string, unknown> {
