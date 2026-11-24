@@ -46,6 +46,10 @@ _Avoid_: speaker, narrator
 What plays a book aloud: read aloud or an audiobook, one at a time, with one sleep timer for both. In code, the `player` module; its arbiter decides which source plays and owns the sleep timer.
 _Avoid_: dock (the dock is only what the player shows)
 
+**Arbiter**:
+The part of the player that decides which source plays, and the one owner of the sleep timer. In code, `createArbiter` in `player/arbitration.ts`.
+_Avoid_: coordinator, mixer
+
 **Sleep timer**:
 Stops what plays after some minutes, or at the end of the chapter or episode. It belongs to the player, not to either source.
 _Avoid_: stop timer

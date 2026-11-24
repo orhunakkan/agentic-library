@@ -187,6 +187,19 @@ const SEAMS: Seam[] = [
     tests: true,
     allowed: { 'src/server/quota.db.test.ts': "take's own test: a kind counts every event it names" },
   },
+  {
+    name: 'only the player module creates the arbiter, the audiobook transport and read aloud (#90)',
+    pattern: /(?<!function )\bcreate(Arbiter|Transport|ReadAloud)\(/,
+    under: ['src/client', 'src/routes'],
+    allowed: { 'src/client/features/player/player.ts': 'the player module' },
+  },
+  {
+    name: "the player names its sources 'read-aloud' and 'audiobook', from the glossary (#90)",
+    pattern: /source(:| ===) '(audio|speech)'/,
+    under: ['src/client/features/player'],
+    tests: true,
+    allowed: {},
+  },
 ]
 
 function withoutComments(source: string): string {
