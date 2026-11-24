@@ -42,6 +42,18 @@ _Avoid_: audio, episode (as the playback source)
 One text-to-speech voice that read aloud can speak with.
 _Avoid_: speaker, narrator
 
+**Device voice**:
+A voice the reader's own browser or operating system provides.
+_Avoid_: system voice, engine
+
+**Cloud voice**:
+A voice spoken by a speech service over the network, available to signed-in readers.
+_Avoid_: ElevenLabs voice, remote voice, engine
+
+**Folio voice**:
+A voice Folio provides that is downloaded once and then speaks on the reader's device, offline.
+_Avoid_: local voice, Piper voice, engine
+
 **Player**:
 What plays a book aloud: read aloud or an audiobook, one at a time, with one sleep timer for both. In code, the `player` module; its arbiter decides which source plays and owns the sleep timer.
 _Avoid_: dock (the dock is only what the player shows)
