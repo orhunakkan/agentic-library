@@ -463,13 +463,54 @@ describe('labelsFor', () => {
 describe('insertCapped', () => {
   const card = (front: string) => ({ chapter: null, page: 1, front, back: 'b', origin: 'manual' })
   const save = (userId: number, book: BookRef, front: string, limits = { perBook: 3, perUser: 5 }) =>
-    insertCapped<{ id: string; front: string }>(db(), userId, book, {
+    insertCapped(db(), userId, book, {
       table: 'flashcards',
       limits,
       values: card(front),
-      returning: 'id, front',
-      same: { front },
+      returning: ['id', 'front'],
+      same: ['front'],
+      toRow: (r) => ({ id: r.id, front: r.front }),
     })
+
+  it('type-check every column a caller names against its table', () => {
+    /** Never run: tsc checks these calls. */
+    const typed = (userId: number, book: BookRef) => [
+      insertCapped(db(), userId, book, {
+        table: 'bookmarks',
+        limits: { perBook: 1, perUser: 1 },
+        // @ts-expect-error a column the table doesn't have
+        values: { chpater: null, page: 1 },
+        returning: ['id'],
+        toRow: (r) => r.id,
+      }),
+      insertCapped(db(), userId, book, {
+        table: 'bookmarks',
+        limits: { perBook: 1, perUser: 1 },
+        values: { chapter: null, page: 1 },
+        returning: ['id'],
+        // @ts-expect-error a column that isn't in the values
+        same: ['chapter', 'exact'],
+        toRow: (r) => r.id,
+      }),
+      insertCapped(db(), userId, book, {
+        table: 'bookmarks',
+        limits: { perBook: 1, perUser: 1 },
+        values: { chapter: null, page: 1 },
+        // @ts-expect-error a column of another table
+        returning: ['id', 'front'],
+        toRow: (r) => r.id,
+      }),
+      insertCapped(db(), userId, book, {
+        table: 'bookmarks',
+        limits: { perBook: 1, perUser: 1 },
+        values: { chapter: null, page: 1 },
+        returning: ['id'],
+        // @ts-expect-error a column it didn't ask for
+        toRow: (r) => r.page,
+      }),
+    ]
+    expect(typeof typed).toBe('function')
+  })
   const fill = (userId: number, book: BookRef, n: number) => raw`
     insert into flashcards (user_id, book_slug, user_book_id, chapter, page, front, back, origin)
     select ${userId}, ${book.slug}, ${book.userBookId}, null, 1, 'filled ' || n, 'b', 'manual'

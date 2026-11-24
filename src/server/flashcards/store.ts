@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { type CardOrigin, MAX_CARDS_PER_BOOK, MAX_CARDS_PER_USER } from '~/shared/flashcards/limits'
 import { nextReview, type ReviewResult } from '~/shared/flashcards/schedule'
 import { isUuid } from '../../shared/uuid.ts'
-import { insertCapped, onBook } from '../books/book.ts'
+import { type Capped, type CappedRaw, insertCapped, onBook } from '../books/book.ts'
 import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -22,22 +22,22 @@ export interface CardRow {
 
 export type NewCard = Pick<CardRow, 'chapter' | 'page' | 'front' | 'back'> & { origin: CardOrigin }
 
-interface Raw {
-  id: string
-  book_slug: string | null
-  user_book_id: string | null
-  chapter: string | null
-  page: number
-  front: string
-  back: string
-  origin: string
-  box: number
-  due_at: Date
-  reviewed_at: Date | null
-  created_at: Date
-}
+const COLUMNS = [
+  'id',
+  'book_slug',
+  'user_book_id',
+  'chapter',
+  'page',
+  'front',
+  'back',
+  'origin',
+  'box',
+  'due_at',
+  'reviewed_at',
+  'created_at',
+] as const
 
-const COLUMNS = 'id, book_slug, user_book_id, chapter, page, front, back, origin, box, due_at, reviewed_at, created_at'
+type Raw = CappedRaw<'flashcards', (typeof COLUMNS)[number]>
 
 const toRow = (r: Raw): CardRow => ({
   id: r.id,
@@ -53,17 +53,18 @@ const toRow = (r: Raw): CardRow => ({
   createdAt: r.created_at,
 })
 
-export type SaveResult = { row: CardRow; existed: boolean } | 'missing' | 'limit-book' | 'limit-user'
+/** A card saved, or the one with the same front already there (`created: false`). */
+export type SaveResult = Capped<CardRow>
 
-export async function saveCard(pool: Pool, userId: number, book: BookRef, card: NewCard): Promise<SaveResult> {
-  const result = await insertCapped<Raw>(pool, userId, book, {
+export function saveCard(pool: Pool, userId: number, book: BookRef, card: NewCard): Promise<SaveResult> {
+  return insertCapped(pool, userId, book, {
     table: 'flashcards',
     limits: { perBook: MAX_CARDS_PER_BOOK, perUser: MAX_CARDS_PER_USER },
     values: { chapter: card.chapter, page: card.page, front: card.front, back: card.back, origin: card.origin },
     returning: COLUMNS,
-    same: { front: card.front },
+    same: ['front'],
+    toRow,
   })
-  return typeof result === 'string' ? result : { row: toRow(result.row), existed: !result.created }
 }
 
 export function reviewCard(
@@ -82,7 +83,7 @@ export function reviewCard(
     const [updated] = await tx<Raw[]>`
       update flashcards set box = ${next.box}, due_at = ${next.dueAt}, reviewed_at = ${now}
       where id = ${id} and user_id = ${userId}
-      returning ${tx.unsafe(COLUMNS)}`
+      returning ${tx(COLUMNS)}`
     return updated ? toRow(updated) : null
   })
 }
@@ -100,7 +101,7 @@ export async function deleteBookCards(db: Db, userId: number, book: BookRef): Pr
 
 export async function bookCards(db: Db, userId: number, book: BookRef): Promise<CardRow[]> {
   const rows = await db<Raw[]>`
-    select ${db.unsafe(COLUMNS)} from flashcards
+    select ${db(COLUMNS)} from flashcards
     where user_id = ${userId} and ${onBook(db, book)}
     order by created_at, id`
   return rows.map(toRow)
@@ -108,7 +109,7 @@ export async function bookCards(db: Db, userId: number, book: BookRef): Promise<
 
 export async function dueCards(db: Db, userId: number, book: BookRef, now: Date, limit: number): Promise<CardRow[]> {
   const rows = await db<Raw[]>`
-    select ${db.unsafe(COLUMNS)} from flashcards
+    select ${db(COLUMNS)} from flashcards
     where user_id = ${userId} and ${onBook(db, book)} and due_at <= ${now}
     order by due_at, created_at, id
     limit ${limit}`

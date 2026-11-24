@@ -44,9 +44,9 @@ export const handleCardSave = (request: Request) =>
       if (result === 'missing') return fail(404, 'not_found')
       if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: MAX_CARDS_PER_BOOK })
       if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: MAX_CARDS_PER_USER })
-      return noStoreJson(result.existed ? 200 : 201, {
+      return noStoreJson(result.created ? 201 : 200, {
         card: toCardView(result.row, pages),
-        existed: result.existed,
+        existed: !result.created,
       })
     },
   )

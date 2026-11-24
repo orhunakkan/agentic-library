@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { MAX_HIGHLIGHTS_PER_BOOK, MAX_HIGHLIGHTS_PER_USER } from '../../shared/highlights/limits.ts'
 import { isUuid } from '../../shared/uuid.ts'
-import { insertCapped, onBook } from '../books/book.ts'
+import { type Capped, type CappedRaw, insertCapped, onBook } from '../books/book.ts'
 import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -24,25 +24,26 @@ export interface HighlightRow {
 
 export type NewHighlight = Omit<HighlightRow, 'id' | 'createdAt' | 'updatedAt'>
 
-interface Raw {
-  id: string
-  chapter: string | null
-  page: number
-  start_offset: number
-  end_offset: number
-  exact: string
-  prefix: string
-  suffix: string
-  color: string
-  note: string | null
-  created_at: Date
-  updated_at: Date
-  book_slug: string | null
-  user_book_id: string | null
-}
+const COLUMNS = [
+  'id',
+  'chapter',
+  'page',
+  'start_offset',
+  'end_offset',
+  'exact',
+  'prefix',
+  'suffix',
+  'color',
+  'note',
+  'created_at',
+  'updated_at',
+] as const
 
-const COLUMNS =
-  'id, chapter, page, start_offset, end_offset, exact, prefix, suffix, color, note, created_at, updated_at'
+const WITH_BOOK = [...COLUMNS, 'book_slug', 'user_book_id'] as const
+
+type Raw = CappedRaw<'highlights', (typeof COLUMNS)[number]>
+
+type RawWithBook = CappedRaw<'highlights', (typeof WITH_BOOK)[number]>
 
 const toRow = (r: Raw): HighlightRow => ({
   id: r.id,
@@ -59,16 +60,16 @@ const toRow = (r: Raw): HighlightRow => ({
   updatedAt: r.updated_at,
 })
 
-export type CreateResult = HighlightRow | 'missing' | 'limit-book' | 'limit-user'
+export type CreateResult = Capped<HighlightRow>
 
-export async function createHighlight(
+export function createHighlight(
   pool: Pool,
   userId: number,
   book: BookRef,
   row: NewHighlight,
   limits: { perBook: number; perUser: number } = { perBook: MAX_HIGHLIGHTS_PER_BOOK, perUser: MAX_HIGHLIGHTS_PER_USER },
 ): Promise<CreateResult> {
-  const result = await insertCapped<Raw>(pool, userId, book, {
+  return insertCapped(pool, userId, book, {
     table: 'highlights',
     limits,
     values: {
@@ -83,13 +84,13 @@ export async function createHighlight(
       note: row.note,
     },
     returning: COLUMNS,
+    toRow,
   })
-  return typeof result === 'string' ? result : toRow(result.row)
 }
 
 export async function listForBook(db: Db, userId: number, book: BookRef): Promise<HighlightRow[]> {
   const rows = await db<Raw[]>`
-    select ${db.unsafe(COLUMNS)} from highlights
+    select ${db(COLUMNS)} from highlights
     where user_id = ${userId} and ${onBook(db, book)}
     order by created_at, id`
   return rows.map(toRow)
@@ -101,8 +102,8 @@ export async function getHighlight(
   id: string,
 ): Promise<(HighlightRow & { book: BookRef }) | null> {
   if (!isHighlightId(id)) return null
-  const [row] = await db<Raw[]>`
-    select ${db.unsafe(COLUMNS)}, book_slug, user_book_id from highlights where id = ${id} and user_id = ${userId}`
+  const [row] = await db<RawWithBook[]>`
+    select ${db(WITH_BOOK)} from highlights where id = ${id} and user_id = ${userId}`
   return row ? { ...toRow(row), book: bookOf(row) } : null
 }
 
@@ -113,13 +114,13 @@ export async function updateHighlight(
   change: { color?: string; note?: string | null },
 ): Promise<(HighlightRow & { book: BookRef }) | null> {
   if (!isHighlightId(id) || (change.color === undefined && change.note === undefined)) return null
-  const [row] = await db<Raw[]>`
+  const [row] = await db<RawWithBook[]>`
     update highlights set
       color = coalesce(${change.color ?? null}, color),
       note = ${change.note === undefined ? db`note` : change.note},
       updated_at = now()
     where id = ${id} and user_id = ${userId}
-    returning ${db.unsafe(COLUMNS)}, book_slug, user_book_id`
+    returning ${db(WITH_BOOK)}`
   return row ? { ...toRow(row), book: bookOf(row) } : null
 }
 

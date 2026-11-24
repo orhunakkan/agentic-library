@@ -182,50 +182,107 @@ export function onBookConflict(
   return db`(user_id, ${column}${columns}) where ${column} is not null${where ? db` and ${where}` : db``}`
 }
 
+/** The row's id and the book it is in: never set by a caller of `insertCapped`. */
+interface KeyColumns {
+  id: string
+  book_slug: string | null
+  user_book_id: string | null
+}
+
+/** Where a passage or page was marked, as the migrations anchor it: the page, its offsets and the text either side. */
+interface AnchorColumns {
+  chapter: string | null
+  page: number
+  start_offset: number
+  end_offset: number
+  exact: string
+  prefix: string
+  suffix: string
+}
+
+/**
+ * The columns of each table of things a reader keeps many of in a book, with what each holds as the stores read it.
+ * `user_id` is left out: `insertCapped` sets it and no store reads it back.
+ */
+export interface CappedColumns {
+  highlights: KeyColumns & AnchorColumns & { color: string; note: string | null; created_at: Date; updated_at: Date }
+  bookmarks: KeyColumns & AnchorColumns & { created_at: Date }
+  audio_bookmarks: KeyColumns & { [C in keyof AnchorColumns]: AnchorColumns[C] | null } & {
+    kind: 'voice' | 'episode'
+    episode: string | null
+    position_ms: number | null
+    created_at: Date
+  }
+  flashcards: KeyColumns & {
+    chapter: string | null
+    page: number
+    front: string
+    back: string
+    origin: string
+    box: number
+    due_at: Date
+    reviewed_at: Date | null
+    created_at: Date
+  }
+}
+
 /** The tables of things a reader keeps many of in a book, each capped per book and per reader: by their plan for highlights, by fixed caps for the rest. */
-export type CappedTable = 'highlights' | 'bookmarks' | 'audio_bookmarks' | 'flashcards'
+export type CappedTable = keyof CappedColumns
+
+export type CappedColumn<T extends CappedTable> = keyof CappedColumns[T] & string
+
+/** A row of a capped table as read back with only the columns `C`. */
+export type CappedRaw<T extends CappedTable, C extends CappedColumn<T>> = Pick<CappedColumns[T], C>
+
+/** The columns a caller sets: not the id, nor the book columns `insertCapped` adds. */
+type OwnColumns<T extends CappedTable> = Omit<CappedColumns[T], keyof KeyColumns>
 
 type Value = string | number | Date | null
 
-export interface CappedRow {
-  table: CappedTable
+export interface CappedRow<T extends CappedTable, V extends Partial<OwnColumns<T>>, C extends CappedColumn<T>, Row> {
+  table: T
   limits: { perBook: number; perUser: number }
-  /** The row's own columns; the reader and book columns are added. */
-  values: Record<string, Value>
-  /** The columns to answer with, a constant list such as `'id, page, created_at'`. */
-  returning: string
-  /** The columns that make two rows the same one: when set, the row already there is answered instead of a second. */
-  same?: Record<string, Value>
+  /** The row's own columns; the reader and book columns are added. A column the table doesn't have is a type error. */
+  values: V & Record<Exclude<keyof V, keyof OwnColumns<T>>, never>
+  /** The columns to answer with. */
+  returning: readonly C[]
+  /** The columns of `values` that make two rows the same one: when set, the row already there is answered instead of a second. */
+  same?: readonly (keyof V & string)[]
+  toRow: (raw: CappedRaw<T, C>) => Row
 }
 
-export type Capped<Raw> = { row: Raw; created: boolean } | 'missing' | 'limit-book' | 'limit-user'
+export type Capped<Row> = { row: Row; created: boolean } | 'missing' | 'limit-book' | 'limit-user'
 
 /**
  * Inserts one row about a book, under the reader's lock so parallel inserts can't both take the last slot. It answers
  * `'missing'` when the book is not the reader's, the row already there when `same` matches one, and otherwise checks
  * the per-book cap before the per-reader cap.
  */
-export function insertCapped<Raw extends object>(
+export function insertCapped<T extends CappedTable, V extends Partial<OwnColumns<T>>, C extends CappedColumn<T>, Row>(
   pool: Pool,
   userId: number,
   book: BookRef,
-  row: CappedRow,
-): Promise<Capped<Raw>> {
-  return pool.begin(async (tx): Promise<Capped<Raw>> => {
+  row: CappedRow<T, V, C, Row>,
+): Promise<Capped<Row>> {
+  return pool.begin(async (tx): Promise<Capped<Row>> => {
     await tx`select id from users where id = ${userId} for update`
     if (!(await ownsBook(tx, userId, book))) return 'missing'
-    const table = tx(row.table)
-    const returning = tx.unsafe(row.returning)
-    const { same } = row
+    const name: string = row.table
+    const columns: readonly string[] = row.returning
+    const table = tx(name)
+    const returning = tx(columns)
+    const own: Record<string, Value> = row.values
+    const same: readonly string[] | undefined = row.same
     const existing = async () => {
       if (!same) return null
-      const matches = Object.entries(same).map(([column, value]) =>
-        value === null ? tx`${tx(column)} is null` : tx`${tx(column)} = ${value}`,
-      )
-      const [found] = await tx<Raw[]>`
+      const matches = same.map((column) => {
+        const value = own[column] ?? null
+        return value === null ? tx`${tx(column)} is null` : tx`${tx(column)} = ${value}`
+      })
+      const [found] = await tx<CappedRaw<T, C>[]>`
         select ${returning} from ${table}
         where user_id = ${userId} and ${onBook(tx, book)}${matches.map((m) => tx` and ${m}`)}`
-      return found ? { row: found, created: false } : null
+      return found ? { row: row.toRow(found), created: false } : null
     }
     const already = await existing()
     if (already) return already
@@ -234,12 +291,12 @@ export function insertCapped<Raw extends object>(
       from ${table} where user_id = ${userId}`
     if (Number(counts?.in_book ?? 0) >= row.limits.perBook) return 'limit-book'
     if (Number(counts?.in_all ?? 0) >= row.limits.perUser) return 'limit-user'
-    const values = { user_id: userId, book_slug: book.slug, user_book_id: book.userBookId, ...row.values }
-    const [created] = await tx<Raw[]>`
+    const values = { user_id: userId, book_slug: book.slug, user_book_id: book.userBookId, ...own }
+    const [created] = await tx<CappedRaw<T, C>[]>`
       insert into ${table} ${tx(values)}
       ${same ? tx`on conflict do nothing` : tx``}
       returning ${returning}`
-    if (created) return { row: created, created: true }
+    if (created) return { row: row.toRow(created), created: true }
     const raced = await existing()
     if (!raced) throw new Error('insert returned no row')
     return raced

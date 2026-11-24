@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { MAX_AUDIO_BOOKMARKS_PER_BOOK, MAX_AUDIO_BOOKMARKS_PER_USER } from '~/shared/bookmarks/audio'
 import { isUuid } from '../../shared/uuid.ts'
-import { insertCapped, onBook } from '../books/book.ts'
+import { type Capped, type CappedRaw, insertCapped, onBook } from '../books/book.ts'
 import type { BookRef } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -26,23 +26,22 @@ export type NewAudioBookmark = VoiceMoment | EpisodeMoment
 
 export type AudioBookmarkRow = NewAudioBookmark & { id: string; createdAt: Date }
 
-interface Raw {
-  id: string
-  kind: 'voice' | 'episode'
-  episode: string | null
-  position_ms: number | null
-  chapter: string | null
-  page: number | null
-  start_offset: number | null
-  end_offset: number | null
-  exact: string | null
-  prefix: string | null
-  suffix: string | null
-  created_at: Date
-}
+const COLUMNS = [
+  'id',
+  'kind',
+  'episode',
+  'position_ms',
+  'chapter',
+  'page',
+  'start_offset',
+  'end_offset',
+  'exact',
+  'prefix',
+  'suffix',
+  'created_at',
+] as const
 
-const COLUMNS =
-  'id, kind, episode, position_ms, chapter, page, start_offset, end_offset, exact, prefix, suffix, created_at'
+type Raw = CappedRaw<'audio_bookmarks', (typeof COLUMNS)[number]>
 
 function toRow(r: Raw): AudioBookmarkRow {
   if (r.kind === 'episode')
@@ -67,43 +66,47 @@ function toRow(r: Raw): AudioBookmarkRow {
   }
 }
 
-export type AudioCreateResult = { row: AudioBookmarkRow; created: boolean } | 'missing' | 'limit-book' | 'limit-user'
+export type AudioCreateResult = Capped<AudioBookmarkRow>
 
-export async function createAudioBookmark(
+export function createAudioBookmark(
   pool: Pool,
   userId: number,
   book: BookRef,
   moment: NewAudioBookmark,
 ): Promise<AudioCreateResult> {
-  const result = await insertCapped<Raw>(pool, userId, book, {
-    table: 'audio_bookmarks',
-    limits: { perBook: MAX_AUDIO_BOOKMARKS_PER_BOOK, perUser: MAX_AUDIO_BOOKMARKS_PER_USER },
+  const table = 'audio_bookmarks'
+  const limits = { perBook: MAX_AUDIO_BOOKMARKS_PER_BOOK, perUser: MAX_AUDIO_BOOKMARKS_PER_USER }
+  if (moment.kind === 'episode')
+    return insertCapped(pool, userId, book, {
+      table,
+      limits,
+      values: { kind: 'episode', episode: moment.episode, position_ms: moment.positionMs },
+      returning: COLUMNS,
+      same: ['kind', 'episode', 'position_ms'],
+      toRow,
+    })
+  return insertCapped(pool, userId, book, {
+    table,
+    limits,
+    values: {
+      kind: 'voice',
+      chapter: moment.chapter,
+      page: moment.page,
+      start_offset: moment.start,
+      end_offset: moment.end,
+      exact: moment.exact,
+      prefix: moment.prefix,
+      suffix: moment.suffix,
+    },
     returning: COLUMNS,
-    ...(moment.kind === 'voice'
-      ? {
-          values: {
-            kind: 'voice',
-            chapter: moment.chapter,
-            page: moment.page,
-            start_offset: moment.start,
-            end_offset: moment.end,
-            exact: moment.exact,
-            prefix: moment.prefix,
-            suffix: moment.suffix,
-          },
-          same: { kind: 'voice', chapter: moment.chapter, page: moment.page, start_offset: moment.start },
-        }
-      : {
-          values: { kind: 'episode', episode: moment.episode, position_ms: moment.positionMs },
-          same: { kind: 'episode', episode: moment.episode, position_ms: moment.positionMs },
-        }),
+    same: ['kind', 'chapter', 'page', 'start_offset'],
+    toRow,
   })
-  return typeof result === 'string' ? result : { row: toRow(result.row), created: result.created }
 }
 
 export async function listAudioForBook(db: Db, userId: number, book: BookRef): Promise<AudioBookmarkRow[]> {
   const rows = await db<Raw[]>`
-    select ${db.unsafe(COLUMNS)} from audio_bookmarks
+    select ${db(COLUMNS)} from audio_bookmarks
     where user_id = ${userId} and ${onBook(db, book)}
     order by created_at, id`
   return rows.map(toRow)

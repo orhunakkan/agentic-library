@@ -72,7 +72,7 @@ const row = (over: Partial<NewHighlight> = {}): NewHighlight => ({
 async function created(userId: number, book: BookRef, over: Partial<NewHighlight> = {}) {
   const result = await createHighlight(db(), userId, book, row(over))
   if (typeof result === 'string') throw new Error(result)
-  return result
+  return result.row
 }
 
 async function privateBook(userId: number): Promise<BookRef> {

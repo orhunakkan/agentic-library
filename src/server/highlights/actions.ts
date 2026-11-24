@@ -58,7 +58,7 @@ export const handleCreate = (request: Request) =>
       if (result === 'missing') return fail(404, 'not_found')
       if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: limits.highlightsPerBook, plan })
       if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: limits.highlightsPerUser, plan })
-      return noStoreJson(201, { highlight: toView(result, pages) })
+      return noStoreJson(201, { highlight: toView(result.row, pages) })
     },
   )
 

@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { MAX_BOOKMARKS_PER_BOOK, MAX_BOOKMARKS_PER_USER } from '~/shared/bookmarks/bookmarks'
 import { isUuid } from '../../shared/uuid.ts'
-import { insertCapped, onBook } from '../books/book.ts'
+import { type Capped, type CappedRaw, insertCapped, onBook } from '../books/book.ts'
 import type { BookRef } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -19,19 +19,19 @@ export interface BookmarkRow {
 
 export type NewBookmark = Omit<BookmarkRow, 'id' | 'createdAt'>
 
-interface Raw {
-  id: string
-  chapter: string | null
-  page: number
-  start_offset: number
-  end_offset: number
-  exact: string
-  prefix: string
-  suffix: string
-  created_at: Date
-}
+const COLUMNS = [
+  'id',
+  'chapter',
+  'page',
+  'start_offset',
+  'end_offset',
+  'exact',
+  'prefix',
+  'suffix',
+  'created_at',
+] as const
 
-const COLUMNS = 'id, chapter, page, start_offset, end_offset, exact, prefix, suffix, created_at'
+type Raw = CappedRaw<'bookmarks', (typeof COLUMNS)[number]>
 
 const toRow = (r: Raw): BookmarkRow => ({
   id: r.id,
@@ -45,15 +45,10 @@ const toRow = (r: Raw): BookmarkRow => ({
   createdAt: r.created_at,
 })
 
-export type CreateResult = { row: BookmarkRow; created: boolean } | 'missing' | 'limit-book' | 'limit-user'
+export type CreateResult = Capped<BookmarkRow>
 
-export async function createBookmark(
-  pool: Pool,
-  userId: number,
-  book: BookRef,
-  row: NewBookmark,
-): Promise<CreateResult> {
-  const result = await insertCapped<Raw>(pool, userId, book, {
+export function createBookmark(pool: Pool, userId: number, book: BookRef, row: NewBookmark): Promise<CreateResult> {
+  return insertCapped(pool, userId, book, {
     table: 'bookmarks',
     limits: { perBook: MAX_BOOKMARKS_PER_BOOK, perUser: MAX_BOOKMARKS_PER_USER },
     values: {
@@ -66,14 +61,14 @@ export async function createBookmark(
       suffix: row.suffix,
     },
     returning: COLUMNS,
-    same: { chapter: row.chapter, page: row.page },
+    same: ['chapter', 'page'],
+    toRow,
   })
-  return typeof result === 'string' ? result : { row: toRow(result.row), created: result.created }
 }
 
 export async function listForBook(db: Db, userId: number, book: BookRef): Promise<BookmarkRow[]> {
   const rows = await db<Raw[]>`
-    select ${db.unsafe(COLUMNS)} from bookmarks
+    select ${db(COLUMNS)} from bookmarks
     where user_id = ${userId} and ${onBook(db, book)}
     order by created_at, id`
   return rows.map(toRow)
