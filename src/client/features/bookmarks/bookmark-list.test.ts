@@ -205,6 +205,22 @@ describe('BookmarkList, refusals', () => {
     expect(gone.deps.remove).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps a bookmark whose save finished while a reload was on its way', async () => {
+    const reload = later<LoadAnswer>()
+    const load = vi.fn(async (): Promise<LoadAnswer> => ({ state: 'ready', bookmarks: [saved(1, 4)] }))
+    const { list, snap } = setup(undefined, { load })
+    await list.load()
+    load.mockReturnValueOnce(reload.promise)
+    const reloading = list.load()
+    await list.toggle(newOn(2))
+    reload.settle({ state: 'ready', bookmarks: [saved(1, 4)] })
+    await reloading
+    expect(snap().items.map((b) => [b.key, b.id])).toEqual([
+      [ID(1), ID(1)],
+      ['new-1', ID(9)],
+    ])
+  })
+
   it('keeps a bookmark still being saved across a reload', async () => {
     const answer = later<Awaited<ReturnType<Deps['create']>>>()
     const { list, snap } = setup({ state: 'ready', bookmarks: [saved(1, 4)] }, { create: () => answer.promise })

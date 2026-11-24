@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useToast } from '~/client/components/Toast'
+import { reloadWhenBack } from '~/client/lib/optimistic-collection'
 import { getBookBookmarks } from '~/server/account-functions'
 import { onPage } from '~/shared/bookmarks/bookmarks'
 import { toStored } from '~/shared/content/position'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
-import { reloadWhenBack } from './audio-bookmark-list'
 import { BookmarkList, type NewBookmark } from './bookmark-list'
 import * as client from './bookmarks-client'
 

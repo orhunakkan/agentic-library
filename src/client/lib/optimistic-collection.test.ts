@@ -1,0 +1,146 @@
+import { describe, expect, it, vi } from 'vitest'
+import {
+  type CollectionLoadAnswer,
+  type CollectionRules,
+  OptimisticCollection,
+  reloadWhenBack,
+} from './optimistic-collection'
+import type { ChangeResult } from './post'
+
+interface Note {
+  id: string
+  text: string
+}
+
+type Problem = 'signed_out' | 'not_found' | 'failed'
+
+const ID = (n: number) => `6f1c0000-0000-4000-8000-00000000000${n}`
+
+function later<T>() {
+  let settle: (value: T) => void = () => {}
+  const promise = new Promise<T>((resolve) => {
+    settle = resolve
+  })
+  return { promise, settle }
+}
+
+function setup(over: Partial<CollectionRules<Note, string, Problem>> = {}) {
+  const refusals: Problem[] = []
+  const rules: CollectionRules<Note, string, Problem> = {
+    load: vi.fn(async (): Promise<CollectionLoadAnswer<Note>> => ({ state: 'ready', items: [] })),
+    create: vi.fn(
+      async (text: string): Promise<ChangeResult<Note, Problem>> => ({ ok: true, value: { id: ID(9), text } }),
+    ),
+    update: vi.fn(
+      async (id: string, patch: Partial<Note>): Promise<ChangeResult<Note, Problem>> => ({
+        ok: true,
+        value: { id, text: patch.text ?? '' },
+      }),
+    ),
+    remove: vi.fn(async (): Promise<ChangeResult<true, Problem>> => ({ ok: true, value: true })),
+    draft: (text, key) => ({ id: key, text }),
+    refused: (problem) => refusals.push(problem),
+    ...over,
+  }
+  const list = new OptimisticCollection(rules, 'loading')
+  return { list, rules, refusals, shown: () => list.getSnapshot().items.map((n) => [n.key, n.id, n.text]) }
+}
+
+describe('OptimisticCollection, reloads', () => {
+  it('keeps an item whose create finished while a reload was on its way, under the key it was shown by', async () => {
+    const first = later<CollectionLoadAnswer<Note>>()
+    const second = later<CollectionLoadAnswer<Note>>()
+    const load = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const { list, shown } = setup({ load })
+    const missing = list.load()
+    await list.add('Darcy').saved
+    first.settle({ state: 'ready', items: [{ id: ID(1), text: 'Bingley' }] })
+    await missing
+    expect(shown()).toEqual([
+      [ID(1), ID(1), 'Bingley'],
+      ['new-1', ID(9), 'Darcy'],
+    ])
+
+    const including = list.load()
+    second.settle({
+      state: 'ready',
+      items: [
+        { id: ID(1), text: 'Bingley' },
+        { id: ID(9), text: 'Darcy' },
+      ],
+    })
+    await including
+    expect(shown()).toEqual([
+      [ID(1), ID(1), 'Bingley'],
+      ['new-1', ID(9), 'Darcy'],
+    ])
+  })
+
+  it('forgets what it made when the reader signs in again', async () => {
+    const load = vi.fn(async (): Promise<CollectionLoadAnswer<Note>> => ({ state: 'ready', items: [] }))
+    const { list, shown } = setup({ load })
+    await list.load()
+    await list.add('Darcy').saved
+    list.start({ signedIn: true })
+    await list.load()
+    expect(shown()).toEqual([])
+  })
+})
+
+describe('OptimisticCollection, update', () => {
+  it('shows a change at once and sends it once a new item has its id', async () => {
+    const created = later<ChangeResult<Note, Problem>>()
+    const { list, rules, shown } = setup({
+      create: () => created.promise,
+      settle: (shownNow, saved) => ({ ...saved, text: shownNow.text }),
+    })
+    await list.load()
+    const { key } = list.add('Darcy')
+    const updating = list.update(key, { text: 'Mr Darcy' })
+    expect(shown()).toEqual([['new-1', 'new-1', 'Mr Darcy']])
+    expect(rules.update).not.toHaveBeenCalled()
+    created.settle({ ok: true, value: { id: ID(9), text: 'Darcy' } })
+    expect(await updating).toBe(true)
+    expect(rules.update).toHaveBeenCalledWith(ID(9), { text: 'Mr Darcy' })
+    expect(shown()).toEqual([['new-1', ID(9), 'Mr Darcy']])
+  })
+
+  it('puts back what it showed when the server refuses, and drops an item already gone', async () => {
+    const answer = { state: 'ready' as const, items: [{ id: ID(1), text: 'Bingley' }] }
+    const failing = setup({ load: async () => answer, update: async () => ({ ok: false, problem: 'failed' }) })
+    await failing.list.load()
+    expect(await failing.list.update(ID(1), { text: 'Jane' })).toBe(false)
+    expect(failing.shown()).toEqual([[ID(1), ID(1), 'Bingley']])
+    expect(failing.refusals).toEqual(['failed'])
+
+    const gone = setup({ load: async () => answer, update: async () => ({ ok: false, problem: 'not_found' }) })
+    await gone.list.load()
+    expect(await gone.list.update(ID(1), { text: 'Jane' })).toBe(false)
+    expect(gone.shown()).toEqual([])
+  })
+
+  it('signs the list out when the server says the reader signed out', async () => {
+    const { list } = setup({ create: async () => ({ ok: false, problem: 'signed_out' }) })
+    await list.load()
+    await list.add('Darcy').saved
+    expect(list.getSnapshot()).toEqual({ state: 'signed_out', items: [] })
+  })
+})
+
+describe('reloadWhenBack', () => {
+  it('reloads when the reader comes back after a minute away, not sooner, and not without having left', () => {
+    let clock = 0
+    const reload = vi.fn()
+    const onVisibility = reloadWhenBack(reload, 60_000, () => clock)
+    onVisibility('visible')
+    expect(reload).not.toHaveBeenCalled()
+    onVisibility('hidden')
+    clock = 59_999
+    onVisibility('visible')
+    expect(reload).not.toHaveBeenCalled()
+    onVisibility('hidden')
+    clock += 60_000
+    onVisibility('visible')
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+})

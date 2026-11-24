@@ -1,8 +1,9 @@
 import { useRouteContext } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import { useToast } from '~/client/components/Toast'
+import { reloadWhenBack } from '~/client/lib/optimistic-collection'
 import { getAudioBookmarks } from '~/server/account-functions'
-import { AudioBookmarkRegistry, type NewAudioBookmark, reloadWhenBack } from './audio-bookmark-list'
+import { AudioBookmarkRegistry, type NewAudioBookmark } from './audio-bookmark-list'
 import * as client from './audio-bookmarks-client'
 
 export type { AudioBookmarkItem, AudioBookmarksState, NewAudioBookmark } from './audio-bookmark-list'

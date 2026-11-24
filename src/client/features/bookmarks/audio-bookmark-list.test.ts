@@ -7,7 +7,6 @@ import {
   type AudioDeps,
   type AudioLoadAnswer,
   type NewAudioBookmark,
-  reloadWhenBack,
 } from './audio-bookmark-list'
 import type { BookmarkProblem } from './bookmarks-client'
 
@@ -290,23 +289,5 @@ describe('AudioBookmarkRegistry', () => {
     lists.sync('a', true)
     await vi.waitFor(() => expect(lists.listFor('a', true).getSnapshot().state).toBe('ready'))
     expect(deps.load).toHaveBeenCalledTimes(3)
-  })
-})
-
-describe('reloadWhenBack', () => {
-  it('reloads when the reader comes back after a minute away, not sooner, and not without having left', () => {
-    let clock = 0
-    const reload = vi.fn()
-    const onVisibility = reloadWhenBack(reload, 60_000, () => clock)
-    onVisibility('visible')
-    expect(reload).not.toHaveBeenCalled()
-    onVisibility('hidden')
-    clock = 59_999
-    onVisibility('visible')
-    expect(reload).not.toHaveBeenCalled()
-    onVisibility('hidden')
-    clock += 60_000
-    onVisibility('visible')
-    expect(reload).toHaveBeenCalledTimes(1)
   })
 })
