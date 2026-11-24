@@ -11,7 +11,7 @@ export default defineConfig({
     coverage: {
       enabled: false,
       provider: 'v8',
-      reporter: ['text-summary', ['text-summary', { file: 'summary.txt' }], 'html', 'lcovonly'],
+      reporter: [['text-summary', { file: 'summary.txt' }], 'html', 'lcovonly'],
       reportsDirectory: 'coverage/unit',
       include: ['src/shared/**/*.ts', 'src/client/**/*.ts'],
       exclude: ['**/*.test.ts'],
