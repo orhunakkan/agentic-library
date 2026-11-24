@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import type { Stars } from '~/shared/ratings/ratings'
-import { onBook, ownedBook, ownsBook } from '../books/book.ts'
+import { onBook, onBookConflict, ownedBook, ownsBook } from '../books/book.ts'
 import type { BookRef } from '../books/ref.ts'
 import type { Db } from '../db.ts'
 
@@ -14,19 +14,12 @@ export async function getRating(db: Db, userId: number, book: BookRef): Promise<
 const isForeignKeyError = (error: unknown) => (error as { code?: string }).code === '23503'
 
 export async function setRating(db: Db, userId: number, book: BookRef, stars: Stars): Promise<'ok' | 'missing'> {
-  if (book.userBookId === null) {
-    await db`
-      insert into book_ratings (user_id, book_slug, stars) values (${userId}, ${book.slug}, ${stars})
-      on conflict (user_id, book_slug) where book_slug is not null
-      do update set stars = excluded.stars, rated_at = now()`
-    return 'ok'
-  }
   try {
     const rows = await db`
-      insert into book_ratings (user_id, user_book_id, stars)
-      select ${userId}, ${book.userBookId}, ${stars}
+      insert into book_ratings (user_id, book_slug, user_book_id, stars)
+      select ${userId}::bigint, ${book.slug}::text, ${book.userBookId}::uuid, ${stars}::int
       where ${ownedBook(db, userId, book)}
-      on conflict (user_id, user_book_id) where user_book_id is not null
+      on conflict ${onBookConflict(db, book)}
       do update set stars = excluded.stars, rated_at = now()
       returning 1`
     return rows.length ? 'ok' : 'missing'

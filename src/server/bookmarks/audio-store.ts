@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { MAX_AUDIO_BOOKMARKS_PER_BOOK, MAX_AUDIO_BOOKMARKS_PER_USER } from '~/shared/bookmarks/audio'
 import { isUuid } from '../../shared/uuid.ts'
-import { onBook, ownsBook } from '../books/book.ts'
+import { insertCapped, onBook } from '../books/book.ts'
 import type { BookRef } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -69,52 +69,36 @@ function toRow(r: Raw): AudioBookmarkRow {
 
 export type AudioCreateResult = { row: AudioBookmarkRow; created: boolean } | 'missing' | 'quota-book' | 'quota-user'
 
-export function createAudioBookmark(
+export async function createAudioBookmark(
   pool: Pool,
   userId: number,
   book: BookRef,
   moment: NewAudioBookmark,
 ): Promise<AudioCreateResult> {
-  return pool.begin(async (tx): Promise<AudioCreateResult> => {
-    await tx`select id from users where id = ${userId} for update`
-    if (!(await ownsBook(tx, userId, book))) return 'missing'
-    const same =
-      moment.kind === 'voice'
-        ? tx`kind = 'voice' and chapter is not distinct from ${moment.chapter} and page = ${moment.page}
-            and start_offset = ${moment.start}`
-        : tx`kind = 'episode' and episode = ${moment.episode} and position_ms = ${moment.positionMs}`
-    const existing = async () => {
-      const [found] = await tx<Raw[]>`
-        select ${tx.unsafe(COLUMNS)} from audio_bookmarks
-        where user_id = ${userId} and ${onBook(tx, book)} and ${same}`
-      return found ? { row: toRow(found), created: false } : null
-    }
-    const already = await existing()
-    if (already) return already
-    const [counts] = await tx<{ in_book: string; in_all: string }[]>`
-      select count(*) filter (where ${onBook(tx, book)}) as in_book, count(*) as in_all
-      from audio_bookmarks where user_id = ${userId}`
-    if (Number(counts?.in_book ?? 0) >= MAX_AUDIO_BOOKMARKS_PER_BOOK) return 'quota-book'
-    if (Number(counts?.in_all ?? 0) >= MAX_AUDIO_BOOKMARKS_PER_USER) return 'quota-user'
-    const [created] =
-      moment.kind === 'voice'
-        ? await tx<Raw[]>`
-            insert into audio_bookmarks
-              (user_id, book_slug, user_book_id, kind, chapter, page, start_offset, end_offset, exact, prefix, suffix)
-            values (${userId}, ${book.slug}, ${book.userBookId}, 'voice', ${moment.chapter}, ${moment.page},
-              ${moment.start}, ${moment.end}, ${moment.exact}, ${moment.prefix}, ${moment.suffix})
-            on conflict do nothing
-            returning ${tx.unsafe(COLUMNS)}`
-        : await tx<Raw[]>`
-            insert into audio_bookmarks (user_id, book_slug, user_book_id, kind, episode, position_ms)
-            values (${userId}, ${book.slug}, ${book.userBookId}, 'episode', ${moment.episode}, ${moment.positionMs})
-            on conflict do nothing
-            returning ${tx.unsafe(COLUMNS)}`
-    if (created) return { row: toRow(created), created: true }
-    const raced = await existing()
-    if (!raced) throw new Error('insert returned no row')
-    return raced
+  const result = await insertCapped<Raw>(pool, userId, book, {
+    table: 'audio_bookmarks',
+    limits: { perBook: MAX_AUDIO_BOOKMARKS_PER_BOOK, perUser: MAX_AUDIO_BOOKMARKS_PER_USER },
+    returning: COLUMNS,
+    ...(moment.kind === 'voice'
+      ? {
+          values: {
+            kind: 'voice',
+            chapter: moment.chapter,
+            page: moment.page,
+            start_offset: moment.start,
+            end_offset: moment.end,
+            exact: moment.exact,
+            prefix: moment.prefix,
+            suffix: moment.suffix,
+          },
+          same: { kind: 'voice', chapter: moment.chapter, page: moment.page, start_offset: moment.start },
+        }
+      : {
+          values: { kind: 'episode', episode: moment.episode, position_ms: moment.positionMs },
+          same: { kind: 'episode', episode: moment.episode, position_ms: moment.positionMs },
+        }),
   })
+  return typeof result === 'string' ? result : { row: toRow(result.row), created: result.created }
 }
 
 export async function listAudioForBook(db: Db, userId: number, book: BookRef): Promise<AudioBookmarkRow[]> {

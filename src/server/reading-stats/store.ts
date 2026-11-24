@@ -3,7 +3,7 @@ import { MAX_SESSIONS_PER_DAY } from '~/shared/reading-stats/contract'
 import type { Day } from '~/shared/reading-stats/days'
 import type { GoalChange } from '~/shared/reading-stats/goals'
 import type { TimeWrite } from '~/shared/sync/sync'
-import { onBook, ownedBook } from '../books/book.ts'
+import { onBook, onBookConflict, ownedBook } from '../books/book.ts'
 import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -70,15 +70,11 @@ export async function timeZoneOf(db: Db, userId: number): Promise<string | null>
 }
 
 export async function markFinished(db: Db, userId: number, ref: BookRef): Promise<'added' | 'exists' | 'missing'> {
-  const conflict =
-    ref.userBookId === null
-      ? db`(user_id, book_slug) where book_slug is not null`
-      : db`(user_id, user_book_id) where user_book_id is not null`
   const added = await db`
     insert into finished_books (user_id, book_slug, user_book_id)
     select ${userId}::bigint, ${ref.slug}::text, ${ref.userBookId}::uuid
     where ${ownedBook(db, userId, ref)}
-    on conflict ${conflict} do nothing
+    on conflict ${onBookConflict(db, ref)} do nothing
     returning 1`
   if (added.length) return 'added'
   const there = await db`select 1 from finished_books where user_id = ${userId} and ${onBook(db, ref)}`

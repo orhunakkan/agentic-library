@@ -261,6 +261,12 @@ describe('the quotas', () => {
     expect(results.filter((r) => r === 'quota-user')).toHaveLength(1)
     expect(results.filter((r) => typeof r === 'object')).toHaveLength(1)
   })
+
+  it('answer the per-book cap when a book and the reader are both full', async () => {
+    const user = await newUser()
+    await fill(user.id, PRIDE, 2)
+    expect(await createHighlight(db(), user.id, PRIDE, row(), { perBook: 2, perUser: 2 })).toBe('quota-book')
+  })
 })
 
 describe('the endpoints', () => {

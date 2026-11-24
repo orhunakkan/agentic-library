@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { MAX_HIGHLIGHTS_PER_BOOK, MAX_HIGHLIGHTS_PER_USER } from '../../shared/highlights/limits.ts'
 import { isUuid } from '../../shared/uuid.ts'
-import { onBook, ownsBook } from '../books/book.ts'
+import { insertCapped, onBook } from '../books/book.ts'
 import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -61,30 +61,30 @@ const toRow = (r: Raw): HighlightRow => ({
 
 export type CreateResult = HighlightRow | 'missing' | 'quota-book' | 'quota-user'
 
-export function createHighlight(
+export async function createHighlight(
   pool: Pool,
   userId: number,
   book: BookRef,
   row: NewHighlight,
   limits: { perBook: number; perUser: number } = { perBook: MAX_HIGHLIGHTS_PER_BOOK, perUser: MAX_HIGHLIGHTS_PER_USER },
 ): Promise<CreateResult> {
-  return pool.begin(async (tx): Promise<CreateResult> => {
-    await tx`select id from users where id = ${userId} for update`
-    if (!(await ownsBook(tx, userId, book))) return 'missing'
-    const [counts] = await tx<{ in_book: string; in_all: string }[]>`
-      select count(*) filter (where ${onBook(tx, book)}) as in_book, count(*) as in_all
-      from highlights where user_id = ${userId}`
-    if (Number(counts?.in_all ?? 0) >= limits.perUser) return 'quota-user'
-    if (Number(counts?.in_book ?? 0) >= limits.perBook) return 'quota-book'
-    const [created] = await tx<Raw[]>`
-      insert into highlights
-        (user_id, book_slug, user_book_id, chapter, page, start_offset, end_offset, exact, prefix, suffix, color, note)
-      values (${userId}, ${book.slug}, ${book.userBookId}, ${row.chapter}, ${row.page}, ${row.start}, ${row.end},
-        ${row.exact}, ${row.prefix}, ${row.suffix}, ${row.color}, ${row.note})
-      returning ${tx.unsafe(COLUMNS)}`
-    if (!created) throw new Error('insert returned no row')
-    return toRow(created)
+  const result = await insertCapped<Raw>(pool, userId, book, {
+    table: 'highlights',
+    limits,
+    values: {
+      chapter: row.chapter,
+      page: row.page,
+      start_offset: row.start,
+      end_offset: row.end,
+      exact: row.exact,
+      prefix: row.prefix,
+      suffix: row.suffix,
+      color: row.color,
+      note: row.note,
+    },
+    returning: COLUMNS,
   })
+  return typeof result === 'string' ? result : toRow(result.row)
 }
 
 export async function listForBook(db: Db, userId: number, book: BookRef): Promise<HighlightRow[]> {

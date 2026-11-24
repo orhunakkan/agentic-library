@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { type CardOrigin, MAX_CARDS_PER_BOOK, MAX_CARDS_PER_USER } from '~/shared/flashcards/limits'
 import { nextReview, type ReviewResult } from '~/shared/flashcards/schedule'
 import { isUuid } from '../../shared/uuid.ts'
-import { onBook, ownsBook } from '../books/book.ts'
+import { insertCapped, onBook } from '../books/book.ts'
 import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -55,34 +55,15 @@ const toRow = (r: Raw): CardRow => ({
 
 export type SaveResult = { row: CardRow; existed: boolean } | 'missing' | 'quota-book' | 'quota-user'
 
-export function saveCard(pool: Pool, userId: number, book: BookRef, card: NewCard): Promise<SaveResult> {
-  return pool.begin(async (tx): Promise<SaveResult> => {
-    await tx`select id from users where id = ${userId} for update`
-    if (!(await ownsBook(tx, userId, book))) return 'missing'
-    const existing = async () => {
-      const [found] = await tx<Raw[]>`
-        select ${tx.unsafe(COLUMNS)} from flashcards
-        where user_id = ${userId} and ${onBook(tx, book)} and front = ${card.front}`
-      return found ? { row: toRow(found), existed: true } : null
-    }
-    const already = await existing()
-    if (already) return already
-    const [counts] = await tx<{ in_book: string; in_all: string }[]>`
-      select count(*) filter (where ${onBook(tx, book)}) as in_book, count(*) as in_all
-      from flashcards where user_id = ${userId}`
-    if (Number(counts?.in_book ?? 0) >= MAX_CARDS_PER_BOOK) return 'quota-book'
-    if (Number(counts?.in_all ?? 0) >= MAX_CARDS_PER_USER) return 'quota-user'
-    const [created] = await tx<Raw[]>`
-      insert into flashcards (user_id, book_slug, user_book_id, chapter, page, front, back, origin)
-      values (${userId}, ${book.slug}, ${book.userBookId}, ${card.chapter}, ${card.page}, ${card.front}, ${card.back},
-        ${card.origin})
-      on conflict do nothing
-      returning ${tx.unsafe(COLUMNS)}`
-    if (created) return { row: toRow(created), existed: false }
-    const raced = await existing()
-    if (!raced) throw new Error('insert returned no row')
-    return raced
+export async function saveCard(pool: Pool, userId: number, book: BookRef, card: NewCard): Promise<SaveResult> {
+  const result = await insertCapped<Raw>(pool, userId, book, {
+    table: 'flashcards',
+    limits: { perBook: MAX_CARDS_PER_BOOK, perUser: MAX_CARDS_PER_USER },
+    values: { chapter: card.chapter, page: card.page, front: card.front, back: card.back, origin: card.origin },
+    returning: COLUMNS,
+    same: { front: card.front },
   })
+  return typeof result === 'string' ? result : { row: toRow(result.row), existed: !result.created }
 }
 
 export function reviewCard(

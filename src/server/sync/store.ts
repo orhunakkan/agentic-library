@@ -1,5 +1,5 @@
 import '@tanstack/react-start/server-only'
-import { onBook, ownedBook } from '../books/book.ts'
+import { onBook, onBookConflict, ownedBook } from '../books/book.ts'
 import { type BookRef, bookOf } from '../books/ref.ts'
 import type { Db, Pool } from '../db.ts'
 
@@ -33,39 +33,27 @@ export interface SyncItems {
 export async function saveBatch(pool: Pool, userId: number, device: string, items: SyncItems): Promise<void> {
   await pool.begin(async (tx) => {
     for (const r of items.reading) {
-      const conflict =
-        r.ref.userBookId === null
-          ? tx`(user_id, book_slug) where book_slug is not null`
-          : tx`(user_id, user_book_id) where user_book_id is not null`
       await tx`
         insert into reading_places (user_id, book_slug, user_book_id, chapter, page, at, device)
         select ${userId}::bigint, ${r.ref.slug}::text, ${r.ref.userBookId}::uuid, ${r.chapter}::text, ${r.page}::int,
           ${new Date(r.at)}::timestamptz, ${device}::text
         where ${ownedBook(tx, userId, r.ref)}
-        on conflict ${conflict}
+        on conflict ${onBookConflict(tx, r.ref)}
         do update set chapter = excluded.chapter, page = excluded.page, at = excluded.at, device = excluded.device
         where reading_places.at < excluded.at`
     }
     for (const l of items.listening) {
       if (l.kind === 'episode') {
-        const target =
-          l.ref.userBookId === null
-            ? tx`(user_id, book_slug, episode) where kind = 'episode'`
-            : tx`(user_id, user_book_id, episode) where kind = 'episode' and user_book_id is not null`
         await tx`
           insert into listening_places (user_id, book_slug, user_book_id, kind, episode, position_ms, at, device)
           select ${userId}::bigint, ${l.ref.slug}::text, ${l.ref.userBookId}::uuid, 'episode', ${l.episode}::text,
             ${l.positionMs}::int, ${new Date(l.at)}::timestamptz, ${device}::text
           where ${ownedBook(tx, userId, l.ref)}
-          on conflict ${target}
+          on conflict ${onBookConflict(tx, l.ref, { keys: ['episode'], where: tx`kind = 'episode'` })}
           do update set position_ms = excluded.position_ms, at = excluded.at, device = excluded.device
           where listening_places.at < excluded.at`
         continue
       }
-      const conflict =
-        l.ref.userBookId === null
-          ? tx`(user_id, book_slug) where kind = 'voice' and book_slug is not null`
-          : tx`(user_id, user_book_id) where kind = 'voice' and user_book_id is not null`
       const p = l.place
       await tx`
         insert into listening_places
@@ -74,7 +62,7 @@ export async function saveBatch(pool: Pool, userId: number, device: string, item
           ${p?.chapter ?? null}::text, ${p?.page ?? null}::int, ${p?.offset ?? null}::int, ${new Date(l.at)}::timestamptz,
           ${device}::text
         where ${ownedBook(tx, userId, l.ref)}
-        on conflict ${conflict}
+        on conflict ${onBookConflict(tx, l.ref, { where: tx`kind = 'voice'` })}
         do update set chapter_index = excluded.chapter_index, chapter = excluded.chapter, page = excluded.page,
           start_offset = excluded.start_offset, at = excluded.at, device = excluded.device
         where listening_places.at < excluded.at`

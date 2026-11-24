@@ -2,8 +2,17 @@ import { readFileSync } from 'node:fs'
 import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { newCover, setCover } from '~/server/book-details/store'
-import { labelsFor, onBook, onReadableBook, openBook, ownedBook, ownsBook } from '~/server/books/book'
-import { refFor } from '~/server/books/ref'
+import {
+  insertCapped,
+  labelsFor,
+  onBook,
+  onBookConflict,
+  onReadableBook,
+  openBook,
+  ownedBook,
+  ownsBook,
+} from '~/server/books/book'
+import { type BookRef, refFor } from '~/server/books/ref'
 import { closeDb, getDb } from '~/server/db'
 import { catalogueVersion } from '~/server/downloads/version'
 import { catalogueBook, loadCatalog } from '~/server/repository'
@@ -39,7 +48,7 @@ afterAll(async () => {
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, user_books, highlights, finished_books restart identity cascade`
+  await raw`truncate users, sessions, user_books, highlights, finished_books, flashcards, book_ratings, listening_places restart identity cascade`
 })
 
 let users = 0
@@ -448,6 +457,82 @@ describe('labelsFor', () => {
       [privateBookSlug(mine)]: { title: 'Field Notes', author: 'Ada', href: `/account/books/${mine}`, removed: false },
     })
     expect(await labelsFor(db(), owner.id, [])).toEqual(new Map())
+  })
+})
+
+describe('insertCapped', () => {
+  const card = (front: string) => ({ chapter: null, page: 1, front, back: 'b', origin: 'manual' })
+  const save = (userId: number, book: BookRef, front: string, limits = { perBook: 3, perUser: 5 }) =>
+    insertCapped<{ id: string; front: string }>(db(), userId, book, {
+      table: 'flashcards',
+      limits,
+      values: card(front),
+      returning: 'id, front',
+      same: { front },
+    })
+  const fill = (userId: number, book: BookRef, n: number) => raw`
+    insert into flashcards (user_id, book_slug, user_book_id, chapter, page, front, back, origin)
+    select ${userId}, ${book.slug}, ${book.userBookId}, null, 1, 'filled ' || n, 'b', 'manual'
+    from generate_series(1, ${n}) n`
+
+  it('writes a row on either kind of book, and refuses a book that is not the reader’s', async () => {
+    const [owner, other] = [await newUser(), await newUser()]
+    const mine = refFor(privateBookSlug(await importBook(owner.id)))
+    expect(await save(owner.id, PRIDE, 'one')).toMatchObject({ row: { front: 'one' }, created: true })
+    expect(await save(owner.id, mine, 'one')).toMatchObject({ row: { front: 'one' }, created: true })
+    expect(await save(other.id, mine, 'two')).toBe('missing')
+  })
+
+  it('answers the row already there instead of writing the same one twice, even in parallel', async () => {
+    const user = await newUser()
+    const first = await save(user.id, PRIDE, 'same')
+    expect(await save(user.id, PRIDE, 'same')).toEqual(typeof first === 'object' ? { ...first, created: false } : null)
+    const raced = await Promise.all([save(user.id, PRIDE, 'raced'), save(user.id, PRIDE, 'raced')])
+    expect(raced.map((r) => typeof r === 'object' && r.created).sort()).toEqual([false, true])
+  })
+
+  it('checks the per-book cap before the per-user cap', async () => {
+    const user = await newUser()
+    await fill(user.id, PRIDE, 3)
+    await fill(user.id, refFor('fixture-code-book'), 2)
+    expect(await save(user.id, PRIDE, 'over both')).toBe('quota-book')
+    expect(await save(user.id, refFor('another-book'), 'over the user')).toBe('quota-user')
+  })
+
+  it('lets only one of two parallel inserts take the last slot', async () => {
+    const user = await newUser()
+    await fill(user.id, PRIDE, 2)
+    const results = await Promise.all([save(user.id, PRIDE, 'a'), save(user.id, PRIDE, 'b')])
+    expect(results.filter((r) => r === 'quota-book')).toHaveLength(1)
+    expect(results.filter((r) => typeof r === 'object')).toHaveLength(1)
+  })
+})
+
+describe('onBookConflict', () => {
+  const rate = (userId: number, ref: BookRef, stars: number) => db()`
+    insert into book_ratings (user_id, book_slug, user_book_id, stars)
+    values (${userId}, ${ref.slug}, ${ref.userBookId}, ${stars})
+    on conflict ${onBookConflict(db(), ref)} do update set stars = excluded.stars`
+  const listen = (userId: number, ref: BookRef, positionMs: number) => db()`
+    insert into listening_places (user_id, book_slug, user_book_id, kind, episode, position_ms, at, device)
+    values (${userId}, ${ref.slug}, ${ref.userBookId}, 'episode', 'one', ${positionMs}, now(), 'test')
+    on conflict ${onBookConflict(db(), ref, { keys: ['episode'], where: db()`kind = 'episode'` })}
+    do update set position_ms = excluded.position_ms`
+
+  it('updates the one row for a book, of either kind, instead of adding a second', async () => {
+    const user = await newUser()
+    const mine = refFor(privateBookSlug(await importBook(user.id)))
+    for (const ref of [PRIDE, mine]) {
+      await rate(user.id, ref, 2)
+      await rate(user.id, ref, 5)
+      await listen(user.id, ref, 10)
+      await listen(user.id, ref, 20)
+    }
+    const ratings = await raw<{ stars: number }[]>`select stars from book_ratings where user_id = ${user.id}`
+    expect(ratings.map((r) => r.stars)).toEqual([5, 5])
+    const places = await raw<{ position_ms: number }[]>`
+      select position_ms from listening_places where user_id = ${user.id}`
+    expect(places.map((r) => r.position_ms)).toEqual([20, 20])
   })
 })
 

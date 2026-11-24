@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import type { Fragment } from 'postgres'
 import type { BookPage as BookPageView } from '~/shared/content/book-page'
 import { type BookSearchHit, IN_BOOK_HIT_LIMIT, searchBook } from '~/shared/content/book-search'
 import { bookHref } from '~/shared/content/library'
@@ -11,7 +12,7 @@ import type { OfflineBook } from '~/shared/offline/book'
 import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
 import { isBookSlug, privateBookSlug } from '../../shared/content/book-slug.ts'
 import { audiobookAudio } from '../audiobooks/view.ts'
-import type { Db } from '../db.ts'
+import type { Db, Pool } from '../db.ts'
 import { catalogueBook, catalogueBooks, loadBook } from '../repository.ts'
 import { openCatalogueBook } from './catalogue.ts'
 import { openPrivateText } from './private.ts'
@@ -164,4 +165,83 @@ export async function ownsBook(db: Db, userId: number, ref: BookRef): Promise<bo
   if (ref.userBookId === null) return true
   const [row] = await db<{ owned: boolean }[]>`select ${ownedBook(db, userId, ref)} as owned`
   return row?.owned === true
+}
+
+/**
+ * The `on conflict` target for a row kept once per reader and book, for either kind of book. It names the partial
+ * unique index on `(user_id, book_slug, …keys)` or `(user_id, user_book_id, …keys)`; `where` adds the rest of that
+ * index's predicate, such as `kind = 'episode'`.
+ */
+export function onBookConflict(
+  db: Db,
+  ref: BookRef,
+  { keys = [], where }: { keys?: readonly string[]; where?: Fragment } = {},
+) {
+  const column = db(ref.userBookId === null ? 'book_slug' : 'user_book_id')
+  const columns = keys.length ? db`, ${db(keys)}` : db``
+  return db`(user_id, ${column}${columns}) where ${column} is not null${where ? db` and ${where}` : db``}`
+}
+
+/** The tables of things a reader keeps many of in a book, each capped per book and per reader: by their plan for highlights, by fixed caps for the rest. */
+export type CappedTable = 'highlights' | 'bookmarks' | 'audio_bookmarks' | 'flashcards'
+
+type Value = string | number | Date | null
+
+export interface CappedRow {
+  table: CappedTable
+  limits: { perBook: number; perUser: number }
+  /** The row's own columns; the reader and book columns are added. */
+  values: Record<string, Value>
+  /** The columns to answer with, a constant list such as `'id, page, created_at'`. */
+  returning: string
+  /** The columns that make two rows the same one: when set, the row already there is answered instead of a second. */
+  same?: Record<string, Value>
+}
+
+export type Capped<Raw> = { row: Raw; created: boolean } | 'missing' | 'quota-book' | 'quota-user'
+
+/**
+ * Inserts one row about a book, under the reader's lock so parallel inserts can't both take the last slot. It answers
+ * `'missing'` when the book is not the reader's, the row already there when `same` matches one, and otherwise checks
+ * the per-book cap before the per-reader cap.
+ */
+export function insertCapped<Raw extends object>(
+  pool: Pool,
+  userId: number,
+  book: BookRef,
+  row: CappedRow,
+): Promise<Capped<Raw>> {
+  return pool.begin(async (tx): Promise<Capped<Raw>> => {
+    await tx`select id from users where id = ${userId} for update`
+    if (!(await ownsBook(tx, userId, book))) return 'missing'
+    const table = tx(row.table)
+    const returning = tx.unsafe(row.returning)
+    const { same } = row
+    const existing = async () => {
+      if (!same) return null
+      const matches = Object.entries(same).map(([column, value]) =>
+        value === null ? tx`${tx(column)} is null` : tx`${tx(column)} = ${value}`,
+      )
+      const [found] = await tx<Raw[]>`
+        select ${returning} from ${table}
+        where user_id = ${userId} and ${onBook(tx, book)}${matches.map((m) => tx` and ${m}`)}`
+      return found ? { row: found, created: false } : null
+    }
+    const already = await existing()
+    if (already) return already
+    const [counts] = await tx<{ in_book: string; in_all: string }[]>`
+      select count(*) filter (where ${onBook(tx, book)}) as in_book, count(*) as in_all
+      from ${table} where user_id = ${userId}`
+    if (Number(counts?.in_book ?? 0) >= row.limits.perBook) return 'quota-book'
+    if (Number(counts?.in_all ?? 0) >= row.limits.perUser) return 'quota-user'
+    const values = { user_id: userId, book_slug: book.slug, user_book_id: book.userBookId, ...row.values }
+    const [created] = await tx<Raw[]>`
+      insert into ${table} ${tx(values)}
+      ${same ? tx`on conflict do nothing` : tx``}
+      returning ${returning}`
+    if (created) return { row: created, created: true }
+    const raced = await existing()
+    if (!raced) throw new Error('insert returned no row')
+    return raced
+  })
 }
