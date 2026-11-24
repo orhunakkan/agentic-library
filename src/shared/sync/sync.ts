@@ -1,4 +1,4 @@
-import type { PagePosition } from '../highlights/page-text.ts'
+import type { PagePosition } from '../content/position.ts'
 
 export const READER_THEMES = ['light', 'sepia', 'dark'] as const
 export const READER_FONTS = ['literata', 'source-serif', 'geist', 'atkinson', 'opendyslexic'] as const

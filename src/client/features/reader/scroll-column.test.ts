@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { privateBookSlug } from '~/shared/content/book-slug'
 import { buildReaderView, type ReaderView } from '~/shared/content/reader-view'
 import { chapterFixture, metaFor, pagedFixture } from '../../../../tests/fixtures/books'
 import { fixtureCatalog } from '../../../../tests/fixtures/catalog'
@@ -12,7 +11,6 @@ import {
   pageAtLine,
   prepended,
   prevHref,
-  readerParams,
 } from './scroll-column'
 
 function essay(part: string, n?: string): ReaderView {
@@ -139,31 +137,5 @@ describe('pageAtLine', () => {
 
   it('is 0 for an empty column', () => {
     expect(pageAtLine([], 240, false)).toBe(0)
-  })
-})
-
-describe('readerParams', () => {
-  it('reads chapter, screen-page, printed-page and private-book addresses', () => {
-    expect(readerParams('/read/essays/history')).toEqual({ book: 'essays', part: 'history' })
-    expect(readerParams('/read/essays/history/3')).toEqual({ book: 'essays', part: 'history', n: '3' })
-    expect(readerParams('/read/confessions/112')).toEqual({ book: 'confessions', part: '112' })
-    expect(readerParams(`/read/${privateBookSlug('0f8e2a8c-4c4b-4a3e-9d8c-6f1b2a3c4d5e')}/chapter-1/2`)).toEqual({
-      book: privateBookSlug('0f8e2a8c-4c4b-4a3e-9d8c-6f1b2a3c4d5e'),
-      part: 'chapter-1',
-      n: '2',
-    })
-  })
-
-  it('is null for anything else', () => {
-    for (const href of [
-      '/read/essays',
-      '/library/essays',
-      '/read/essays/history/3/4',
-      '/read/essays/history?x=1',
-      '/read/essays/history#highlight-1',
-      'https://example.com/read/essays/history',
-      '',
-    ])
-      expect(readerParams(href), href).toBeNull()
   })
 })

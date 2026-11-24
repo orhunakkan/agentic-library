@@ -21,11 +21,12 @@ import appCss from '~/client/styles/app.css?url'
 import { getViewer } from '~/server/account-functions'
 import { getNavData } from '~/server/functions'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
+import { readerParams } from '~/shared/content/position'
 import { SITE_NAME, SITE_TAGLINE } from '~/shared/lib/site'
 import { APPLE_TOUCH_ICON, MANIFEST_PATH, THEME_COLOR } from '~/shared/pwa/manifest'
 
 const isPrivateBook = (pathname: string) =>
-  isPrivateBookSlug(/^\/read\/([^/]+)/.exec(pathname)?.[1]) || /^\/account\/books\/[0-9a-f-]{36}\/?$/.test(pathname)
+  isPrivateBookSlug(readerParams(pathname)?.book) || /^\/account\/books\/[0-9a-f-]{36}\/?$/.test(pathname)
 
 type NavData = Awaited<ReturnType<typeof getNavData>>
 const EMPTY_NAV: NavData = { stats: { books: 0, series: 0, audiobooks: 0 }, collections: [], featured: [] }

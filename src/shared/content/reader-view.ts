@@ -1,5 +1,5 @@
 import { buildNavigation, chapterPageHref, type Navigation, pagedHref, pageLabel } from '~/shared/content/navigation'
-import type { PagePosition } from '~/shared/highlights/page-text'
+import { type PagePosition, readerParams } from '~/shared/content/position'
 import { SITE_NAME } from '~/shared/lib/site'
 import { bookHref, type CoverImage, catalogCoverImage, coverUrlFor } from './library'
 import type {
@@ -59,7 +59,7 @@ export interface ReaderContext {
 
 export function positionOf(view: ReaderView): PagePosition {
   if (view.page.kind === 'paged') return { printedPage: view.page.pageNumber }
-  return { chapter: view.canonicalPath.split('/')[3] ?? '', page: view.nav.status.page }
+  return { chapter: readerParams(view.canonicalPath)?.part ?? '', page: view.nav.status.page }
 }
 
 export function labelOf(view: ReaderView): string {

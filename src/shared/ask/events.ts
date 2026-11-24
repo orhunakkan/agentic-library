@@ -1,4 +1,4 @@
-export type AskPosition = { chapter: string; page: number } | { printedPage: number }
+import type { PagePosition } from '../content/position.ts'
 
 export interface CitationLink {
   pageHref: string
@@ -7,7 +7,7 @@ export interface CitationLink {
 }
 
 export interface StudySource {
-  position: AskPosition
+  position: PagePosition
   label: string
 }
 

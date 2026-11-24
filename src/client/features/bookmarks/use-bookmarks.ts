@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'r
 import { useToast } from '~/client/components/Toast'
 import { getBookBookmarks } from '~/server/account-functions'
 import { onPage } from '~/shared/bookmarks/bookmarks'
+import { toStored } from '~/shared/content/position'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
 import { reloadWhenBack } from './audio-bookmark-list'
 import { BookmarkList, type NewBookmark } from './bookmark-list'
@@ -18,8 +19,7 @@ function newBookmark(view: ReaderView): NewBookmark {
     place: {
       chapterIndex: view.chapterIndex,
       chapterTitle: view.chapterTitle,
-      chapter: 'chapter' in position ? position.chapter : null,
-      page: 'chapter' in position ? position.page : position.printedPage,
+      ...toStored(position),
       pageHref: view.canonicalPath,
       label: labelOf(view),
       position: view.nav.progress.position - 1,

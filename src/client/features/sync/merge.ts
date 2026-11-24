@@ -1,4 +1,6 @@
-import { positionFromHref, type RecentReading } from '~/client/features/reader/continue-reading'
+import type { RecentReading } from '~/client/features/reader/continue-reading'
+import { isPrivateBookSlug } from '~/shared/content/book-slug'
+import { positionFromHref } from '~/shared/content/position'
 import {
   isNewer,
   itemKey,
@@ -74,8 +76,9 @@ function mergeReading(local: readonly RecentReading[], remote: readonly ReadingP
   const list: RecentReading[] = []
   const push: ReadingWrite[] = []
   let changed = false
+  /** An entry saved before entries stored a position is read from its href; only a private book's kind is known from its slug. */
   const pushEntry = (e: RecentReading) => {
-    const position = e.position ?? positionFromHref(e.href)
+    const position = e.position ?? positionFromHref(e.href, isPrivateBookSlug(e.bookSlug) ? 'chapter' : null)
     if (position) push.push({ book: e.bookSlug, position, at: e.at })
   }
   for (const e of local) {

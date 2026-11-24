@@ -1,6 +1,7 @@
 import { removeKeys } from '~/client/lib/storage-keys'
-import type { AskPosition, CardDraft, QuizQuestion, StudySource, StudySpan } from '~/shared/ask/events'
+import type { CardDraft, QuizQuestion, StudySource, StudySpan } from '~/shared/ask/events'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
+import type { PagePosition } from '~/shared/content/position'
 
 export interface ThreadCitation {
   pageHref: string
@@ -51,7 +52,7 @@ function citations(value: unknown): ThreadCitation[] | null {
   return out.every((c) => c !== null) ? out : null
 }
 
-function position(value: unknown): AskPosition | null {
+function position(value: unknown): PagePosition | null {
   if (!isRecord(value)) return null
   if (typeof value.printedPage === 'number') return { printedPage: value.printedPage }
   return isString(value.chapter) && typeof value.page === 'number' ? { chapter: value.chapter, page: value.page } : null

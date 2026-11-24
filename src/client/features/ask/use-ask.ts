@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { PagePosition } from '~/shared/content/position'
 import { citationMarker, cleanModelText } from './answer-format'
-import {
-  type AskAction,
-  type AskPosition,
-  type AskProblem,
-  historyFor,
-  isStudyAction,
-  sendQuestion,
-} from './ask-client'
+import { type AskAction, type AskProblem, historyFor, isStudyAction, sendQuestion } from './ask-client'
 import { newQuiz, pick as pickIn, studyText } from './study'
 import {
   browserStorage,
@@ -41,7 +35,7 @@ export interface AskFailure {
 
 const STREAM_ERRORS: readonly AskProblem[] = ['key_rejected', 'billing', 'busy', 'too_long', 'bad_format', 'failed']
 
-export function useAsk(bookSlug: string, position: AskPosition) {
+export function useAsk(bookSlug: string, position: PagePosition) {
   const [thread, setThread] = useState<Thread>(emptyThread)
   const [pending, setPending] = useState<PendingAnswer | null>(null)
   const [failure, setFailure] = useState<AskFailure | null>(null)

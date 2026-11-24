@@ -1,4 +1,5 @@
-import type { AskEvent, AskPosition } from '~/shared/ask/events'
+import type { AskEvent } from '~/shared/ask/events'
+import type { PagePosition } from '~/shared/content/position'
 import { plainAnswer } from './answer-format'
 import type { ThreadTurn } from './thread-store'
 
@@ -6,8 +7,6 @@ export const QUESTION_MAX = 2_000
 export const QUOTE_MAX = 1_000
 const HISTORY_TURNS = 10
 const HISTORY_CHARS = 16_000
-
-export type { AskPosition }
 
 export type AskAction = 'explain' | 'summary' | 'recap' | 'define' | 'quiz' | 'flashcards'
 
@@ -77,7 +76,7 @@ export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenera
 }
 
 export interface AskRequest {
-  position: AskPosition
+  position: PagePosition
   wholeBook: boolean
   question: string
   quote: string | null

@@ -5,6 +5,7 @@ import { AppLink } from '~/client/components/AppLink'
 import { usePlayer } from '~/client/features/player/PlayerProvider'
 import { type TabEntry, tabOrder } from '~/shared/bookmarks/audio'
 import type { BookmarkPlace } from '~/shared/bookmarks/bookmarks'
+import { fromStored } from '~/shared/content/position'
 import type { ReaderView } from '~/shared/content/reader-view'
 import type { AudioBookmarkItem, AudioBookmarksApi } from './use-audio-bookmarks'
 import type { BookmarkItem, BookmarksApi } from './use-bookmarks'
@@ -228,7 +229,7 @@ function VoiceEntry({
     readAloud.start(book, {
       kind: 'offset',
       chapter: place.chapterIndex,
-      position: place.chapter === null ? { printedPage: place.page } : { chapter: place.chapter, page: place.page },
+      position: fromStored(place.chapter, place.page),
       offset: place.start,
     })
   }

@@ -1,6 +1,6 @@
 import { removeKeys } from '~/client/lib/storage-keys'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
-import type { PagePosition } from '~/shared/highlights/page-text'
+import type { PagePosition } from '~/shared/content/position'
 import type { ListeningWrite } from '~/shared/sync/sync'
 
 export interface SavedPosition {

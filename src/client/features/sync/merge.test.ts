@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RecentReading } from '~/client/features/reader/continue-reading'
+import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ListeningPlace, ReadingPlace, SettingsPlace, SyncState } from '~/shared/sync/sync'
 import type { LocalListening, LocalState } from './local'
 import { merge, toEntry } from './merge'
@@ -129,6 +130,14 @@ describe('merge: reading places', () => {
     const odd = { ...localRead('persuasion', 6), position: undefined, href: '/library' }
     const result = merge(local({ reading: [old, odd] }), remote(), 'ada')
     expect(result.push.reading).toEqual([{ book: 'emma', position: { chapter: 'chapter-2', page: 1 }, at: 5 }])
+  })
+
+  it('reads a page of digits from before sync as a chapter only in a private book, whose kind is known', () => {
+    const PRIVATE = privateBookSlug('12341234-0000-4000-8000-000000000000')
+    const { position: _, ...catalogue } = { ...localRead('essays', 5), href: '/read/essays/12' }
+    const { position: __, ...mine } = { ...localRead(PRIVATE, 6), href: `/read/${PRIVATE}/12` }
+    const result = merge(local({ reading: [catalogue, mine] }), remote(), 'ada')
+    expect(result.push.reading).toEqual([{ book: PRIVATE, position: { chapter: '12', page: 1 }, at: 6 }])
   })
 
   it('pushes a place missing from a full answer only when it is newer than the oldest listed', () => {

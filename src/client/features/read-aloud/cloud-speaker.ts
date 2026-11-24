@@ -1,3 +1,4 @@
+import { positionKey } from '~/shared/content/position'
 import type { SpeakIntro, SpeakRequest, SpeakSpan, SpeechFormat, SpokenWord } from '~/shared/read-aloud/cloud'
 import {
   type AudioLike,
@@ -46,9 +47,7 @@ export const CLOUD_VOICE_PREFIX = 'elevenlabs:'
 
 const refKey = (ref: SpeakRef) => {
   if ('intro' in ref) return `${ref.book}|${ref.chapter}|intro`
-  const { position } = ref
-  const page = 'printedPage' in position ? position.printedPage : `${position.chapter}/${position.page}`
-  return `${ref.book}|${ref.chapter}|${page}:${ref.start}-${ref.end}`
+  return `${ref.book}|${ref.chapter}|${positionKey(ref.position)}:${ref.start}-${ref.end}`
 }
 
 interface Entry {

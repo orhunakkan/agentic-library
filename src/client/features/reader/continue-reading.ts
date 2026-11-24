@@ -1,8 +1,8 @@
 import { browserStorage } from '~/client/features/ask/thread-store'
 import { syncOutbox } from '~/client/features/sync/outbox'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
+import type { PagePosition } from '~/shared/content/position'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
-import type { PagePosition } from '~/shared/highlights/page-text'
 
 export interface RecentReading {
   bookSlug: string
@@ -24,15 +24,6 @@ export function upsertRecent(list: readonly RecentReading[], entry: RecentReadin
 
 export function inLibrary(list: readonly RecentReading[], bookSlugs: ReadonlySet<string>): RecentReading[] {
   return list.filter((e) => bookSlugs.has(e.bookSlug))
-}
-
-export function positionFromHref(href: string): PagePosition | null {
-  const match = /^\/read\/([^/?#]+)\/([^/?#]+)(?:\/([1-9]\d*))?\/?$/.exec(href)
-  if (!match) return null
-  const [, book = '', part = '', n] = match
-  if (n !== undefined) return { chapter: part, page: Number(n) }
-  if (/^[1-9]\d*$/.test(part) && !hasPrivateSlugPrefix(book)) return { printedPage: Number(part) }
-  return { chapter: part, page: 1 }
 }
 
 export function readRecent(storage: Storage | null = browserStorage()): RecentReading[] {

@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { chapterPageHref, pageLabel } from '~/shared/content/navigation'
-import { type BookPage, type PagePosition, pageIndexOf } from '~/shared/highlights/page-text'
+import { fromStored, type PagePosition } from '~/shared/content/position'
+import { type BookPage, pageIndexOf } from '~/shared/highlights/page-text'
 import { privateBookSlug } from '../../shared/content/book-slug.ts'
 import { openBook } from '../books/book.ts'
 import { type BookRef, refFor } from '../books/ref.ts'
@@ -33,9 +34,6 @@ export type PlaceCache = Map<string, Promise<PlaceBook | null>>
 
 export const newPlaceCache = (): PlaceCache => new Map()
 
-export const positionFor = (chapter: string | null, page: number): PagePosition =>
-  chapter === null ? { printedPage: page } : { chapter, page }
-
 function fromPage(p: BookPage): PlacePage {
   return {
     chapterIndex: p.chapterIndex,
@@ -44,7 +42,7 @@ function fromPage(p: BookPage): PlacePage {
     page: p.page,
     href: p.href,
     label: p.label,
-    position: positionFor(p.chapterSlug, p.page),
+    position: fromStored(p.chapterSlug, p.page),
   }
 }
 
@@ -58,7 +56,7 @@ function catalogueBook(ref: BookRef, title: string, pages: readonly BookPage[]):
     title,
     find: (position) => at(pageIndexOf(pages, position)),
     nearest: (chapter, page) => {
-      const exact = pageIndexOf(pages, positionFor(chapter, page))
+      const exact = pageIndexOf(pages, fromStored(chapter, page))
       if (exact >= 0) return at(exact)
       const chapterStart = chapter === null ? -1 : pages.findIndex((p) => p.chapterSlug === chapter)
       return at(Math.max(chapterStart, 0))

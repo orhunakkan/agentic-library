@@ -1,6 +1,6 @@
-import type { PagePosition } from '~/shared/highlights/page-text'
+import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only, parsePosition } from '../ask/input.ts'
+import { isObject, only } from '../ask/input.ts'
 
 export interface BookmarkCreateInput {
   book: string

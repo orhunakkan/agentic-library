@@ -1,4 +1,4 @@
-import type { PagePosition } from '~/shared/highlights/page-text'
+import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { MAX_SESSION_SECONDS } from '~/shared/reading-stats/contract'
 import { isDay, isTimeZone } from '~/shared/reading-stats/days'
 import {
@@ -13,7 +13,7 @@ import {
   type TimeWrite,
 } from '~/shared/sync/sync'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only, parsePosition } from '../ask/input.ts'
+import { isObject, only } from '../ask/input.ts'
 
 const MAX_OFFSET = 1_000_000
 const MAX_POSITION_MS = 86_400_000

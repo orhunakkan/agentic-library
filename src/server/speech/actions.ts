@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
+import { samePosition } from '../../shared/content/position.ts'
 import { canUse } from '../../shared/plans/plans.ts'
 import { sayMap, wordsFrom } from '../../shared/read-aloud/alignment.ts'
 import {
@@ -53,13 +54,6 @@ async function chapterFor(db: Db, userId: number, slug: string, index: number): 
   return book && chapter ? { language: book.language, chapter } : null
 }
 
-const samePosition = (a: SpeakInput & { kind: 'span' }, page: SpeechChapter['pages'][number]) =>
-  'printedPage' in a.position
-    ? 'printedPage' in page.position && page.position.printedPage === a.position.printedPage
-    : 'chapter' in page.position &&
-      page.position.chapter === a.position.chapter &&
-      page.position.page === a.position.page
-
 interface Spoken {
   say: string
   previous: string
@@ -86,7 +80,7 @@ function spokenFor(input: SpeakInput, loaded: LoadedChapter): Spoken | null {
   const enough = 400
   if (input.kind === 'intro')
     return { say: chapterIntro(chapter), previous: '', next: around(flat, enough, false), words: null }
-  const pageIndex = chapter.pages.findIndex((p) => samePosition(input, p))
+  const pageIndex = chapter.pages.findIndex((p) => samePosition(p.position, input.position))
   const page = chapter.pages[pageIndex]
   if (!page) return null
   const at = all.findIndex((a) => a.pageIndex === pageIndex && a.u.start === input.start && a.u.end === input.end)

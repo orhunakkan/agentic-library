@@ -1,5 +1,6 @@
 import { decodeEntities } from '../content/html-text.ts'
 import { chapterPageHref, pagedHref, pageLabel } from '../content/navigation.ts'
+import { fromStored, type PagePosition, samePosition } from '../content/position.ts'
 import type { Block, BookContent } from '../content/schema.ts'
 
 export function chapterPageText(html: string): string {
@@ -55,10 +56,6 @@ export function bookPages(content: BookContent): BookPage[] {
   })
 }
 
-export type PagePosition = { chapter: string; page: number } | { printedPage: number }
-
 export function pageIndexOf(pages: readonly BookPage[], position: PagePosition): number {
-  return 'printedPage' in position
-    ? pages.findIndex((p) => p.chapterSlug === null && p.page === position.printedPage)
-    : pages.findIndex((p) => p.chapterSlug === position.chapter && p.page === position.page)
+  return pages.findIndex((p) => samePosition(fromStored(p.chapterSlug, p.page), position))
 }

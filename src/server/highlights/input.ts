@@ -1,9 +1,9 @@
+import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { type HighlightColor, isHighlightColor } from '~/shared/highlights/colors'
 import { MAX_NOTE, MAX_PASSAGE } from '~/shared/highlights/limits'
-import type { PagePosition } from '~/shared/highlights/page-text'
 import { cleanText } from '~/shared/import/blocks'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only, parsePosition } from '../ask/input.ts'
+import { isObject, only } from '../ask/input.ts'
 
 const OFFSET_MAX = 10_000_000
 

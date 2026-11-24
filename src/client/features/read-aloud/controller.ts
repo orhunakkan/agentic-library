@@ -1,6 +1,6 @@
 import type { Arbiter } from '~/client/features/player/arbitration'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
-import type { PagePosition } from '~/shared/highlights/page-text'
+import { type PagePosition, samePosition } from '~/shared/content/position'
 import { primarySubtag, type SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import { ENGINE_BYTES, type FolioVoice, folioVoicesFor } from '~/shared/read-aloud/folio-voices'
 import { chapterIntro } from '~/shared/read-aloud/sentences'
@@ -173,11 +173,6 @@ export interface ReadAloud {
 
 export const SAVE_EVERY_MS = 5000
 export const MAX_FAILURES = 3
-
-const samePosition = (a: PagePosition, b: PagePosition) =>
-  'printedPage' in a
-    ? 'printedPage' in b && a.printedPage === b.printedPage
-    : 'chapter' in b && a.chapter === b.chapter && a.page === b.page
 
 const sameCursor = (a: Cursor | null, b: Cursor | null) =>
   a !== null && b !== null && a.pageIndex === b.pageIndex && a.utteranceIndex === b.utteranceIndex

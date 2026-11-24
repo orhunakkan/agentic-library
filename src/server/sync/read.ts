@@ -6,10 +6,11 @@ import {
   type ReadingPlace,
   type SyncState,
 } from '~/shared/sync/sync'
+import { fromStored } from '../../shared/content/position.ts'
 import { slugOf } from '../books/ref.ts'
 import type { Db } from '../db.ts'
 import { signedInRead } from '../signed-in.ts'
-import { bookFor, newPlaceCache, type PlaceCache, placeForRead, positionFor, preloadBooks } from './places.ts'
+import { bookFor, newPlaceCache, type PlaceCache, placeForRead, preloadBooks } from './places.ts'
 import { getSettings, type ListeningRow, listListening, listReading, type ReadingRow, readingFor } from './store.ts'
 
 async function toPlace(db: Db, userId: number, row: ReadingRow, cache: PlaceCache): Promise<ReadingPlace | null> {
@@ -34,7 +35,7 @@ function toListening(l: ListeningRow): ListeningPlace {
   if (l.kind === 'episode') return { ...common, kind: 'episode', episode: l.episode, positionMs: l.positionMs }
   if (l.chapterIndex === null || l.page === null || l.offset === null)
     return { ...common, kind: 'voice', chapter: 0, position: null, offset: 0 }
-  const position = positionFor(l.chapter, l.page)
+  const position = fromStored(l.chapter, l.page)
   return { ...common, kind: 'voice', chapter: l.chapterIndex, position, offset: l.offset }
 }
 

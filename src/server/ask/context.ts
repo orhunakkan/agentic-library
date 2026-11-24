@@ -1,12 +1,13 @@
 import '@tanstack/react-start/server-only'
 import type Anthropic from '@anthropic-ai/sdk'
-import type { AskPosition, CitationLink, StudySpan } from '~/shared/ask/events'
+import type { CitationLink, StudySpan } from '~/shared/ask/events'
+import type { PagePosition } from '~/shared/content/position'
 import { type HighlightView, inReadingOrder } from '~/shared/highlights/group'
 import type { BookText, PageText } from './book-text'
 import type { AskAction } from './input'
 import { CARDS_COUNT, QUIZ_COUNT, type StudyCitation } from './study-format'
 
-export type { AskPosition, CitationLink }
+export type { CitationLink }
 
 export const MAX_BOOK_TOKENS = 800_000
 export const CHARS_PER_TOKEN = 2.5
@@ -19,7 +20,7 @@ function pageAt(text: BookText, pageIndex: number): PageText {
   return page
 }
 
-export function pageIndexAt(text: BookText, position: AskPosition): number | null {
+export function pageIndexAt(text: BookText, position: PagePosition): number | null {
   if ('printedPage' in position) {
     if (text.kind !== 'paged') return null
     const index = text.pages.findIndex((p) => p.printedPage === position.printedPage)
@@ -33,7 +34,7 @@ export function pageIndexAt(text: BookText, position: AskPosition): number | nul
   return chapter.firstPage + position.page - 1
 }
 
-export function positionAt(text: BookText, pageIndex: number): AskPosition {
+export function positionAt(text: BookText, pageIndex: number): PagePosition {
   const page = pageAt(text, pageIndex)
   if (page.printedPage !== null) return { printedPage: page.printedPage }
   const chapter = text.chapters[page.chapterIndex]

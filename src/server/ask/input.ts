@@ -1,13 +1,11 @@
-import type { AskPosition } from '~/shared/ask/events'
 import { isPromptId } from '~/shared/ask-prompts/prompts'
+import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { cleanText } from '~/shared/import/blocks'
 
 export const QUESTION_MAX = 2_000
 export const QUOTE_MAX = 1_000
 export const HISTORY_TURNS_MAX = 10
 export const HISTORY_CHARS_MAX = 16_000
-const PAGE_MAX = 100_000
-const CHAPTER_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export const ASK_ACTIONS = ['explain', 'summary', 'recap', 'define', 'quiz', 'flashcards'] as const
 export type AskAction = (typeof ASK_ACTIONS)[number]
@@ -25,7 +23,7 @@ export interface AskTurn {
 }
 
 export interface AskInput {
-  position: AskPosition
+  position: PagePosition
   wholeBook: boolean
   question: string
   quote: string | null
@@ -45,20 +43,6 @@ export const isObject = (value: unknown): value is Record<string, unknown> =>
 
 export const only = (value: Record<string, unknown>, keys: readonly string[]) =>
   Object.keys(value).every((k) => keys.includes(k))
-
-const isPage = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= PAGE_MAX
-
-export function parsePosition(value: unknown): AskPosition | null {
-  if (!isObject(value)) return null
-  if ('printedPage' in value) {
-    return only(value, ['printedPage']) && isPage(value.printedPage) ? { printedPage: value.printedPage } : null
-  }
-  if (!only(value, ['chapter', 'page'])) return null
-  const { chapter, page } = value
-  if (typeof chapter !== 'string' || chapter.length > 200 || !CHAPTER_SLUG.test(chapter) || !isPage(page)) return null
-  return { chapter, page }
-}
 
 function history(value: unknown): AskTurn[] | null {
   if (!Array.isArray(value) || value.length > HISTORY_TURNS_MAX) return null

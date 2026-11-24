@@ -1,6 +1,6 @@
 import { type ChangeResult, post, readAnswer } from '~/client/features/highlights/highlights-client'
 import type { BookmarkView } from '~/shared/bookmarks/bookmarks'
-import type { PagePosition } from '~/shared/highlights/page-text'
+import type { PagePosition } from '~/shared/content/position'
 
 export type BookmarkProblem = 'quota-book' | 'quota-user' | 'signed_out' | 'not_found' | 'failed'
 

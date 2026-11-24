@@ -1,5 +1,5 @@
 import { type BookmarkPlace, type BookmarkView, onPage } from '~/shared/bookmarks/bookmarks'
-import type { PagePosition } from '~/shared/highlights/page-text'
+import type { PagePosition } from '~/shared/content/position'
 import type { BookmarkProblem, BookmarkResult } from './bookmarks-client'
 
 export type BookmarksState = 'off' | 'signed_out' | 'loading' | 'ready' | 'unavailable'

@@ -200,6 +200,22 @@ const SEAMS: Seam[] = [
     tests: true,
     allowed: {},
   },
+  {
+    name: 'a reader href is parsed only by the position module (#91)',
+    pattern: /\\\/read\\\//,
+    under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
+    allowed: { 'src/shared/content/position.ts': 'the position module' },
+  },
+  {
+    name: 'a position is told apart from a printed page only by the position module, or where the book kind decides (#91)',
+    pattern: /'printedPage' in (position|a|b|value)\b/,
+    under: ['src/client', 'src/server', 'src/shared', 'src/routes'],
+    allowed: {
+      'src/shared/content/position.ts': 'the position module',
+      'src/server/ask/context.ts': 'pageIndexAt: a printed page is found only in a paged book',
+      'src/server/sync/places.ts': "find: a private book's outline has no printed pages",
+    },
+  },
 ]
 
 function withoutComments(source: string): string {

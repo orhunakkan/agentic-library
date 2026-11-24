@@ -32,6 +32,7 @@ import { ReadElsewhere } from '~/client/features/sync/ReadElsewhere'
 import { useMediaQuery } from '~/client/lib/use-media-query'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import type { NavTarget } from '~/shared/content/navigation'
+import { toStored } from '~/shared/content/position'
 import type { ReaderView } from '~/shared/content/reader-view'
 import { AskButton, IconButton, ReadAloudButton } from './ChromeButtons'
 import { ContentsDrawer, TocPanel, type TocTab } from './Contents'
@@ -754,8 +755,7 @@ function newHighlight(view: ReaderView, passage: Selected): NewHighlight {
     place: {
       chapterIndex: view.chapterIndex,
       chapterTitle: view.chapterTitle,
-      chapter: 'chapter' in position ? position.chapter : null,
-      page: 'chapter' in position ? position.page : position.printedPage,
+      ...toStored(position),
       pageHref: view.canonicalPath,
       label: scopeLabel(view),
       position: view.nav.progress.position - 1,

@@ -8,7 +8,6 @@ import {
   inLibrary,
   MAX_RECENT,
   placeFor,
-  positionFromHref,
   readRecent,
   rememberReading,
   resetVisits,
@@ -76,23 +75,6 @@ describe('inLibrary', () => {
   it('drops books that are no longer in the library, keeping the order', () => {
     const list = [entry('gone', 3), entry('a', 2), entry('b', 1)]
     expect(inLibrary(list, new Set(['a', 'b'])).map((e) => e.bookSlug)).toEqual(['a', 'b'])
-  })
-})
-
-describe('positionFromHref', () => {
-  it('reads chapter, chapter-with-page and paged addresses', () => {
-    expect(positionFromHref('/read/emma/chapter-6/2')).toEqual({ chapter: 'chapter-6', page: 2 })
-    expect(positionFromHref('/read/emma/chapter-6')).toEqual({ chapter: 'chapter-6', page: 1 })
-    expect(positionFromHref('/read/confessions/112')).toEqual({ printedPage: 112 })
-    expect(positionFromHref(`/read/${privateBookSlug('0e0f0000-0000-4000-8000-000000000000')}/7`)).toEqual({
-      chapter: '7',
-      page: 1,
-    })
-  })
-
-  it('is null for anything else', () => {
-    for (const href of ['/library', '/read/emma', '/read/emma/c/0', '/read/emma/c/2/3', '/books/emma/c', 'x'])
-      expect(positionFromHref(href)).toBeNull()
   })
 })
 

@@ -1,6 +1,6 @@
+import type { PagePosition } from '~/shared/content/position'
 import type { HighlightColor } from '~/shared/highlights/colors'
 import type { HighlightView } from '~/shared/highlights/group'
-import type { PagePosition } from '~/shared/highlights/page-text'
 
 export type HighlightProblem =
   | 'quota-book'

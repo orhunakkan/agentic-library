@@ -7,6 +7,7 @@ import { useToast } from '~/client/components/Toast'
 import { cn } from '~/client/lib/cn'
 import { getReaderPage } from '~/server/functions'
 import type { NavTarget } from '~/shared/content/navigation'
+import { readerParams } from '~/shared/content/position'
 import type { ReaderView } from '~/shared/content/reader-view'
 import type { ColumnIntent } from './navigation-intent'
 import { ARTICLE_CLASS, type OnRoot, PageBody } from './Page'
@@ -20,7 +21,6 @@ import {
   pageAtLine,
   prepended,
   prevHref,
-  readerParams,
 } from './scroll-column'
 
 const LINE = 0.3

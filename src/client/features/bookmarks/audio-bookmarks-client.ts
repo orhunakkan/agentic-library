@@ -1,5 +1,5 @@
 import type { AudioBookmarkView } from '~/shared/bookmarks/audio'
-import type { PagePosition } from '~/shared/highlights/page-text'
+import type { PagePosition } from '~/shared/content/position'
 import { type BookmarkResult, createdOf, deletedOf, send } from './bookmarks-client'
 
 export type AudioBookmarkRequest =

@@ -3,6 +3,7 @@ import type { ReadAloudState, StartAt } from '~/client/features/read-aloud/contr
 import { formatClock, formatDuration } from '~/client/lib/format'
 import type { AudioBookmarkView } from '~/shared/bookmarks/audio'
 import type { PlayerBook, PlayerEpisode } from '~/shared/content/book-page'
+import { fromStored, toStored } from '~/shared/content/position'
 import type { SpeechBook } from '~/shared/read-aloud/speech-text'
 import type { TransportState } from './transport'
 
@@ -52,8 +53,7 @@ export function momentOf(now: NowPlaying): NewAudioBookmark | null {
         place: {
           chapterIndex: chapter.index,
           chapterTitle: chapter.title,
-          chapter: 'chapter' in position ? position.chapter : null,
-          page: 'chapter' in position ? position.page : position.printedPage,
+          ...toStored(position),
           pageHref: page.href,
           label: page.label,
           position: 0,
@@ -105,7 +105,7 @@ export function bookmarkPlay(
   | null {
   if (item.kind === 'voice' && item.place && now.source === 'read-aloud') {
     const { chapterIndex, chapter, page, start } = item.place
-    const position = chapter === null ? { printedPage: page } : { chapter, page }
+    const position = fromStored(chapter, page)
     return {
       source: 'read-aloud',
       book: now.book.slug,

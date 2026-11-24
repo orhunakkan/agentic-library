@@ -6,6 +6,7 @@ import { useToast } from '~/client/components/Toast'
 import { cn } from '~/client/lib/cn'
 import { getAskSetup } from '~/server/account-functions'
 import type { AskPromptChoice } from '~/shared/ask-prompts/prompts'
+import { pageOf } from '~/shared/content/position'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
 import { aiModelName } from '~/shared/lib/ai-models'
 import { MicButton } from '../ask-voice/MicButton'
@@ -14,7 +15,7 @@ import { VoiceNotices } from '../ask-voice/VoiceNotices'
 import { ProNotice } from '../plans/ProNotice'
 import { AnswerText } from './AnswerText'
 import { plainAnswer } from './answer-format'
-import { type AskAction, type AskPosition, QUESTION_MAX } from './ask-client'
+import { type AskAction, QUESTION_MAX } from './ask-client'
 import { canRetry, failureText, PROBLEM_TEXT } from './ask-problems'
 import { CardsTurn } from './CardsTurn'
 import { PromptsMenu } from './PromptsMenu'
@@ -30,7 +31,7 @@ type Setup = Awaited<ReturnType<typeof getAskSetup>>
 
 const COUNT_FROM = 1_800
 
-export const askPosition: (view: ReaderView) => AskPosition = positionOf
+export const askPosition = positionOf
 
 export const scopeLabel = labelOf
 
@@ -462,8 +463,7 @@ function Suggestions({
   noPrompts: boolean
 }) {
   const hasCode = view.page.kind === 'chapter' && view.page.html.includes('<pre>')
-  const position = askPosition(view)
-  const page = 'printedPage' in position ? position.printedPage : position.page
+  const page = pageOf(askPosition(view))
   const highlights = ask.thread.wholeBook ? highlightPages.length : highlightPages.filter((p) => p <= page).length
   const chip =
     'block w-full rounded-xl border border-r-line px-3.5 py-2.5 text-left text-[14px] transition hover:border-r-accent/60 disabled:opacity-50'

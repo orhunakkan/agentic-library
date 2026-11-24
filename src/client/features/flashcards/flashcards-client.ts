@@ -1,5 +1,5 @@
 import { type ChangeResult, post, readAnswer } from '~/client/features/highlights/highlights-client'
-import type { AskPosition } from '~/shared/ask/events'
+import type { PagePosition } from '~/shared/content/position'
 import type { FlashcardView } from '~/shared/flashcards/contract'
 import type { CardOrigin } from '~/shared/flashcards/limits'
 import type { ReviewResult } from '~/shared/flashcards/schedule'
@@ -26,7 +26,7 @@ export interface NewCardRequest {
   book: string
   front: string
   back: string
-  position: AskPosition
+  position: PagePosition
   origin: CardOrigin
 }
 

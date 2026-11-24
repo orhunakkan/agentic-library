@@ -61,9 +61,3 @@ export function pageAtLine(tops: readonly number[], line: number, atBottom: bool
   })
   return at
 }
-
-export function readerParams(href: string): { book: string; part: string; n?: string } | null {
-  const m = /^\/read\/([^/?#]+)\/([^/?#]+)(?:\/([^/?#]+))?\/?$/.exec(href)
-  if (!m?.[1] || !m[2]) return null
-  return m[3] ? { book: m[1], part: m[2], n: m[3] } : { book: m[1], part: m[2] }
-}

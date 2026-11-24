@@ -1,8 +1,9 @@
 import type { PlayerBook } from '../content/book-page.ts'
 import { decodeEntities } from '../content/html-text.ts'
 import { chapterPageHref, pagedHref, pageLabel } from '../content/navigation.ts'
+import type { PagePosition } from '../content/position.ts'
 import type { Block, BookContent } from '../content/schema.ts'
-import { type PagePosition, pagedBlockText } from '../highlights/page-text.ts'
+import { pagedBlockText } from '../highlights/page-text.ts'
 
 export type SpeechBlockKind = 'text' | 'heading' | 'code'
 

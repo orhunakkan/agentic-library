@@ -1,4 +1,4 @@
-import type { PagePosition } from '../highlights/page-text.ts'
+import type { PagePosition } from '../content/position.ts'
 
 export const VOICE_ID = /^[A-Za-z0-9]{1,64}$/
 
