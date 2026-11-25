@@ -28,11 +28,7 @@ async function previewText(importPage: ImportPage, chapter: number): Promise<str
 }
 
 test.describe('Importing a PDF', () => {
-  test('a handbook: progress, the review of how it was read, a correction, and the book in the reader', async ({
-    page,
-    importPage,
-    readerPage,
-  }) => {
+  test('a handbook’s review says how the PDF was read', async ({ page, importPage }) => {
     await signedInAt(page, '/account/books')
     await expect(
       page.getByText('Choose an EPUB, PDF, Markdown file or ZIP of Markdown files', { exact: false }),
@@ -68,23 +64,41 @@ test.describe('Importing a PDF', () => {
     await expect(review.getByTestId('picture-summary')).toHaveText('3 pictures')
     await expectAccessible(page)
     await expectNoSideways(page)
+  })
+
+  test('reading a handbook again asks first, because it undoes chapter changes', async ({ page, importPage }) => {
+    await signedInAt(page, '/account/books')
+    await importPage.pick(HANDBOOK)
+    const review = importPage.review
+    await expect.poll(() => importPage.chapterTitles()).toEqual(HANDBOOK_CHAPTERS)
 
     await review.getByLabel('Chapter 1 title').fill('My own title')
     await readAs(review, 'Geist-Bold, 20pt').selectOption('Body text')
     const confirm = page.getByRole('dialog', { name: 'Reading the PDF again undoes your chapter changes.' })
-    await expect(confirm).toBeVisible()
-    await confirm.getByRole('button', { name: 'Cancel' }).click()
-    await expect(confirm).toBeHidden()
-    await expect(readAs(review, 'Geist-Bold, 20pt')).toHaveValue('chapter')
-    await expect.poll(() => importPage.chapterTitles()).toEqual(['My own title', ...HANDBOOK_CHAPTERS.slice(1)])
-    await readAs(review, 'Geist-Bold, 20pt').selectOption('Body text')
-    await confirm.getByRole('button', { name: 'Read again' }).click()
-    await expect(readAs(review, 'Geist-Bold, 20pt')).toHaveValue('body')
-    await expect.poll(() => importPage.chapterTitles()).toEqual(HANDBOOK_CHAPTERS)
-    await readAs(review, 'Geist-Bold, 20pt').selectOption('Chapter title')
-    await expect(readAs(review, 'Geist-Bold, 20pt')).toHaveValue('chapter')
-    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await test.step('Cancel keeps the chapters as edited', async () => {
+      await expect(confirm).toBeVisible()
+      await confirm.getByRole('button', { name: 'Cancel' }).click()
+      await expect(confirm).toBeHidden()
+      await expect(readAs(review, 'Geist-Bold, 20pt')).toHaveValue('chapter')
+      await expect.poll(() => importPage.chapterTitles()).toEqual(['My own title', ...HANDBOOK_CHAPTERS.slice(1)])
+    })
+    await test.step('Read again applies the correction', async () => {
+      await readAs(review, 'Geist-Bold, 20pt').selectOption('Body text')
+      await confirm.getByRole('button', { name: 'Read again' }).click()
+      await expect(readAs(review, 'Geist-Bold, 20pt')).toHaveValue('body')
+      await expect.poll(() => importPage.chapterTitles()).toEqual(HANDBOOK_CHAPTERS)
+    })
+    await test.step('with nothing left to undo, it doesn’t ask', async () => {
+      await readAs(review, 'Geist-Bold, 20pt').selectOption('Chapter title')
+      await expect(readAs(review, 'Geist-Bold, 20pt')).toHaveValue('chapter')
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+    })
+  })
 
+  test('a handbook’s preview keeps its code, pictures and emphasis', async ({ page, importPage }) => {
+    await signedInAt(page, '/account/books')
+    await importPage.pick(HANDBOOK)
+    await expect.poll(() => importPage.chapterTitles()).toEqual(HANDBOOK_CHAPTERS)
     const first = await previewText(importPage, 1)
     expect(first).toContain('<pre>')
     expect(first).toContain('function trim(wick) {')
@@ -92,45 +106,59 @@ test.describe('Importing a PDF', () => {
     expect(first).toContain('Figure 1.1 The lamp room at dusk.')
     expect(first).toContain('<em>patience</em>')
     expect(first).toContain('transformation')
+  })
 
-    await expect(review.getByLabel('Author')).toHaveValue('')
-    await review.getByLabel('Author').fill('Ada Tester')
-    await importPage.saveButton.click()
-    await expect(page).toHaveURL(/\/account\/books\/[0-9a-f-]{36}\?status=imported$/)
-    await expect(page.locator('dl').locator('div', { hasText: 'Pictures' }).locator('dd')).toHaveText('3')
+  test('a saved handbook reads in the reader as it was laid out', async ({ page, importPage, readerPage }) => {
+    await signedInAt(page, '/account/books')
+    await importPage.pick(HANDBOOK)
+    const review = importPage.review
+    await expect.poll(() => importPage.chapterTitles()).toEqual(HANDBOOK_CHAPTERS)
+
+    await test.step('saving keeps its pictures', async () => {
+      await expect(review.getByLabel('Author')).toHaveValue('')
+      await review.getByLabel('Author').fill('Ada Tester')
+      await importPage.saveButton.click()
+      await expect(page).toHaveURL(/\/account\/books\/[0-9a-f-]{36}\?status=imported$/)
+      await expect(page.locator('dl').locator('div', { hasText: 'Pictures' }).locator('dd')).toHaveText('3')
+    })
 
     await page.getByRole('main').getByRole('link', { name: 'Start reading' }).click()
     await expect(page).toHaveURL(/\/read\/u-[0-9a-f-]{36}\/keeping-the-light$/)
     await expect(page.getByRole('heading', { level: 1, name: 'Keeping the Light' })).toBeVisible()
     await expectAccessible(page)
     const chapterUrl = page.url()
-    const count = page.getByText(/Chapter 1 · Page 1 of \d+/)
-    const total = Number((await count.textContent())?.match(/Page 1 of (\d+)/)?.[1])
     const content = readerPage.content
-    let html = ''
-    let figurePage = 0
-    for (let n = 1; n <= total; n++) {
-      if (n > 1) await page.goto(`${chapterUrl}/${n}`)
-      await expect(page.getByText(`Chapter 1 · Page ${n} of ${total}`)).toBeVisible()
-      html += await content.innerHTML()
-      if (!figurePage && (await content.locator('figure').count())) figurePage = n
-    }
-    expect(html).toMatch(/<h3[^>]*>Trimming the Wick<\/h3>/)
-    expect(html).toMatch(/<ul>\s*<li>a clean glass/)
-    expect(html).toMatch(/<pre>function trim\(wick\) \{\n {2}if \(wick\.length &gt; 4\) \{/)
-    expect(html).toMatch(/<h4[^>]*>Notes<\/h4>\s*<p><sup>1<\/sup> The diary is kept in the harbour office\.<\/p>/)
-    expect(html).not.toMatch(/<p>[^<]*Keeping the Light/)
-    expect(html).not.toMatch(/<p>\s*\d+\s*<\/p>/)
+    const figurePage = await test.step('the first chapter keeps its headings, lists, code and notes', async () => {
+      const count = page.getByText(/Chapter 1 · Page 1 of \d+/)
+      const total = Number((await count.textContent())?.match(/Page 1 of (\d+)/)?.[1])
+      let html = ''
+      let withFigure = 0
+      for (let n = 1; n <= total; n++) {
+        if (n > 1) await page.goto(`${chapterUrl}/${n}`)
+        await expect(page.getByText(`Chapter 1 · Page ${n} of ${total}`)).toBeVisible()
+        html += await content.innerHTML()
+        if (!withFigure && (await content.locator('figure').count())) withFigure = n
+      }
+      expect(html).toMatch(/<h3[^>]*>Trimming the Wick<\/h3>/)
+      expect(html).toMatch(/<ul>\s*<li>a clean glass/)
+      expect(html).toMatch(/<pre>function trim\(wick\) \{\n {2}if \(wick\.length &gt; 4\) \{/)
+      expect(html).toMatch(/<h4[^>]*>Notes<\/h4>\s*<p><sup>1<\/sup> The diary is kept in the harbour office\.<\/p>/)
+      expect(html).not.toMatch(/<p>[^<]*Keeping the Light/)
+      expect(html).not.toMatch(/<p>\s*\d+\s*<\/p>/)
+      return withFigure
+    })
 
-    expect(figurePage).toBeGreaterThan(0)
-    await page.goto(figurePage > 1 ? `${chapterUrl}/${figurePage}` : chapterUrl)
-    await content.locator('figure a').scrollIntoViewIfNeeded()
-    await content.locator('figure a').click()
-    const dialog = page.getByRole('dialog', { name: 'Figure 1.1 The lamp room at dusk.' })
-    await expect(dialog).toBeVisible()
-    await expect(dialog.locator('img')).toHaveAttribute('alt', 'Figure from page 2')
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeHidden()
+    await test.step('its figure opens in the picture viewer', async () => {
+      expect(figurePage).toBeGreaterThan(0)
+      await page.goto(figurePage > 1 ? `${chapterUrl}/${figurePage}` : chapterUrl)
+      await content.locator('figure a').scrollIntoViewIfNeeded()
+      await content.locator('figure a').click()
+      const dialog = page.getByRole('dialog', { name: 'Figure 1.1 The lamp room at dusk.' })
+      await expect(dialog).toBeVisible()
+      await expect(dialog.locator('img')).toHaveAttribute('alt', 'Figure from page 2')
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+    })
   })
 
   test('scanned and broken PDFs are refused, and reading can be cancelled', async ({ page, importPage }) => {
