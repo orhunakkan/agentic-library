@@ -55,8 +55,8 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 |---|---|---|---|
 | `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | — | — |
 | `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | — | — |
-| `billing-removal` | **next** | — | — |
-| `instance-limits` | — | — | — |
+| `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | — | — |
+| `instance-limits` | **next** | — | — |
 | `legal-and-attribution` | — | — | — |
 | `contributor-docs` | — | — | — |
 | `go-public` | — | — | — |
