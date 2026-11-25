@@ -35,4 +35,8 @@ describe.each([
   it('still writes the coverage summary to summary.txt for the ratchet and CI', () => {
     expect(reporters).toContainEqual(['text-summary', { file: 'summary.txt' }])
   })
+
+  it('writes each file’s coverage to coverage-summary.json, which the ratchet raises the per-file floors from', () => {
+    expect(reporters).toContainEqual(['json-summary', { file: 'coverage-summary.json' }])
+  })
 })

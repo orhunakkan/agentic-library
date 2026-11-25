@@ -11,11 +11,16 @@ export default defineConfig({
     coverage: {
       enabled: false,
       provider: 'v8',
-      reporter: [['text-summary', { file: 'summary.txt' }], 'html', 'lcovonly'],
+      reporter: [
+        ['text-summary', { file: 'summary.txt' }],
+        ['json-summary', { file: 'coverage-summary.json' }],
+        'html',
+        'lcovonly',
+      ],
       reportsDirectory: 'coverage/unit',
       include: ['src/shared/**/*.ts', 'src/client/**/*.ts'],
       exclude: ['**/*.test.ts', 'src/client/testing/**'],
-      thresholds: { statements: 91, branches: 89, functions: 91, lines: 92 },
+      thresholds: { statements: 92, branches: 89, functions: 91, lines: 93 },
     },
   },
 })
