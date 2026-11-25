@@ -77,6 +77,11 @@ describe('a single Markdown file', () => {
       '<pre data-lang="javascript">if (a &lt; b) {\n  return "&lt;tag&gt;"\n}</pre>',
     ])
   })
+
+  it('keeps the text of an inline element named <constructor>', () => {
+    const book = readMarkdownFile('plain <constructor>odd</constructor> text and **bold**', 'odd.md')
+    expect(html(book.chapters[0])).toEqual(['<p>plain odd text and <strong>bold</strong></p>'])
+  })
 })
 
 describe('a ZIP of Markdown files', () => {

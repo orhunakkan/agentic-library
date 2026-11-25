@@ -1,3 +1,4 @@
+import { parse } from 'node-html-parser'
 import { describe, expect, it } from 'vitest'
 import { type HtmlItem, type PictureLookup, parseHtml, type WalkOptions, walkHtml } from './html'
 import { renderBlock, renderRuns } from './render'
@@ -315,5 +316,39 @@ describe('walkHtml: pictures', () => {
   it('reads a document without pictures exactly as it did without a lookup', () => {
     const html = '<h2>T</h2><p>a <em>b</em></p><ul><li>c</li></ul><table><tr><td>d</td></tr></table><pre>e</pre>'
     expect(blocks(html, { pictures: lookup().pictures })).toEqual(blocks(html, {}))
+  })
+})
+
+describe('walkHtml: elements named like Object.prototype properties', () => {
+  const runsOf = (html: string) => {
+    const items: HtmlItem[] = []
+    walkHtml(parseHtml(html), items)
+    return items.flatMap((item) => (item.kind === 'block' && item.block.type === 'paragraph' ? item.block.runs : []))
+  }
+
+  it('keeps a <constructor> paragraph’s text, in order, like any unknown element', () => {
+    const expected = runsOf('<p>plain <foo>odd</foo> text and <b>bold</b></p>')
+    expect(expected).toEqual([{ text: 'plain odd text and ' }, { text: 'bold', style: 'strong' }])
+    expect(runsOf('<p>plain <constructor>odd</constructor> text and <b>bold</b></p>')).toEqual(expected)
+    for (const tag of ['toString', 'valueOf', 'hasOwnProperty', 'CONSTRUCTOR'])
+      expect(runsOf(`<p>plain <${tag}>odd</${tag}> text and <b>bold</b></p>`)).toEqual(expected)
+  })
+
+  it('keeps a list item open across a closing </constructor>', () => {
+    expect(sanitise('<ul><li>one <constructor>two</constructor> three</li><li>four</li></ul>')).toBe(
+      '<ul><li>one two three</li><li>four</li></ul>',
+    )
+  })
+
+  it('gives no run a style that isn’t a string', () => {
+    const runs = runsOf('<p><constructor>odd</constructor> and <constructor><b>bold</b></constructor></p>')
+    expect(runs).toEqual([{ text: 'odd and ' }, { text: 'bold', style: 'strong' }])
+    for (const run of runs) if ('style' in run) expect(typeof run.style).toBe('string')
+  })
+
+  it('gives a <constructor> element no style even when the parser keeps its name', () => {
+    const items: HtmlItem[] = []
+    walkHtml(parse('<p>a <constructor>b</constructor></p>', { preserveTagNesting: true }), items)
+    expect(items).toEqual([{ kind: 'block', block: { type: 'paragraph', runs: [{ text: 'a b' }] } }])
   })
 })

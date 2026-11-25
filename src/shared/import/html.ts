@@ -14,7 +14,14 @@ import { hasText, renderBlock, renderRuns } from './render.ts'
 
 const SKIP = new Set(['hr', 'nav', 'script', 'noscript', 'style', 'math', 'aside', 'iframe', 'object', 'embed'])
 const PICTURE = new Set(['img', 'figure', 'svg'])
-const STYLES: Record<string, InlineStyle> = { strong: 'strong', b: 'strong', em: 'em', i: 'em', sup: 'sup', sub: 'sub' }
+const STYLES = new Map<string, InlineStyle>([
+  ['strong', 'strong'],
+  ['b', 'strong'],
+  ['em', 'em'],
+  ['i', 'em'],
+  ['sup', 'sup'],
+  ['sub', 'sub'],
+])
 
 export type HtmlItem =
   | { kind: 'heading'; level: number; title: string; runs: Run[] }
@@ -35,8 +42,23 @@ interface Walk extends WalkOptions {
   lifted: ImageBlock[] | null
 }
 
+/**
+ * node-html-parser looks tag names up in plain objects, so a tag named like an Object.prototype property, such
+ * as `<constructor>` or `<toString>`, closes the elements around it and its text falls out of the paragraph.
+ * Renaming those tags before parsing makes them unknown elements like any other.
+ */
+const PROTOTYPE_TAG = new RegExp(
+  `<(/?)(${Object.getOwnPropertyNames(Object.prototype)
+    .filter((name) => /^[a-z]+$/i.test(name))
+    .join('|')})(?=[\\s/>])`,
+  'gi',
+)
+
 export function parseHtml(html: string): HTMLElement {
-  return parse(html, { comment: false, blockTextElements: { script: true, noscript: true, style: true } })
+  return parse(html.replace(PROTOTYPE_TAG, '<$1x-$2'), {
+    comment: false,
+    blockTextElements: { script: true, noscript: true, style: true },
+  })
 }
 
 function tagOf(node: Node): string {
@@ -139,7 +161,7 @@ function inlineNode(node: Node, walk: Walk): Run[] {
   if (tag === 'br') return [{ br: true }]
   if (tag === 'code') return [{ text: collapse(node.text), style: 'code' }]
   const inner = inlineRuns(node, walk)
-  const style = STYLES[tag]
+  const style = STYLES.get(tag)
   if (!style || !renderRuns(inner).trim()) return inner
   return inner.map((run) => ('text' in run && !run.style ? { text: run.text, style } : run))
 }
