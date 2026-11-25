@@ -41,6 +41,7 @@ import * as navigation from './navigation-intent'
 import { type Direction, type OnRoot, Page, type PageRoot, type Turn, turnFor } from './Page'
 import { BottomBar, SideArrows } from './PageNav'
 import { PictureViewer, usePictureLinks } from './PictureViewer'
+import { keyTurn, TYPING_OR_DIALOG } from './page-keys'
 import { type ColumnHandle, ScrollColumn } from './ScrollColumn'
 import { SettingsPopover } from './SettingsPopover'
 import { AskSheet, FootnoteSheet } from './Sheets'
@@ -52,9 +53,6 @@ function useEmbedded(): boolean {
   useEffect(() => setEmbedded(document.documentElement.getAttribute('data-embed') === 'on'), [])
   return embedded
 }
-
-const TYPING_OR_DIALOG =
-  'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="dialog"], dialog'
 
 const FLASH_MS = 2000
 const FLASH_PULSES = [0, 400, 700, 1100, 1400]
@@ -335,25 +333,18 @@ export function Reader({
   }, [view.canonicalPath])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (
-        e.altKey ||
-        e.ctrlKey ||
-        e.metaKey ||
-        e.shiftKey ||
-        settingsOpen ||
-        tocOpen ||
-        footnoteAt ||
-        askSheetOpen ||
-        popover ||
-        lookup.target ||
-        picture ||
-        runTarget
-      )
-        return
-      if ((e.target as HTMLElement | null)?.closest(TYPING_OR_DIALOG)) return
-      if (e.key === 'ArrowRight') turnPage('next')
-      else if (e.key === 'ArrowLeft') turnPage('prev')
+    const onKey = (event: KeyboardEvent) => {
+      const direction = keyTurn(event, {
+        settings: Boolean(settingsOpen),
+        contents: tocOpen,
+        footnote: Boolean(footnoteAt),
+        askSheet: askSheetOpen,
+        popover: Boolean(popover),
+        lookup: Boolean(lookup.target),
+        picture: Boolean(picture),
+        runCode: Boolean(runTarget),
+      })
+      if (direction) turnPage(direction)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

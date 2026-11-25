@@ -54,10 +54,8 @@ test.describe('Paged reader', () => {
     await page.keyboard.press('ArrowRight')
     await expect(page).toHaveURL('/read/confessions-of-al-ghazzali/10')
     await expect(page.getByText('Chapter 2 · Page 1 of 4')).toBeVisible()
-    await page.keyboard.press('Shift+ArrowRight')
-    await page.waitForTimeout(400)
-    await expect(page).toHaveURL('/read/confessions-of-al-ghazzali/10')
     await expect(readerPage.pageLink('Introduction')).toBeVisible()
+    await page.keyboard.press('Shift+ArrowRight')
     await page.keyboard.press('ArrowLeft')
     await expect(page).toHaveURL('/read/confessions-of-al-ghazzali/9')
 

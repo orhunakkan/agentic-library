@@ -387,8 +387,9 @@ test.describe('Sync across devices: whose browser it is', () => {
     await signedIn(page, await createUser(request), '/library')
     await expect(page.getByRole('region', { name: 'Continue reading' })).toHaveCount(0)
     expect(JSON.parse((await local(page, 'recent-reading')) ?? '[]')).toEqual([])
-    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
-    await page.waitForTimeout(500)
+    /** The outbox sends in order, so anything left from the last account goes in or before this read's batch. */
+    await page.goto('/read/the-prophet/the-coming-of-the-ship')
+    await sendUntil(page, readsOn('the-prophet', 'the-coming-of-the-ship'))
     const later = sent.slice(before).map((s) => JSON.stringify(s.body))
     expect(later.filter((body) => body.includes('pride-and-prejudice') || body.includes(book.slug))).toEqual([])
   })
@@ -398,9 +399,9 @@ test.describe('Sync across devices: whose browser it is', () => {
     request,
     readerPage,
   }) => {
-    const sent: string[] = []
+    const sent: { method: string; body: string }[] = []
     page.on('request', (r) => {
-      if (r.url().endsWith('/account/sync')) sent.push(r.method())
+      if (r.url().endsWith('/account/sync')) sent.push({ method: r.method(), body: r.postData() ?? '' })
     })
     await readerPage.goto('pride-and-prejudice', 'chapter-1')
     await readerPage.goto('pride-and-prejudice', 'chapter-1', 2)
@@ -412,9 +413,17 @@ test.describe('Sync across devices: whose browser it is', () => {
     await readerPage.goto('pride-and-prejudice', 'chapter-6?iframe=true')
     await expect(page.locator('html')).toHaveAttribute('data-embed', 'on')
     await readerPage.goto('pride-and-prejudice', 'chapter-6/2?iframe=true')
+    await expect(page.locator('html')).toHaveAttribute('data-embed', 'on')
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
-    await page.waitForTimeout(500)
     await expect(bar(page)).toHaveCount(0)
-    expect(sent).toEqual([])
+
+    /** Read on, signed in and not embedded: anything queued before would go in or before this read's batch. */
+    await readerPage.goto('pride-and-prejudice', 'chapter-7')
+    await expect(page.locator('html')).not.toHaveAttribute('data-embed', 'on')
+    await sendUntil(page, readsOn('pride-and-prejudice', 'chapter-7'))
+    const batches = (sentBy.get(page) ?? []).map((s) => s.body)
+    expect(batches.filter((batch) => !readsOn('pride-and-prejudice', 'chapter-7')(batch))).toEqual([])
+    const leaked = sent.filter((s) => s.body.includes('"chapter-1"') || s.body.includes('"chapter-6"'))
+    expect(leaked).toEqual([])
   })
 })

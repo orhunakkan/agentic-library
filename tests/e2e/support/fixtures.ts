@@ -146,11 +146,8 @@ export async function expectNoSideways(page: Page) {
 
 export async function swipe(page: Page, fromX: number, toX: number) {
   const target = page.locator('#reader-content')
-  let box = await target.boundingBox().catch(() => null)
-  for (let attempt = 0; !box && attempt < 50; attempt++) {
-    await page.waitForTimeout(100)
-    box = await target.boundingBox().catch(() => null)
-  }
+  await expect.poll(() => target.boundingBox().catch(() => null), { timeout: 5_000 }).not.toBeNull()
+  const box = await target.boundingBox()
   if (!box) throw new Error('no reader content')
   const y = box.y + 200
   await target.dispatchEvent('touchstart', { touches: [{ identifier: 1, clientX: fromX, clientY: y }] })
