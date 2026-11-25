@@ -41,7 +41,7 @@ with open sign-up, and make the project safe and practical for outside contribut
 | `instance-limits` | Turn the six storage caps under "Hosted limits" into operator config, with today's Pro values as defaults, and add the new 1 MB cap on one article's stored text. Document the hosted values. | `billing-removal` |
 | `legal-and-attribution` | Rewrite Terms and Privacy for a free service with open sign-up. Add a copyright and takedown contact for uploaded books. Add a link to the source repository in the footer; MIT doesn't require it, but it's how users and contributors find the project. | `billing-removal` |
 | `contributor-docs` | `LICENSE` (MIT) and the `package.json` licence field, `README` (what Folio is, quick start), `CONTRIBUTING` (setup, `pnpm check`, code standards, how fork PRs are tested), `CODE_OF_CONDUCT`, issue and PR templates, `.env.example`, and a `docker compose` Postgres for local dev and tests. | `billing-removal`, `instance-limits`, `repo-security` |
-| `go-public` | Final audit re-run. Rename the current repo to a private archive and create a new public `orhunakkan/agentic-library`. Rewrite `main`'s author emails to the no-reply address, then push only `main`. Apply the GitHub settings with `scripts/github/settings.ts --apply` and check them with `--check`. Re-create the deploy key and the environments, and re-scope the server's deploy token to the new repo. Redeploy dev and prod with `SIGNUP=open`, then run post-launch checks. | all of the above |
+| `go-public` | Final audit re-run. Rename the current repo to a private archive and create a new public `orhunakkan/agentic-library`. Rewrite `main`'s author emails to the no-reply address, then push only `main`. Apply the GitHub settings with `scripts/github/settings.ts --apply` and check them with `--check`. Re-create the deploy key and the environments, and re-scope the server's deploy token to the new repo. The new repo is created private, verified on the remote, then made public. Redeploy dev and prod, then open sign-up on both (`SIGNUP=open`) in the same sitting, and run post-launch checks. | all of the above |
 
 Build order: `publish-audit`, `billing-removal` (independent, any order) → `repo-security`, `instance-limits`,
 `legal-and-attribution` → `contributor-docs` → `go-public`. Build `repo-security` as late as its dependencies allow: until
@@ -59,7 +59,7 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | — | — |
 | `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | — | — |
 | `contributor-docs` | [approved 2026-11-25](SPEC-contributor-docs.md) | — | — |
-| `go-public` | **next** | — | — |
+| `go-public` | [approved 2026-11-25](SPEC-go-public.md) | — | — |
 
 The owner chose to write every module spec before planning or building any of them. Specs are written one per
 session.
