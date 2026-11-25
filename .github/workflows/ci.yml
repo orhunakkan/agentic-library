@@ -67,15 +67,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:browser
 
-  e2e:
-    name: Build and end-to-end tests
-    needs: checks
+  db:
+    name: Database tests
+    needs: component
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_RUNNER }}
-    timeout-minutes: 30
+    timeout-minutes: 15
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
-      options: --ipc=host
     services:
       postgres:
         image: postgres:18
@@ -113,6 +112,42 @@ jobs:
           fi
           git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
           node scripts/coverage/changed-lines.ts coverage/server/lcov.info "$CHANGE_RANGE" 'server' | tee -a "$GITHUB_STEP_SUMMARY"
+
+  e2e:
+    name: Build and end-to-end tests
+    needs: db
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ vars.CI_RUNNER }}
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: agentic_test
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agentic_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      HOME: /root
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/agentic_test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
       - uses: actions/cache@v6
         with:
           path: .cache/voices
@@ -132,7 +167,7 @@ jobs:
 
   deploy-dev:
     name: Deploy to dev
-    needs: [component, e2e]
+    needs: e2e
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ${{ vars.CI_RUNNER }}
     timeout-minutes: 20
