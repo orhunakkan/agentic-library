@@ -31,40 +31,40 @@ function png(b: Uint8Array): ImageInfo | null {
 const isFrame = (marker: number) => marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)
 const isStandalone = (marker: number) => marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)
 
-function jpeg(b: Uint8Array): ImageInfo | null {
+function jpeg(bytes: Uint8Array): ImageInfo | null {
   let at = 2
-  while (at < b.length) {
-    if (b[at] !== 0xff) return null
-    while (b[at] === 0xff) at++
-    const marker = b[at]
+  while (at < bytes.length) {
+    if (bytes[at] !== 0xff) return null
+    while (bytes[at] === 0xff) at++
+    const marker = bytes[at]
     if (marker === undefined) return null
     at++
     if (isStandalone(marker)) continue
     if (marker === 0xda || marker === 0xd9) return null
-    if (at + 2 > b.length) return null
-    const length = u16be(b, at)
-    if (length < 2 || at + length > b.length) return null
+    if (at + 2 > bytes.length) return null
+    const length = u16be(bytes, at)
+    if (length < 2 || at + length > bytes.length) return null
     if (isFrame(marker)) {
       if (length < 7) return null
-      return sized('image/jpeg', u16be(b, at + 5), u16be(b, at + 3))
+      return sized('image/jpeg', u16be(bytes, at + 5), u16be(bytes, at + 3))
     }
     at += length
   }
   return null
 }
 
-function webp(b: Uint8Array): ImageInfo | null {
-  if (b.length < 30) return null
-  if (ascii(b, 12, 'VP8 ')) {
-    if (b[23] !== 0x9d || b[24] !== 0x01 || b[25] !== 0x2a) return null
-    return sized('image/webp', u16le(b, 26) & 0x3fff, u16le(b, 28) & 0x3fff)
+function webp(bytes: Uint8Array): ImageInfo | null {
+  if (bytes.length < 30) return null
+  if (ascii(bytes, 12, 'VP8 ')) {
+    if (bytes[23] !== 0x9d || bytes[24] !== 0x01 || bytes[25] !== 0x2a) return null
+    return sized('image/webp', u16le(bytes, 26) & 0x3fff, u16le(bytes, 28) & 0x3fff)
   }
-  if (ascii(b, 12, 'VP8L')) {
-    if (b[20] !== 0x2f) return null
-    const bits = (b[21] ?? 0) | ((b[22] ?? 0) << 8) | ((b[23] ?? 0) << 16) | ((b[24] ?? 0) << 24)
+  if (ascii(bytes, 12, 'VP8L')) {
+    if (bytes[20] !== 0x2f) return null
+    const bits = (bytes[21] ?? 0) | ((bytes[22] ?? 0) << 8) | ((bytes[23] ?? 0) << 16) | ((bytes[24] ?? 0) << 24)
     return sized('image/webp', (bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1)
   }
-  if (ascii(b, 12, 'VP8X')) return sized('image/webp', u24le(b, 24) + 1, u24le(b, 27) + 1)
+  if (ascii(bytes, 12, 'VP8X')) return sized('image/webp', u24le(bytes, 24) + 1, u24le(bytes, 27) + 1)
   return null
 }
 

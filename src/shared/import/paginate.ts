@@ -19,8 +19,8 @@ function at<T>(arr: readonly T[], i: number): T {
 }
 
 export function paginate(blocks: Block[]): string[] {
-  const n = blocks.length
-  if (n === 0) return []
+  const blockCount = blocks.length
+  if (blockCount === 0) return []
   const prefix = [0]
   let running = 0
   for (const b of blocks) {
@@ -30,11 +30,11 @@ export function paginate(blocks: Block[]): string[] {
   const total = running
   if (total <= PAGE_MAX) return [blocks.map((b) => b.html).join('')]
 
-  const best = new Array<number>(n + 1).fill(Infinity)
-  const from = new Array<number>(n + 1).fill(-1)
+  const best = new Array<number>(blockCount + 1).fill(Infinity)
+  const from = new Array<number>(blockCount + 1).fill(-1)
   best[0] = 0
   const hardMax = PAGE_MAX * 3
-  for (let i = 1; i <= n; i++) {
+  for (let i = 1; i <= blockCount; i++) {
     const endsWithHeading = at(blocks, i - 1).heading
     for (let j = i - 1; j >= 0; j--) {
       const words = at(prefix, i) - at(prefix, j)
@@ -49,7 +49,7 @@ export function paginate(blocks: Block[]): string[] {
     }
   }
   const pages: string[] = []
-  let i = n
+  let i = blockCount
   while (i > 0) {
     const j = at(from, i)
     pages.unshift(

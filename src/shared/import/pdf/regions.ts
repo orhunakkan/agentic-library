@@ -180,22 +180,22 @@ export function pageRegions(
 ): { items: PageItem[]; regions: Region[] } {
   const found = findDrawings(page, lines, kinds)
   const used = new Set<PdfLine>()
-  for (const f of found) {
-    if (f.kind === 'figure') {
+  for (const drawing of found) {
+    if (drawing.kind === 'figure') {
       const labels = lines.filter(
-        (l) =>
-          !used.has(l) &&
-          !inside(lineBox(l), f.box) &&
-          near(lineBox(l), f.box, CLUSTER_GAP) &&
-          l.style !== body.style &&
-          (kinds.get(l.style) ?? 'body') === 'body' &&
-          l.width <= f.box.width &&
-          !CAPTION.test(l.text.trim()),
+        (line) =>
+          !used.has(line) &&
+          !inside(lineBox(line), drawing.box) &&
+          near(lineBox(line), drawing.box, CLUSTER_GAP) &&
+          line.style !== body.style &&
+          (kinds.get(line.style) ?? 'body') === 'body' &&
+          line.width <= drawing.box.width &&
+          !CAPTION.test(line.text.trim()),
       )
-      if (labels.length) f.box = union([f.box, ...labels.map(lineBox)])
+      if (labels.length) drawing.box = union([drawing.box, ...labels.map(lineBox)])
     }
-    f.lines = lines.filter((l) => !used.has(l) && inside(lineBox(l), f.box))
-    for (const l of f.lines) used.add(l)
+    drawing.lines = lines.filter((l) => !used.has(l) && inside(lineBox(l), drawing.box))
+    for (const l of drawing.lines) used.add(l)
   }
   const gap = lineGap(lines, body)
   const free = lines.filter((l) => !used.has(l))
@@ -205,15 +205,15 @@ export function pageRegions(
   }
 
   found.sort((a, b) => a.box.y - b.box.y || a.box.x - b.box.x)
-  const regions = found.map((f, i): Region => {
-    const caption = f.kind === 'equation' ? null : findCaption(f.box, lines, used, gap)
+  const regions = found.map((foundRegion, i): Region => {
+    const caption = foundRegion.kind === 'equation' ? null : findCaption(foundRegion.box, lines, used, gap)
     return {
       page: page.number,
       n: i + 1,
       key: `pdf:${page.number}:${i + 1}`,
-      box: f.box,
-      kind: f.kind,
-      alt: altOf(f.lines, page.number),
+      box: foundRegion.box,
+      kind: foundRegion.kind,
+      alt: altOf(foundRegion.lines, page.number),
       caption,
     }
   })

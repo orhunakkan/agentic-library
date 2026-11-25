@@ -20,10 +20,10 @@ export function contextFor(
 
   const budget = PASSAGE_MAX - 2
   const middle = Math.floor((start + end) / 2)
-  let a = Math.max(from, middle - Math.floor(budget / 2))
-  const b = Math.min(to, a + budget)
-  a = Math.max(from, b - budget)
-  if (isLowSurrogate(pageText, a)) a++
-  const cut = pageText.slice(a, isLowSurrogate(pageText, b) ? b - 1 : b)
-  return `${a > from ? ELLIPSIS : ''}${collapse(cut)}${b < to ? ELLIPSIS : ''}`
+  let cutStart = Math.max(from, middle - Math.floor(budget / 2))
+  const cutEnd = Math.min(to, cutStart + budget)
+  cutStart = Math.max(from, cutEnd - budget)
+  if (isLowSurrogate(pageText, cutStart)) cutStart++
+  const cut = pageText.slice(cutStart, isLowSurrogate(pageText, cutEnd) ? cutEnd - 1 : cutEnd)
+  return `${cutStart > from ? ELLIPSIS : ''}${collapse(cut)}${cutEnd < to ? ELLIPSIS : ''}`
 }

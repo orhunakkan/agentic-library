@@ -118,14 +118,18 @@ function textItems(page: PDFPageProxy, content: TextContent, viewport: Matrix): 
   const items: PdfText[] = []
   for (const item of content.items) {
     if (!('str' in item) || !item.str.trim()) continue
-    const m = multiply(viewport, item.transform)
+    const itemTransform = multiply(viewport, item.transform)
     const font = fontName(page, item.fontName)
-    const size = Math.hypot(m[0], m[1])
-    const rotated = !(m[0] > 0 && Math.abs(m[1]) <= m[0] * 0.01 && Math.abs(m[2]) <= Math.abs(m[3]) * 0.01)
+    const size = Math.hypot(itemTransform[0], itemTransform[1])
+    const rotated = !(
+      itemTransform[0] > 0 &&
+      Math.abs(itemTransform[1]) <= itemTransform[0] * 0.01 &&
+      Math.abs(itemTransform[2]) <= Math.abs(itemTransform[3]) * 0.01
+    )
     items.push({
       text: item.str,
-      x: m[4],
-      y: m[5],
+      x: itemTransform[4],
+      y: itemTransform[5],
       width: item.width,
       size,
       font,
@@ -176,12 +180,12 @@ export async function extractPdf(doc: PDFDocumentProxy, options: ExtractOptions 
     sample.decided = true
     if (sample.pages && sample.chars / sample.pages < SCANNED_MIN_CHARS) throw new ImportError(PDF_SCANNED)
   }
-  for (let n = first; n <= last; n++) {
+  for (let pageNumber = first; pageNumber <= last; pageNumber++) {
     signal?.throwIfAborted()
-    const page = await doc.getPage(n)
+    const page = await doc.getPage(pageNumber)
     let read: PdfPage
     try {
-      read = await readPage(page, n)
+      read = await readPage(page, pageNumber)
     } finally {
       page.cleanup()
     }
@@ -227,13 +231,13 @@ async function readOutline(doc: PDFDocumentProxy): Promise<PdfOutlineEntry[]> {
   }
   const viewports = new Map<number, Matrix>()
   const pageTransform = async (page: number) => {
-    let m = viewports.get(page)
-    if (!m) {
+    let viewportTransform = viewports.get(page)
+    if (!viewportTransform) {
       const proxy = await doc.getPage(page)
-      m = proxy.getViewport({ scale: 1 }).transform as Matrix
-      viewports.set(page, m)
+      viewportTransform = proxy.getViewport({ scale: 1 }).transform as Matrix
+      viewports.set(page, viewportTransform)
     }
-    return m
+    return viewportTransform
   }
   const resolve = async (node: OutlineNode): Promise<{ page: number; y: number } | null> => {
     try {

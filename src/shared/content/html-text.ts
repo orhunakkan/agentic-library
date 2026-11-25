@@ -8,12 +8,12 @@ const ENTITIES = new Map([
 ])
 
 export function decodeEntities(text: string): string {
-  return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, code: string) => {
+  return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (entity, code: string) => {
     if (code.startsWith('#')) {
       const n = code[1]?.toLowerCase() === 'x' ? Number.parseInt(code.slice(2), 16) : Number(code.slice(1))
-      return Number.isFinite(n) ? String.fromCodePoint(n) : m
+      return Number.isFinite(n) ? String.fromCodePoint(n) : entity
     }
-    return ENTITIES.get(code.toLowerCase()) ?? m
+    return ENTITIES.get(code.toLowerCase()) ?? entity
   })
 }
 
@@ -35,14 +35,14 @@ const VOID = new Set(['br'])
 function parse(html: string): Node[] {
   const root: Element = { tag: '', children: [] }
   const stack: Element[] = [root]
-  for (const m of html.matchAll(/<(\/?)([a-z][a-z0-9]*)\b[^>]*>|([^<]+|<)/gi)) {
+  for (const match of html.matchAll(/<(\/?)([a-z][a-z0-9]*)\b[^>]*>|([^<]+|<)/gi)) {
     const top = stack.at(-1) as Element
-    if (m[3] !== undefined) {
-      top.children.push(decodeEntities(m[3]))
+    if (match[3] !== undefined) {
+      top.children.push(decodeEntities(match[3]))
       continue
     }
-    const tag = (m[2] as string).toLowerCase()
-    if (m[1]) {
+    const tag = (match[2] as string).toLowerCase()
+    if (match[1]) {
       const at = stack.findLastIndex((e) => e.tag === tag)
       if (at > 0) stack.length = at
     } else if (VOID.has(tag)) {

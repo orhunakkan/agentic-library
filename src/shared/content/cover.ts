@@ -48,50 +48,51 @@ function greedyLineCount(words: string[], maxChars: number): number {
 }
 
 function motif(kind: CoverStyle['motif'], ink: string): string {
-  const s = `stroke="${ink}" fill="none"`
+  const strokeAttrs = `stroke="${ink}" fill="none"`
   switch (kind) {
     case 'arch':
       return [0, 1, 2, 3, 4]
         .map((i) => {
           const w = 150 + i * 46
           const top = 150 + i * 26
-          return `<path ${s} stroke-opacity="${0.34 - i * 0.05}" stroke-width="1.5" d="M${300 - w / 2} 640 V${top + w * 0.55} Q${300 - w / 2} ${top + w * 0.12} 300 ${top} Q${300 + w / 2} ${top + w * 0.12} ${300 + w / 2} ${top + w * 0.55} V640"/>`
+          return `<path ${strokeAttrs} stroke-opacity="${0.34 - i * 0.05}" stroke-width="1.5" d="M${300 - w / 2} 640 V${top + w * 0.55} Q${300 - w / 2} ${top + w * 0.12} 300 ${top} Q${300 + w / 2} ${top + w * 0.12} ${300 + w / 2} ${top + w * 0.55} V640"/>`
         })
         .join('')
     case 'star': {
       const square = (r: number, rot: number, o: number) =>
-        `<rect ${s} stroke-opacity="${o}" stroke-width="1.5" x="${300 - r}" y="${330 - r}" width="${r * 2}" height="${r * 2}" transform="rotate(${rot} 300 330)"/>`
+        `<rect ${strokeAttrs} stroke-opacity="${o}" stroke-width="1.5" x="${300 - r}" y="${330 - r}" width="${r * 2}" height="${r * 2}" transform="rotate(${rot} 300 330)"/>`
       return [70, 120, 170]
         .map((r, i) => square(r, 0, 0.32 - i * 0.07) + square(r, 45, 0.32 - i * 0.07))
-        .concat(`<circle ${s} stroke-opacity="0.2" cx="300" cy="330" r="228"/>`)
+        .concat(`<circle ${strokeAttrs} stroke-opacity="0.2" cx="300" cy="330" r="228"/>`)
         .join('')
     }
     case 'rings':
       return [60, 105, 150, 195, 240, 285]
         .map(
-          (r, i) => `<circle ${s} stroke-opacity="${0.36 - i * 0.05}" stroke-width="1.5" cx="420" cy="250" r="${r}"/>`,
+          (r, i) =>
+            `<circle ${strokeAttrs} stroke-opacity="${0.36 - i * 0.05}" stroke-width="1.5" cx="420" cy="250" r="${r}"/>`,
         )
         .join('')
     case 'leaf':
       return [0, 1, 2, 3, 4, 5]
         .map(
           (i) =>
-            `<path ${s} stroke-opacity="${0.3 - i * 0.04}" stroke-width="1.5" d="M300 ${600 - i * 10} C${180 - i * 22} ${470 - i * 30} ${210 - i * 18} ${250 - i * 30} 300 ${150 + i * 6} C${390 + i * 18} ${250 - i * 30} ${420 + i * 22} ${470 - i * 30} 300 ${600 - i * 10}Z"/>`,
+            `<path ${strokeAttrs} stroke-opacity="${0.3 - i * 0.04}" stroke-width="1.5" d="M300 ${600 - i * 10} C${180 - i * 22} ${470 - i * 30} ${210 - i * 18} ${250 - i * 30} 300 ${150 + i * 6} C${390 + i * 18} ${250 - i * 30} ${420 + i * 22} ${470 - i * 30} 300 ${600 - i * 10}Z"/>`,
         )
-        .concat(`<path ${s} stroke-opacity="0.3" d="M300 160 V640"/>`)
+        .concat(`<path ${strokeAttrs} stroke-opacity="0.3" d="M300 160 V640"/>`)
         .join('')
     case 'wave':
       return Array.from({ length: 9 }, (_, i) => {
         const y = 170 + i * 46
-        return `<path ${s} stroke-opacity="${0.12 + (i % 3) * 0.08}" stroke-width="1.5" d="M40 ${y} C140 ${y - 34} 220 ${y + 34} 300 ${y} S460 ${y - 34} 560 ${y}"/>`
+        return `<path ${strokeAttrs} stroke-opacity="${0.12 + (i % 3) * 0.08}" stroke-width="1.5" d="M40 ${y} C140 ${y - 34} 220 ${y + 34} 300 ${y} S460 ${y - 34} 560 ${y}"/>`
       }).join('')
     case 'grid':
       return Array.from({ length: 11 }, (_, i) => {
         const p = 80 + i * 44
-        return `<path ${s} stroke-opacity="0.13" d="M${p} 120 V640 M80 ${p + 40} H520"/>`
+        return `<path ${strokeAttrs} stroke-opacity="0.13" d="M${p} 120 V640 M80 ${p + 40} H520"/>`
       })
         .concat(
-          `<rect ${s} stroke-opacity="0.35" stroke-width="2" x="168" y="208" width="264" height="264" transform="rotate(45 300 340)"/>`,
+          `<rect ${strokeAttrs} stroke-opacity="0.35" stroke-width="2" x="168" y="208" width="264" height="264" transform="rotate(45 300 340)"/>`,
         )
         .join('')
   }

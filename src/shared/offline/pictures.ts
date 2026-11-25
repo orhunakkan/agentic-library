@@ -29,12 +29,12 @@ export function pictureUrls(content: BookContent): string[] {
 
 export function bookOfUrl(pathname: string): string | null {
   const own = (slug: string | undefined) => (slug && isOfflineSlug(slug) ? slug : null)
-  let m = /^\/offline\/([^/]+)\.json$/.exec(pathname)
-  if (m) return own(m[1])
-  m = /^\/images\/([^/]+)\/[^/]+$/.exec(pathname)
-  if (m) return own(m[1])
-  m = /^\/covers\/(.+)\.svg$/.exec(pathname) ?? /^\/covers\/(.+)-[0-9a-f]{8}\.[a-z]+$/.exec(pathname)
-  if (m) return own(m[1])
-  m = /^\/account\/books\/([0-9a-f-]{36})\//.exec(pathname)
-  return m && isUuid(m[1] as string) ? privateBookSlug(m[1] as string) : null
+  let match = /^\/offline\/([^/]+)\.json$/.exec(pathname)
+  if (match) return own(match[1])
+  match = /^\/images\/([^/]+)\/[^/]+$/.exec(pathname)
+  if (match) return own(match[1])
+  match = /^\/covers\/(.+)\.svg$/.exec(pathname) ?? /^\/covers\/(.+)-[0-9a-f]{8}\.[a-z]+$/.exec(pathname)
+  if (match) return own(match[1])
+  match = /^\/account\/books\/([0-9a-f-]{36})\//.exec(pathname)
+  return match && isUuid(match[1] as string) ? privateBookSlug(match[1] as string) : null
 }

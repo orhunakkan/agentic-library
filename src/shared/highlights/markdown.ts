@@ -63,11 +63,11 @@ function bookBody(highlights: readonly HighlightView[], origin: string, level: n
   const hashes = '#'.repeat(level)
   const { chapters, missing } = groupByChapter(highlights)
   const sections = [
-    ...chapters.map((c) => ({
-      heading: c.chapterTitle
-        ? `${hashes} ${c.chapterIndex + 1}. ${escapeInline(c.chapterTitle)}`
-        : `${hashes} Chapter ${c.chapterIndex + 1}`,
-      items: c.highlights,
+    ...chapters.map((chapter) => ({
+      heading: chapter.chapterTitle
+        ? `${hashes} ${chapter.chapterIndex + 1}. ${escapeInline(chapter.chapterTitle)}`
+        : `${hashes} Chapter ${chapter.chapterIndex + 1}`,
+      items: chapter.highlights,
     })),
     ...(missing.length ? [{ heading: `${hashes} Passages no longer found`, items: missing }] : []),
   ]

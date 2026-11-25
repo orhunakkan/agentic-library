@@ -45,14 +45,14 @@ export const BLOCKED_RANGES: readonly AddressRange[] = [
 export function ipv4Number(text: string): number | null {
   const parts = text.split('.')
   if (parts.length !== 4) return null
-  let n = 0
+  let address = 0
   for (const part of parts) {
     if (!/^\d{1,3}$/.test(part)) return null
     const value = Number(part)
     if (value > 255) return null
-    n = n * 256 + value
+    address = address * 256 + value
   }
-  return n
+  return address
 }
 
 export function ipv6Number(text: string): bigint | null {

@@ -213,8 +213,13 @@ const runsText = (runs: readonly Run[]) => runs.reduce((n, r) => n + ('text' in 
 
 function checkImage(value: Record<string, unknown>): ImageBlock {
   const block = shape(value, ['type', 'image', 'alt'], ['caption'])
-  const n = block.image
-  if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > MAX_BOOK_IMAGES)
+  const pictureNumber = block.image
+  if (
+    typeof pictureNumber !== 'number' ||
+    !Number.isInteger(pictureNumber) ||
+    pictureNumber < 0 ||
+    pictureNumber > MAX_BOOK_IMAGES
+  )
     throw invalid(`image must be a picture number from 0 to ${MAX_BOOK_IMAGES}`)
   if (typeof block.alt !== 'string') throw invalid('alt must be text')
   const alt = cleanAlt(block.alt)
@@ -223,8 +228,8 @@ function checkImage(value: Record<string, unknown>): ImageBlock {
   if (runsText(caption) > CAPTION_MAX)
     throw new UploadError('too-long', `caption: longer than ${CAPTION_MAX} characters`)
   const shown = caption.some((r) => 'text' in r && r.text.trim())
-  if (n === 0 && !shown) throw invalid('a figure without a picture needs a caption')
-  return shown ? { type: 'image', image: n, alt, caption } : { type: 'image', image: n, alt }
+  if (pictureNumber === 0 && !shown) throw invalid('a figure without a picture needs a caption')
+  return shown ? { type: 'image', image: pictureNumber, alt, caption } : { type: 'image', image: pictureNumber, alt }
 }
 
 export function checkChapterUpload(value: unknown): DraftChapter {

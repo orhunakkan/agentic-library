@@ -114,13 +114,13 @@ function lineRuns(line: PdfLine, code = false): TextRun[] {
   })
 }
 
-function runStyle(r: LineRun, baseFont: string | undefined, code: boolean): InlineStyle | undefined {
-  if (r.sup) return 'sup'
+function runStyle(run: LineRun, baseFont: string | undefined, code: boolean): InlineStyle | undefined {
+  if (run.sup) return 'sup'
   if (code) return undefined
-  if (r.mono && r.font !== baseFont) return 'code'
-  if (r.font === baseFont) return undefined
-  if (r.bold) return 'strong'
-  if (r.italic) return 'em'
+  if (run.mono && run.font !== baseFont) return 'code'
+  if (run.font === baseFont) return undefined
+  if (run.bold) return 'strong'
+  if (run.italic) return 'em'
   return undefined
 }
 
@@ -137,23 +137,23 @@ function joinRuns(into: TextRun[], next: readonly TextRun[]): void {
 
 function tidy(runs: readonly TextRun[]): TextRun[] {
   const split: TextRun[] = []
-  for (const r of runs) {
-    const text = r.style === 'code' ? r.text : r.text.replace(/\s+/g, ' ')
-    if (!r.style) {
+  for (const run of runs) {
+    const text = run.style === 'code' ? run.text : run.text.replace(/\s+/g, ' ')
+    if (!run.style) {
       split.push({ text })
       continue
     }
     const [, lead = '', inner = '', trail = ''] = /^(\s*)(.*?)(\s*)$/su.exec(text) ?? []
     if (lead) split.push({ text: ' ' })
-    if (inner) split.push({ text: inner, style: r.style })
+    if (inner) split.push({ text: inner, style: run.style })
     if (trail) split.push({ text: ' ' })
   }
   const merged: TextRun[] = []
-  for (const r of split) {
+  for (const splitRun of split) {
     const last = merged.at(-1)
-    if (last && last.style === r.style) {
-      last.text = r.style ? last.text + r.text : (last.text + r.text).replace(/ {2,}/g, ' ')
-    } else merged.push({ ...r })
+    if (last && last.style === splitRun.style) {
+      last.text = splitRun.style ? last.text + splitRun.text : (last.text + splitRun.text).replace(/ {2,}/g, ' ')
+    } else merged.push({ ...splitRun })
   }
   const first = merged[0]
   if (first && !first.style) first.text = first.text.trimStart()
@@ -172,13 +172,13 @@ const runsText = (runs: readonly TextRun[]) =>
 function dropLeading(runs: readonly TextRun[], count: number): TextRun[] {
   let left = count
   const out: TextRun[] = []
-  for (const r of runs) {
+  for (const run of runs) {
     if (left > 0) {
-      const take = Math.min(left, r.text.length)
+      const take = Math.min(left, run.text.length)
       left -= take
-      const rest = r.text.slice(take)
-      if (rest) out.push({ ...r, text: rest })
-    } else out.push(r)
+      const rest = run.text.slice(take)
+      if (rest) out.push({ ...run, text: rest })
+    } else out.push(run)
   }
   return out
 }
@@ -200,11 +200,11 @@ function codeText(entries: readonly Entry[]): string {
       for (let i = 0; i < Math.min(blanks, 3); i++) lines.push('')
     }
     let text = ''
-    for (const r of line.runs) {
-      const column = Math.max(0, Math.round((r.x - left) / charWidth))
+    for (const run of line.runs) {
+      const column = Math.max(0, Math.round((run.x - left) / charWidth))
       if (column > text.length) text += ' '.repeat(column - text.length)
-      else if (text && !/\s$/.test(text) && !/^\s/.test(r.text)) text += ' '
-      text += r.text
+      else if (text && !/\s$/.test(text) && !/^\s/.test(run.text)) text += ' '
+      text += run.text
     }
     lines.push(text.trimEnd())
     previous = line
@@ -451,15 +451,15 @@ function walk(items: readonly Item[], notesOf: ReadonlySet<PdfLine>): Walk {
 }
 
 function continuesParagraph(previous: Entry, next: Entry): boolean {
-  const p = previous.line
-  const l = next.line
-  if (p.style !== l.style) return false
+  const previousLine = previous.line
+  const nextLine = next.line
+  if (previousLine.style !== nextLine.style) return false
   const { frame } = next
-  if (l.x - frame.left > INDENT * l.size) return false
-  const short = p.x + p.width - previous.frame.left < SHORT_LINE * previous.frame.width
-  if (short && ENDS_SENTENCE.test(p.text)) return false
-  const sameFrame = p.page === l.page && previous.frame === frame && l.y > p.y
-  if (sameFrame && l.y - p.y > PARAGRAPH_GAP * frame.gap) return false
+  if (nextLine.x - frame.left > INDENT * nextLine.size) return false
+  const short = previousLine.x + previousLine.width - previous.frame.left < SHORT_LINE * previous.frame.width
+  if (short && ENDS_SENTENCE.test(previousLine.text)) return false
+  const sameFrame = previousLine.page === nextLine.page && previous.frame === frame && nextLine.y > previousLine.y
+  if (sameFrame && nextLine.y - previousLine.y > PARAGRAPH_GAP * frame.gap) return false
   return true
 }
 

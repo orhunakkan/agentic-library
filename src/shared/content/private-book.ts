@@ -122,12 +122,12 @@ export function partialChapterBook(
   return {
     kind: 'chapter',
     slug,
-    chapters: chapters.map((c, i) => ({
+    chapters: chapters.map((chapter, i) => ({
       id: `ch_${i + 1}`,
-      slug: c.slug,
-      title: c.title,
-      pages: Array.from({ length: c.pageCount }, (_, n) =>
-        c.slug === page.chapterSlug && n === page.index && page.html !== null ? page.html : '',
+      slug: chapter.slug,
+      title: chapter.title,
+      pages: Array.from({ length: chapter.pageCount }, (_, n) =>
+        chapter.slug === page.chapterSlug && n === page.index && page.html !== null ? page.html : '',
       ),
     })),
   }
@@ -151,17 +151,17 @@ export function myShelf(
     tone: 'default',
     hue: PRIVATE_SHELF_HUE,
     hasAudio: books.some((b) => b.format === 'audio'),
-    books: books.map((b, i): ShelfBook => {
-      const image = privateCoverImage(b.id, b.cover)
+    books: books.map((book, i): ShelfBook => {
+      const image = privateCoverImage(book.id, book.cover)
       return {
-        slug: privateBookSlug(b.id),
-        title: b.title,
-        author: b.author,
+        slug: privateBookSlug(book.id),
+        title: book.title,
+        author: book.author,
         order: i + 1,
-        href: privateBookHref(b.id),
-        coverUrl: coverUrlOf(image, b.title, b.author),
-        hasAudio: b.format === 'audio',
-        cover: privateCover(b.title),
+        href: privateBookHref(book.id),
+        coverUrl: coverUrlOf(image, book.title, book.author),
+        hasAudio: book.format === 'audio',
+        cover: privateCover(book.title),
         image,
       }
     }),
@@ -340,13 +340,13 @@ export function buildPrivateAudiobookPage(book: PrivateAudiobookPageInput): Priv
         cover: privateCover(book.title),
         image,
       },
-      episodes: book.chapters.map((c) => ({
-        id: String(c.position),
-        title: c.title,
-        number: c.position,
-        durationMs: c.durationMs,
-        audioUrl: `${href}/audio/${c.fileN}`,
-        startMs: c.startMs,
+      episodes: book.chapters.map((chapter) => ({
+        id: String(chapter.position),
+        title: chapter.title,
+        number: chapter.position,
+        durationMs: chapter.durationMs,
+        audioUrl: `${href}/audio/${chapter.fileN}`,
+        startMs: chapter.startMs,
         pageHref: null,
       })),
     },

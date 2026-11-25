@@ -127,11 +127,11 @@ export function speechChapter(content: BookContent, chapterIndex: number): Speec
     chapterCount: content.chapters.length,
     pages: content.pages
       .filter((p) => p.pageNumber >= chapter.startPage && p.pageNumber <= chapter.endPage)
-      .map((p) => ({
-        position: { printedPage: p.pageNumber },
-        href: pagedHref(content.slug, p.pageNumber),
-        label: pageLabel({ printedPage: p.pageNumber }),
-        ...pagedPageBlocks(p.blocks),
+      .map((page) => ({
+        position: { printedPage: page.pageNumber },
+        href: pagedHref(content.slug, page.pageNumber),
+        label: pageLabel({ printedPage: page.pageNumber }),
+        ...pagedPageBlocks(page.blocks),
       })),
   }
 }

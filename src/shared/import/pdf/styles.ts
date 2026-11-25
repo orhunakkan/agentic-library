@@ -126,19 +126,19 @@ export function styleTable(pages: readonly PdfLine[][], body: BodyStyle): PdfSty
     .sort((a, b) => b.size - a.size || b.chars - a.chars)
   const guesses = new Map<string, StyleKind>()
   const chapter = candidates.findIndex((s) => makesChapters(s.key, pages))
-  candidates.forEach((s, i) => {
-    if (chapter < 0) guesses.set(s.key, i === 0 ? 'h3' : 'h4')
-    else if (i < chapter) guesses.set(s.key, 'h3')
-    else if (i === chapter) guesses.set(s.key, 'chapter')
-    else guesses.set(s.key, i === chapter + 1 ? 'h3' : 'h4')
+  candidates.forEach((candidate, i) => {
+    if (chapter < 0) guesses.set(candidate.key, i === 0 ? 'h3' : 'h4')
+    else if (i < chapter) guesses.set(candidate.key, 'h3')
+    else if (i === chapter) guesses.set(candidate.key, 'chapter')
+    else guesses.set(candidate.key, i === chapter + 1 ? 'h3' : 'h4')
   })
-  return all.map((s) => ({
-    key: s.key,
-    font: s.font,
-    size: s.size,
-    chars: s.chars,
-    sample: s.text.replace(/\s+/g, ' ').trim().slice(0, SAMPLE_LENGTH),
-    guess: s.mono ? 'code' : (guesses.get(s.key) ?? 'body'),
+  return all.map((style) => ({
+    key: style.key,
+    font: style.font,
+    size: style.size,
+    chars: style.chars,
+    sample: style.text.replace(/\s+/g, ' ').trim().slice(0, SAMPLE_LENGTH),
+    guess: style.mono ? 'code' : (guesses.get(style.key) ?? 'body'),
   }))
 }
 

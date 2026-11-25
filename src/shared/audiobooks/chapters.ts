@@ -47,11 +47,11 @@ function windows(fileN: number, reading: FileReading): AudioChapter[] {
     .filter((c, i, all) => i === 0 || c.startMs !== all[i - 1]?.startMs)
   const first = marks[0]
   if (first) first.startMs = 0
-  return marks.map((c, i) => ({
-    title: c.title,
+  return marks.map((mark, i) => ({
+    title: mark.title,
     fileN,
-    startMs: c.startMs,
-    durationMs: (marks[i + 1]?.startMs ?? reading.durationMs) - c.startMs,
+    startMs: mark.startMs,
+    durationMs: (marks[i + 1]?.startMs ?? reading.durationMs) - mark.startMs,
   }))
 }
 
@@ -77,12 +77,12 @@ export function buildChapters(files: readonly FileReading[]): BuiltChapters {
 export function chaptersTile(chapters: readonly AudioChapter[], fileCount: number): boolean {
   let file = 0
   let end = 0
-  for (const c of chapters) {
-    if (c.fileN === file + 1) {
-      file = c.fileN
-      if (c.startMs !== 0) return false
-    } else if (c.fileN !== file || c.startMs !== end) return false
-    end = c.startMs + c.durationMs
+  for (const chapter of chapters) {
+    if (chapter.fileN === file + 1) {
+      file = chapter.fileN
+      if (chapter.startMs !== 0) return false
+    } else if (chapter.fileN !== file || chapter.startMs !== end) return false
+    end = chapter.startMs + chapter.durationMs
   }
   return file === fileCount
 }

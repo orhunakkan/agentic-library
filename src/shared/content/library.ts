@@ -63,17 +63,17 @@ export const coverUrlFor = (meta: Pick<BookMeta, 'slug' | 'coverImage'>) =>
 export const seriesBooks = (catalog: Catalog, seriesSlug: string): BookMeta[] =>
   catalog.books.filter((b) => b.seriesSlug === seriesSlug).sort((a, b) => a.order - b.order)
 
-export function toShelfBook(b: BookMeta): ShelfBook {
+export function toShelfBook(book: BookMeta): ShelfBook {
   return {
-    slug: b.slug,
-    title: b.title,
-    author: b.author,
-    order: b.order,
-    href: bookHref(b),
-    coverUrl: coverUrlFor(b),
-    hasAudio: b.audioDurationMs !== undefined,
-    cover: b.cover,
-    image: catalogCoverImage(b),
+    slug: book.slug,
+    title: book.title,
+    author: book.author,
+    order: book.order,
+    href: bookHref(book),
+    coverUrl: coverUrlFor(book),
+    hasAudio: book.audioDurationMs !== undefined,
+    cover: book.cover,
+    image: catalogCoverImage(book),
   }
 }
 
@@ -110,14 +110,14 @@ export function buildLibrary(catalog: Catalog): Library {
 
   return {
     shelves,
-    collections: collections.map((c) => {
-      const own = shelves.filter((s) => s.collectionSlug === c.slug)
+    collections: collections.map((collection) => {
+      const own = shelves.filter((s) => s.collectionSlug === collection.slug)
       return {
-        slug: c.slug,
-        title: c.title,
-        tagline: c.tagline,
-        kind: c.kind,
-        hue: hues.get(c.slug) ?? 'violet',
+        slug: collection.slug,
+        title: collection.title,
+        tagline: collection.tagline,
+        kind: collection.kind,
+        hue: hues.get(collection.slug) ?? 'violet',
         bookCount: own.reduce((n, s) => n + s.books.length, 0),
         seriesCount: own.length,
       }

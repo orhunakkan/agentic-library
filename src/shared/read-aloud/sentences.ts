@@ -87,26 +87,26 @@ export function sentenceSpans(text: string, lang: string, options: { intl?: bool
 
 export function cutLong(text: string, start: number, end: number, max = MAX_UTTERANCE): [number, number][] {
   const out: [number, number][] = []
-  let s = start
+  let pieceStart = start
   let last = end
-  while (last > s && /\s/.test(text[last - 1] ?? '')) last--
-  while (s < last) {
-    while (s < last && /\s/.test(text[s] ?? '')) s++
-    if (last - s <= max) {
-      out.push([s, last])
+  while (last > pieceStart && /\s/.test(text[last - 1] ?? '')) last--
+  while (pieceStart < last) {
+    while (pieceStart < last && /\s/.test(text[pieceStart] ?? '')) pieceStart++
+    if (last - pieceStart <= max) {
+      out.push([pieceStart, last])
       break
     }
-    const window = text.slice(s, s + max)
+    const window = text.slice(pieceStart, pieceStart + max)
     let cut = Math.max(...[',', ';', ':', '—'].map((mark) => window.lastIndexOf(mark))) + 1
     if (cut <= 0) cut = window.lastIndexOf(' ')
     if (cut <= 0) {
       cut = max
       if (/[\uD800-\uDBFF]/.test(window[max - 1] ?? '')) cut--
     }
-    let e = s + cut
-    while (e > s && /\s/.test(text[e - 1] ?? '')) e--
-    out.push([s, e])
-    s += cut
+    let e = pieceStart + cut
+    while (e > pieceStart && /\s/.test(text[e - 1] ?? '')) e--
+    out.push([pieceStart, e])
+    pieceStart += cut
   }
   return out
 }

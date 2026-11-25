@@ -69,11 +69,11 @@ function snippetAround(text: string, tokens: Token[], isHit: (t: Token) => boole
   if (from > 0) push('…', false)
   let cursor = tokens[from]?.start ?? 0
   for (let i = from; i <= to; i++) {
-    const t = tokens[i]
-    if (!t) continue
-    push(text.slice(cursor, t.start), false)
-    push(text.slice(t.start, t.end), isHit(t))
-    cursor = t.end
+    const token = tokens[i]
+    if (!token) continue
+    push(text.slice(cursor, token.start), false)
+    push(text.slice(token.start, token.end), isHit(token))
+    cursor = token.end
   }
   if (to < tokens.length - 1) push('…', false)
   else push(text.slice(cursor), false)

@@ -115,14 +115,14 @@ export function bookAudio(meta: BookMeta, content: BookContent, audio: AudioBook
     credit: audio.credit,
     sourceUrl: audio.sourceUrl,
     totalMs: audio.episodes.reduce((n, e) => n + e.durationMs, 0),
-    episodes: audio.episodes.map((e) => ({
-      id: e.id,
-      title: e.title,
-      number: e.number,
-      durationMs: e.durationMs,
-      audioUrl: e.audioUrl,
+    episodes: audio.episodes.map((episode) => ({
+      id: episode.id,
+      title: episode.title,
+      number: episode.number,
+      durationMs: episode.durationMs,
+      audioUrl: episode.audioUrl,
       startMs: 0,
-      pageHref: pageHref(e.chapterRef),
+      pageHref: pageHref(episode.chapterRef),
     })),
   }
 }

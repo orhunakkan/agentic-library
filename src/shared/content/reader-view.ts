@@ -113,15 +113,15 @@ function pagedView(ctx: ReaderContext, content: PagedBook, part: string, n?: str
 
   return {
     book,
-    toc: content.chapters.map((c) => ({
-      id: c.id,
-      title: c.title,
-      href: pagedHref(content.slug, c.startPage),
-      children: c.children.map((s) => ({
-        id: s.id,
-        title: s.title,
-        href: pagedHref(content.slug, s.pageNumber),
-        onPage: s.pageNumber === pageNumber,
+    toc: content.chapters.map((tocChapter) => ({
+      id: tocChapter.id,
+      title: tocChapter.title,
+      href: pagedHref(content.slug, tocChapter.startPage),
+      children: tocChapter.children.map((section) => ({
+        id: section.id,
+        title: section.title,
+        href: pagedHref(content.slug, section.pageNumber),
+        onPage: section.pageNumber === pageNumber,
       })),
     })),
     chapterIndex,

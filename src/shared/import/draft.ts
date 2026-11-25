@@ -167,10 +167,10 @@ export function planPictures(
   const uploads: number[] = []
   const leftOut = Object.fromEntries(LEFT_OUT_REASONS.map((r) => [r, 0])) as Record<LeftOutReason, number>
   let bytes = 0
-  const decide = (n: number) => {
-    if (seen.has(n)) return
-    seen.add(n)
-    const picture = state(n) ?? { ok: false, problem: 'unreadable' }
+  const decide = (draftNumber: number) => {
+    if (seen.has(draftNumber)) return
+    seen.add(draftNumber)
+    const picture = state(draftNumber) ?? { ok: false, problem: 'unreadable' }
     if (!picture.ok) {
       if (picture.problem !== 'small') leftOut[picture.problem]++
       return
@@ -178,9 +178,9 @@ export function planPictures(
     if (uploads.length + 1 > room.count || bytes + picture.bytes > room.bytes) leftOut.book++
     else if (bytes + picture.bytes > room.userBytesLeft) leftOut.room++
     else {
-      uploads.push(n)
+      uploads.push(draftNumber)
       bytes += picture.bytes
-      numbers.set(n, uploads.length)
+      numbers.set(draftNumber, uploads.length)
     }
   }
   const numbered = chapters.map((chapter) => ({

@@ -18,8 +18,8 @@ export function sayMap(pageText: string, start: number, end: number): SayMap {
   const offsets: number[] = []
   let space = -1
   for (let i = start; i < end; i++) {
-    const c = pageText[i] ?? ''
-    if (SPACE.test(c)) {
+    const character = pageText[i] ?? ''
+    if (SPACE.test(character)) {
       if (say && space < 0) space = i
       continue
     }
@@ -28,7 +28,7 @@ export function sayMap(pageText: string, start: number, end: number): SayMap {
       offsets.push(space)
       space = -1
     }
-    say += c
+    say += character
     offsets.push(i)
   }
   return { say, offsets }
