@@ -56,8 +56,8 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 | `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | — | — |
 | `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | — | — |
 | `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | — | — |
-| `instance-limits` | **next** | — | — |
-| `legal-and-attribution` | — | — | — |
+| `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | — | — |
+| `legal-and-attribution` | **next** | — | — |
 | `contributor-docs` | — | — | — |
 | `go-public` | — | — | — |
 
@@ -114,14 +114,17 @@ Facts for the `repo-security` spec, gathered 2026-11-25:
 - **Hosted limits.** These storage caps become operator config. agenticlibrary.app uses the hosted values, and
   self-hosters get the defaults, which are today's Pro values:
 
-  | Setting | Hosted | Default |
-  |---|---|---|
-  | Audiobook storage per user, all audiobooks combined | 1 GB | 8 GB |
-  | Size of one audiobook | 1 GB | 2 GB |
-  | Picture storage per user, books and articles combined | 100 MB | 250 MB |
-  | Books per user | 25 | 25 |
-  | Saved articles per user | 500 | 500 |
-  | Stored text of one article (**new cap**) | 1 MB | 1 MB |
+  | Setting | Variable | Hosted | Default |
+  |---|---|---|---|
+  | Audiobook storage per user, all audiobooks combined | `LIMIT_USER_AUDIO` | 1 GB | 8 GB |
+  | Size of one audiobook | `LIMIT_AUDIOBOOK_SIZE` | 1 GB | 2 GB |
+  | Picture storage per user, books and articles combined | `LIMIT_USER_PICTURES` | 100 MB | 250 MB |
+  | Books per user | `LIMIT_BOOKS` | 25 | 25 |
+  | Saved articles per user | `LIMIT_ARTICLES` | 500 | 500 |
+  | Stored text of one article (**new cap**) | `LIMIT_ARTICLE_TEXT` | 1 MB | 1 MB |
+
+  Format, validation and the admin decision (none: the owner is held to the same limits) are in
+  [SPEC-instance-limits.md](SPEC-instance-limits.md).
 
   Most one user can store on the hosted site: about 1.8 GB in theory, about 1.2 GB for a realistic heavy user (almost
   all audiobooks). Row-count limits (highlights, flashcards, shelves, prompts) stay constants. Rationale: audio dominates
