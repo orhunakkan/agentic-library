@@ -14,10 +14,10 @@ import {
   listUsers,
   normalizeUsername,
   ROLES,
-  type Role,
   setDisabled,
   setPasswordHash,
 } from '../../src/server/users.ts'
+import { isOneOf } from '../../src/shared/lib/json-shape.ts'
 import { planLabel } from '../../src/shared/plans/copy.ts'
 
 const USAGE = `usage: node scripts/db/users.ts <command>
@@ -64,8 +64,8 @@ async function run(argv: string[]): Promise<void> {
       const username = normalizeUsername(name)
       if (!isValidUsername(username))
         throw new Error('usernames are 3–32 characters: a-z, 0-9, _ and -, starting with a letter or digit')
-      const role = values.role as Role | undefined
-      if (!role || !ROLES.includes(role)) throw new UsageError('--role must be admin or member')
+      const role = values.role
+      if (!isOneOf(role, ROLES)) throw new UsageError('--role must be admin or member')
       const password = generatePassword()
       const user = await createUser(db, username, await hashPassword(password), role)
       await recordEvent(db, 'user.created', { userId: user.id, detail: { ...detail, role } })
@@ -119,8 +119,8 @@ async function run(argv: string[]): Promise<void> {
     }
     case 'set-role': {
       const user = await existing(name)
-      const role = positionals[2] as Role | undefined
-      if (!role || !ROLES.includes(role)) throw new UsageError('the role must be admin or member')
+      const role = positionals[2]
+      if (!isOneOf(role, ROLES)) throw new UsageError('the role must be admin or member')
       const result = await setRole(db, user.id, role)
       if (result === 'missing') throw new Error(`no user named "${user.username}"`)
       if (result === 'last_admin') throw new Error(`${user.username} is the only enabled admin`)

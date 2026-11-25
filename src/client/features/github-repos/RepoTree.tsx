@@ -13,6 +13,8 @@ export interface TreeState {
 const row =
   'flex min-h-9 w-full items-center gap-1.5 rounded-lg pr-2 text-left text-[14px] leading-tight text-body transition hover:bg-panel/60 hover:text-ink'
 
+const FILE_ICONS = { file: File, link: FileSymlink, submodule: FolderGit2 }
+
 function Entries({
   repoId,
   folder,
@@ -74,7 +76,7 @@ function Entries({
             </li>
           )
         }
-        const Icon = entry.kind === 'link' ? FileSymlink : entry.kind === 'submodule' ? FolderGit2 : File
+        const Icon = FILE_ICONS[entry.kind]
         const current = entry.path === currentPath
         return (
           <li key={entry.path}>
@@ -103,17 +105,15 @@ export function RepoTree({
   currentPath,
   onToggle,
   onNavigate,
-  className,
 }: {
   repoId: string
   state: TreeState
   currentPath: string
   onToggle: (path: string) => void
   onNavigate?: () => void
-  className?: string
 }) {
   return (
-    <nav aria-label="Files" className={className}>
+    <nav aria-label="Files">
       <Entries
         repoId={repoId}
         folder=""

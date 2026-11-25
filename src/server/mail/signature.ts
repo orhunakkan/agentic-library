@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 
 export type SignatureCheck = 'ok' | 'bad-signature' | 'stale' | 'malformed'
 
-export const TOLERANCE_SECONDS = 5 * 60
+const TOLERANCE_SECONDS = 5 * 60
 
 export interface SignedPost {
   id: string | null

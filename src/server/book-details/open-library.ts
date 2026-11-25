@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { KB, MB } from '../../shared/import/limits.ts'
 import { getConfig } from '../config.ts'
-import { fetchCapped, folioUserAgent, type OutboundProblem } from '../outbound.ts'
+import { answerCache, fetchCapped, folioUserAgent, type OutboundProblem } from '../outbound.ts'
 import type { LookupQuery } from './input.ts'
 import { MAX_MATCHES, type OpenLibraryMatch, parseSearch, parseWork } from './open-library-parse.ts'
 
@@ -23,7 +23,7 @@ const CACHE_MAX = 200
 export const spacing = () => (getConfig().openLibraryContact ? 334 : 1000)
 
 let nextStart = 0
-const cache = new Map<string, { at: number; value: unknown }>()
+const cache = answerCache(CACHE_MS, CACHE_MAX)
 
 export function resetOpenLibrary(): void {
   nextStart = 0
@@ -37,22 +37,6 @@ async function takeTurn(): Promise<boolean> {
   nextStart = start + spacing()
   if (start > now) await new Promise((resolve) => setTimeout(resolve, start - now))
   return true
-}
-
-function cached(url: string): unknown {
-  const hit = cache.get(url)
-  if (!hit) return undefined
-  if (Date.now() - hit.at > CACHE_MS) {
-    cache.delete(url)
-    return undefined
-  }
-  return hit.value
-}
-
-function remember(url: string, value: unknown): void {
-  cache.delete(url)
-  cache.set(url, { at: Date.now(), value })
-  while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value as string)
 }
 
 function allowedRedirect(target: URL): boolean {
@@ -85,13 +69,13 @@ async function request(
 }
 
 async function getJson(url: string, options: OpenLibraryOptions): Promise<OpenLibraryResult<unknown>> {
-  const hit = cached(url)
-  if (hit !== undefined) return { ok: true, value: hit }
+  const hit = cache.get(url)
+  if (hit) return { ok: true, value: hit.value }
   const body = await request(url, 'application/json', MAX_JSON_BYTES, options)
   if (!body.ok) return body
   try {
     const value: unknown = JSON.parse(Buffer.from(body.value).toString('utf8'))
-    remember(url, value)
+    cache.set(url, value)
     return { ok: true, value }
   } catch {
     return { ok: false, problem: 'unavailable' }

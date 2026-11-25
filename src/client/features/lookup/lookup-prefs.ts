@@ -1,4 +1,4 @@
-import { browserStorage } from '~/client/lib/storage-keys'
+import { browserStorage, writeItem } from '~/client/lib/storage-keys'
 import { isObject } from '~/shared/lib/json-shape'
 import { isTranslateLanguage, type TranslateLanguage } from '~/shared/lookup/languages'
 
@@ -15,7 +15,5 @@ export function readTarget(storage: Storage | null = browserStorage()): Translat
 }
 
 export function writeTarget(to: TranslateLanguage, storage: Storage | null = browserStorage()): void {
-  try {
-    storage?.setItem(LOOKUP_PREFS_KEY, JSON.stringify({ to }))
-  } catch {}
+  writeItem(storage, LOOKUP_PREFS_KEY, JSON.stringify({ to }))
 }

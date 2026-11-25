@@ -9,8 +9,8 @@ export interface EngineFiles {
   files: Readonly<Record<string, string>>
 }
 
-export const PYODIDE_VERSION = '314.0.8'
-export const SQLITE_VERSION = '3.54.1-build1'
+const PYODIDE_VERSION = '314.0.8'
+const SQLITE_VERSION = '3.54.1-build1'
 
 export const ENGINES: Readonly<Record<EngineName, EngineFiles>> = {
   python: {

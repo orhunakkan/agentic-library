@@ -32,16 +32,29 @@ function ManageBilling() {
   )
 }
 
+/** The sentence that says which plan the reader is on, with the plan's name in bold. */
+export function PlanLine({
+  line,
+  className,
+}: {
+  line: { before: string; name: string; after: string }
+  className: string
+}) {
+  return (
+    <p className={className} data-testid="plan-line">
+      {line.before}
+      <strong>{line.name}</strong>
+      {line.after}
+    </p>
+  )
+}
+
 export function PaidStatus({ subscription }: { subscription: SubscriptionView }) {
   const line = paidLine(subscription.cadence, subscription.founding)
   const status = subscriptionStatusLine(subscription)
   return (
     <div>
-      <p className="text-[16px] text-ink" data-testid="plan-line">
-        {line.before}
-        <strong>{line.name}</strong>
-        {line.after}
-      </p>
+      <PlanLine line={line} className="text-[16px] text-ink" />
       {status?.kind === 'warning' && (
         <Notice kind="warning" data-testid="plan-warning">
           {status.text}

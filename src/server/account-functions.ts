@@ -2,6 +2,7 @@ import { notFound, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import type { ArticlesState } from '~/shared/articles/contract'
+import type { AskPromptsState } from '~/shared/ask-prompts/prompts'
 import type { PlanState } from '~/shared/billing/billing'
 import { privateBookSlug, refFor } from '~/shared/content/book-slug'
 import { chapterPageHref } from '~/shared/content/navigation'
@@ -21,6 +22,7 @@ import { MAX_PASSKEYS } from '~/shared/passkeys/passkeys'
 import type { RatingState } from '~/shared/ratings/ratings'
 import type { SpeechVoicesState } from '~/shared/read-aloud/cloud'
 import type { ReadingStatsState, ReadingSummaryState } from '~/shared/reading-stats/contract'
+import type { ShelvesState } from '~/shared/shelves/contract'
 import type { SyncState } from '~/shared/sync/sync'
 import { isBookSlug } from '../shared/content/book-slug.ts'
 import { isUuid } from '../shared/uuid.ts'
@@ -31,14 +33,14 @@ import { invitesForAdmin } from './admin/invites.ts'
 import { getKeyStatuses, PROVIDERS } from './api-keys.ts'
 import { articlesState, myArticlesState } from './articles/actions.ts'
 import { type AskSetup, askSetup } from './ask/setup.ts'
-import { type AskPromptsState, askPromptsState } from './ask-prompts/actions.ts'
+import { askPromptsState } from './ask-prompts/actions.ts'
 import { audiobooksOn } from './audiobooks/files.ts'
 import { audioBytesUsed, loadAudiobook } from './audiobooks/store.ts'
 import { loginHref, readSessionToken, sessionForRequest, viewerForRequest } from './auth.ts'
 import { planStateFor } from './billing/actions.ts'
 import { imageBytesUsed } from './book-images/store.ts'
 import { type AudioBookmarksState, audioBookmarksState } from './bookmarks/audio-actions.ts'
-import { type BookBookmarksState, bookBookmarksState } from './bookmarks/read.ts'
+import { bookBookmarksState } from './bookmarks/read.ts'
 import { getConfig } from './config.ts'
 import { getDb, isDatabaseConfigured } from './db.ts'
 import { describeDevice } from './device.ts'
@@ -47,7 +49,7 @@ import { bookFlashcardsState, flashcardBooksState } from './flashcards/page.ts'
 import { repoFolderState, reposState, repoViewState } from './github-repos/actions.ts'
 import { parseView } from './github-repos/input.ts'
 import { highlightsPageState } from './highlights/page.ts'
-import { type BookHighlightsState, bookHighlightsState } from './highlights/read.ts'
+import { bookHighlightsState } from './highlights/read.ts'
 import { mailAvailable } from './mail/mail.ts'
 import { listPasskeys } from './passkeys/store.ts'
 import { toPasskeyView } from './passkeys/view.ts'
@@ -56,7 +58,7 @@ import { getRating } from './ratings/store.ts'
 import { statsState, summaryState } from './reading-stats/read.ts'
 import { hashToken } from './security.ts'
 import { listSessions } from './sessions.ts'
-import { type ShelvesState, shelvesState } from './shelves/actions.ts'
+import { shelvesState } from './shelves/actions.ts'
 import { signedInRead } from './signed-in.ts'
 import { type SignupPage, signupPage } from './signup/actions.ts'
 import { speechVoicesState } from './speech/actions.ts'
@@ -126,8 +128,6 @@ export const getPlanPage = createServerFn({ method: 'GET' }).handler(async (): P
   const { session } = await requireSession('/account/plan')
   return planStateFor(session)
 })
-
-export type { ConfirmPage, ResetPage, SignupPage }
 
 const tokenInput = (data: { token?: unknown }) => ({
   token: typeof data?.token === 'string' && data.token.length <= 100 ? data.token : undefined,
@@ -247,8 +247,6 @@ export const getMyShelf = createServerFn({ method: 'GET' }).handler(() =>
   ),
 )
 
-export type { ShelvesState }
-
 export const getArticles = createServerFn({ method: 'GET' }).handler(
   (): Promise<ArticlesState> => articlesState(getRequest()),
 )
@@ -279,8 +277,6 @@ export const getAskPrompts = createServerFn({ method: 'GET' }).handler(
   (): Promise<AskPromptsState> => askPromptsState(getRequest()),
 )
 
-export type { BookBookmarksState, BookHighlightsState }
-
 const bookInput = (data: { book: string }) => {
   if (!isBookSlug(data?.book)) throw new Error('Invalid book')
   return { book: data.book }
@@ -294,13 +290,9 @@ export const getBookBookmarks = createServerFn({ method: 'GET' })
   .validator(bookInput)
   .handler(({ data }) => bookBookmarksState(getRequest(), data.book))
 
-export type { AudioBookmarksState }
-
 export const getAudioBookmarks = createServerFn({ method: 'GET' })
   .validator(bookInput)
   .handler(({ data }): Promise<AudioBookmarksState> => audioBookmarksState(getRequest(), data.book))
-
-export type { ReadingPlaceState }
 
 export const getSpeechVoices = createServerFn({ method: 'GET' })
   .validator(bookInput)

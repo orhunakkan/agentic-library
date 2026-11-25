@@ -28,7 +28,7 @@ export function cleanTitle(title: string): string {
   return cleanText(title).replace(/\s+/g, ' ').trim().slice(0, CHAPTER_TITLE_MAX).trim()
 }
 
-export const titleOr = (title: string, position: number) => cleanTitle(title) || `Chapter ${position}`
+const titleOr = (title: string, position: number) => cleanTitle(title) || `Chapter ${position}`
 
 function parts(fileN: number, durationMs: number): Omit<AudioChapter, 'title'>[] {
   const count = Math.max(1, Math.ceil(durationMs / PART_MS))

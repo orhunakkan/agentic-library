@@ -17,8 +17,6 @@ import { type Answered, signedInEndpoints, signedInRead } from '../signed-in.ts'
 import { createShelf, deleteShelf, listShelves, renameShelf, type ShelfRow, setShelfBook } from './store.ts'
 import { type Catalogue, toShelfView, toShelfViews } from './view.ts'
 
-export type { ShelvesState }
-
 const MAX_BODY_BYTES = 2 * 1024
 
 const shelves = signedInEndpoints<ShelfErrorCode, ShelfErrorAnswer>({ via: 'api', maxBytes: MAX_BODY_BYTES })

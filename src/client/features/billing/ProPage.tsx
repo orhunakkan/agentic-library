@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
+import { legalLink } from '~/client/components/LegalPage'
 import { cn } from '~/client/lib/cn'
 import type { Cadence, PlanState } from '~/shared/billing/billing'
 import {
@@ -21,23 +22,21 @@ import { planLine } from '~/shared/plans/copy'
 import { PRO_FEATURES } from '~/shared/plans/plans'
 import { Button, Notice } from '../account/ui'
 import { readRecent } from '../reader/continue-reading'
-import { PaidStatus } from './PaidStatus'
+import { PaidStatus, PlanLine } from './PaidStatus'
 import { useCheckout } from './use-checkout'
-
-const linkClass = 'font-medium text-accent underline-offset-2 hover:underline'
 
 function LegalLinks({ className }: { className: string }) {
   return (
     <p className={cn('text-[14px] text-muted', className)}>
-      <Link to="/terms" className={linkClass} data-testid="pro-terms">
+      <Link to="/terms" className={legalLink} data-testid="pro-terms">
         Terms
       </Link>
       {' · '}
-      <Link to="/refunds" className={linkClass} data-testid="pro-refunds">
+      <Link to="/refunds" className={legalLink} data-testid="pro-refunds">
         Refunds
       </Link>
       {' · '}
-      <Link to="/privacy" className={linkClass} data-testid="pro-privacy">
+      <Link to="/privacy" className={legalLink} data-testid="pro-privacy">
         Privacy
       </Link>
     </p>
@@ -190,12 +189,5 @@ export function ProPage({ initial }: { initial: PlanState }) {
   }
   if (state.plan !== 'pro') return <BuyPro state={state} onPro={turnedPro} />
   if (welcome) return <Welcome />
-  const line = planLine(state.source)
-  return (
-    <p className="mt-6 text-[16px] text-ink" data-testid="plan-line">
-      {line.before}
-      <strong>{line.name}</strong>
-      {line.after}
-    </p>
-  )
+  return <PlanLine line={planLine(state.source)} className="mt-6 text-[16px] text-ink" />
 }

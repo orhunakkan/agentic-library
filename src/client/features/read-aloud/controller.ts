@@ -316,7 +316,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     return {
       lang: state.voice?.lang ?? state.book?.language ?? 'en',
       rate: state.rate,
-      voice: state.voice as SpeechSynthesisVoice | null,
+      voice: state.voice,
       ahead: ahead(),
       ...(ref ? { ref } : {}),
       model: state.cloudModel,
@@ -363,12 +363,11 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         return
       }
       case 'failed':
-        fail(session_, wasIntro)
+        fail(wasIntro)
     }
   }
 
-  const fail = (session_: number, wasIntro = false) => {
-    if (session_ !== session) return
+  const fail = (wasIntro: boolean) => {
     failures++
     if (failures >= MAX_FAILURES) {
       failures = 0

@@ -1,4 +1,5 @@
 import { type ChangeResult, post, readChange } from '~/client/lib/post'
+import { isObject } from '~/shared/lib/json-shape'
 import type { FinishedErrorCode, GoalErrorCode } from '~/shared/reading-stats/contract'
 
 export type GoalProblem = GoalErrorCode
@@ -29,8 +30,8 @@ async function send<T, P extends string>(
 }
 
 const goalOf = (body: Record<string, unknown>): SavedGoal | undefined => {
-  const goal = body.goal as Record<string, unknown> | undefined
-  return goal && typeof goal.minutes === 'number' && typeof goal.fromDay === 'string'
+  const { goal } = body
+  return isObject(goal) && typeof goal.minutes === 'number' && typeof goal.fromDay === 'string'
     ? { minutes: goal.minutes, fromDay: goal.fromDay }
     : undefined
 }

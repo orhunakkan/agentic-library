@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { CircleAlert, Play, RotateCcw, Square, TriangleAlert, X } from 'lucide-react'
+import { CircleAlert, type LucideIcon, Play, RotateCcw, Square, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ProNotice } from '~/client/features/plans/ProNotice'
 import { cn } from '~/client/lib/cn'
@@ -16,7 +16,7 @@ import {
   titleText,
 } from './run-messages'
 import { MAX_TABLE_COLUMNS, MAX_TABLE_ROWS, type ShownEntry } from './sandbox/output'
-import { MAX_RUN_CODE } from './sandbox/protocol'
+import { MAX_RUN_CODE, type OutputLevel } from './sandbox/protocol'
 import { useRunner } from './use-runner'
 
 export interface RunTarget {
@@ -51,6 +51,11 @@ function ReadOnlyCode({ code }: { code: string }) {
       {code}
     </pre>
   )
+}
+
+const MARKED_LEVELS: Partial<Record<OutputLevel, { Icon: LucideIcon; tone: string; label: string }>> = {
+  error: { Icon: CircleAlert, tone: 'text-red-700 dark:text-red-300', label: 'Error: ' },
+  warn: { Icon: TriangleAlert, tone: 'text-hue-amber-ink', label: 'Warning: ' },
 }
 
 function Entry({ entry }: { entry: ShownEntry }) {
@@ -94,21 +99,16 @@ function Entry({ entry }: { entry: ShownEntry }) {
         )}
       </div>
     )
-  const Icon = entry.level === 'error' ? CircleAlert : entry.level === 'warn' ? TriangleAlert : null
+  const level = MARKED_LEVELS[entry.level]
   return (
     <div
-      className={cn(
-        'flex gap-1.5 py-px whitespace-pre-wrap [overflow-wrap:anywhere]',
-        entry.level === 'error' && 'text-red-700 dark:text-red-300',
-        entry.level === 'warn' && 'text-hue-amber-ink',
-      )}
+      className={cn('flex gap-1.5 py-px whitespace-pre-wrap [overflow-wrap:anywhere]', level?.tone)}
       style={entry.indent ? { paddingLeft: `${entry.indent * 1.25}em` } : undefined}
       data-level={entry.level}
     >
-      {Icon && <Icon className="mt-[3px] size-3.5 shrink-0" aria-hidden />}
+      {level && <level.Icon className="mt-[3px] size-3.5 shrink-0" aria-hidden />}
       <span className="min-w-0">
-        {entry.level === 'error' && <span className="sr-only">Error: </span>}
-        {entry.level === 'warn' && <span className="sr-only">Warning: </span>}
+        {level && <span className="sr-only">{level.label}</span>}
         {entry.text}
       </span>
     </div>

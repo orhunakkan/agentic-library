@@ -260,7 +260,7 @@ export function ProgressSlider({
   onChange?: (value: number) => void
   onCommit?: (value: number) => void
 }) {
-  const one = (v: number | readonly number[]) => (Array.isArray(v) ? (v[0] ?? 0) : (v as number))
+  const one = (v: number | readonly number[]) => (Array.isArray(v) ? (v[0] ?? 0) : v)
   return (
     <Slider.Root
       value={value}

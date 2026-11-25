@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Share2 } from 'lucide-react'
-import { AppLink } from '~/client/components/AppLink'
+import { AppLink, isPlainClick } from '~/client/components/AppLink'
 import { cn } from '~/client/lib/cn'
 import type { NavTarget } from '~/shared/content/navigation'
 import type { ReaderView } from '~/shared/content/reader-view'
@@ -127,7 +127,7 @@ function PageLink({
       preload={false}
       rel={direction}
       onClick={(e) => {
-        if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        if (isPlainClick(e)) {
           e.preventDefault()
           goTo(target, turnFor(direction))
         }

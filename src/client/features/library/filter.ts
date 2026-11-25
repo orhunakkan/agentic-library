@@ -2,7 +2,7 @@ import { READER_SHELF_HUE } from '~/shared/content/hues'
 import type { Shelf, ShelfBook } from '~/shared/content/library'
 import { matchesQuery } from '~/shared/lib/search'
 import type { ShelfView } from '~/shared/shelves/contract'
-import { shelfIdOf } from '~/shared/shelves/shelves'
+import { shelfFilter, shelfIdOf } from '~/shared/shelves/shelves'
 
 export type LibraryFilter = string
 
@@ -20,10 +20,10 @@ export function shelfRowFor(shelf: ShelfView, allShelves: readonly Shelf[], quer
     return hit && matchesQuery(query, [hit.book.title, hit.series]) ? [hit.book] : []
   })
   return {
-    slug: `shelf-${shelf.id}`,
+    slug: shelfFilter(shelf.id),
     title: shelf.name,
     description: '',
-    collectionSlug: `shelf-${shelf.id}`,
+    collectionSlug: shelfFilter(shelf.id),
     kind: 'chapter',
     tone: 'default',
     hue: READER_SHELF_HUE,

@@ -22,7 +22,7 @@ import { createLockScreen } from './media-session'
 import type { NowPlaying } from './now-playing'
 import { type AudiobookControls, createPlayer, type PlayerState, type ReadAloudControls } from './player'
 import type { Sleep, SleepChoice } from './sleep'
-import type { MediaLike, TransportState } from './transport'
+import type { TransportState } from './transport'
 
 export type ReadAloudApi = ReadAloudControls & ReadAloudState & { supported: boolean; aside: Aside }
 
@@ -75,7 +75,7 @@ export function PlayerProvider({ children, signedIn = false }: { children: React
   useEffect(() => {
     if (!audioRef.current) return
     player.attach({
-      audiobook: audioRef.current as unknown as MediaLike,
+      audiobook: audioRef.current,
       readAloud: browserReadAloud(speechRef.current),
     })
     return () => player.detach()

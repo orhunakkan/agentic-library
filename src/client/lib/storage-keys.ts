@@ -16,6 +16,17 @@ export function readItem(storage: Storage | null, key: string): string | null {
   }
 }
 
+/** Stores `value` under `key`; false when there is no storage or it refuses the write. */
+export function writeItem(storage: Storage | null, key: string, value: string): boolean {
+  try {
+    if (!storage) return false
+    storage.setItem(key, value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function removeKeys(storage: Storage | null, matches: (key: string) => boolean): void {
   try {
     if (!storage) return

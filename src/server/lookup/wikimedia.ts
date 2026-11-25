@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { KB } from '../../shared/import/limits.ts'
 import { getConfig } from '../config.ts'
-import { fetchCapped, folioUserAgent } from '../outbound.ts'
+import { answerCache, fetchCapped, folioUserAgent } from '../outbound.ts'
 import { type ParsedDefinition, type ParsedSummary, parseDefinition, parseSummary } from './wikimedia-parse.ts'
 
 export type WikimediaProblem = 'busy' | 'unavailable'
@@ -29,7 +29,7 @@ export const wikipediaSearch = (term: string, lang: string) =>
   `${wikipediaBase(lang)}/w/index.php?${new URLSearchParams({ search: term })}`
 
 let inFlight = 0
-const cache = new Map<string, { at: number; value: unknown }>()
+const cache = answerCache(CACHE_MS, CACHE_MAX)
 
 export function resetWikimedia(): void {
   inFlight = 0
@@ -38,28 +38,12 @@ export function resetWikimedia(): void {
 
 export const requestsInFlight = () => inFlight
 
-function cached(url: string): { value: unknown } | undefined {
-  const hit = cache.get(url)
-  if (!hit) return undefined
-  if (Date.now() - hit.at > CACHE_MS) {
-    cache.delete(url)
-    return undefined
-  }
-  return { value: hit.value }
-}
-
-function remember(url: string, value: unknown): void {
-  cache.delete(url)
-  cache.set(url, { at: Date.now(), value })
-  while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value as string)
-}
-
 async function getParsed<T>(
   url: string,
   parse: (json: unknown) => T | null,
   options: WikimediaOptions,
 ): Promise<WikimediaResult<T | null>> {
-  const hit = cached(url)
+  const hit = cache.get(url)
   if (hit) return { ok: true, value: hit.value as T | null }
   if (inFlight >= MAX_IN_FLIGHT) return { ok: false, problem: 'busy' }
   const origin = new URL(url)
@@ -79,7 +63,7 @@ async function getParsed<T>(
     if (!answer.ok) {
       if (answer.problem !== 'not-found')
         return { ok: false, problem: answer.problem === 'busy' ? 'busy' : 'unavailable' }
-      remember(url, null)
+      cache.set(url, null)
       return { ok: true, value: null }
     }
     let json: unknown
@@ -89,7 +73,7 @@ async function getParsed<T>(
       return { ok: false, problem: 'unavailable' }
     }
     const value = parse(json)
-    remember(url, value)
+    cache.set(url, value)
     return { ok: true, value }
   } finally {
     inFlight--

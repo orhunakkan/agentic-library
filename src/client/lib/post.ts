@@ -16,6 +16,22 @@ export function post(path: string, body: unknown): Promise<Response> {
   return fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 }
 
+type PostAnswer =
+  | { ok: true; data: Record<string, unknown> }
+  | { ok: false; status: number; data: Record<string, unknown> }
+
+/** Posts a body of `type` and reads its JSON answer, `{}` when there is none; null when the request never arrived. */
+export async function postBody(url: string, body: BodyInit, type: string): Promise<PostAnswer | null> {
+  let response: Response
+  try {
+    response = await fetch(url, { method: 'POST', headers: { 'content-type': type }, body })
+  } catch {
+    return null
+  }
+  const data = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  return response.ok ? { ok: true, data } : { ok: false, status: response.status, data }
+}
+
 const fail = (problem: AnswerProblem) => ({ ok: false, problem }) as const
 
 export async function readAnswer<T>(response: Response, pick: (body: Record<string, unknown>) => T | undefined) {

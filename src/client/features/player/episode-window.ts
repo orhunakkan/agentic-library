@@ -16,8 +16,8 @@ export const isWindowed = (episodes: readonly EpisodeWindow[], episode: EpisodeW
   episode.startMs > 0 || episodes.some((e) => e !== episode && e.audioUrl === episode.audioUrl)
 
 export function endsInsideFile(episodes: readonly EpisodeWindow[], episode: EpisodeWindow): boolean {
-  const next = episodes[episodes.indexOf(episode) + 1]
-  return episodes.includes(episode) && next?.audioUrl === episode.audioUrl
+  const index = episodes.indexOf(episode)
+  return index >= 0 && episodes[index + 1]?.audioUrl === episode.audioUrl
 }
 
 export const reachedEnd = (elementMs: number, episode: EpisodeWindow) =>

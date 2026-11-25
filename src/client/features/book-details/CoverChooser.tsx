@@ -3,6 +3,7 @@ import { type ReactNode, useId } from 'react'
 import { BookCover } from '~/client/components/BookCover'
 import { cn } from '~/client/lib/cn'
 import type { CoverImage } from '~/shared/content/library'
+import type { CoverSource } from '~/shared/content/private-book'
 import type { CoverStyle } from '~/shared/content/schema'
 
 export const chooserButton =
@@ -12,6 +13,23 @@ export const IMAGE_PROBLEM_TEXT = {
   unreadable: 'That image couldn’t be read. Choose a JPEG, PNG or WebP image.',
   small: 'That image is too small. Choose one at least 64 pixels wide.',
 } as const
+
+/** Where a book's cover came from; a book with none has the cover generated from its title. */
+export function coverSourceText(source: CoverSource | null): string {
+  switch (source) {
+    case 'epub':
+    case 'zip':
+    case 'pdf':
+    case 'audio':
+      return 'From the book’s file'
+    case 'upload':
+      return 'Your image'
+    case 'open-library':
+      return 'Cover from Open Library'
+    default:
+      return 'Generated from the title'
+  }
+}
 
 export function ChooseImageButton({ onChoose, busy }: { onChoose: (file: File) => void; busy?: string | null }) {
   const id = useId()

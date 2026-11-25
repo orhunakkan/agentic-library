@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
+import { isWide } from './layout'
 
 export const HOME_SECTION_LINKS_FROM = 760
 
@@ -20,7 +21,7 @@ export class HomePage {
   }
 
   get hasSectionLinks() {
-    return (this.page.viewportSize()?.width ?? 0) >= HOME_SECTION_LINKS_FROM
+    return isWide(this.page, HOME_SECTION_LINKS_FROM)
   }
 
   section(name: string) {

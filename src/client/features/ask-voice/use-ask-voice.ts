@@ -5,7 +5,7 @@ import { browserTimers } from '~/client/features/read-aloud/speaker'
 import { languageName } from '~/client/features/read-aloud/voices'
 import { browserStorage } from '~/client/lib/storage-keys'
 import { browserRecognition, createRecognition, vendorOf } from './recognition'
-import { createVoiceSession, type VoiceSession } from './voice-session'
+import { type AnswerOutcome, createVoiceSession, type VoiceSession } from './voice-session'
 
 type AskState = ReturnType<typeof useAsk>
 
@@ -50,8 +50,11 @@ export function useAskVoice({ ask, lang, privateBook, active, send }: AskVoiceOp
 
   useEffect(() => {
     const last = ask.thread.turns.at(-1)
-    const outcome = ask.failure ? 'failed' : last?.role === 'assistant' && last.stopped ? 'stopped' : 'done'
-    session.answer(ask.pending?.text ?? null, outcome, last?.role === 'assistant' ? last.text : null)
+    const lastAnswer = last?.role === 'assistant' ? last : null
+    let outcome: AnswerOutcome = 'done'
+    if (ask.failure) outcome = 'failed'
+    else if (lastAnswer?.stopped) outcome = 'stopped'
+    session.answer(ask.pending?.text ?? null, outcome, lastAnswer?.text ?? null)
   }, [session, ask.pending, ask.failure, ask.thread])
 
   const listening = state.turn.phase === 'listening'

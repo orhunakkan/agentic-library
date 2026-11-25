@@ -180,7 +180,7 @@ export function myArticles(
   }
 }
 
-export const openLibraryWorkUrl = (work: string) => `https://openlibrary.org/works/${work}`
+const openLibraryWorkUrl = (work: string) => `https://openlibrary.org/works/${work}`
 
 export interface PrivateBookFact {
   label: string

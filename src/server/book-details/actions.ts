@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { type CoverSource, privateCoverImage } from '../../shared/content/private-book.ts'
 import { checkCoverImage } from '../../shared/import/image.ts'
 import { MAX_COVER_BYTES } from '../../shared/import/limits.ts'
-import { isObject } from '../../shared/lib/json-shape.ts'
+import { isObject, isOneOf } from '../../shared/lib/json-shape.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp, seeOther, sessionForRequest } from '../auth.ts'
@@ -54,8 +54,8 @@ export const handleCoverUpload = (request: Request, id: string) =>
       body: 'none',
       before: () => {
         if (!isUuid(id)) return notFound()
-        const source = (new URL(request.url).searchParams.get('source') ?? 'upload') as CoverSource
-        return UPLOAD_SOURCES.includes(source) ? source : fail(400, 'invalid')
+        const source = new URL(request.url).searchParams.get('source') ?? 'upload'
+        return isOneOf(source, UPLOAD_SOURCES) ? source : fail(400, 'invalid')
       },
     },
     async ({ session, db, pre: source }) => {
@@ -241,8 +241,7 @@ export const handleApply = (request: Request, id: string, options: OpenLibraryOp
         await recordEvent(db, 'book.details_changed', { ...audit, detail: { bookId: id, fields: named } })
       if (changed.cover)
         await recordEvent(db, 'book.cover_changed', { ...audit, detail: { bookId: id, source: 'open-library' } })
-      const image =
-        cover && privateCoverImage(id, { ...cover.info, sha256: cover.sha256, source: 'open-library' as const })
+      const image = cover && privateCoverImage(id, { ...cover.info, sha256: cover.sha256, source: 'open-library' })
       return noStoreJson(200, {
         changed,
         cover: image ? { ...image, source: 'open-library' } : null,

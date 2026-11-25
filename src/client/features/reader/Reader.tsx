@@ -3,7 +3,7 @@ import { useRouteContext, useRouter, useRouterState } from '@tanstack/react-rout
 import { ArrowLeft, CloudOff, List, Maximize, Minimize, Share2 } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AppLink } from '~/client/components/AppLink'
+import { AppLink, isPlainClick } from '~/client/components/AppLink'
 import { useToast } from '~/client/components/Toast'
 import { AskPanel } from '~/client/features/ask/AskPanel'
 import { QUOTE_MAX } from '~/client/features/ask/ask-client'
@@ -390,7 +390,7 @@ export function Reader({
     window.requestAnimationFrame(() => window.scrollTo({ top: 0 }))
   }
   const scrollToLinked = (e: React.MouseEvent) => {
-    if (!scrollMode || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    if (!scrollMode || !isPlainClick(e)) return
     const link = (e.target as HTMLElement).closest?.('a[href^="/read/"]')
     const href = link?.getAttribute('href')
     if (!href || href.includes('#') || !view.nav.dots.some((d) => d.href === href) || !column.current) return

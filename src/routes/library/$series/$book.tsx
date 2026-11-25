@@ -19,6 +19,7 @@ import { type BookSearchHit, IN_BOOK_HIT_LIMIT } from '~/shared/content/book-sea
 import { catalogCoverImage } from '~/shared/content/library'
 import { matchesQuery } from '~/shared/lib/search'
 import { SITE_NAME } from '~/shared/lib/site'
+import { englishName } from '~/shared/lookup/languages'
 
 export const Route = createFileRoute('/library/$series/$book')({
   validateSearch: (search: Record<string, unknown>): { tab?: 'audio' } =>
@@ -138,14 +139,12 @@ function BookHero({ onListen }: { onListen: () => void }) {
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3 md:col-span-2 xl:col-span-1 xl:grid-cols-1">
           <Fact label="Chapters" value={String(meta.chapterCount)} />
           {audio && <Fact label="Audiobook" value={formatDuration(audio.totalMs)} />}
-          <Fact label="Language" value={languageName(meta.language)} />
+          <Fact label="Language" value={englishName(meta.language)} />
         </dl>
       </section>
     </>
   )
 }
-
-const languageName = (tag: string) => new Intl.DisplayNames(['en'], { type: 'language' }).of(tag) ?? tag
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (

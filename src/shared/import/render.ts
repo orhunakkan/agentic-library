@@ -25,7 +25,7 @@ export function escapeAttribute(text: string): string {
   return escapeHtml(text).replace(/"/g, '&quot;')
 }
 
-export function countWords(html: string): number {
+function countWords(html: string): number {
   const text = html.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, 'x')
   const m = text.match(/[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu)
   return m ? m.length : 0
@@ -33,18 +33,18 @@ export function countWords(html: string): number {
 
 export const hasText = (html: string): boolean => Boolean(html.replace(/<[^>]+>/g, '').trim())
 
-export function textBlock(tag: 'p' | 'blockquote' | 'ul' | 'ol' | 'table', inner: string): Block | null {
+function textBlock(tag: 'p' | 'blockquote' | 'ul' | 'ol' | 'table', inner: string): Block | null {
   if (!hasText(inner)) return null
   const html = `<${tag}>${inner}</${tag}>`
   return { html, words: countWords(html), heading: false }
 }
 
-export function headingBlock(level: 3 | 4, inner: string): Block | null {
+function headingBlock(level: 3 | 4, inner: string): Block | null {
   if (!hasText(inner)) return null
   return { html: `<h${level}>${inner}</h${level}>`, words: countWords(inner), heading: true }
 }
 
-export function codeBlock(code: string, lang?: RunLang): Block | null {
+function codeBlock(code: string, lang?: RunLang): Block | null {
   const lines = code.replace(/\t/g, '  ').replace(/\s+$/, '').split('\n')
   while (lines.length && !lines[0]?.trim()) lines.shift()
   if (!lines.length) return null
@@ -55,7 +55,7 @@ export function codeBlock(code: string, lang?: RunLang): Block | null {
   }
 }
 
-export function figureBlock(block: ImageBlock, context: RenderContext): Block | null {
+function figureBlock(block: ImageBlock, context: RenderContext): Block | null {
   const caption = renderRuns(block.caption ?? [])
   const hasCaption = hasText(caption)
   const figcaption = hasCaption ? `<figcaption>${caption}</figcaption>` : ''

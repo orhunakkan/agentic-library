@@ -1,5 +1,5 @@
 import { uploadCover } from '~/client/features/book-details/details-client'
-import type { ChangeResult } from '~/client/lib/post'
+import { type ChangeResult, postBody } from '~/client/lib/post'
 import type { PrivateBookSteps } from './private-book-save'
 
 export type ImportProblem =
@@ -32,19 +32,6 @@ const IMPORT_PROBLEMS: readonly ImportProblem[] = [
 
 export type PictureProblem = 'not-found' | 'quota-book' | 'quota-user' | 'too-large' | 'type' | 'invalid' | 'failed'
 
-type Answer = { ok: true; data: Record<string, unknown> } | { ok: false; status: number; data: Record<string, unknown> }
-
-async function post(url: string, body: BodyInit, type: string): Promise<Answer | null> {
-  let response: Response
-  try {
-    response = await fetch(url, { method: 'POST', headers: { 'content-type': type }, body })
-  } catch {
-    return null
-  }
-  const data = (await response.json().catch(() => ({}))) as Record<string, unknown>
-  return response.ok ? { ok: true, data } : { ok: false, status: response.status, data }
-}
-
 const failed = { ok: false, problem: 'failed' } as const
 
 function importProblem(data: Record<string, unknown>): ImportProblem {
@@ -58,7 +45,7 @@ async function send<T>(
   body: string,
   pick: (data: Record<string, unknown>) => T | undefined,
 ): Promise<ChangeResult<T, ImportProblem>> {
-  const answer = await post(url, body, 'application/json')
+  const answer = await postBody(url, body, 'application/json')
   if (!answer) return failed
   if (!answer.ok) return { ok: false, problem: importProblem(answer.data) }
   const value = pick(answer.data)
@@ -77,14 +64,16 @@ export interface BookStart {
   images: { count: number; bytes: number }
 }
 
+/** The new book's id and the picture room left, from the answer to `/account/books/new`. */
+export const startedOf = (data: Record<string, unknown>) =>
+  typeof data.id === 'string'
+    ? { id: data.id, imageBytesLeft: typeof data.imageBytesLeft === 'number' ? data.imageBytesLeft : 0 }
+    : undefined
+
 export function startBook(
   book: BookStart,
 ): Promise<ChangeResult<{ id: string; imageBytesLeft: number }, ImportProblem>> {
-  return send('/account/books/new', JSON.stringify(book), (data) =>
-    typeof data.id === 'string'
-      ? { id: data.id, imageBytesLeft: typeof data.imageBytesLeft === 'number' ? data.imageBytesLeft : 0 }
-      : undefined,
-  )
+  return send('/account/books/new', JSON.stringify(book), startedOf)
 }
 
 const done = (data: Record<string, unknown>) => (data.ok === true ? true : undefined)
@@ -102,7 +91,7 @@ export async function uploadPicture(
   n: number,
   blob: Blob,
 ): Promise<ChangeResult<{ width: number; height: number }, PictureProblem>> {
-  const answer = await post(`/account/books/${encodeURIComponent(id)}/images/${n}`, blob, blob.type || 'image/png')
+  const answer = await postBody(`/account/books/${encodeURIComponent(id)}/images/${n}`, blob, blob.type || 'image/png')
   if (!answer) return failed
   if (answer.ok) {
     const { width, height } = answer.data

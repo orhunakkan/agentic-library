@@ -1,3 +1,4 @@
+import { post } from '~/client/lib/post'
 import type { AudioChapter } from '~/shared/audiobooks/chapters'
 import type { AudioFileType } from '~/shared/audiobooks/limits'
 import type { BookDetails } from '~/shared/import/details'
@@ -18,10 +19,10 @@ export interface AudiobookStart {
 
 type Body = Record<string, unknown>
 
-async function send(url: string, init: RequestInit): Promise<{ status: number; body: Body } | null> {
+async function answerOf(request: Promise<Response>): Promise<{ status: number; body: Body } | null> {
   let response: Response
   try {
-    response = await fetch(url, init)
+    response = await request
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
     return null
@@ -46,14 +47,8 @@ export function problemOf(status: number, body: Body): AudiobookProblem {
   return problem('failed')
 }
 
-const json = (body: unknown): RequestInit => ({
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify(body),
-})
-
 export async function startAudiobook(start: AudiobookStart): Promise<Result<{ id: string }>> {
-  const answer = await send('/account/books/new-audiobook', json(start))
+  const answer = await answerOf(post('/account/books/new-audiobook', start))
   if (!answer) return { ok: false, problem: problem('failed') }
   if (answer.status === 201 && typeof answer.body.id === 'string') return { ok: true, value: { id: answer.body.id } }
   return { ok: false, problem: problemOf(answer.status, answer.body) }
@@ -71,12 +66,14 @@ export async function sendChunk(
   bytes: Blob,
   signal?: AbortSignal,
 ): Promise<ChunkAnswer> {
-  const answer = await send(`/account/books/${encodeURIComponent(id)}/audio/${n}?offset=${offset}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/octet-stream' },
-    body: bytes,
-    signal,
-  })
+  const answer = await answerOf(
+    fetch(`/account/books/${encodeURIComponent(id)}/audio/${n}?offset=${offset}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/octet-stream' },
+      body: bytes,
+      signal,
+    }),
+  )
   if (!answer || answer.status >= 500) return { ok: false, problem: problem('stopped'), retry: true }
   const { received } = answer.body
   if (answer.status === 200 && typeof received === 'number') return { ok: true, received }
@@ -86,7 +83,7 @@ export async function sendChunk(
 }
 
 export async function finishAudiobook(id: string): Promise<Result<true>> {
-  const answer = await send(`/account/books/${encodeURIComponent(id)}/audio/finish`, json({}))
+  const answer = await answerOf(post(`/account/books/${encodeURIComponent(id)}/audio/finish`, {}))
   if (!answer) return { ok: false, problem: problem('failed') }
   if (answer.status === 200 && answer.body.ok === true) return { ok: true, value: true }
   return { ok: false, problem: problemOf(answer.status, answer.body) }

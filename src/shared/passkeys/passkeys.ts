@@ -8,17 +8,20 @@ export type Transport = (typeof KNOWN_TRANSPORTS)[number]
 
 export const isTransport = (value: unknown): value is Transport => isOneOf(value, KNOWN_TRANSPORTS)
 
-export type AddPasskeyError =
-  | 'signed_out'
-  | 'invalid'
-  | 'password'
-  | 'quota'
-  | 'expired'
-  | 'refused'
-  | 'taken'
-  | 'failed'
+export const ADD_PASSKEY_ERRORS = [
+  'signed_out',
+  'invalid',
+  'password',
+  'quota',
+  'expired',
+  'refused',
+  'taken',
+  'failed',
+] as const
+export type AddPasskeyError = (typeof ADD_PASSKEY_ERRORS)[number]
 
-export type SignInError = 'invalid' | 'refused' | 'limited' | 'unavailable'
+export const SIGN_IN_ERRORS = ['invalid', 'refused', 'limited', 'unavailable'] as const
+export type SignInError = (typeof SIGN_IN_ERRORS)[number]
 
 export interface PasskeyView {
   id: string

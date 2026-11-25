@@ -1,14 +1,12 @@
 import { useRouteContext } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import { useToast } from '~/client/components/Toast'
-import { reloadWhenBack } from '~/client/lib/optimistic-collection'
+import { reloadOnReturn } from '~/client/lib/optimistic-collection'
 import { getAudioBookmarks } from '~/server/account-functions'
 import { AudioBookmarkRegistry, type NewAudioBookmark } from './audio-bookmark-list'
 import * as client from './audio-bookmarks-client'
 
 export type { AudioBookmarkItem, AudioBookmarksState, NewAudioBookmark } from './audio-bookmark-list'
-
-const RELOAD_AFTER_MS = 60_000
 
 let toastNow: (text: string) => void = () => {}
 
@@ -37,11 +35,7 @@ export function useAudioBookmarks(book: string) {
   useEffect(() => registry.sync(book, signedIn), [book, signedIn])
 
   useEffect(() => {
-    if (!signedIn) return
-    const back = reloadWhenBack(() => void list.load(), RELOAD_AFTER_MS)
-    const onVisibility = () => back(document.visibilityState)
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
+    if (signedIn) return reloadOnReturn(() => void list.load())
   }, [signedIn, list])
 
   const add = useCallback((input: NewAudioBookmark) => void list.bookmark(input), [list])

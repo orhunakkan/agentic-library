@@ -1,8 +1,7 @@
-import { sentenceSpans } from '../read-aloud/sentences.ts'
+import { collapse, sentenceSpans } from '../read-aloud/sentences.ts'
 import { PASSAGE_MAX } from './term.ts'
 
 const ELLIPSIS = '…'
-const collapse = (text: string) => text.replace(/\s+/gu, ' ').trim()
 
 const isLowSurrogate = (text: string, at: number) => /[\uDC00-\uDFFF]/.test(text[at] ?? '')
 

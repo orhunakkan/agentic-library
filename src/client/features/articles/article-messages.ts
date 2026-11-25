@@ -1,3 +1,4 @@
+import { timeOfDay } from '~/client/lib/format'
 import type { ArticleUrlProblem, WebFetchProblem } from '~/shared/articles/contract'
 import { readTimeText } from '~/shared/articles/read-time'
 import type { Plan } from '~/shared/plans/plans'
@@ -44,9 +45,6 @@ const SENTENCES: Record<Exclude<ArticleProblem, 'quota' | 'limited'>, string> = 
   failed: 'Something went wrong. Try again.',
 }
 
-const clockTime = (iso: string, timeZone?: string) =>
-  new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone })
-
 export interface ProblemContext {
   plan?: Plan
   max?: number
@@ -63,7 +61,7 @@ export function articleProblemText(problem: ArticleProblem, context: ProblemCont
   if (problem === 'limited') {
     const base = 'You’ve saved a lot in the last hour.'
     return context.retryAt
-      ? `${base} Try again after ${clockTime(context.retryAt, context.timeZone)}.`
+      ? `${base} Try again after ${timeOfDay(context.retryAt, context.timeZone)}.`
       : `${base} Try again later.`
   }
   return SENTENCES[problem]

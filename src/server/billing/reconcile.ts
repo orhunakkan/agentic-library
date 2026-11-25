@@ -1,10 +1,9 @@
 import '@tanstack/react-start/server-only'
 import { isObject } from '../../shared/lib/json-shape.ts'
-import { recordEvent } from '../audit.ts'
 import type { BillingConfig } from '../config.ts'
 import type { Pool } from '../db.ts'
 import { listSubscriptions, type PaddleOptions } from './paddle-api.ts'
-import { upsertFromPaddle } from './store.ts'
+import { recordStatusChange, upsertFromPaddle } from './store.ts'
 import { subscriptionRow } from './webhook-input.ts'
 
 export interface ReconcileCounts {
@@ -34,11 +33,7 @@ export async function reconcileSubscriptions(
     }
     const applied = await pool.begin(async (tx) => {
       const result = await upsertFromPaddle(tx, mapped.row)
-      if (result.applied && result.from !== result.to)
-        await recordEvent(tx, 'billing.subscription', {
-          userId: result.userId,
-          detail: { subscription: mapped.row.id, status: result.to, by: 'reconcile' },
-        })
+      await recordStatusChange(tx, result, mapped.row.id, 'reconcile')
       return result.applied
     })
     if (applied) counts.updated++

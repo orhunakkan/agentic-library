@@ -1,6 +1,7 @@
 import { browserStorage } from '~/client/lib/storage-keys'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { firstReadingHref } from '~/shared/content/reader-view'
+import { isObject } from '~/shared/lib/json-shape'
 import {
   OFFLINE_NAV_URL,
   type OfflineBook,
@@ -204,8 +205,8 @@ export async function sweepOrphans(env: OfflineEnv = offlineEnv()): Promise<void
 export function readChecked(storage: Storage | null): Record<string, number> {
   try {
     const value: unknown = JSON.parse(storage?.getItem(CHECKED_KEY) ?? '{}')
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
-    return Object.fromEntries(Object.entries(value).filter(([, at]) => typeof at === 'number'))
+    if (!isObject(value)) return {}
+    return Object.fromEntries(Object.entries(value).filter((e): e is [string, number] => typeof e[1] === 'number'))
   } catch {
     return {}
   }

@@ -1,10 +1,10 @@
-import type { AdminRole, NewUser, UserChange } from '../../shared/admin/users.ts'
-import { isObject, only } from '../../shared/lib/json-shape.ts'
+import { ADMIN_INTENTS, type AdminRole, type NewUser, type UserChange } from '../../shared/admin/users.ts'
+import { isObject, isOneOf, only } from '../../shared/lib/json-shape.ts'
 import { isValidUsername, normalizeUsername, ROLES } from '../users.ts'
 
 const RAW_USERNAME_MAX = 64
 
-const isRole = (value: unknown): value is AdminRole => ROLES.includes(value as AdminRole)
+const isRole = (value: unknown): value is AdminRole => isOneOf(value, ROLES)
 
 const RESERVED_USERNAME = 'new'
 
@@ -18,21 +18,8 @@ export function parseNewUser(value: unknown): NewUser | null {
 }
 
 export function parseUserChange(value: unknown): UserChange | null {
-  if (!isObject(value)) return null
+  if (!isObject(value) || !isOneOf(value.intent, ADMIN_INTENTS)) return null
   if (value.intent === 'role')
     return only(value, ['intent', 'role']) && isRole(value.role) ? { intent: 'role', role: value.role } : null
-  if (!only(value, ['intent'])) return null
-  switch (value.intent) {
-    case 'reset-password':
-    case 'disable':
-    case 'enable':
-    case 'unlock':
-    case 'sign-out':
-    case 'grant-pro':
-    case 'revoke-pro':
-    case 'delete':
-      return { intent: value.intent }
-    default:
-      return null
-  }
+  return only(value, ['intent']) ? { intent: value.intent } : null
 }

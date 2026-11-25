@@ -1,6 +1,6 @@
 const COMBINING_MARKS = new RegExp(`[${String.fromCharCode(0x300)}-${String.fromCharCode(0x36f)}]`, 'g')
 
-export function stripDiacritics(text: string): string {
+function stripDiacritics(text: string): string {
   return text.normalize('NFKD').replace(COMBINING_MARKS, '')
 }
 

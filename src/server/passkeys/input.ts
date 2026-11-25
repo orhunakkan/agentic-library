@@ -1,4 +1,4 @@
-import { isObject, only } from '../../shared/lib/json-shape.ts'
+import { isObject, isOneOf, only } from '../../shared/lib/json-shape.ts'
 import {
   type AuthenticationCredentialJSON,
   isTransport,
@@ -43,7 +43,7 @@ function isCredentialShell(value: Record<string, unknown>): boolean {
     isB64(value.id, LIMITS.credentialId) &&
     value.rawId === value.id &&
     isObject(value.response) &&
-    (value.authenticatorAttachment === undefined || ATTACHMENTS.includes(value.authenticatorAttachment as string)) &&
+    (value.authenticatorAttachment === undefined || isOneOf(value.authenticatorAttachment, ATTACHMENTS)) &&
     isObject(value.clientExtensionResults) &&
     only(value.clientExtensionResults, EXTENSIONS)
   )

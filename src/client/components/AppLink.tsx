@@ -1,6 +1,10 @@
 import { useRouter } from '@tanstack/react-router'
 import { type AnchorHTMLAttributes, forwardRef, type MouseEvent } from 'react'
 
+/** A main-button click with no modifier keys, which the page may handle; modified clicks stay the browser's. */
+export const isPlainClick = (e: Pick<MouseEvent, 'button' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>) =>
+  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey
+
 type Props = AnchorHTMLAttributes<HTMLAnchorElement> & {
   href: string
   viewTransition?: boolean
@@ -15,7 +19,7 @@ export const AppLink = forwardRef<HTMLAnchorElement, Props>(function AppLink(
   const router = useRouter()
   const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(e)
-    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    if (e.defaultPrevented || !isPlainClick(e)) return
     if (rest.target && rest.target !== '_self') return
     e.preventDefault()
     void router.navigate({ href, viewTransition })

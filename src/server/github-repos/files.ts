@@ -16,7 +16,7 @@ export const VIEW_MAX_BYTES = 1 * MB
 export const PICTURE_MAX_BYTES = 5 * MB
 const BINARY_SNIFF_BYTES = 8000
 const LFS_POINTER = 'version https://git-lfs.github.com/spec/v1'
-const LINK_MODE = '120000'
+export const LINK_MODE = '120000'
 const PICTURE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp', 'ico', 'svg'])
 const README = /^readme\.(md|markdown)$/i
 

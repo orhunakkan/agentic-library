@@ -1,3 +1,4 @@
+import { isOneOf } from '~/shared/lib/json-shape'
 import { LEADINGS, MEASURES, READER_FONTS, READER_THEMES, type SyncedSettings } from '~/shared/sync/sync'
 
 export type ReaderTheme = (typeof READER_THEMES)[number]
@@ -64,7 +65,7 @@ export const DEFAULT_PREFS: ReaderPrefs = {
 }
 
 function oneOf<T extends string>(value: unknown, options: readonly T[], fallback: T): T {
-  return options.includes(value as T) ? (value as T) : fallback
+  return isOneOf(value, options) ? value : fallback
 }
 
 export function parsePrefs(raw: string | null, siteDark: boolean): ReaderPrefs {

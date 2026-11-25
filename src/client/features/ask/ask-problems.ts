@@ -1,3 +1,4 @@
+import { timeOfDay } from '~/client/lib/format'
 import type { AiProvider } from '~/shared/lib/ai-models'
 import { proNotice } from '~/shared/plans/copy'
 import type { AskAction, AskProblem } from './ask-client'
@@ -55,6 +56,5 @@ export function failureText(
     return 'The answer didn’t come back as flashcards. Try again.'
   const text = problemText(problem, provider)
   if (problem !== 'limit' || !retryAt) return text
-  const time = new Date(retryAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  return `${text} Try again at ${time}.`
+  return `${text} Try again at ${timeOfDay(retryAt)}.`
 }

@@ -1,10 +1,12 @@
 import '@tanstack/react-start/server-only'
 import { type EmailStatus, emailStatus } from '../shared/admin/users.ts'
+import { PRO_STATUSES } from '../shared/billing/billing.ts'
 import { type AiModelId, resolveAiModel } from '../shared/lib/ai-models.ts'
 import { resolveSpeechModel, type SpeechModelId } from '../shared/lib/speech-models.ts'
 import type { PaidLabel } from '../shared/plans/copy.ts'
 import { USERNAME_PATTERN } from '../shared/signup/signup.ts'
 import type { Db } from './db.ts'
+import { SESSION_IDLE } from './sessions.ts'
 
 export type Role = 'admin' | 'member'
 export const ROLES: readonly Role[] = ['admin', 'member']
@@ -151,13 +153,13 @@ export async function listUsers(db: Db): Promise<UserSummary[]> {
     select u.username, u.role, u.created_at, u.disabled_at, u.pro_granted_at is not null as pro_given,
       paid.cadence as paid_cadence, paid.founding as paid_founding, paid.status as paid_status,
       (select count(*) from sessions s where s.user_id = u.id and s.expires_at > now()
-        and s.last_seen_at > now() - interval '7 days') as active_sessions,
+        and s.last_seen_at > now() - ${SESSION_IDLE}::interval) as active_sessions,
       exists (select 1 from api_keys k where k.user_id = u.id) as has_api_key,
       u.email is not null as has_email, u.email_bounced_at is not null as email_bounced
     from users u
     left join lateral (
       select s.cadence, s.founding, s.status from subscriptions s
-      where s.user_id = u.id and s.status in ('active', 'trialing', 'past_due')
+      where s.user_id = u.id and s.status = any(${[...PRO_STATUSES]}::text[])
       order by s.created_at desc limit 1
     ) paid on true
     order by u.username`

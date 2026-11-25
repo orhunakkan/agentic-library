@@ -1,5 +1,5 @@
 import { syncOutbox } from '~/client/features/sync/outbox'
-import { browserStorage } from '~/client/lib/storage-keys'
+import { browserStorage, writeItem } from '~/client/lib/storage-keys'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import type { PagePosition } from '~/shared/content/position'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
@@ -42,9 +42,7 @@ export function readRecent(storage: Storage | null = browserStorage()): RecentRe
 export function writeRecent(storage: Storage | null, entries: readonly RecentReading[]): void {
   takeLoaded(storage)
   const sorted = [...entries].sort((a, b) => b.at - a.at).slice(0, MAX_RECENT)
-  try {
-    storage?.setItem(KEY, JSON.stringify(sorted))
-  } catch {}
+  writeItem(storage, KEY, JSON.stringify(sorted))
 }
 
 export function placeFor(bookSlug: string, storage: Storage | null = browserStorage()): RecentReading | null {
@@ -102,9 +100,7 @@ export function rememberReading(
   const visit = visits.get(view.book.slug)
   const before = visit ? visit.before : (loaded?.get(view.book.slug) ?? 0)
   visits.set(view.book.slug, { before, viewedAt: entry.at })
-  try {
-    storage?.setItem(KEY, JSON.stringify(upsertRecent(list, entry, MAX_RECENT)))
-  } catch {}
+  writeItem(storage, KEY, JSON.stringify(upsertRecent(list, entry, MAX_RECENT)))
   if (entry.position) syncOutbox.add({ book: entry.bookSlug, position: entry.position, at: entry.at })
   return entry
 }

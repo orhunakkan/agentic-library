@@ -1,3 +1,4 @@
+import { isOneOf } from '~/shared/lib/json-shape'
 import { folioVoice, voiceUrl } from '~/shared/read-aloud/folio-voices'
 import { type AudioLike, browserUrls, createAudioSpeaker, type ObjectUrls, UrlCache } from './audio-speaker'
 import { type Engine, EngineError, type Made } from './piper/engine'
@@ -51,12 +52,10 @@ interface Entry {
   counted: boolean
 }
 
-const LOCAL_CODES: readonly string[] = ['local_missing', 'local_failed'] satisfies LocalProblemCode[]
+const LOCAL_CODES: readonly LocalProblemCode[] = ['local_missing', 'local_failed']
 
 const localProblem = (error: unknown): SpeakProblem | null =>
-  error instanceof EngineError && LOCAL_CODES.includes(error.code)
-    ? { kind: 'local', code: error.code as LocalProblemCode }
-    : null
+  error instanceof EngineError && isOneOf(error.code, LOCAL_CODES) ? { kind: 'local', code: error.code } : null
 
 export function createLocalSpeaker(deps: LocalSpeakerDeps): Speaker {
   const urls = deps.urls ?? browserUrls

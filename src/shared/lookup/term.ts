@@ -1,5 +1,5 @@
 export const TERM_MAX = 60
-export const TERM_WORDS = 3
+const TERM_WORDS = 3
 export const PASSAGE_MAX = 1_000
 
 export const collapse = (text: string) => text.normalize('NFC').replace(/\s+/gu, ' ').trim()

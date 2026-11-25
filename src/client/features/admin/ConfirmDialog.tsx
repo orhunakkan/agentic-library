@@ -47,23 +47,24 @@ export function DialogTitle({ id, children }: { id: string; children: ReactNode 
   )
 }
 
+/** A “Sign in” link that comes back to the users page, after a notice saying the admin was signed out. */
+export function UsersSignIn({ testId }: { testId: string }) {
+  return (
+    <>
+      {' '}
+      <a href="/login?next=/account/users" data-testid={testId} className="font-semibold underline underline-offset-2">
+        Sign in
+      </a>
+    </>
+  )
+}
+
 export function DialogError({ error }: { error: Message | null }) {
   if (!error) return null
   return (
     <Notice kind="error" data-testid="users-dialog-error">
       {error.text}
-      {error.signedOut && (
-        <>
-          {' '}
-          <a
-            href="/login?next=/account/users"
-            data-testid="users-dialog-sign-in"
-            className="font-semibold underline underline-offset-2"
-          >
-            Sign in
-          </a>
-        </>
-      )}
+      {error.signedOut && <UsersSignIn testId="users-dialog-sign-in" />}
     </Notice>
   )
 }

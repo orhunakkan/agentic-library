@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 export const ANTHROPIC_VERSION = '2026-10-21'
+export const FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 const TIMEOUT_MS = 10_000
 
 export type KeyCheck = 'valid' | 'rejected' | 'unavailable'

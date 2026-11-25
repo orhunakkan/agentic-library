@@ -1,4 +1,4 @@
-import { removeKeys } from '~/client/lib/storage-keys'
+import { readItem, removeKeys, writeItem } from '~/client/lib/storage-keys'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import { type PagePosition, parsePosition as parsePagePosition } from '~/shared/content/position'
 import { isObject } from '~/shared/lib/json-shape'
@@ -48,32 +48,20 @@ export function parsePosition(raw: string | null): SavedPosition | null {
 }
 
 export function readPosition(storage: Storage | null, bookSlug: string): SavedPosition | null {
-  try {
-    return parsePosition(storage?.getItem(positionKey(bookSlug)) ?? null)
-  } catch {
-    return null
-  }
+  return parsePosition(readItem(storage, positionKey(bookSlug)))
 }
 
 export function writePosition(storage: Storage | null, bookSlug: string, saved: Omit<SavedPosition, 'v'>): void {
-  try {
-    storage?.setItem(positionKey(bookSlug), JSON.stringify({ v: 1, ...saved }))
-  } catch {}
+  writeItem(storage, positionKey(bookSlug), JSON.stringify({ v: 1, ...saved }))
 }
 
 export function finishPosition(storage: Storage | null, bookSlug: string, at: number): void {
-  try {
-    storage?.setItem(positionKey(bookSlug), JSON.stringify({ v: 1, done: true, at }))
-  } catch {}
+  writeItem(storage, positionKey(bookSlug), JSON.stringify({ v: 1, done: true, at }))
 }
 
 export function readStamp(storage: Storage | null, bookSlug: string): { at: number; done: boolean } | null {
-  try {
-    const entry = parseEntry(storage?.getItem(positionKey(bookSlug)) ?? null)
-    return entry && { at: entry.at, done: 'done' in entry }
-  } catch {
-    return null
-  }
+  const entry = parseEntry(readItem(storage, positionKey(bookSlug)))
+  return entry && { at: entry.at, done: 'done' in entry }
 }
 
 export function voiceItem(
@@ -103,18 +91,12 @@ export function listPositions(storage: Storage | null): PositionStamp[] {
 }
 
 export function readSpeed(storage: Storage | null): number {
-  try {
-    const value = Number(storage?.getItem(SPEED_KEY))
-    return SPEEDS.includes(value) ? value : 1
-  } catch {
-    return 1
-  }
+  const value = Number(readItem(storage, SPEED_KEY))
+  return SPEEDS.includes(value) ? value : 1
 }
 
 export function writeSpeed(storage: Storage | null, speed: number): void {
-  try {
-    storage?.setItem(SPEED_KEY, String(speed))
-  } catch {}
+  writeItem(storage, SPEED_KEY, String(speed))
 }
 
 export function readVoices(storage: Storage | null): Record<string, string> {
@@ -128,9 +110,7 @@ export function readVoices(storage: Storage | null): Record<string, string> {
 }
 
 export function rememberVoice(storage: Storage | null, lang: string, voiceURI: string): void {
-  try {
-    storage?.setItem(VOICE_KEY, JSON.stringify({ ...readVoices(storage), [lang]: voiceURI }))
-  } catch {}
+  writeItem(storage, VOICE_KEY, JSON.stringify({ ...readVoices(storage), [lang]: voiceURI }))
 }
 
 export const voiceChoiceKey = (lang: string, privateBook: boolean) => (privateBook ? `${lang}:private` : lang)
@@ -167,7 +147,5 @@ export function offerDismissed(storage: Storage | null): boolean {
 }
 
 export function dismissOffer(storage: Storage | null): void {
-  try {
-    storage?.setItem(FOLIO_OFFER_KEY, JSON.stringify({ v: 1, dismissed: true }))
-  } catch {}
+  writeItem(storage, FOLIO_OFFER_KEY, JSON.stringify({ v: 1, dismissed: true }))
 }

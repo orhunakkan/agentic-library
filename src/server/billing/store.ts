@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { type BillingStatus, type Cadence, PRO_STATUSES } from '../../shared/billing/billing.ts'
+import { recordEvent } from '../audit.ts'
 import type { Db } from '../db.ts'
 import type { PaddleEvent, SubscriptionRow } from './webhook-input.ts'
 
@@ -63,6 +64,19 @@ export async function upsertFromPaddle(tx: Db, row: SubscriptionRow): Promise<Up
   }
 }
 
+export async function recordStatusChange(
+  tx: Db,
+  result: Upserted,
+  subscription: string,
+  by: 'paddle' | 'reconcile',
+): Promise<void> {
+  if (result.applied && result.from !== result.to)
+    await recordEvent(tx, 'billing.subscription', {
+      userId: result.userId,
+      detail: { subscription, status: result.to, by },
+    })
+}
+
 export interface StoredSubscription {
   id: string
   customerId: string | null
@@ -103,7 +117,7 @@ export async function subscriptionFor(db: Db, userId: number): Promise<StoredSub
   const [row] = await db<SubscriptionDbRow[]>`
     select id, customer_id, cadence, founding, status, period_ends_at, cancel_at, canceled_at, event_at
     from subscriptions where user_id = ${userId}
-    order by (status = any(${PRO_STATUSES as unknown as string[]}::text[])) desc, created_at desc, event_at desc
+    order by (status = any(${[...PRO_STATUSES]}::text[])) desc, created_at desc, event_at desc
     limit 1`
   return row ? toStored(row) : null
 }

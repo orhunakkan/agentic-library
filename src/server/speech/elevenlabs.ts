@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { isObject } from '../../shared/lib/json-shape.ts'
 import type { SpeechModelId } from '../../shared/lib/speech-models.ts'
 import type { Alignment } from '../../shared/read-aloud/alignment.ts'
-import type { CloudVoice, SpeakErrorCode, SpeechFormat } from '../../shared/read-aloud/cloud.ts'
+import { type CloudVoice, type SpeakErrorCode, type SpeechFormat, VOICE_ID } from '../../shared/read-aloud/cloud.ts'
 import { getConfig } from '../config.ts'
 
 export const PREVIOUS_TEXT_MAX = 300
@@ -87,13 +87,13 @@ const stringOr = (value: unknown) => (typeof value === 'string' && value.trim() 
 
 function toVoice(v: unknown): CloudVoice | null {
   if (!isObject(v)) return null
-  if (typeof v.voice_id !== 'string' || !/^[A-Za-z0-9]{1,64}$/.test(v.voice_id)) return null
+  if (typeof v.voice_id !== 'string' || !VOICE_ID.test(v.voice_id)) return null
   const name = stringOr(v.name)?.slice(0, 100)
   if (!name) return null
   const labels: Record<string, unknown> = isObject(v.labels) ? v.labels : {}
   const languages = new Set<string>()
   for (const l of Array.isArray(v.verified_languages) ? v.verified_languages : []) {
-    const language = stringOr((l as { language?: unknown } | null)?.language)
+    const language = stringOr(isObject(l) ? l.language : null)
     const base = language?.replace(/_/g, '-').split('-')[0]?.toLowerCase()
     if (base && /^[a-z]{2,3}$/.test(base)) languages.add(base)
   }
@@ -195,9 +195,9 @@ export async function synthesize(
     })
     const body = await jsonOf(response)
     if (response.status !== 200) return { ok: false, status: response.status, code: errorCode(response.status, body) }
-    const audio = isObject(body) ? body.audio_base64 : null
-    if (typeof audio !== 'string' || !audio) return { ok: false, status: 200, code: 'failed' }
-    return { ok: true, audio, alignment: alignmentOf(body as Record<string, unknown>) }
+    if (!isObject(body) || typeof body.audio_base64 !== 'string' || !body.audio_base64)
+      return { ok: false, status: 200, code: 'failed' }
+    return { ok: true, audio: body.audio_base64, alignment: alignmentOf(body) }
   } catch {
     return { ok: false, status: 0, code: 'failed' }
   }

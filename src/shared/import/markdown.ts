@@ -35,7 +35,7 @@ function onlyH1(items: readonly HtmlItem[]): string | null {
   return h1.length === 1 && h1[0]?.kind === 'heading' && h1[0].title ? h1[0].title : null
 }
 
-export function detailsFrom(fields: Record<string, string>): BookDetails {
+function detailsFrom(fields: Record<string, string>): BookDetails {
   return {
     description: cleanDescription(fields.description),
     isbn: fields.isbn ? normalizeIsbn(fields.isbn) : null,

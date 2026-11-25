@@ -8,8 +8,10 @@ export type CoverFrom = Exclude<CoverSource, 'open-library'>
 
 export type CoverRefusal = 'type' | 'small' | 'unavailable'
 
-export const refusalOf = (problem: UploadProblem): CoverRefusal =>
-  problem === 'small' ? 'small' : problem === 'unreadable' ? 'type' : 'unavailable'
+export function refusalOf(problem: UploadProblem): CoverRefusal {
+  if (problem === 'small') return 'small'
+  return problem === 'unreadable' ? 'type' : 'unavailable'
+}
 
 export interface PrivateBookDraft {
   book: Omit<BookStart, 'chapterCount' | 'images'>

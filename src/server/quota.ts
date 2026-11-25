@@ -67,7 +67,7 @@ export type Taken =
   | Refused
 
 async function eventRetryAt(db: Db, userId: number, kind: EventKind, now: Date): Promise<Date | null> {
-  const { limit, events } = EVENT_QUOTAS[kind] as EventQuota
+  const { limit, events } = EVENT_QUOTAS[kind]
   const rows = await db<{ at: Date }[]>`
     select at from audit_events
     where user_id = ${userId} and event = any(${[...events]}::text[])

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { onSynced } from '~/client/features/sync/engine'
 import { syncOutbox } from '~/client/features/sync/outbox'
+import { browserStorage, readItem, writeItem } from '~/client/lib/storage-keys'
 import {
   changesSynced,
   DEFAULT_PREFS,
@@ -31,10 +32,7 @@ export function useReaderPrefs() {
 
   useEffect(() => {
     const load = () => {
-      let raw: string | null = null
-      try {
-        raw = localStorage.getItem(PREFS_KEY)
-      } catch {}
+      const raw = readItem(browserStorage(), PREFS_KEY)
       const stored = parsePrefs(raw, document.documentElement.classList.contains('dark'))
       applyPrefs(stored)
       setPrefs(stored)
@@ -49,14 +47,10 @@ export function useReaderPrefs() {
     setPrefs((current) => {
       const next = { ...current, ...patch }
       applyPrefs(next)
-      try {
-        localStorage.setItem(PREFS_KEY, JSON.stringify(next))
-      } catch {}
+      writeItem(browserStorage(), PREFS_KEY, JSON.stringify(next))
       if (changesSynced(patch, current)) {
         const at = Date.now()
-        try {
-          localStorage.setItem(PREFS_AT_KEY, String(at))
-        } catch {}
+        writeItem(browserStorage(), PREFS_AT_KEY, String(at))
         syncOutbox.add({ values: pickSynced(next), at })
       }
       return next

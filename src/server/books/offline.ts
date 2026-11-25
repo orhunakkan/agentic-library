@@ -6,7 +6,7 @@ import type { BookMeta } from '~/shared/content/schema'
 import { OFFLINE_BOOK_VERSION, type OfflineBook, trimCatalog } from '~/shared/offline/book'
 import { pictureUrls } from '~/shared/offline/pictures'
 import type { Db } from '../db.ts'
-import { catalogueVersion, privateVersion } from '../downloads/version.ts'
+import { catalogueVersion, oncePerSlug, privateVersion } from '../downloads/version.ts'
 import { catalogueBook, contentImageFile, coverFile, loadBook, loadCatalog } from '../repository.ts'
 import { loadWholeBook, toChapterBook } from '../user-books.ts'
 import { catalogueSpeechBook, privateContext, privateSpeechBook } from './views.ts'
@@ -28,18 +28,8 @@ async function catalogueFileBytes(meta: BookMeta, pictures: readonly string[]): 
   return sizes.reduce((a, b) => a + b, 0) + cover
 }
 
-const catalogue = new Map<string, Promise<OfflineBook | null>>()
-
 /** A catalogue book whole, built once per slug for everyone. */
-export function catalogueOfflineBook(slug: string): Promise<OfflineBook | null> {
-  let book = catalogue.get(slug)
-  if (!book) {
-    book = buildCatalogueBook(slug)
-    catalogue.set(slug, book)
-    void book.then((b) => b === null && catalogue.delete(slug)).catch(() => catalogue.delete(slug))
-  }
-  return book
-}
+export const catalogueOfflineBook = oncePerSlug(buildCatalogueBook)
 
 async function buildCatalogueBook(slug: string): Promise<OfflineBook | null> {
   const [catalog, meta, content, version] = await Promise.all([

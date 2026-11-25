@@ -79,12 +79,8 @@ function parseKek(value: string | null | undefined, name: string): Kek | null {
 }
 
 function parseOrigin(value: string, name: string): string {
-  let url: URL
-  try {
-    url = new URL(value)
-  } catch {
-    throw new ConfigError(`${name} must be an origin such as https://agenticlibrary.app, got "${value}"`)
-  }
+  const url = URL.parse(value)
+  if (!url) throw new ConfigError(`${name} must be an origin such as https://agenticlibrary.app, got "${value}"`)
   if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.origin !== value.replace(/\/$/, ''))
     throw new ConfigError(`${name} must be an origin such as https://agenticlibrary.app (no path), got "${value}"`)
   return url.origin
@@ -92,13 +88,8 @@ function parseOrigin(value: string, name: string): string {
 
 function parseBase(value: string | undefined, fallback: string, name: string): string {
   const text = (value?.trim() || fallback).replace(/\/+$/, '')
-  let url: URL
-  try {
-    url = new URL(text)
-  } catch {
-    throw new ConfigError(`${name} must be an http: or https: URL, got "${value}"`)
-  }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:')
+  const protocol = URL.parse(text)?.protocol
+  if (protocol !== 'https:' && protocol !== 'http:')
     throw new ConfigError(`${name} must be an http: or https: URL, got "${value}"`)
   return text
 }
@@ -281,10 +272,8 @@ function parseSiteContact(value: string | undefined): SiteContact | null {
   if (text.includes('@')) {
     const email = parseEmail(text)
     if (email) return { kind: 'email', value: email }
-  } else if (text.length <= 200 && /^https:\/\/\S+$/.test(text)) {
-    try {
-      if (new URL(text).protocol === 'https:') return { kind: 'url', value: text }
-    } catch {}
+  } else if (text.length <= 200 && /^https:\/\/\S+$/.test(text) && URL.parse(text)?.protocol === 'https:') {
+    return { kind: 'url', value: text }
   }
   throw new ConfigError('SITE_CONTACT must be an email address or an https:// URL of at most 200 characters')
 }

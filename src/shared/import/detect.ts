@@ -7,7 +7,7 @@ export const MIN_MEDIAN_WORDS = 100
 
 export type ChapterLevel = 1 | 2 | 3
 
-export function splitChapters(items: readonly HtmlItem[], level: ChapterLevel): DraftChapter[] {
+function splitChapters(items: readonly HtmlItem[], level: ChapterLevel): DraftChapter[] {
   const chapters: DraftChapter[] = []
   for (const item of items) {
     const current = chapters.at(-1)
@@ -22,7 +22,7 @@ export function splitChapters(items: readonly HtmlItem[], level: ChapterLevel): 
   return chapters.filter((c) => c.blocks.length)
 }
 
-export function singleChapter(items: readonly HtmlItem[], title: string): DraftChapter[] {
+function singleChapter(items: readonly HtmlItem[], title: string): DraftChapter[] {
   const top = Math.min(...items.map((i) => (i.kind === 'heading' ? i.level : 7)))
   const blocks: BookBlock[] = []
   for (const item of items) {

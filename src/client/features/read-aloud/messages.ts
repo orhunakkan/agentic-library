@@ -1,3 +1,4 @@
+import { timeOfDay } from '~/client/lib/format'
 import { proNotice } from '~/shared/plans/copy'
 import { aboutMegabytes, megabytes } from '~/shared/read-aloud/folio-voices'
 import type { Problem } from './controller'
@@ -19,9 +20,6 @@ const LOCAL_TEXT: Record<LocalProblemCode, string> = {
   local_failed: 'The Folio voice couldn’t start on this device.',
 }
 
-const clock = (ms: number, timeZone?: string) =>
-  new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone })
-
 export function problemMessage(problem: Problem, timeZone?: string): string {
   switch (problem.kind) {
     case 'no-voice':
@@ -42,7 +40,7 @@ export function problemMessage(problem: Problem, timeZone?: string): string {
       if (problem.code !== 'rate') return CLOUD_TEXT[problem.code]
       return problem.retryAt === undefined
         ? 'You’ve used ElevenLabs for a lot of reading this hour. Try again later.'
-        : `You’ve used ElevenLabs for a lot of reading this hour. Try again at ${clock(problem.retryAt, timeZone)}.`
+        : `You’ve used ElevenLabs for a lot of reading this hour. Try again at ${timeOfDay(problem.retryAt, timeZone)}.`
   }
 }
 

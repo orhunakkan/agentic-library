@@ -2,7 +2,7 @@ export type OtherAudio = 'M4A' | 'Ogg' | 'Opus' | 'FLAC'
 
 export type Sniffed = 'mp4' | 'mp3' | 'aax' | 'm4a-drm' | { other: OtherAudio | null }
 
-const ascii = (bytes: Uint8Array, start: number, length: number) =>
+export const ascii = (bytes: Uint8Array, start: number, length: number) =>
   String.fromCharCode(...bytes.subarray(start, start + length))
 
 export function isMp3Frame(bytes: Uint8Array, at: number): boolean {

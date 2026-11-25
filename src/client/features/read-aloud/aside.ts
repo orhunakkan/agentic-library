@@ -112,7 +112,7 @@ export function createAside(deps: AsideDeps): Aside {
       {
         lang: voice?.lang ?? mine.lang,
         rate: readSpeed(deps.storage),
-        voice: voice as SpeechSynthesisVoice | null,
+        voice,
         ahead: mine.queue.slice(mine.at + 1, mine.at + 1 + LOOK_AHEAD).map((text) => ({ text })),
       },
       {

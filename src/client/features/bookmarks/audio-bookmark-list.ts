@@ -66,8 +66,7 @@ export class AudioBookmarkList extends OptimisticCollection<AudioBookmarkView, N
         },
         remove: deps.remove,
         removed: () => deps.toast('Bookmark removed'),
-        draft: (input, key) =>
-          ({ ...input.view, id: key, status: 'ok', createdAt: new Date().toISOString() }) as AudioBookmarkView,
+        draft: (input, key) => ({ ...input.view, id: key, status: 'ok', createdAt: new Date().toISOString() }),
         refused: (problem) => deps.toast(AUDIO_PROBLEM_TEXT[problem]),
         order: ordered,
       },

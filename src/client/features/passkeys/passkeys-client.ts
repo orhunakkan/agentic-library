@@ -1,13 +1,15 @@
 import { type ChangeResult, post } from '~/client/lib/post'
 import { isObject } from '~/shared/lib/json-shape'
-import type {
-  AddPasskeyError,
-  AuthenticationCredentialJSON,
-  CreationOptionsJSON,
-  PasskeyView,
-  RegistrationCredentialJSON,
-  RequestOptionsJSON,
-  SignInError,
+import {
+  ADD_PASSKEY_ERRORS,
+  type AddPasskeyError,
+  type AuthenticationCredentialJSON,
+  type CreationOptionsJSON,
+  type PasskeyView,
+  type RegistrationCredentialJSON,
+  type RequestOptionsJSON,
+  SIGN_IN_ERRORS,
+  type SignInError,
 } from '~/shared/passkeys/passkeys'
 import { authenticationJSON, creationOptions, registrationJSON, requestOptions } from './passkey-json'
 
@@ -19,18 +21,6 @@ export type Problem<P extends string> = { kind: 'server'; code: P } | { kind: 'b
 export type CeremonyResult<T, P extends string> = { ok: true; value: T } | { ok: false; problem: Problem<P> }
 
 export type Credentials = Pick<CredentialsContainer, 'create' | 'get'>
-
-const ADD_ERRORS: readonly AddPasskeyError[] = [
-  'signed_out',
-  'invalid',
-  'password',
-  'quota',
-  'expired',
-  'refused',
-  'taken',
-  'failed',
-]
-const SIGN_IN_ERRORS: readonly SignInError[] = ['invalid', 'refused', 'limited', 'unavailable']
 
 async function send<T, P extends string>(
   request: () => Promise<Response>,
@@ -57,14 +47,19 @@ async function send<T, P extends string>(
 const options = <T>(body: Record<string, unknown>) => (isObject(body.options) ? (body.options as T) : undefined)
 
 export function startAdding(password: string): Promise<ChangeResult<CreationOptionsJSON, AddProblem>> {
-  return send(() => post('/account/passkeys/options', { password }), options<CreationOptionsJSON>, ADD_ERRORS, 'failed')
+  return send(
+    () => post('/account/passkeys/options', { password }),
+    options<CreationOptionsJSON>,
+    ADD_PASSKEY_ERRORS,
+    'failed',
+  )
 }
 
 export function finishAdding(credential: RegistrationCredentialJSON): Promise<ChangeResult<PasskeyView, AddProblem>> {
   return send(
     () => post('/account/passkeys/new', { credential }),
     (body) => (isObject(body.passkey) ? (body.passkey as unknown as PasskeyView) : undefined),
-    ADD_ERRORS,
+    ADD_PASSKEY_ERRORS,
     'failed',
   )
 }
@@ -91,9 +86,7 @@ export function finishSignIn(
 }
 
 export function browserErrorName(error: unknown): string {
-  return typeof error === 'object' && error !== null && 'name' in error && typeof error.name === 'string'
-    ? error.name
-    : ''
+  return isObject(error) && typeof error.name === 'string' ? error.name : ''
 }
 
 const server = <P extends string>(code: P) => ({ ok: false as const, problem: { kind: 'server' as const, code } })

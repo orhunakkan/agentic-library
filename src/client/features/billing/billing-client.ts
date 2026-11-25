@@ -6,6 +6,7 @@ import {
   type CheckoutAnswer,
   type PlanState,
 } from '~/shared/billing/billing'
+import { isPlan } from '~/shared/plans/plans'
 
 export type BillingResult<T> = ChangeResult<T, BillingProblem | 'network'>
 
@@ -43,7 +44,7 @@ export async function fetchPlanState(): Promise<PlanState | null> {
     const response = await fetch('/account/plan/state', { cache: 'no-store' })
     if (!response.ok) return null
     const body = (await response.json()) as Partial<PlanState>
-    return body.plan === 'pro' || body.plan === 'free' ? (body as PlanState) : null
+    return isPlan(body.plan) ? (body as PlanState) : null
   } catch {
     return null
   }

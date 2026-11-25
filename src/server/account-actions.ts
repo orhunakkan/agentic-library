@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { isAiModel } from '../shared/lib/ai-models.ts'
+import { isOneOf } from '../shared/lib/json-shape.ts'
 import { DEFAULT_AFTER_SIGN_IN, safeNext } from '../shared/lib/safe-next.ts'
 import { isSpeechModel } from '../shared/lib/speech-models.ts'
 import { canUse, type ProFeature } from '../shared/plans/plans.ts'
@@ -212,8 +213,8 @@ export function handleApiKeys(request: Request, options: ApiKeysOptions = {}): P
     const ip = requestIp(request)
     if (intent === 'model') return saveModel(db, session.userId, ip, formField(form, 'model'))
     if (intent === 'speech-model') return saveSpeechModel(db, session.userId, ip, formField(form, 'model'))
-    const provider = formField(form, 'provider') as Provider
-    if (!PROVIDERS.includes(provider)) return seeOther(`${page}?error=invalid`)
+    const provider = formField(form, 'provider')
+    if (!isOneOf(provider, PROVIDERS)) return seeOther(`${page}?error=invalid`)
     if (intent !== 'save' && intent !== 'delete') return back(provider, 'error=invalid')
     const rules = KEY_RULES[provider]
     if (intent === 'save' && rules.feature && !canUse(session.plan, rules.feature)) return back(provider, 'error=pro')

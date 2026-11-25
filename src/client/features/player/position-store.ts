@@ -1,3 +1,4 @@
+import { readItem, writeItem } from '~/client/lib/storage-keys'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import { isObject } from '~/shared/lib/json-shape'
 
@@ -32,15 +33,11 @@ function parseEntry(raw: string | null): EpisodeStamp | null {
 }
 
 export function readEpisode(storage: Storage | null, book: string, episode: string, legacyUrl?: string): EpisodeStamp {
-  try {
-    const stored = parseEntry(storage?.getItem(episodeKey(book, episode)) ?? null)
-    if (stored) return stored
-    if (legacyUrl === undefined) return { ms: null, at: 0 }
-    const legacy = Number(storage?.getItem(legacyEpisodeKey(legacyUrl)))
-    return { ms: Number.isFinite(legacy) && legacy > 0 ? Math.round(legacy) : null, at: 0 }
-  } catch {
-    return { ms: null, at: 0 }
-  }
+  const stored = parseEntry(readItem(storage, episodeKey(book, episode)))
+  if (stored) return stored
+  if (legacyUrl === undefined) return { ms: null, at: 0 }
+  const legacy = Number(readItem(storage, legacyEpisodeKey(legacyUrl)))
+  return { ms: Number.isFinite(legacy) && legacy > 0 ? Math.round(legacy) : null, at: 0 }
 }
 
 function writeEntry(storage: Storage | null, key: string, value: object, legacyUrl?: string): void {
@@ -107,16 +104,10 @@ export function forgetPrivateEpisodes(storage: Storage | null): void {
 }
 
 export function readSpeed(storage: Storage | null): number | null {
-  try {
-    const value = Number(storage?.getItem(SPEED_KEY))
-    return Number.isFinite(value) && value > 0 ? value : null
-  } catch {
-    return null
-  }
+  const value = Number(readItem(storage, SPEED_KEY))
+  return Number.isFinite(value) && value > 0 ? value : null
 }
 
 export function writeSpeed(storage: Storage | null, speed: number): void {
-  try {
-    storage?.setItem(SPEED_KEY, String(speed))
-  } catch {}
+  writeItem(storage, SPEED_KEY, String(speed))
 }

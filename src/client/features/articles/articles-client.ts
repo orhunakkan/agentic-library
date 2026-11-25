@@ -1,4 +1,4 @@
-import type { BookStart } from '~/client/features/import/import-client'
+import { type BookStart, startedOf } from '~/client/features/import/import-client'
 import { type ChangeResult, post } from '~/client/lib/post'
 import type { ArticleFetch, ArticleUrlProblem, WebFetchProblem } from '~/shared/articles/contract'
 import { isPlan, type Plan } from '~/shared/plans/plans'
@@ -105,9 +105,5 @@ export async function fetchArticlePicture(fetchId: string, url: string): Promise
 export function startArticle(
   book: BookStart & { article: string },
 ): Promise<ArticleResult<{ id: string; imageBytesLeft: number }>> {
-  return send('/account/books/new', book, (b) =>
-    typeof b.id === 'string'
-      ? { id: b.id, imageBytesLeft: typeof b.imageBytesLeft === 'number' ? b.imageBytesLeft : 0 }
-      : undefined,
-  )
+  return send('/account/books/new', book, startedOf)
 }

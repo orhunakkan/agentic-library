@@ -2,7 +2,7 @@ import { isBookSlug, isPrivateBookSlug } from '../content/book-slug'
 import { coverUrlFor } from '../content/library'
 import type { ReaderContext } from '../content/reader-view'
 import type { BookContent, BookMeta, Catalog, CoverStyle } from '../content/schema'
-import { isObject } from '../lib/json-shape'
+import { exactly, isObject } from '../lib/json-shape'
 import type { SpeechBook } from '../read-aloud/speech-text'
 
 export const OFFLINE_BOOK_VERSION = 1
@@ -49,9 +49,7 @@ export const isSitePath = (value: unknown): value is string =>
   typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && value.length <= 500
 
 export function parseOfflineBook(value: unknown): OfflineBook | null {
-  if (!isObject(value)) return null
-  const keys = Object.keys(value)
-  if (keys.length !== KEYS.length || !KEYS.every((k) => keys.includes(k))) return null
+  if (!isObject(value) || !exactly(value, KEYS)) return null
   const { v, slug, version, title, author, owner, context, content, cover, speech, pictures, bytes } = value
   if (v !== OFFLINE_BOOK_VERSION || !isOfflineSlug(slug)) return null
   if (typeof version !== 'string' || !VERSION.test(version)) return null

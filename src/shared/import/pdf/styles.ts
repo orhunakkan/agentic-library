@@ -1,3 +1,4 @@
+import { isOneOf } from '../../lib/json-shape.ts'
 import { MIN_CHAPTERS, MIN_MEDIAN_WORDS, median } from '../detect.ts'
 import { charCount, type PdfLine, type PdfStyle, roundSize, STYLE_KINDS, type StyleKind } from './types.ts'
 
@@ -157,7 +158,7 @@ export function styleKinds(
   const kinds = new Map<string, StyleKind>()
   for (const s of styles) {
     const chosen = Object.hasOwn(overrides, s.key) ? overrides[s.key] : undefined
-    kinds.set(s.key, chosen && STYLE_KINDS.includes(chosen) ? chosen : s.guess)
+    kinds.set(s.key, isOneOf(chosen, STYLE_KINDS) ? chosen : s.guess)
   }
   return kinds
 }

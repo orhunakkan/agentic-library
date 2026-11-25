@@ -20,6 +20,7 @@ import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import {
   childrenOf,
   isPictureName,
+  LINK_MODE,
   PICTURE_MAX_BYTES,
   parentOf,
   type RawFetch,
@@ -179,6 +180,13 @@ function refToResolve(row: RepoRow, defaultBranch: string): string {
   return row.refKind === 'branch' ? `heads/${row.ref}` : row.ref
 }
 
+const factsOf = ({ owner, name, defaultBranch, description }: RepoInfo | RepoRow) => ({
+  owner,
+  name,
+  defaultBranch,
+  description,
+})
+
 async function refreshRepo(
   db: Pool,
   request: Request,
@@ -197,16 +205,11 @@ async function refreshRepo(
     await taken.settle({ problem: failure.problem })
     return failure
   }
-  let facts = { owner: row.owner, name: row.name, defaultBranch: row.defaultBranch, description: row.description }
+  let facts = factsOf(row)
   if (row.ref === null) {
     const info = await getRepoById(row.githubId, options)
     if (!info.ok) return info.problem === 'not-found' ? gone() : failed(info)
-    facts = {
-      owner: info.value.owner,
-      name: info.value.name,
-      defaultBranch: info.value.defaultBranch,
-      description: info.value.description,
-    }
+    facts = factsOf(info.value)
   }
   const head = await resolveRef(facts.owner, facts.name, refToResolve(row, facts.defaultBranch), options)
   let commit: string
@@ -282,7 +285,7 @@ export async function handleRepoRaw(request: Request, id: string, options: GitHu
     if (!tree.ok) return tree.problem === 'not-found' ? missing() : pictureText(503, 'Unavailable')
     await loadFolder(treeKey(row), tree.value, parentOf(path), options)
     const entry = tree.value.byPath.get(path)
-    if (entry?.type !== 'blob' || entry.mode === '120000' || (entry.size ?? 0) > PICTURE_MAX_BYTES) return missing()
+    if (entry?.type !== 'blob' || entry.mode === LINK_MODE || (entry.size ?? 0) > PICTURE_MAX_BYTES) return missing()
     const bytes = await getRaw(row.owner, row.name, row.commitSha, path, PICTURE_MAX_BYTES, options)
     if (!bytes.ok) return bytes.problem === 'not-found' ? missing() : pictureText(503, 'Unavailable')
     const type = sniffPicture(bytes.value)

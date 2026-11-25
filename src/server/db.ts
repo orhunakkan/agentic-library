@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import postgres, { type ISql, type Sql } from 'postgres'
+import { isObject } from '../shared/lib/json-shape.ts'
 import { getConfig } from './config.ts'
 
 export type Db = ISql
@@ -35,10 +36,7 @@ export function getDb(): Sql {
 
 /** Whether `error` is Postgres refusing a write because it would break the unique `constraint` (code 23505). */
 export const isUniqueViolation = (error: unknown, constraint: string) =>
-  typeof error === 'object' &&
-  error !== null &&
-  (error as { code?: string }).code === '23505' &&
-  (error as { constraint_name?: string }).constraint_name === constraint
+  isObject(error) && error.code === '23505' && error.constraint_name === constraint
 
 export async function closeDb(): Promise<void> {
   const current = client

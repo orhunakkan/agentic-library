@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
+import { isPlainClick } from '~/client/components/AppLink'
 import { cn } from '~/client/lib/cn'
 
 export interface OpenPicture {
@@ -13,7 +14,7 @@ export function usePictureLinks(area: RefObject<HTMLElement | null>) {
   const [picture, setPicture] = useState<OpenPicture | null>(null)
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      if (e.defaultPrevented || !isPlainClick(e)) return
       const link = (e.target as Element | null)?.closest?.('[data-highlight-root] figure > a')
       const img = link?.querySelector('img')
       if (!(link instanceof HTMLAnchorElement) || !img || !area.current?.contains(link)) return

@@ -36,7 +36,7 @@ const MAX_EPUB_COVER_BYTES = 10 * MB
 
 type Opf = ReturnType<typeof parseHtml>
 
-export function coverHref(opf: Opf): string | null {
+function coverHref(opf: Opf): string | null {
   const items = opf.querySelectorAll('manifest item')
   const byProperty = items.find((i) => (i.getAttribute('properties') ?? '').split(/\s+/).includes('cover-image'))
   if (byProperty) return byProperty.getAttribute('href') ?? null

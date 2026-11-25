@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { type EmailStatus, emailStatus } from '../../shared/admin/users.ts'
+import { PRO_STATUSES } from '../../shared/billing/billing.ts'
 import type { PaidLabel } from '../../shared/plans/copy.ts'
 import { endedDetail, endUserAccess } from '../access-tokens/store.ts'
 import { forgetUserAudio } from '../audiobooks/files.ts'
@@ -10,6 +11,7 @@ import { getConfig } from '../config.ts'
 import type { Db, Pool } from '../db.ts'
 import { usernameLockedUntil } from '../login-attempts.ts'
 import { logError } from '../redact.ts'
+import { SESSION_IDLE } from '../sessions.ts'
 import { createUser, type Role, type User } from '../users.ts'
 
 interface Target {
@@ -175,12 +177,12 @@ export async function listForAdmin(db: Db, viewerId: number, username?: string):
     from users u
     left join lateral (
       select s.cadence, s.founding, s.status from subscriptions s
-      where s.user_id = u.id and s.status in ('active', 'trialing', 'past_due')
+      where s.user_id = u.id and s.status = any(${[...PRO_STATUSES]}::text[])
       order by s.created_at desc limit 1
     ) paid on true
     left join lateral (
       select max(s.last_seen_at) as last_active_at, count(*) as sessions from sessions s
-      where s.user_id = u.id and s.expires_at > now() and s.last_seen_at > now() - interval '7 days'
+      where s.user_id = u.id and s.expires_at > now() and s.last_seen_at > now() - ${SESSION_IDLE}::interval
     ) live on true
     ${username === undefined ? db`` : db`where u.username = ${username}`}
     order by u.username`

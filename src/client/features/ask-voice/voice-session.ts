@@ -67,7 +67,7 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
   let privateBook = false
   let probed: string | null = null
   let session: Session | null = null
-  let answering: { feed: SpeechFeed } | null = null
+  let answering: SpeechFeed | null = null
 
   const emit = (patch: Partial<VoiceState>) => {
     state = { ...state, ...patch }
@@ -139,7 +139,7 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
           dispatch({ type: 'answer-end', outcome: 'failed', utterances: [], speak: state.speak })
           return
         }
-        answering = { feed: createSpeechFeed(lang) }
+        answering = createSpeechFeed(lang)
         deps.send(effect.text)
         return
       case 'say':
@@ -212,11 +212,11 @@ export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
       const mine = answering
       if (!mine) return
       if (text !== null) {
-        dispatch({ type: 'answer-text', utterances: mine.feed.push(text), speak: state.speak })
+        dispatch({ type: 'answer-text', utterances: mine.push(text), speak: state.speak })
         return
       }
       answering = null
-      const rest = outcome === 'done' && stored !== null ? [...mine.feed.push(stored), ...mine.feed.end()] : []
+      const rest = outcome === 'done' && stored !== null ? [...mine.push(stored), ...mine.end()] : []
       dispatch({ type: 'answer-end', outcome, utterances: rest, speak: state.speak })
     },
     listen: (index, text) => {

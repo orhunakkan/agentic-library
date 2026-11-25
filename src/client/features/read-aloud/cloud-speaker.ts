@@ -102,7 +102,7 @@ export function createCloudSpeaker(deps: CloudSpeakerDeps): Speaker {
       oldest?.controller?.abort()
       if (oldest) cache.deleteValue(oldest)
     }
-    return fetchEntry(key, { ...ref, voice, format } as SpeakRequest)
+    return fetchEntry(key, { ...ref, voice, format })
   }
 
   const speak = (_text: string, options: SpeakOptions, handlers: SpeakHandlers) => {

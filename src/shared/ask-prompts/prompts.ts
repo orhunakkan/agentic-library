@@ -7,7 +7,7 @@ export const MAX_ASK_PROMPTS = 20
 export const PROMPT_NAME_MAX = 60
 export const PROMPT_INSTRUCTION_MAX = 2_000
 
-export const APPLIES_TO = ['pages', 'passage'] as const
+const APPLIES_TO = ['pages', 'passage'] as const
 export type AppliesTo = (typeof APPLIES_TO)[number]
 
 export const isAppliesTo = (value: unknown): value is AppliesTo => isOneOf(value, APPLIES_TO)

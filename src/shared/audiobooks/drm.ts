@@ -1,3 +1,5 @@
+import { ascii } from './sniff.ts'
+
 export type ReadRange = (start: number, end: number) => Promise<Uint8Array>
 
 export type Mp4Audio = 'aac' | 'drm' | 'other' | 'none'
@@ -6,9 +8,6 @@ const PROTECTED = new Set(['drms', 'enca', 'aavd'])
 const CONTAINERS = new Set(['moov', 'trak', 'mdia', 'minf', 'stbl'])
 const MAX_STSD = 1024 * 1024
 const MAX_BOXES = 10_000
-
-const ascii = (bytes: Uint8Array, start: number, length: number) =>
-  String.fromCharCode(...bytes.subarray(start, start + length))
 
 interface Box {
   type: string

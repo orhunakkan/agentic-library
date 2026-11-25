@@ -14,7 +14,7 @@ export function proSql(db: Db) {
 
 function paidSql(db: Db) {
   return db`exists (select 1 from subscriptions s where s.user_id = u.id
-    and s.status = any(${PRO_STATUSES as unknown as string[]}::text[]))`
+    and s.status = any(${[...PRO_STATUSES]}::text[]))`
 }
 
 export function planFor(pro: boolean): Plan {

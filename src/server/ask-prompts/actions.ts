@@ -7,8 +7,6 @@ import { isPromptId, type Parsed, parseNewPrompt, parsePromptChange } from './in
 import { createPrompt, deletePrompt, editPrompt, listPrompts, movePrompt } from './store.ts'
 import { toPromptView } from './view.ts'
 
-export type { AskPromptsState }
-
 const MAX_BODY_BYTES = 12 * 1024
 
 const prompts = signedInEndpoints<PromptErrorCode>({ maxBytes: MAX_BODY_BYTES })

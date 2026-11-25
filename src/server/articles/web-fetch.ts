@@ -31,7 +31,7 @@ interface Timeouts {
 }
 
 const TIMEOUTS: Timeouts = { totalMs: 15_000, headersMs: 8_000, stallMs: 5_000 }
-export const MAX_REDIRECTS = 5
+const MAX_REDIRECTS = 5
 
 const PAGE_ACCEPT = 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1'
 const PICTURE_ACCEPT = 'image/webp,image/png,image/jpeg,image/gif'

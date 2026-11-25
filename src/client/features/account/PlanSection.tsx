@@ -3,7 +3,7 @@ import type { SubscriptionView } from '~/shared/billing/billing'
 import { GO_PRO } from '~/shared/billing/copy'
 import { planLine, usageLine } from '~/shared/plans/copy'
 import { FREE_LIMITS, limitsFor, type Plan, type PlanSource, PRO_FEATURES } from '~/shared/plans/plans'
-import { PaidStatus } from '../billing/PaidStatus'
+import { PaidStatus, PlanLine } from '../billing/PaidStatus'
 import { Section } from './ui'
 
 export interface PlanView {
@@ -46,11 +46,7 @@ export function PlanSection({ plan }: { plan: PlanView }) {
         {plan.source === 'paid' && plan.subscription ? (
           <PaidStatus subscription={plan.subscription} />
         ) : (
-          <p className="text-[14.5px] text-ink" data-testid="plan-line">
-            {line.before}
-            <strong>{line.name}</strong>
-            {line.after}
-          </p>
+          <PlanLine line={line} className="text-[14.5px] text-ink" />
         )}
         {plan.source !== 'admin' && (
           <Usage

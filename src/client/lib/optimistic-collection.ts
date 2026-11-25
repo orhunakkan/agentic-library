@@ -346,3 +346,13 @@ export function reloadWhenBack(reload: () => void, afterMs: number, now: () => n
     else if (hiddenAt && now() - hiddenAt >= afterMs) reload()
   }
 }
+
+const RELOAD_AFTER_MS = 60_000
+
+/** Reloads a list when the page comes back after a minute or more hidden; returns the function that stops it. */
+export function reloadOnReturn(reload: () => void): () => void {
+  const back = reloadWhenBack(reload, RELOAD_AFTER_MS)
+  const onVisibility = () => back(document.visibilityState)
+  document.addEventListener('visibilitychange', onVisibility)
+  return () => document.removeEventListener('visibilitychange', onVisibility)
+}

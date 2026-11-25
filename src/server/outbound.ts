@@ -28,16 +28,39 @@ export function folioUserAgent(contact: string | null = null): string {
   return contact ? `Folio (${contact}; +${appOrigin})` : `Folio (+${appOrigin})`
 }
 
+/** Answers from another site by URL, each kept for `maxAgeMs`, and at most `max` of them, the oldest dropped first. */
+export function answerCache(maxAgeMs: number, max: number) {
+  const entries = new Map<string, { at: number; value: unknown }>()
+  return {
+    get(url: string): { value: unknown } | undefined {
+      const hit = entries.get(url)
+      if (!hit) return undefined
+      if (Date.now() - hit.at > maxAgeMs) {
+        entries.delete(url)
+        return undefined
+      }
+      return { value: hit.value }
+    },
+    set(url: string, value: unknown): void {
+      entries.delete(url)
+      entries.set(url, { at: Date.now(), value })
+      while (entries.size > max) entries.delete(entries.keys().next().value as string)
+    },
+    clear: () => entries.clear(),
+  }
+}
+
 class Failure extends Error {
   constructor(readonly problem: OutboundProblem) {
     super(problem)
   }
 }
 
-async function readUpTo(response: Response, max: number): Promise<Uint8Array> {
+/** The successful answer, its body read up to `max` bytes; a longer body is a too-large failure. */
+async function okAnswer(response: Response, max: number): Promise<OutboundResult> {
   const bytes = await readCapped(response, max)
   if (!bytes) throw new Failure('too-large')
-  return new Uint8Array(bytes)
+  return { ok: true, status: response.status, body: new Uint8Array(bytes), headers: response.headers }
 }
 
 export async function fetchCapped(url: string, options: OutboundOptions): Promise<OutboundResult> {
@@ -53,13 +76,7 @@ export async function fetchCapped(url: string, options: OutboundOptions): Promis
         redirect: 'manual',
         signal,
       })
-      if (options.passStatuses?.includes(response.status))
-        return {
-          ok: true,
-          status: response.status,
-          body: await readUpTo(response, options.maxBytes),
-          headers: response.headers,
-        }
+      if (options.passStatuses?.includes(response.status)) return await okAnswer(response, options.maxBytes)
       if (response.status >= 300 && response.status < 400) {
         await response.body?.cancel().catch(() => {})
         const location = response.headers.get('location')
@@ -74,12 +91,7 @@ export async function fetchCapped(url: string, options: OutboundOptions): Promis
       }
       if (response.status === 429 || response.status === 503) throw new Failure('busy')
       if (!response.ok) throw new Failure('unavailable')
-      return {
-        ok: true,
-        status: response.status,
-        body: await readUpTo(response, options.maxBytes),
-        headers: response.headers,
-      }
+      return await okAnswer(response, options.maxBytes)
     }
   } catch (error) {
     const problem = error instanceof Failure ? error.problem : 'unavailable'

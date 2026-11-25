@@ -14,7 +14,7 @@ import {
 } from 'react'
 import { Button, Notice, TextField } from '~/client/features/account/ui'
 import { problem, problemText } from '~/client/features/audiobook-import/audiobook-problems'
-import { CoverChooser, IMAGE_PROBLEM_TEXT } from '~/client/features/book-details/CoverChooser'
+import { CoverChooser, coverSourceText, IMAGE_PROBLEM_TEXT } from '~/client/features/book-details/CoverChooser'
 import { drawCover } from '~/client/features/book-details/cover-image'
 import { cn } from '~/client/lib/cn'
 import { privateCover } from '~/shared/content/private-book'
@@ -51,7 +51,7 @@ import type { Plan } from '~/shared/plans/plans'
 import { SeeProLink } from '../plans/ProNotice'
 import { BOOK_STEPS } from './import-client'
 import { BAD_ISBN, importSaveText, PICTURE_FAILED, SAVE_FAILED } from './import-problems'
-import { latestPick } from './latest-pick'
+import { latestPick, type PickToken } from './latest-pick'
 import { PdfReading } from './PdfReading'
 import type { PdfBook, PdfProgress, PdfRead } from './pdf-open'
 import { plural } from './pdf-reading'
@@ -132,51 +132,48 @@ export function BookImporter({
       setStage({ kind: 'pick', error: `The file is larger than ${MAX_SOURCE_BYTES / MB} MB.` })
       return
     }
-    const fail = (error: unknown) => {
+    try {
+      if (sourceKind(file.name) === 'pdf') {
+        await readPdf(file, pick)
+        return
+      }
+      setStage({ kind: 'reading', fileName: file.name })
+      const draft = await openBook(file.name, new Uint8Array(await file.arrayBuffer()))
+      if (picks.isCurrent(pick)) setStage({ kind: 'review', draft, fileName: file.name })
+    } catch (error) {
       if (!picks.isCurrent(pick)) return
       if (isAbort(error)) setStage({ kind: 'pick' })
       else
         setStage({ kind: 'pick', error: error instanceof ImportError ? error.message : 'This file couldn’t be read.' })
     }
-    if (sourceKind(file.name) === 'pdf') {
-      const controller = new AbortController()
-      const cancel = () => {
-        controller.abort()
-        picks.invalidate()
-        setStage({ kind: 'pick' })
-      }
-      setStage({ kind: 'reading', fileName: file.name, cancel })
-      try {
-        const { openPdf } = await import('./pdf-open')
-        const book = await openPdf(file.name, new Uint8Array(await file.arrayBuffer()), {
-          signal: controller.signal,
-          onProgress: (progress) => {
-            if (picks.isCurrent(pick)) setStage({ kind: 'reading', fileName: file.name, progress, cancel })
-          },
-        })
-        if (!picks.isCurrent(pick)) {
-          book.close()
-          return
-        }
-        const { draft, styles, report, overrides } = book
-        setStage({
-          kind: 'review',
-          draft,
-          fileName: file.name,
-          pdf: { book, read: { styles, report, overrides }, edited: false, rereading: false, run: 0 },
-        })
-      } catch (error) {
-        fail(error)
-      }
+  }
+
+  async function readPdf(file: File, pick: PickToken) {
+    const controller = new AbortController()
+    const cancel = () => {
+      controller.abort()
+      picks.invalidate()
+      setStage({ kind: 'pick' })
+    }
+    setStage({ kind: 'reading', fileName: file.name, cancel })
+    const { openPdf } = await import('./pdf-open')
+    const book = await openPdf(file.name, new Uint8Array(await file.arrayBuffer()), {
+      signal: controller.signal,
+      onProgress: (progress) => {
+        if (picks.isCurrent(pick)) setStage({ kind: 'reading', fileName: file.name, progress, cancel })
+      },
+    })
+    if (!picks.isCurrent(pick)) {
+      book.close()
       return
     }
-    setStage({ kind: 'reading', fileName: file.name })
-    try {
-      const draft = await openBook(file.name, new Uint8Array(await file.arrayBuffer()))
-      if (picks.isCurrent(pick)) setStage({ kind: 'review', draft, fileName: file.name })
-    } catch (error) {
-      fail(error)
-    }
+    const { draft, styles, report, overrides } = book
+    setStage({
+      kind: 'review',
+      draft,
+      fileName: file.name,
+      pdf: { book, read: { styles, report, overrides }, edited: false, rereading: false, run: 0 },
+    })
   }
 
   async function reread(pdf: PdfReview, overrides: PdfOverrides) {
@@ -759,14 +756,6 @@ function PictureSummary({
   )
 }
 
-const SOURCE_TEXT: Record<ReviewCover['from'], string> = {
-  epub: 'From the book’s file',
-  zip: 'From the book’s file',
-  pdf: 'From the book’s file',
-  audio: 'From the book’s file',
-  upload: 'Your image',
-}
-
 const reviewField =
   'mt-2 w-full rounded-xl border border-line bg-page px-4 text-[16px] text-ink outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15 aria-[invalid=true]:border-red-500'
 
@@ -851,7 +840,7 @@ export function CoverAndDetails<T extends ReviewBook>({
         author={draft.author}
         style={privateCover(draft.title)}
         cover={cover && url ? { src: url, width: cover.width, height: cover.height } : null}
-        sourceText={cover ? SOURCE_TEXT[cover.from] : 'Generated from the title'}
+        sourceText={coverSourceText(cover?.from ?? null)}
         onChoose={(file) => void choose(file)}
         onGenerated={() => {
           setProblem(null)

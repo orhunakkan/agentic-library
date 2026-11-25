@@ -215,7 +215,7 @@ let instance: Outbox | null = null
 
 const app = (): Outbox => {
   instance ??= createOutbox({
-    send: (batch, options) => sendBatch(batch, options),
+    send: sendBatch,
     now: () => Date.now(),
     setTimer: (run, ms) => globalThis.setTimeout(run, ms),
     clearTimer: (t) => globalThis.clearTimeout(t as ReturnType<typeof setTimeout>),

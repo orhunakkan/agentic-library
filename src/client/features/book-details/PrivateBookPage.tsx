@@ -11,6 +11,7 @@ import {
   ChooseImageButton,
   CoverChooser,
   chooserButton,
+  coverSourceText,
   IMAGE_PROBLEM_TEXT,
 } from '~/client/features/book-details/CoverChooser'
 import { drawCover } from '~/client/features/book-details/cover-image'
@@ -32,7 +33,7 @@ import {
   type PrivateBookPage as Page,
   type PrivateBookFact,
 } from '~/shared/content/private-book'
-import { normalizeIsbn } from '~/shared/import/isbn'
+import { isBadIsbn } from '~/shared/import/isbn'
 import { DESCRIPTION_MAX, PUBLISHER_MAX } from '~/shared/import/limits'
 import type { RatingState } from '~/shared/ratings/ratings'
 
@@ -64,22 +65,6 @@ function FactValue({ fact }: { fact: PrivateBookFact }) {
   if (fact.format === 'language') return <>{languageName(fact.value)}</>
   if (fact.format === 'date') return <LocalDate iso={fact.value} />
   return <>{fact.value}</>
-}
-
-function coverSourceText(source: Page['coverSource']): string {
-  switch (source) {
-    case 'epub':
-    case 'zip':
-    case 'pdf':
-    case 'audio':
-      return 'From the book’s file'
-    case 'upload':
-      return 'Your image'
-    case 'open-library':
-      return 'Cover from Open Library'
-    default:
-      return 'Generated from the title'
-  }
 }
 
 const link = 'font-semibold text-ink underline decoration-line underline-offset-4 transition hover:decoration-accent'
@@ -273,7 +258,7 @@ const inputClass =
 function DetailsForm({ page }: { page: DetailsPage }) {
   const [description, setDescription] = useState(page.details.description ?? '')
   const [isbn, setIsbn] = useState(page.details.isbn ?? '')
-  const badIsbn = isbn.trim() !== '' && normalizeIsbn(isbn) === null
+  const badIsbn = isBadIsbn(isbn)
   const nextYear = new Date().getFullYear() + 1
   return (
     <form method="post" className="mt-6 grid gap-5" onSubmit={(e) => badIsbn && e.preventDefault()}>

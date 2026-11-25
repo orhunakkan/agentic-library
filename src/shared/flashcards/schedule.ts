@@ -1,4 +1,4 @@
-export const MAX_BOX = 5
+const MAX_BOX = 5
 export const INTERVAL_DAYS = [1, 3, 7, 16, 35] as const
 
 export type ReviewResult = 'again' | 'good'

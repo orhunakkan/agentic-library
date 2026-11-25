@@ -192,17 +192,12 @@ const tab = (active: boolean) =>
     active ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
   )
 
-function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
+function FileBody({ repo, file }: { repo: RepoView; file: RepoFile }) {
   const { content } = file
-  const markdown = content.kind === 'markdown'
-  const info = [sizeText(file.size), file.lines !== null ? linesText(file.lines) : null].filter(Boolean).join(' · ')
-  const run = useContext(RunCodeContext)
-  const runLang = run && content.kind === 'code' && !content.capped ? fileLang(file.path) : null
-  let body: ReactNode
   if (content.kind === 'markdown' && content.view === 'preview')
-    body = <Rendered key={file.path} repoId={repo.id} markdown={content.markdown} testId="repo-file" />
-  else if (content.kind === 'markdown' || content.kind === 'code')
-    body = (
+    return <Rendered key={file.path} repoId={repo.id} markdown={content.markdown} testId="repo-file" />
+  if (content.kind === 'markdown' || content.kind === 'code')
+    return (
       <>
         {content.capped && (
           <p className="mb-3 text-[14px] text-muted" data-testid="repo-file-notice">
@@ -212,14 +207,14 @@ function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
         <CodeLines code={content.code} data-testid="repo-file" />
       </>
     )
-  else if (content.kind === 'picture')
-    body = (
+  if (content.kind === 'picture')
+    return (
       <div className="flex justify-center rounded-xl border border-line bg-inset p-4" data-testid="repo-file">
         <img src={repoRawHref(repo.id, file.path)} alt={file.name} className="max-h-[70vh] max-w-full object-contain" />
       </div>
     )
-  else if (content.notice === 'link')
-    body = (
+  if (content.notice === 'link')
+    return (
       <FileNotice>
         {noticeText(content)}{' '}
         {content.targetPath !== null ? (
@@ -235,7 +230,15 @@ function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
         )}
       </FileNotice>
     )
-  else body = <FileNotice>{noticeText(content)}</FileNotice>
+  return <FileNotice>{noticeText(content)}</FileNotice>
+}
+
+function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
+  const { content } = file
+  const markdown = content.kind === 'markdown'
+  const info = [sizeText(file.size), file.lines !== null ? linesText(file.lines) : null].filter(Boolean).join(' · ')
+  const run = useContext(RunCodeContext)
+  const runLang = run && content.kind === 'code' && !content.capped ? fileLang(file.path) : null
 
   return (
     <div>
@@ -278,7 +281,7 @@ function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
           </nav>
         )}
       </div>
-      {body}
+      <FileBody repo={repo} file={file} />
     </div>
   )
 }
@@ -331,27 +334,32 @@ function Target({ data, repo }: { data: Ready; repo: RepoView }) {
   )
 }
 
-export function RepoViewer({ data, path }: { data: Ready; path: string }) {
+function useRefresh(repoId: string, loaded: Ready['refreshed']) {
   const router = useRouter()
-  const repo = data.repo
-  const { state, toggle } = useTree(repo.id, data, path)
-  const [drawer, setDrawer] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [refreshed, setRefreshed] = useState<{ changed: boolean } | null>(data.refreshed)
+  const [refreshed, setRefreshed] = useState(loaded)
   const [error, setError] = useState<{ problem: RepoProblem; retryAt?: string | null } | null>(null)
-  useEffect(() => setRefreshed(data.refreshed), [data.refreshed])
+  useEffect(() => setRefreshed(loaded), [loaded])
 
   const refresh = async () => {
     setRefreshing(true)
     setError(null)
     setRefreshed(null)
-    const result = await refreshRepo(repo.id)
+    const result = await refreshRepo(repoId)
     if (result.ok) {
       await router.invalidate()
       setRefreshed({ changed: result.value.changed })
     } else setError({ problem: result.problem, retryAt: result.failure?.retryAt })
     setRefreshing(false)
   }
+  return { refreshing, refreshed, error, refresh }
+}
+
+export function RepoViewer({ data, path }: { data: Ready; path: string }) {
+  const repo = data.repo
+  const { state, toggle } = useTree(repo.id, data, path)
+  const [drawer, setDrawer] = useState(false)
+  const { refreshing, refreshed, error, refresh } = useRefresh(repo.id, data.refreshed)
 
   const isFile = data.target.kind === 'file'
   const onGitHub = githubBlobUrl(

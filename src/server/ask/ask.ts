@@ -3,7 +3,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import type OpenAI from 'openai'
 import type { BookContent } from '~/shared/content/schema'
 import { type AiModelId, type AiProvider, canStudyWith, providerOf } from '~/shared/lib/ai-models'
-import { anthropicClient } from '../anthropic.ts'
+import { anthropicClient, FALLBACK_BETA } from '../anthropic.ts'
 import { hasKey, withApiKey } from '../api-keys.ts'
 import { findPrompt } from '../ask-prompts/store.ts'
 import { NO_STORE, requestIp } from '../auth.ts'
@@ -40,7 +40,6 @@ import type { StudyBlock } from './study-format.ts'
 
 const MAX_BODY_BYTES = 128 * 1024
 const MAX_TOKENS = 16_000
-const FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 const OPENAI_TIMEOUT_MS = 10 * 60_000
 
 export type AskRefusal =
@@ -131,8 +130,9 @@ async function askedBook({ session, db }: Gate, slug: string) {
 
 function parseQuestion(value: unknown, book: { text: BookText }) {
   const input = parseAskInput(value)
-  const pageIndex = input && pageIndexAt(book.text, input.position)
-  return input && pageIndex !== null ? { input, pageIndex } : null
+  if (!input) return null
+  const pageIndex = pageIndexAt(book.text, input.position)
+  return pageIndex === null ? null : { input, pageIndex }
 }
 
 export const handleAsk = (request: Request, slug: string, options: AskOptions = {}) =>

@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { englishName, type TranslateLanguage } from '../../shared/lookup/languages.ts'
-import { anthropicClient } from '../anthropic.ts'
+import { anthropicClient, FALLBACK_BETA } from '../anthropic.ts'
 import { withApiKey } from '../api-keys.ts'
 import { askErrorCode } from '../ask/stream.ts'
 import { getConfig } from '../config.ts'
@@ -15,7 +15,6 @@ const MAX_TOKENS = 1_000
 /** GPT's reasoning tokens count against max_output_tokens, so it gets room to think as well as to write. */
 const OPENAI_MAX_OUTPUT_TOKENS = 4_000
 const TIMEOUT_MS = 30_000
-const FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 
 type Params = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming
 

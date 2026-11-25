@@ -19,7 +19,7 @@ export type PageItem = { line: PdfLine } | { region: Region }
 const right = (b: Box) => b.x + b.width
 const bottom = (b: Box) => b.y + b.height
 
-export function lineBox(line: PdfLine): Box {
+function lineBox(line: PdfLine): Box {
   return { x: line.x, y: line.y - line.size, width: line.width, height: line.size * 1.25 }
 }
 

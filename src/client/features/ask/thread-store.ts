@@ -1,14 +1,10 @@
-import { removeKeys } from '~/client/lib/storage-keys'
-import type { CardDraft, QuizQuestion, StudySource, StudySpan } from '~/shared/ask/events'
+import { readItem, removeKeys, writeItem } from '~/client/lib/storage-keys'
+import type { CardDraft, CitationLink, QuizQuestion, StudySource, StudySpan } from '~/shared/ask/events'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import { parsePosition } from '~/shared/content/position'
 import { isObject } from '~/shared/lib/json-shape'
 
-export interface ThreadCitation {
-  pageHref: string
-  label: string
-  citedText: string
-}
+export type ThreadCitation = CitationLink
 
 export type ThreadQuestion = QuizQuestion & { picked: number | null }
 
@@ -117,8 +113,8 @@ function turn(t: unknown): ThreadTurn | null {
 
 export function parseThread(raw: string | null): Thread {
   try {
-    const value = raw ? (JSON.parse(raw) as Record<string, unknown>) : null
-    if (value?.v !== 1 || !Array.isArray(value.turns)) return emptyThread()
+    const value: unknown = raw ? JSON.parse(raw) : null
+    if (!isObject(value) || value.v !== 1 || !Array.isArray(value.turns)) return emptyThread()
     const turns = value.turns.map(turn).filter((t) => t !== null)
     return { v: 1, wholeBook: value.wholeBook === true, turns: turns.slice(-MAX_TURNS) }
   } catch {
@@ -127,21 +123,11 @@ export function parseThread(raw: string | null): Thread {
 }
 
 export function loadThread(storage: Storage | null, bookSlug: string): Thread {
-  try {
-    return parseThread(storage?.getItem(threadKey(bookSlug)) ?? null)
-  } catch {
-    return emptyThread()
-  }
+  return parseThread(readItem(storage, threadKey(bookSlug)))
 }
 
 export function saveThread(storage: Storage | null, bookSlug: string, thread: Thread): boolean {
-  try {
-    if (!storage) return false
-    storage.setItem(threadKey(bookSlug), JSON.stringify({ ...thread, turns: thread.turns.slice(-MAX_TURNS) }))
-    return true
-  } catch {
-    return false
-  }
+  return writeItem(storage, threadKey(bookSlug), JSON.stringify({ ...thread, turns: thread.turns.slice(-MAX_TURNS) }))
 }
 
 export function clearThread(storage: Storage | null, bookSlug: string): void {

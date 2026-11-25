@@ -81,21 +81,21 @@ async function send<T, P extends string>(
   request: unknown,
   codes: readonly P[],
   pick: (body: Json) => T | undefined,
-): Promise<LookupResult<T, P>> {
+): Promise<LookupResult<T, P | 'network' | 'failed'>> {
   let response: Response
   try {
     response = await post(path, request)
   } catch {
-    return { ok: false, problem: 'network' as P }
+    return { ok: false, problem: 'network' }
   }
   const body = await response.json().catch(() => null)
-  if (!isObject(body)) return { ok: false, problem: 'failed' as P }
+  if (!isObject(body)) return { ok: false, problem: 'failed' }
   if (response.ok) {
     const value = pick(body)
-    return value === undefined ? { ok: false, problem: 'failed' as P } : { ok: true, value }
+    return value === undefined ? { ok: false, problem: 'failed' } : { ok: true, value }
   }
   const code = codes.find((c) => c === body.error)
-  if (!code) return { ok: false, problem: 'failed' as P }
+  if (!code) return { ok: false, problem: 'failed' }
   const retryAt = code === 'rate' && isText(body.retryAt) ? new Date(body.retryAt) : null
   return retryAt && !Number.isNaN(retryAt.getTime())
     ? { ok: false, problem: code, retryAt }

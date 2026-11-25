@@ -1,5 +1,5 @@
 import type { PagePosition } from '../content/position.ts'
-import { isObject, isOneOf } from '../lib/json-shape.ts'
+import { exactly, isObject, isOneOf } from '../lib/json-shape.ts'
 
 export const READER_THEMES = ['light', 'sepia', 'dark'] as const
 export const READER_FONTS = ['literata', 'source-serif', 'geist', 'atkinson', 'opendyslexic'] as const
@@ -16,9 +16,7 @@ export interface SyncedSettings {
 const SETTINGS_KEYS = ['theme', 'font', 'leading', 'measure'] as const
 
 export function parseSyncedSettings(value: unknown): SyncedSettings | null {
-  if (!isObject(value)) return null
-  const keys = Object.keys(value)
-  if (keys.length !== SETTINGS_KEYS.length || !SETTINGS_KEYS.every((k) => keys.includes(k))) return null
+  if (!isObject(value) || !exactly(value, SETTINGS_KEYS)) return null
   const { theme, font, leading, measure } = value
   if (
     !isOneOf(theme, READER_THEMES) ||

@@ -1,3 +1,4 @@
+import { timeOfDay } from '~/client/lib/format'
 import type { RepoErrorCode, RepoFileNotice, RepoUrlProblem, RepoView } from '~/shared/github-repos/contract'
 import { MAX_REPOS } from '~/shared/github-repos/contract'
 
@@ -26,13 +27,10 @@ const RETRYABLE: readonly RepoProblem[] = ['unavailable', 'failed']
 
 export const canRetry = (problem: RepoProblem) => RETRYABLE.includes(problem)
 
-const clockTime = (iso: string, timeZone?: string) =>
-  new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone })
-
 export function repoProblemText(problem: RepoProblem, retryAt?: string | null, timeZone?: string): string {
   const text = REPO_TEXT[problem]
   if (problem !== 'busy') return text
-  return retryAt ? `${text} Try again after ${clockTime(retryAt, timeZone)}.` : `${text} Try again in a minute.`
+  return retryAt ? `${text} Try again after ${timeOfDay(retryAt, timeZone)}.` : `${text} Try again in a minute.`
 }
 
 export const shortSha = (sha: string) => sha.slice(0, 7)

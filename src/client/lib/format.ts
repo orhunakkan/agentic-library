@@ -24,6 +24,10 @@ const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 
+/** A moment as a 24-hour clock time such as 14:05, in `timeZone` or else the device's own. */
+export const timeOfDay = (at: string | number, timeZone?: string) =>
+  new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone })
+
 export function relativeTime(then: number, now: number): string {
   const ago = now - then
   if (ago < MINUTE) return 'just now'

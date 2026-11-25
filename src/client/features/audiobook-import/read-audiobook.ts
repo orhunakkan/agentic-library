@@ -5,6 +5,7 @@ import {
   type ChaptersFrom,
   cleanTitle,
   type FileReading,
+  totalMs,
 } from '~/shared/audiobooks/chapters'
 import { mp4Audio, type ReadRange } from '~/shared/audiobooks/drm'
 import {
@@ -202,7 +203,7 @@ export async function readAudiobook(picked: readonly File[], options: ReadOption
     cover: await coverOf(first.file, parse),
     chapters: built.chapters,
     from: built.from,
-    totalMs: built.chapters.reduce((n, c) => n + c.durationMs, 0),
+    totalMs: totalMs(built.chapters),
     bytes,
   }
 }

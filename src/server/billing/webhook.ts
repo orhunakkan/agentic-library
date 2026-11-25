@@ -1,11 +1,10 @@
 import '@tanstack/react-start/server-only'
-import { recordEvent } from '../audit.ts'
 import { getConfig } from '../config.ts'
 import { getDb } from '../db.ts'
 import { readCapped } from '../json-body.ts'
 import { logError } from '../redact.ts'
 import { verifyPaddleSignature } from './signature.ts'
-import { recordPaddleEvent, upsertFromPaddle } from './store.ts'
+import { recordPaddleEvent, recordStatusChange, upsertFromPaddle } from './store.ts'
 import { isWebhookEvent, parsePaddleEvent, subscriptionRow } from './webhook-input.ts'
 
 export const MAX_WEBHOOK_BYTES = 64 * 1024
@@ -57,11 +56,7 @@ export async function handlePaddleEvent(request: Request, now = new Date()): Pro
       const result = await upsertFromPaddle(tx, mapped.row)
       if (result.unknownUser)
         console.warn(`[paddle webhook] ${mapped.row.id} names an account that doesn't exist; kept without one`)
-      if (result.applied && result.from !== result.to)
-        await recordEvent(tx, 'billing.subscription', {
-          userId: result.userId,
-          detail: { subscription: mapped.row.id, status: result.to, by: 'paddle' },
-        })
+      await recordStatusChange(tx, result, mapped.row.id, 'paddle')
       return result.applied ? 'applied' : 'older'
     })
     return answer(200, outcome === 'repeat' ? 'Already recorded' : 'Recorded')

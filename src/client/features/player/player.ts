@@ -8,7 +8,6 @@ import {
 } from '~/client/features/read-aloud/controller'
 import type { DownloadNotice } from '~/client/features/read-aloud/messages'
 import { voiceItem } from '~/client/features/read-aloud/position-store'
-import type { Timers } from '~/client/features/read-aloud/speaker'
 import type { OutboxItem } from '~/client/features/sync/outbox'
 import type { AudioBookmarkView } from '~/shared/bookmarks/audio'
 import { createArbiter } from './arbitration'
@@ -35,8 +34,6 @@ export interface PlayerDeps {
   onSleepEnded: () => void
   onNotice: (notice: DownloadNotice) => void
   lockScreen?: (actions: LockScreenActions) => LockScreen
-  timers?: Timers
-  now?: () => number
 }
 
 export interface PlayerState {
@@ -145,7 +142,6 @@ export function createPlayer(deps: PlayerDeps): Player {
       stopAfterSentence: () => reading?.controller.stopAfterSentence(),
     },
     aside: { interrupt: () => reading?.aside.interrupt() },
-    ...(deps.timers ? { timers: deps.timers } : {}),
     onSleepEnded: () => deps.onSleepEnded(),
     onChange: () => changed(),
   })
@@ -188,14 +184,13 @@ export function createPlayer(deps: PlayerDeps): Player {
     const controller = createReadAloud({
       ...parts.controller,
       storage: deps.storage,
-      ...(deps.now ? { now: deps.now } : {}),
       arbiter,
       onState: (next) => {
         readAloudState = next
         changed(true)
       },
       onSaved: (book, saved) => {
-        deps.queue(voiceItem(deps.storage, book, saved, (deps.now ?? Date.now)()))
+        deps.queue(voiceItem(deps.storage, book, saved, Date.now()))
         if (saved === null) deps.onBookFinished({ slug: book, title: controller.state().book?.title ?? book })
       },
       onNotice: deps.onNotice,
@@ -219,8 +214,6 @@ export function createPlayer(deps: PlayerDeps): Player {
       transport = createTransport({
         audio: media.audiobook,
         storage: deps.storage,
-        ...(deps.now ? { now: deps.now } : {}),
-        ...(deps.timers ? { timers: deps.timers } : {}),
         queue: deps.queue,
         onBookFinished: deps.onBookFinished,
         arbiter,

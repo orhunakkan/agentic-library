@@ -3,7 +3,7 @@ import { UserPlus } from 'lucide-react'
 import { useId } from 'react'
 import { AccountPage, Button, Notice } from '~/client/features/account/ui'
 import { AddUserDialog } from '~/client/features/admin/AddUserDialog'
-import { ConfirmDialog, Modal } from '~/client/features/admin/ConfirmDialog'
+import { ConfirmDialog, Modal, UsersSignIn } from '~/client/features/admin/ConfirmDialog'
 import { DeleteUserDialog } from '~/client/features/admin/DeleteUserDialog'
 import { InviteDialog } from '~/client/features/admin/InviteDialog'
 import { InviteLinkPanel } from '~/client/features/admin/InviteLinkPanel'
@@ -81,18 +81,7 @@ function UsersScreen() {
       {users.status && (
         <Notice kind={users.status.kind} data-testid="users-status">
           {users.status.text}
-          {users.status.signedOut && (
-            <>
-              {' '}
-              <a
-                href="/login?next=/account/users"
-                data-testid="users-sign-in"
-                className="font-semibold underline underline-offset-2"
-              >
-                Sign in
-              </a>
-            </>
-          )}
+          {users.status.signedOut && <UsersSignIn testId="users-sign-in" />}
         </Notice>
       )}
       <Modal open={users.dialog !== null} labelledBy={titleId} onClose={users.close}>

@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import postgres from 'postgres'
 import { migrate } from '../../../scripts/db/migrate.ts'
 import { startServer } from '../../../scripts/serve.ts'
 import { startSession } from '../../../src/server/account-actions.ts'
+import { voicesDirOf } from '../../../src/server/config.ts'
 import { hashPassword } from '../../../src/server/passwords.ts'
 import { FOLIO_VOICES, filesOfVoice, voiceFileName } from '../../../src/shared/read-aloud/folio-voices.ts'
 import { databaseName, withDatabase } from '../../test-databases.ts'
@@ -113,7 +114,7 @@ process.env.SIGNUP = 'open'
 process.env.SITE_CONTACT = 'privacy@folio.test'
 
 function voicesForTests(): string {
-  const real = resolve(process.env.VOICES_DIR?.trim() || '.cache/voices')
+  const real = voicesDirOf(process.env)
   const dir = mkdtempSync(join(tmpdir(), 'folio-e2e-voices-'))
   for (const voice of FOLIO_VOICES) {
     for (const file of filesOfVoice(voice)) {

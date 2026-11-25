@@ -1,8 +1,16 @@
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
-import type { TextContent, TextItem } from 'pdfjs-dist/types/src/display/api'
+import type { TextContent } from 'pdfjs-dist/types/src/display/api'
 import { ImportError } from '../draft.ts'
 import { MAX_PDF_PAGES } from '../limits.ts'
-import type { Box, PdfInfo, PdfOutlineEntry, PdfPage, PdfSource, PdfText } from './types.ts'
+import {
+  type Box,
+  charCount,
+  type PdfInfo,
+  type PdfOutlineEntry,
+  type PdfPage,
+  type PdfSource,
+  type PdfText,
+} from './types.ts'
 
 export const SCANNED_MIN_CHARS = 50
 export const SCAN_SAMPLE_PAGES = 20
@@ -110,7 +118,7 @@ function textItems(page: PDFPageProxy, content: TextContent, viewport: Matrix): 
   const items: PdfText[] = []
   for (const item of content.items) {
     if (!('str' in item) || !item.str.trim()) continue
-    const m = multiply(viewport, (item as TextItem).transform as number[])
+    const m = multiply(viewport, item.transform)
     const font = fontName(page, item.fontName)
     const size = Math.hypot(m[0], m[1])
     const rotated = !(m[0] > 0 && Math.abs(m[1]) <= m[0] * 0.01 && Math.abs(m[2]) <= Math.abs(m[3]) * 0.01)
@@ -147,7 +155,7 @@ async function readPage(page: PDFPageProxy, number: number): Promise<PdfPage> {
   }
 }
 
-const textChars = (page: PdfPage) => page.items.reduce((n, item) => n + item.text.replace(/\s/g, '').length, 0)
+const textChars = (page: PdfPage) => page.items.reduce((n, item) => n + charCount(item.text), 0)
 const drawnOn = (page: PdfPage) => page.items.length > 0 || page.images.length > 0 || page.paths.length > 0
 
 export interface ExtractOptions {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useToast } from '~/client/components/Toast'
-import { reloadWhenBack } from '~/client/lib/optimistic-collection'
+import { reloadOnReturn } from '~/client/lib/optimistic-collection'
 import { getBookBookmarks } from '~/server/account-functions'
 import { onPage } from '~/shared/bookmarks/bookmarks'
 import { toStored } from '~/shared/content/position'
@@ -9,8 +9,6 @@ import { BookmarkList, type NewBookmark } from './bookmark-list'
 import * as client from './bookmarks-client'
 
 export type { BookmarkItem, BookmarksState } from './bookmark-list'
-
-const RELOAD_AFTER_MS = 60_000
 
 function newBookmark(view: ReaderView): NewBookmark {
   const position = positionOf(view)
@@ -52,11 +50,7 @@ export function useBookmarks(book: string, { signedIn, embedded }: { signedIn: b
 
   const enabled = signedIn && !embedded
   useEffect(() => {
-    if (!enabled) return
-    const back = reloadWhenBack(() => void list.load(), RELOAD_AFTER_MS)
-    const onVisibility = () => back(document.visibilityState)
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
+    if (enabled) return reloadOnReturn(() => void list.load())
   }, [enabled, list])
 
   const toggle = useCallback((view: ReaderView) => void list.toggle(newBookmark(view)), [list])

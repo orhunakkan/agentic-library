@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useToast } from '~/client/components/Toast'
-import { reloadWhenBack } from '~/client/lib/optimistic-collection'
+import { reloadOnReturn } from '~/client/lib/optimistic-collection'
 import { getBookHighlights } from '~/server/account-functions'
 import type { HighlightColor } from '~/shared/highlights/colors'
 import { HighlightList, type NewHighlight } from './highlight-list'
 import * as client from './highlights-client'
 
 export type { HighlightItem, HighlightsState, NewHighlight } from './highlight-list'
-
-const RELOAD_AFTER_MS = 60_000
 
 export function useHighlights(book: string, { signedIn, embedded }: { signedIn: boolean; embedded: boolean }) {
   const toast = useToast()
@@ -36,11 +34,7 @@ export function useHighlights(book: string, { signedIn, embedded }: { signedIn: 
 
   const enabled = signedIn && !embedded
   useEffect(() => {
-    if (!enabled) return
-    const back = reloadWhenBack(() => void list.load(), RELOAD_AFTER_MS)
-    const onVisibility = () => back(document.visibilityState)
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
+    if (enabled) return reloadOnReturn(() => void list.load())
   }, [enabled, list])
 
   const create = useCallback((input: NewHighlight) => list.create(input), [list])

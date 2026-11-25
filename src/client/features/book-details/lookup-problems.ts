@@ -15,4 +15,7 @@ export const LOOKUP_PROBLEM_TEXT: Record<LookupPanelProblem, string> = {
 
 export const NO_MATCHES = 'No matches on Open Library. Try fewer words, or the ISBN.'
 
-export const matchesText = (count: number) => (count === 0 ? NO_MATCHES : count === 1 ? '1 match' : `${count} matches`)
+export function matchesText(count: number): string {
+  if (count === 0) return NO_MATCHES
+  return count === 1 ? '1 match' : `${count} matches`
+}

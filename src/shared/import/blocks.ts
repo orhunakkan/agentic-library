@@ -253,29 +253,22 @@ function checkImages(value: unknown): BookUpload['images'] {
 
 const optional = (value: unknown) => value === undefined || value === null
 
+function optionalText(value: unknown, what: string): string | null {
+  if (optional(value)) return null
+  if (typeof value !== 'string') throw invalid(`${what} must be text`)
+  return value
+}
+
 export function checkDetails(book: Record<string, unknown>, now = new Date()): BookDetails {
-  let description: string | null = null
-  if (!optional(book.description)) {
-    if (typeof book.description !== 'string') throw invalid('description must be text')
-    description = cleanDescription(book.description, { cap: false })
-    if (description && description.length > DESCRIPTION_MAX)
-      throw invalid(`description: longer than ${DESCRIPTION_MAX} characters`)
-  }
-  let isbn: string | null = null
-  if (!optional(book.isbn)) {
-    if (typeof book.isbn !== 'string') throw invalid('isbn must be text')
-    if (book.isbn.trim()) {
-      isbn = normalizeIsbn(book.isbn)
-      if (!isbn) throw invalid('isbn is not a valid ISBN')
-    }
-  }
-  let publisher: string | null = null
-  if (!optional(book.publisher)) {
-    if (typeof book.publisher !== 'string') throw invalid('publisher must be text')
-    publisher = cleanText(book.publisher).replace(/\s+/g, ' ').trim() || null
-    if (publisher && publisher.length > PUBLISHER_MAX)
-      throw invalid(`publisher: longer than ${PUBLISHER_MAX} characters`)
-  }
+  const description = cleanDescription(optionalText(book.description, 'description'), { cap: false })
+  if (description && description.length > DESCRIPTION_MAX)
+    throw invalid(`description: longer than ${DESCRIPTION_MAX} characters`)
+  const isbnText = optionalText(book.isbn, 'isbn')?.trim()
+  const isbn = isbnText ? normalizeIsbn(isbnText) : null
+  if (isbnText && !isbn) throw invalid('isbn is not a valid ISBN')
+  const publisherText = optionalText(book.publisher, 'publisher') ?? ''
+  const publisher = cleanText(publisherText).replace(/\s+/g, ' ').trim() || null
+  if (publisher && publisher.length > PUBLISHER_MAX) throw invalid(`publisher: longer than ${PUBLISHER_MAX} characters`)
   let publishedYear: number | null = null
   if (!optional(book.publishedYear)) {
     const year = book.publishedYear

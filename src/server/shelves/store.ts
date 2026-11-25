@@ -40,13 +40,8 @@ function bookRows(db: Db, userId: number, shelfId: string | null) {
 }
 
 function withBooks(shelves: readonly RawShelf[], rows: readonly RawBook[]): ShelfRow[] {
-  const books = new Map<string, BookRef[]>()
-  for (const row of rows) {
-    const list = books.get(row.shelf_id)
-    if (list) list.push(bookOf(row))
-    else books.set(row.shelf_id, [bookOf(row)])
-  }
-  return shelves.map((s) => ({ id: s.id, name: s.name, books: books.get(s.id) ?? [] }))
+  const books = Map.groupBy(rows, (row) => row.shelf_id)
+  return shelves.map((s) => ({ id: s.id, name: s.name, books: books.get(s.id)?.map(bookOf) ?? [] }))
 }
 
 export async function listShelves(db: Db, userId: number): Promise<ShelfRow[]> {
