@@ -31,11 +31,11 @@ function textInlines(text: string, out: Inline[]) {
   const parts = text.split(/\*\*(.+?)\*\*/g)
   parts.forEach((part, i) => {
     let last = 0
-    for (const m of part.matchAll(MARKER)) {
-      const before = part.slice(last, m.index)
+    for (const marker of part.matchAll(MARKER)) {
+      const before = part.slice(last, marker.index)
       if (before) out.push({ kind: i % 2 ? 'strong' : 'text', text: before })
-      out.push({ kind: 'cite', index: Number(m[1]) })
-      last = (m.index ?? 0) + m[0].length
+      out.push({ kind: 'cite', index: Number(marker[1]) })
+      last = (marker.index ?? 0) + marker[0].length
     }
     const rest = part.slice(last)
     if (rest) out.push({ kind: i % 2 ? 'strong' : 'text', text: rest })

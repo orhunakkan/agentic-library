@@ -40,15 +40,15 @@ function renderNode(node: MdNode, context: Context): ReactNode {
       const { run } = context
       const lang = run ? fenceLang(node.lang) : null
       if (!run || !lang) return <CodeFence code={node.code} lang={node.lang} />
-      const n = ++context.fences.count
+      const fenceNumber = ++context.fences.count
       return (
         <div className="relative">
           <CodeFence code={node.code} lang={node.lang} runnable />
           <RunOpenButton
             lang={lang}
-            n={n}
+            n={fenceNumber}
             tone="site"
-            onOpen={(opener) => run.open({ lang, code: codeText(node.code), key: `fence-${n}`, opener })}
+            onOpen={(opener) => run.open({ lang, code: codeText(node.code), key: `fence-${fenceNumber}`, opener })}
           />
         </div>
       )

@@ -64,17 +64,17 @@ export function SettingsPreview() {
   return (
     <PreviewCard className="flex flex-col gap-5 text-[13px]">
       <div className="grid grid-cols-3 gap-2">
-        {THEME_OPTIONS.map((t) => (
+        {THEME_OPTIONS.map((theme) => (
           <span
-            key={t.value}
+            key={theme.value}
             className={cn(
               'flex flex-col items-center gap-1 rounded-xl border px-2 py-3',
-              t.swatch,
-              t.value === 'dark' && 'ring-2 ring-accent ring-offset-2 ring-offset-surface',
+              theme.swatch,
+              theme.value === 'dark' && 'ring-2 ring-accent ring-offset-2 ring-offset-surface',
             )}
           >
             <span className="font-serif text-[20px] leading-none">Aa</span>
-            <span className="text-[12.5px] font-medium">{t.label}</span>
+            <span className="text-[12.5px] font-medium">{theme.label}</span>
           </span>
         ))}
       </div>
@@ -92,15 +92,17 @@ export function SettingsPreview() {
         </span>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        {LEADING_OPTIONS.map((l) => (
+        {LEADING_OPTIONS.map((leading) => (
           <span
-            key={l.value}
+            key={leading.value}
             className={cn(
               'rounded-full border py-1.5 text-center font-medium',
-              l.value === DEFAULT_PREFS.leading ? 'border-accent bg-accent-soft text-accent' : 'border-line text-body',
+              leading.value === DEFAULT_PREFS.leading
+                ? 'border-accent bg-accent-soft text-accent'
+                : 'border-line text-body',
             )}
           >
-            {l.label}
+            {leading.label}
           </span>
         ))}
       </div>

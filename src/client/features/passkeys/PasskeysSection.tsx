@@ -117,33 +117,33 @@ export function PasskeysSection({
         </p>
       ) : (
         <ul className="mt-5 divide-y divide-line" aria-label="Your passkeys">
-          {passkeys.map((p) => (
+          {passkeys.map((passkey) => (
             <li
-              key={p.id}
+              key={passkey.id}
               data-testid="passkey"
-              data-key={p.id}
+              data-key={passkey.id}
               className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex min-w-0 items-start gap-3 text-[14.5px]">
                 <KeyRound className="mt-0.5 size-5 shrink-0 text-subtle" aria-hidden />
                 <div className="min-w-0">
                   <p className="font-medium break-words text-ink" data-testid="passkey-name">
-                    {p.name}
+                    {passkey.name}
                   </p>
                   <p className="text-muted">
-                    Added {shortDate(p.createdAt)} ·{' '}
-                    {p.lastUsedAt ? `Last used ${shortDate(p.lastUsedAt)}` : 'Never used'}
+                    Added {shortDate(passkey.createdAt)} ·{' '}
+                    {passkey.lastUsedAt ? `Last used ${shortDate(passkey.lastUsedAt)}` : 'Never used'}
                   </p>
                 </div>
               </div>
               <form method="post" action="/account" className="shrink-0">
                 <input type="hidden" name="intent" value="passkey-remove" />
-                <input type="hidden" name="passkey" value={p.id} />
+                <input type="hidden" name="passkey" value={passkey.id} />
                 <Button
                   variant="secondary"
                   data-testid="passkey-remove"
-                  data-key={p.id}
-                  aria-label={`Remove ${p.name}, added ${shortDate(p.createdAt)}`}
+                  data-key={passkey.id}
+                  aria-label={`Remove ${passkey.name}, added ${shortDate(passkey.createdAt)}`}
                 >
                   Remove
                 </Button>

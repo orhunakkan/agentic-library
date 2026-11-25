@@ -23,11 +23,11 @@ export function offsetOf(lengths: readonly number[], index: number, offset: numb
 }
 
 export function trimSpan(text: string, start: number, end: number): { start: number; end: number } | null {
-  let s = start
+  let trimmedStart = start
   let e = end
-  while (s < e && /\s/.test(text[s] ?? '')) s++
-  while (e > s && /\s/.test(text[e - 1] ?? '')) e--
-  return e > s ? { start: s, end: e } : null
+  while (trimmedStart < e && /\s/.test(text[trimmedStart] ?? '')) trimmedStart++
+  while (e > trimmedStart && /\s/.test(text[e - 1] ?? '')) e--
+  return e > trimmedStart ? { start: trimmedStart, end: e } : null
 }
 
 function textNodes(root: HTMLElement): Text[] {
@@ -54,14 +54,14 @@ export function readPage(root: HTMLElement): PageText {
 
 export function rangeFor(page: PageText, start: number, end: number): Range | null {
   if (end <= start || end > page.text.length) return null
-  const a = locate(page.lengths, start, 'start')
-  const b = locate(page.lengths, end, 'end')
-  const startNode = a && page.nodes[a.index]
-  const endNode = b && page.nodes[b.index]
-  if (!a || !b || !startNode || !endNode) return null
+  const startPoint = locate(page.lengths, start, 'start')
+  const endPoint = locate(page.lengths, end, 'end')
+  const startNode = startPoint && page.nodes[startPoint.index]
+  const endNode = endPoint && page.nodes[endPoint.index]
+  if (!startPoint || !endPoint || !startNode || !endNode) return null
   const range = document.createRange()
-  range.setStart(startNode, a.offset)
-  range.setEnd(endNode, b.offset)
+  range.setStart(startNode, startPoint.offset)
+  range.setEnd(endNode, endPoint.offset)
   return range
 }
 

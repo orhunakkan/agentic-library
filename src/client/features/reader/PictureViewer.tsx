@@ -13,12 +13,12 @@ export interface OpenPicture {
 export function usePictureLinks(area: RefObject<HTMLElement | null>) {
   const [picture, setPicture] = useState<OpenPicture | null>(null)
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || !isPlainClick(e)) return
-      const link = (e.target as Element | null)?.closest?.('[data-highlight-root] figure > a')
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || !isPlainClick(event)) return
+      const link = (event.target as Element | null)?.closest?.('[data-highlight-root] figure > a')
       const img = link?.querySelector('img')
       if (!(link instanceof HTMLAnchorElement) || !img || !area.current?.contains(link)) return
-      e.preventDefault()
+      event.preventDefault()
       setPicture({
         src: img.currentSrc || img.src,
         alt: img.alt,

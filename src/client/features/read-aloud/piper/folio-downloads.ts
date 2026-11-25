@@ -66,12 +66,12 @@ export function createFolioDownloads(deps: FolioDownloadsDeps): FolioDownloads {
     const ready = new Set(downloaded.map((v) => v.id))
     const folioVoices = folioVoicesFor(lang, deps.locale)
     const voices = folioVoices.map(
-      (v): LocalVoiceState => ({
-        id: v.id,
-        voice: folioVoiceLike(v),
-        state: ready.has(v.id) ? 'ready' : inFlight?.id === v.id ? 'downloading' : 'absent',
-        percent: inFlight?.id === v.id ? inFlight.percent : 0,
-        bytes: v.bytes + (downloaded.length > 0 ? 0 : ENGINE_BYTES),
+      (folioVoice): LocalVoiceState => ({
+        id: folioVoice.id,
+        voice: folioVoiceLike(folioVoice),
+        state: ready.has(folioVoice.id) ? 'ready' : inFlight?.id === folioVoice.id ? 'downloading' : 'absent',
+        percent: inFlight?.id === folioVoice.id ? inFlight.percent : 0,
+        bytes: folioVoice.bytes + (downloaded.length > 0 ? 0 : ENGINE_BYTES),
       }),
     )
     const removable = folioVoices.filter((v) => ready.has(v.id)).reduce((n, v) => n + v.bytes, 0)

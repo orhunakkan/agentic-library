@@ -183,19 +183,19 @@ export async function readAudiobook(picked: readonly File[], options: ReadOption
   if (!built.ok) return fail(problem(built.problem))
 
   const first = ordered[0] as FileRead
-  const t = first.tags
-  const author = tag(t.albumartist) || tag(t.artist)
-  const composer = tag(t.composer)
-  const language = tag(t.language)
-  const year = t.year && t.year >= 1 && t.year <= new Date().getFullYear() + 1 ? t.year : null
+  const tags = first.tags
+  const author = tag(tags.albumartist) || tag(tags.artist)
+  const composer = tag(tags.composer)
+  const language = tag(tags.language)
+  const year = tags.year && tags.year >= 1 && tags.year <= new Date().getFullYear() + 1 ? tags.year : null
   const description =
-    cleanDescription(t.longDescription) ??
-    cleanDescription(t.description?.[0]) ??
-    cleanDescription(t.comment?.find((c) => c.text)?.text)
+    cleanDescription(tags.longDescription) ??
+    cleanDescription(tags.description?.[0]) ??
+    cleanDescription(tags.comment?.find((c) => c.text)?.text)
   return {
     type,
     files: ordered.map((r) => r.file),
-    title: (tag(t.album) || tag(t.title) || titleFromFileName(first.file.name)).slice(0, 300),
+    title: (tag(tags.album) || tag(tags.title) || titleFromFileName(first.file.name)).slice(0, 300),
     author: author.slice(0, 200),
     narrator: composer && composer !== author ? composer.slice(0, 200) : '',
     language: LANGUAGE_TAG.test(language) ? language : 'en',

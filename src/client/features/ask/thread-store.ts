@@ -33,11 +33,16 @@ export const emptyThread = (): Thread => ({ v: 1, wholeBook: false, turns: [] })
 
 const isString = (v: unknown): v is string => typeof v === 'string'
 
-function citation(c: unknown): ThreadCitation | null {
-  if (!isObject(c)) return null
-  if (!isString(c.pageHref) || !c.pageHref.startsWith('/read/') || !isString(c.label) || !isString(c.citedText))
+function citation(rawCitation: unknown): ThreadCitation | null {
+  if (!isObject(rawCitation)) return null
+  if (
+    !isString(rawCitation.pageHref) ||
+    !rawCitation.pageHref.startsWith('/read/') ||
+    !isString(rawCitation.label) ||
+    !isString(rawCitation.citedText)
+  )
     return null
-  return { pageHref: c.pageHref, label: c.label, citedText: c.citedText }
+  return { pageHref: rawCitation.pageHref, label: rawCitation.label, citedText: rawCitation.citedText }
 }
 
 const isIndex = (v: unknown): v is 0 | 1 | 2 | 3 => v === 0 || v === 1 || v === 2 || v === 3
@@ -95,18 +100,23 @@ function study(value: unknown): ThreadStudy | null {
   return null
 }
 
-function turn(t: unknown): ThreadTurn | null {
-  if (!isObject(t)) return null
-  if ((t.role !== 'user' && t.role !== 'assistant') || !isString(t.text) || typeof t.at !== 'number') return null
-  const cited = Array.isArray(t.citations) ? t.citations.map(citation).filter((c) => c !== null) : []
-  const parsed = t.study === undefined ? undefined : study(t.study)
+function turn(rawTurn: unknown): ThreadTurn | null {
+  if (!isObject(rawTurn)) return null
+  if (
+    (rawTurn.role !== 'user' && rawTurn.role !== 'assistant') ||
+    !isString(rawTurn.text) ||
+    typeof rawTurn.at !== 'number'
+  )
+    return null
+  const cited = Array.isArray(rawTurn.citations) ? rawTurn.citations.map(citation).filter((c) => c !== null) : []
+  const parsed = rawTurn.study === undefined ? undefined : study(rawTurn.study)
   if (parsed === null) return null
   return {
-    role: t.role,
-    text: t.text,
+    role: rawTurn.role,
+    text: rawTurn.text,
     citations: cited,
-    at: t.at,
-    ...(t.stopped === true ? { stopped: true } : {}),
+    at: rawTurn.at,
+    ...(rawTurn.stopped === true ? { stopped: true } : {}),
     ...(parsed ? { study: parsed } : {}),
   }
 }

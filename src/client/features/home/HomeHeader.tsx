@@ -29,15 +29,15 @@ export function HomeHeader({ viewer }: { viewer: Viewer | null }) {
         </a>
         <nav aria-label="On this page" className="mx-auto hidden min-[760px]:block">
           <ul className="flex items-center gap-1">
-            {SECTIONS.map((s) => (
-              <li key={s.href}>
+            {SECTIONS.map((section) => (
+              <li key={section.href}>
                 <a
-                  href={s.href}
+                  href={section.href}
                   data-testid="home-header-section"
-                  data-key={s.href.slice(1)}
+                  data-key={section.href.slice(1)}
                   className="rounded-full px-3.5 py-2 text-[15px] font-medium text-body transition hover:bg-panel hover:text-ink"
                 >
-                  {s.label}
+                  {section.label}
                 </a>
               </li>
             ))}

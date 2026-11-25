@@ -33,7 +33,7 @@ export function wait(ms: number, signal: AbortSignal): Promise<void> {
 
 async function uploadFile(
   file: Blob,
-  n: number,
+  fileNumber: number,
   from: number,
   send: SendChunk,
   signal: AbortSignal,
@@ -43,7 +43,7 @@ async function uploadFile(
   let failures = 0
   while (offset < file.size) {
     if (signal.aborted) throw abortError()
-    const answer = await send(n, offset, file.slice(offset, Math.min(file.size, offset + CHUNK_BYTES)), signal)
+    const answer = await send(fileNumber, offset, file.slice(offset, Math.min(file.size, offset + CHUNK_BYTES)), signal)
     if (answer.ok || 'offset' in answer) {
       const next = answer.ok ? answer.received : answer.offset
       if (next > file.size) return { ok: false, problem: { code: 'interrupted' }, received: offset }

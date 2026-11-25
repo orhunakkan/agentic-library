@@ -17,11 +17,11 @@ export const AppLink = forwardRef<HTMLAnchorElement, Props>(function AppLink(
   ref,
 ) {
   const router = useRouter()
-  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    onClick?.(e)
-    if (e.defaultPrevented || !isPlainClick(e)) return
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    onClick?.(event)
+    if (event.defaultPrevented || !isPlainClick(event)) return
     if (rest.target && rest.target !== '_self') return
-    e.preventDefault()
+    event.preventDefault()
     void router.navigate({ href, viewTransition })
   }
   const warm = () => {

@@ -49,25 +49,26 @@ function FolioGroup({ value, pick }: { value: string | null; pick: (uri: string)
     <Menu.Group className="mb-1 border-b border-line pb-1">
       <Menu.GroupLabel className={groupLabel}>Folio voice</Menu.GroupLabel>
       <Menu.RadioGroup value={value} onValueChange={pick}>
-        {voices.map((v) => {
-          const detail = localVoiceDetail({ ...v, labels: v.voice.labels ?? null }, online)
-          if (v.state === 'ready') return <VoiceItem key={v.id} voice={v.voice} details={[detail]} />
+        {voices.map((localVoice) => {
+          const detail = localVoiceDetail({ ...localVoice, labels: localVoice.voice.labels ?? null }, online)
+          if (localVoice.state === 'ready')
+            return <VoiceItem key={localVoice.id} voice={localVoice.voice} details={[detail]} />
           return (
             <Menu.Item
-              key={v.id}
-              disabled={v.state === 'downloading' || !online}
+              key={localVoice.id}
+              disabled={localVoice.state === 'downloading' || !online}
               closeOnClick
-              onClick={() => readAloud.downloadLocal(v.id)}
-              label={v.voice.name}
+              onClick={() => readAloud.downloadLocal(localVoice.id)}
+              label={localVoice.voice.name}
               className={`${menuItem} data-disabled:opacity-70`}
               data-testid="voice-folio-download"
-              data-key={v.id}
+              data-key={localVoice.id}
             >
               <span className="grid size-4 shrink-0 place-items-center self-start pt-1">
                 <Download className="size-4 text-muted" aria-hidden />
               </span>
               <span className="min-w-0">
-                <span className="block">{v.voice.name}</span>
+                <span className="block">{localVoice.voice.name}</span>
                 <span className="block text-[12.5px] leading-snug text-muted">{detail}</span>
               </span>
             </Menu.Item>

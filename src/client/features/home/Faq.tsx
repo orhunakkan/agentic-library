@@ -36,20 +36,20 @@ export function Faq({ billing }: { billing: boolean }) {
         Questions
       </h2>
       <div className="mt-8 divide-y divide-line-soft border-y border-line-soft">
-        {questions.map(({ q, a }) => (
-          <details key={q} className="group">
+        {questions.map(({ q: question, a: answer }) => (
+          <details key={question} className="group">
             <summary
               data-testid="faq-question"
-              data-key={q}
+              data-key={question}
               className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-[18px] font-semibold text-ink [&::-webkit-details-marker]:hidden"
             >
-              {q}
+              {question}
               <Plus
                 aria-hidden="true"
                 className="size-5 shrink-0 text-muted group-open:rotate-45 motion-safe:transition-transform"
               />
             </summary>
-            <p className="max-w-[720px] pb-6 text-[16px] leading-relaxed text-body">{a}</p>
+            <p className="max-w-[720px] pb-6 text-[16px] leading-relaxed text-body">{answer}</p>
           </details>
         ))}
       </div>

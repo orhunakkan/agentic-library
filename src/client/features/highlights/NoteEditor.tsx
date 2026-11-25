@@ -58,13 +58,13 @@ export function NoteEditor({
         value={text}
         rows={2}
         onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault()
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault()
             void save()
-          } else if (e.key === 'Escape') {
-            e.preventDefault()
-            e.stopPropagation()
+          } else if (event.key === 'Escape') {
+            event.preventDefault()
+            event.stopPropagation()
             onCancel()
           }
         }}

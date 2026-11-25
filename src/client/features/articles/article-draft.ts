@@ -81,11 +81,11 @@ function lookupOf(sizes: Map<string, { width: number; height: number }>) {
     const keep = url !== null && urls.size < MAX_ARTICLE_PICTURES
     if (url !== null && !keep) over++
     pictures.push(keep ? { key, problem: 'remote' } : { key, problem: 'unreadable' })
-    const n = pictures.length
-    numbers.set(key, n)
-    known.set(n, url ? (sizes.get(url) ?? null) : null)
-    if (keep) urls.set(n, url)
-    return n
+    const pictureNumber = pictures.length
+    numbers.set(key, pictureNumber)
+    known.set(pictureNumber, url ? (sizes.get(url) ?? null) : null)
+    if (keep) urls.set(pictureNumber, url)
+    return pictureNumber
   }
   const lookup: PictureLookup = {
     file: (src) => add(src, /^https?:/i.test(src) ? src : null),

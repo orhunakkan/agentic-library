@@ -45,30 +45,30 @@ function RatingControl({ slug, saved }: { slug: string; saved: Stars | null }) {
             {RATING_LEGEND}
           </span>
           <div className="flex" onPointerLeave={() => setHovered(null)}>
-            {STAR_VALUES.map((n) => (
+            {STAR_VALUES.map((stars) => (
               <label
-                key={n}
-                title={starLabel(n)}
-                onPointerEnter={(e) => e.pointerType === 'mouse' && setHovered(n)}
+                key={stars}
+                title={starLabel(stars)}
+                onPointerEnter={(e) => e.pointerType === 'mouse' && setHovered(stars)}
                 className="relative grid size-11 cursor-pointer place-items-center rounded-lg has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent"
               >
                 <input
-                  ref={n === 1 ? firstStar : undefined}
+                  ref={stars === 1 ? firstStar : undefined}
                   type="radio"
                   name={`rating-${slug}`}
-                  value={n}
-                  checked={shown === n}
-                  onChange={() => sender.current?.choose(n)}
+                  value={stars}
+                  checked={shown === stars}
+                  onChange={() => sender.current?.choose(stars)}
                   data-testid="book-rating-star"
-                  data-key={n}
+                  data-key={stars}
                   className="sr-only"
                 />
                 <Star
                   aria-hidden
-                  className={cn('size-6 transition', n <= lit ? 'text-accent' : 'text-subtle')}
-                  fill={n <= lit ? 'currentColor' : 'none'}
+                  className={cn('size-6 transition', stars <= lit ? 'text-accent' : 'text-subtle')}
+                  fill={stars <= lit ? 'currentColor' : 'none'}
                 />
-                <span className="sr-only">{starLabel(n)}</span>
+                <span className="sr-only">{starLabel(stars)}</span>
               </label>
             ))}
           </div>

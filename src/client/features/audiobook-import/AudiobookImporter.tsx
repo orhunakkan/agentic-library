@@ -374,29 +374,29 @@ function Review({
         </legend>
         <ol className="mt-3 divide-y divide-line rounded-xl border border-line">
           {draft.chapters.map((chapter, i) => {
-            const n = i + 1
+            const chapterNumber = i + 1
             return (
               <li
                 // biome-ignore lint/suspicious/noArrayIndexKey: chapters have no id; their position is their identity here.
                 key={i}
                 className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:px-4"
                 data-testid="audiobook-import-chapter"
-                data-key={n}
+                data-key={chapterNumber}
               >
                 <span className="w-9 shrink-0 text-right text-[13px] text-subtle tabular" aria-hidden>
-                  {n}.
+                  {chapterNumber}.
                 </span>
                 <div className="min-w-[160px] flex-1">
-                  <label htmlFor={`audio-chapter-${n}`} className="sr-only">
-                    Chapter {n} title
+                  <label htmlFor={`audio-chapter-${chapterNumber}`} className="sr-only">
+                    Chapter {chapterNumber} title
                   </label>
                   <input
-                    id={`audio-chapter-${n}`}
+                    id={`audio-chapter-${chapterNumber}`}
                     value={chapter.title}
                     maxLength={300}
                     onChange={(e) => rename(i, e.target.value)}
                     data-testid="audiobook-import-chapter-title"
-                    data-key={n}
+                    data-key={chapterNumber}
                     className="h-11 w-full rounded-xl border border-line bg-page px-3 text-[15px] text-ink outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15"
                   />
                 </div>

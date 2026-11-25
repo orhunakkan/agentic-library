@@ -68,13 +68,13 @@ export function fraction(plan: Plan, cursor: Cursor): number {
 
 export function atFraction(plan: Plan, f: number): Cursor | null {
   const target = Math.min(Math.max(f, 0), 1) * totalChars(plan)
-  let n = 0
+  let charsSoFar = 0
   let last: Cursor | null = null
   for (const [pageIndex, page] of plan.entries()) {
     for (const [utteranceIndex, u] of page.entries()) {
       last = { pageIndex, utteranceIndex }
-      if (n + length(u) > target) return last
-      n += length(u)
+      if (charsSoFar + length(u) > target) return last
+      charsSoFar += length(u)
     }
   }
   return last

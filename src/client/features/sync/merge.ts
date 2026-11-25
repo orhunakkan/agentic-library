@@ -26,15 +26,15 @@ export interface MergeResult {
 
 type Ready = Extract<SyncState, { state: 'ready' }>
 
-export const toEntry = (p: ReadingPlace): RecentReading => ({
-  bookSlug: p.book,
-  bookTitle: p.bookTitle,
-  chapterTitle: p.chapterTitle,
-  href: p.href,
-  at: p.at,
-  position: p.position,
-  label: p.label,
-  device: p.device,
+export const toEntry = (place: ReadingPlace): RecentReading => ({
+  bookSlug: place.book,
+  bookTitle: place.bookTitle,
+  chapterTitle: place.chapterTitle,
+  href: place.href,
+  at: place.at,
+  position: place.position,
+  label: place.label,
+  device: place.device,
 })
 
 const sameEntry = (a: RecentReading, b: RecentReading) =>
@@ -50,14 +50,15 @@ const floorOf = (ats: number[], limit: number) => (ats.length >= limit ? Math.mi
 const listeningKey = (l: LocalListening | ListeningPlace) =>
   l.kind === 'episode' ? itemKey({ book: l.book, kind: 'episode', episode: l.episode }) : itemKey(l)
 
-function sameListening(l: LocalListening, r: ListeningPlace): boolean {
-  if (l.kind === 'episode') return r.kind === 'episode' && l.ms === r.positionMs
-  if (r.kind !== 'voice') return false
-  if (l.saved === null || r.position === null) return l.saved === null && r.position === null
+function sameListening(localPlace: LocalListening, remotePlace: ListeningPlace): boolean {
+  if (localPlace.kind === 'episode') return remotePlace.kind === 'episode' && localPlace.ms === remotePlace.positionMs
+  if (remotePlace.kind !== 'voice') return false
+  if (localPlace.saved === null || remotePlace.position === null)
+    return localPlace.saved === null && remotePlace.position === null
   return (
-    l.saved.chapter === r.chapter &&
-    l.saved.offset === r.offset &&
-    JSON.stringify(l.saved.position) === JSON.stringify(r.position)
+    localPlace.saved.chapter === remotePlace.chapter &&
+    localPlace.saved.offset === remotePlace.offset &&
+    JSON.stringify(localPlace.saved.position) === JSON.stringify(remotePlace.position)
   )
 }
 
@@ -81,18 +82,18 @@ function mergeReading(local: readonly RecentReading[], remote: readonly ReadingP
     const position = e.position ?? positionFromHref(e.href, isPrivateBookSlug(e.bookSlug) ? 'chapter' : null)
     if (position) push.push({ book: e.bookSlug, position, at: e.at })
   }
-  for (const e of local) {
-    const r = remoteBy.get(e.bookSlug)
-    remoteBy.delete(e.bookSlug)
-    if (!r) {
-      if (e.at > floor) pushEntry(e)
-      list.push(e)
-    } else if (isNewer(e.at, r.at)) {
-      pushEntry(e)
-      list.push(e)
+  for (const entry of local) {
+    const remotePlace = remoteBy.get(entry.bookSlug)
+    remoteBy.delete(entry.bookSlug)
+    if (!remotePlace) {
+      if (entry.at > floor) pushEntry(entry)
+      list.push(entry)
+    } else if (isNewer(entry.at, remotePlace.at)) {
+      pushEntry(entry)
+      list.push(entry)
     } else {
-      const theirs = toEntry(r)
-      if (!sameEntry(e, theirs)) changed = true
+      const theirs = toEntry(remotePlace)
+      if (!sameEntry(entry, theirs)) changed = true
       list.push(theirs)
     }
   }
@@ -111,14 +112,14 @@ function mergeListening(local: readonly LocalListening[], remote: readonly Liste
   )
   const write: ListeningPlace[] = []
   const push: ListeningWrite[] = []
-  for (const l of local) {
-    const key = listeningKey(l)
-    const r = remoteBy.get(key)
+  for (const localPlace of local) {
+    const key = listeningKey(localPlace)
+    const remotePlace = remoteBy.get(key)
     remoteBy.delete(key)
-    if (!r) {
-      if (l.at > floor) push.push(toWrite(l))
-    } else if (isNewer(l.at, r.at)) push.push(toWrite(l))
-    else if (isNewer(r.at, l.at) || !sameListening(l, r)) write.push(r)
+    if (!remotePlace) {
+      if (localPlace.at > floor) push.push(toWrite(localPlace))
+    } else if (isNewer(localPlace.at, remotePlace.at)) push.push(toWrite(localPlace))
+    else if (isNewer(remotePlace.at, localPlace.at) || !sameListening(localPlace, remotePlace)) write.push(remotePlace)
   }
   write.push(...remoteBy.values())
   return { write, push }

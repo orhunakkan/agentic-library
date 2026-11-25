@@ -55,17 +55,17 @@ function AccountNav() {
     'inline-flex h-11 items-center rounded-full px-4 text-[14px] font-semibold text-muted transition hover:bg-panel/60 hover:text-ink'
   return (
     <nav aria-label="Account" className="mt-6 flex flex-wrap gap-1 border-b border-line pb-3">
-      {tabs.map((t) => (
+      {tabs.map((accountTab) => (
         <Link
-          key={t.to}
-          to={t.to}
-          activeOptions={{ exact: t.exact }}
+          key={accountTab.to}
+          to={accountTab.to}
+          activeOptions={{ exact: accountTab.exact }}
           className={tab}
           activeProps={{ className: 'bg-panel text-ink', 'aria-current': 'page' }}
           data-testid="account-tab"
-          data-key={t.key}
+          data-key={accountTab.key}
         >
-          {t.label}
+          {accountTab.label}
         </Link>
       ))}
     </nav>

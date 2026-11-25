@@ -57,14 +57,14 @@ export function rankVoices(
   const book = tagParts(lang)
   const reader = tagParts(options.locale ?? '')
   const region = book.region ?? (reader.base === book.base ? reader.region : null)
-  const score = (v: VoiceLike) => {
-    const parts = tagParts(v.lang)
+  const score = (voice: VoiceLike) => {
+    const parts = tagParts(voice.lang)
     return [
-      options.privateBook && !v.localService ? 1 : 0,
+      options.privateBook && !voice.localService ? 1 : 0,
       region && parts.region === region ? 0 : 1,
-      QUALITY.test(v.name) ? 0 : 1,
-      /google/i.test(v.name) ? 0 : 1,
-      v.default ? 0 : 1,
+      QUALITY.test(voice.name) ? 0 : 1,
+      /google/i.test(voice.name) ? 0 : 1,
+      voice.default ? 0 : 1,
     ]
   }
   return voices
@@ -165,14 +165,15 @@ const capitalised = (text: string) =>
   text.replace(/(^|[\s-])(\p{L})/gu, (_m, lead: string, c: string) => lead + c.toUpperCase())
 
 export function rankCloudVoices(voices: readonly CloudVoice[], lang: string): VoiceLike[] {
-  return rankCloud(voices, lang).map((v) => ({
-    name: v.name,
+  return rankCloud(voices, lang).map((cloudVoice) => ({
+    name: cloudVoice.name,
     lang,
-    voiceURI: `${CLOUD_VOICE_PREFIX}${v.id}`,
+    voiceURI: `${CLOUD_VOICE_PREFIX}${cloudVoice.id}`,
     localService: false,
     default: false,
     engine: 'cloud',
-    labels: [v.accent && capitalised(v.accent), v.gender].filter(Boolean).join(' · ') || null,
+    labels:
+      [cloudVoice.accent && capitalised(cloudVoice.accent), cloudVoice.gender].filter(Boolean).join(' · ') || null,
   }))
 }
 

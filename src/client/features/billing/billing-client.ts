@@ -27,11 +27,11 @@ async function send<T>(
 const text = (value: unknown) => (typeof value === 'string' && value.length > 0 ? value : undefined)
 
 export function startCheckout(cadence: Cadence): Promise<BillingResult<CheckoutAnswer>> {
-  return send('/account/plan/checkout', { cadence }, (b) => {
-    const transactionId = text(b.transactionId)
-    const clientToken = text(b.clientToken)
-    if (!transactionId || !clientToken || (b.env !== 'sandbox' && b.env !== 'production')) return undefined
-    return { transactionId, clientToken, env: b.env, email: text(b.email) ?? null }
+  return send('/account/plan/checkout', { cadence }, (body) => {
+    const transactionId = text(body.transactionId)
+    const clientToken = text(body.clientToken)
+    if (!transactionId || !clientToken || (body.env !== 'sandbox' && body.env !== 'production')) return undefined
+    return { transactionId, clientToken, env: body.env, email: text(body.email) ?? null }
   })
 }
 

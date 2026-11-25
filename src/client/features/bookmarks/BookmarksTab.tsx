@@ -53,12 +53,12 @@ export function BookmarksTab({
       </p>
     )
   }
-  const entry = (e: TabEntry, navigate?: () => void) => {
-    if (e.kind === 'page') {
-      const item = e.bookmark as BookmarkItem
+  const entry = (tabEntry: TabEntry, navigate?: () => void) => {
+    if (tabEntry.kind === 'page') {
+      const item = tabEntry.bookmark as BookmarkItem
       return <Entry key={item.key} item={item} api={api} current={view.canonicalPath} onNavigate={navigate} />
     }
-    const item = e.bookmark as AudioBookmarkItem & { kind: 'voice' }
+    const item = tabEntry.bookmark as AudioBookmarkItem & { kind: 'voice' }
     return (
       <VoiceEntry
         key={item.key}

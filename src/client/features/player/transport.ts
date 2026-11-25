@@ -89,22 +89,30 @@ export function createTransport(deps: TransportDeps): Transport {
   const { audio, storage } = deps
   const now = deps.now ?? Date.now
   const timers = deps.timers ?? browserTimers
-  let s: Omit<TransportState, 'hasPrev' | 'hasNext'> = { ...IDLE_TRANSPORT, speed: readSpeed(storage) ?? 1 }
+  let transportState: Omit<TransportState, 'hasPrev' | 'hasNext'> = {
+    ...IDLE_TRANSPORT,
+    speed: readSpeed(storage) ?? 1,
+  }
   let lastSaved = 0
   let ended: string | null = null
   let fade: { timer: unknown; volume: number } | null = null
   let disposed = false
 
   const state = (): TransportState => {
-    const { prev, next } = s.current ? neighbours(s.episodes, s.current.id) : { prev: undefined, next: undefined }
-    return { ...s, hasPrev: prev !== undefined, hasNext: next !== undefined }
+    const { prev, next } = transportState.current
+      ? neighbours(transportState.episodes, transportState.current.id)
+      : { prev: undefined, next: undefined }
+    return { ...transportState, hasPrev: prev !== undefined, hasNext: next !== undefined }
   }
-  const set = (patch: Partial<typeof s>) => {
-    s = { ...s, ...patch }
+  const set = (patch: Partial<typeof transportState>) => {
+    transportState = { ...transportState, ...patch }
     deps.onState(state())
   }
-  const finished = () => s.current !== null && ended === s.current.id
-  const windowOf = (current: PlayerEpisode) => ({ ...current, durationMs: s.durationMs || current.durationMs })
+  const finished = () => transportState.current !== null && ended === transportState.current.id
+  const windowOf = (current: PlayerEpisode) => ({
+    ...current,
+    durationMs: transportState.durationMs || current.durationMs,
+  })
 
   const save = (book: PlayerBook, episode: PlayerEpisode, ms: number) => {
     const at = now()
@@ -112,7 +120,8 @@ export function createTransport(deps: TransportDeps): Transport {
     deps.queue({ book: book.slug, kind: 'episode', episode: episode.id, positionMs: Math.max(0, Math.round(ms)), at })
   }
   const saveHere = () => {
-    if (s.book && s.current && !finished()) save(s.book, s.current, timeInEpisode(audio.currentTime * 1000, s.current))
+    if (transportState.book && transportState.current && !finished())
+      save(transportState.book, transportState.current, timeInEpisode(audio.currentTime * 1000, transportState.current))
   }
   const finish = (book: PlayerBook, episode: PlayerEpisode) => {
     const at = now()
@@ -132,13 +141,13 @@ export function createTransport(deps: TransportDeps): Transport {
     const volume = audio.volume
     const startedAt = now()
     const step = () => {
-      const t = (now() - startedAt) / FADE_MS
-      if (t >= 1) {
+      const fadeProgress = (now() - startedAt) / FADE_MS
+      if (fadeProgress >= 1) {
         audio.pause()
         stopFade()
         return
       }
-      audio.volume = volume * (1 - t)
+      audio.volume = volume * (1 - fadeProgress)
       if (fade) fade.timer = timers.setTimeout(step, FADE_STEP_MS)
     }
     fade = { volume, timer: timers.setTimeout(step, FADE_STEP_MS) }
@@ -148,7 +157,7 @@ export function createTransport(deps: TransportDeps): Transport {
     deps.arbiter.beforeAudiobook()
     stopFade()
     const resume = resumeAt(episode, readEpisode(storage, book.slug, episode.id, legacyUrl(book, episode)).ms, at) ?? 0
-    const previous = s.current
+    const previous = transportState.current
     const sameFile = previous?.audioUrl === episode.audioUrl && audio.getAttribute('src') === episode.audioUrl
     ended = null
     set({ book, episodes, current: episode, positionMs: resume, durationMs: episode.durationMs })
@@ -158,7 +167,7 @@ export function createTransport(deps: TransportDeps): Transport {
       if (start) audio.currentTime = start / 1000
     } else if (needsSeek(audio.currentTime * 1000, previous, episode, resume))
       audio.currentTime = elementTime(resume, episode) / 1000
-    audio.playbackRate = s.speed
+    audio.playbackRate = transportState.speed
     if (autoplay) audio.play().catch(refused)
     else if (sameFile) audio.pause()
   }
@@ -169,15 +178,15 @@ export function createTransport(deps: TransportDeps): Transport {
   }
 
   const toggle = () => {
-    if (!s.current) return
+    if (!transportState.current) return
     stopFade()
     if (audio.paused) void audio.play().catch(() => {})
     else audio.pause()
   }
 
   const seek = (ms: number) => {
-    if (!s.current) return
-    const w = windowOf(s.current)
+    if (!transportState.current) return
+    const w = windowOf(transportState.current)
     const at = elementTime(ms, w)
     ended = null
     audio.currentTime = at / 1000
@@ -185,17 +194,17 @@ export function createTransport(deps: TransportDeps): Transport {
   }
 
   const step = (direction: 'prev' | 'next', autoplay = true) => {
-    if (!s.book || !s.current) return
-    const target = neighbours(s.episodes, s.current.id)[direction]
-    if (target) load(s.book, s.episodes, target, autoplay)
+    if (!transportState.book || !transportState.current) return
+    const target = neighbours(transportState.episodes, transportState.current.id)[direction]
+    if (target) load(transportState.book, transportState.episodes, target, autoplay)
     else if (direction === 'prev') seek(0)
   }
 
   const episodeEnded = () => {
-    const { book, current } = s
+    const { book, current } = transportState
     if (!book || !current || finished()) return
     ended = current.id
-    if (s.episodes.at(-1)?.id === current.id) deps.onBookFinished(book)
+    if (transportState.episodes.at(-1)?.id === current.id) deps.onBookFinished(book)
     const stop = deps.arbiter.partEnded() === 'stop'
     if (stop) audio.pause()
     finish(book, current)
@@ -216,7 +225,7 @@ export function createTransport(deps: TransportDeps): Transport {
     deps.arbiter.playing('audiobook', false)
   })
   listen('timeupdate', () => {
-    const { book, current } = s
+    const { book, current } = transportState
     if (!current) return
     const elementMs = audio.currentTime * 1000
     const ms = timeInEpisode(elementMs, current)
@@ -225,43 +234,44 @@ export function createTransport(deps: TransportDeps): Transport {
       lastSaved = ms
       save(book, current, ms)
     }
-    if (endsInsideFile(s.episodes, current) && reachedEnd(elementMs, current)) episodeEnded()
+    if (endsInsideFile(transportState.episodes, current) && reachedEnd(elementMs, current)) episodeEnded()
   })
   listen('loadedmetadata', () => {
     const ms = audio.duration * 1000
-    if (s.current && isWindowed(s.episodes, s.current)) return
+    if (transportState.current && isWindowed(transportState.episodes, transportState.current)) return
     if (Number.isFinite(ms) && ms > 0) set({ durationMs: ms })
   })
   listen('ended', episodeEnded)
 
   return {
     play: (book, episodes, episodeId) => {
-      if (s.current?.id === episodeId && s.book?.slug === book.slug) return toggle()
+      if (transportState.current?.id === episodeId && transportState.book?.slug === book.slug) return toggle()
       const episode = episodes.find((e) => e.id === episodeId)
       if (episode) load(book, episodes, episode)
     },
     playAt: (book, episodes, episodeId, ms) => {
       const episode = episodes.find((e) => e.id === episodeId)
       if (!episode) return
-      if (s.current?.id !== episodeId || s.book?.slug !== book.slug) return load(book, episodes, episode, true, ms)
+      if (transportState.current?.id !== episodeId || transportState.book?.slug !== book.slug)
+        return load(book, episodes, episode, true, ms)
       stopFade()
       seek(ms)
       void audio.play().catch(() => {})
     },
     toggle,
     resume: () => {
-      if (s.current) void audio.play().catch(() => {})
+      if (transportState.current) void audio.play().catch(() => {})
     },
     pause: () => audio.pause(),
     seek,
-    skip: (delta) => seek(s.positionMs + delta),
+    skip: (delta) => seek(transportState.positionMs + delta),
     seekFile: (ms) => {
-      if (s.current) seek(timeInEpisode(ms, windowOf(s.current)))
+      if (transportState.current) seek(timeInEpisode(ms, windowOf(transportState.current)))
     },
     prev: () => step('prev'),
     next: () => step('next'),
     cycleSpeed: () => {
-      const speed = nextSpeed(s.speed)
+      const speed = nextSpeed(transportState.speed)
       audio.playbackRate = speed
       writeSpeed(storage, speed)
       set({ speed })
@@ -269,7 +279,7 @@ export function createTransport(deps: TransportDeps): Transport {
     fadeOut,
     close: () => {
       stopFade()
-      const wasLoaded = s.current !== null
+      const wasLoaded = transportState.current !== null
       if (wasLoaded) {
         saveHere()
         audio.pause()
@@ -279,7 +289,7 @@ export function createTransport(deps: TransportDeps): Transport {
       set({ book: null, episodes: [], current: null, playing: false, positionMs: 0 })
       if (wasLoaded) deps.arbiter.closed()
     },
-    loaded: () => s.current !== null,
+    loaded: () => transportState.current !== null,
     state,
     dispose: () => {
       disposed = true

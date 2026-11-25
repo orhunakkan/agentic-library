@@ -102,15 +102,15 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowDown') {
-              e.preventDefault()
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
               setActive((i) => Math.min(results.length - 1, i + 1))
-            } else if (e.key === 'ArrowUp') {
-              e.preventDefault()
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault()
               setActive((i) => Math.max(0, i - 1))
-            } else if (e.key === 'Enter') {
-              e.preventDefault()
+            } else if (event.key === 'Enter') {
+              event.preventDefault()
               go(results[active])
             }
           }}

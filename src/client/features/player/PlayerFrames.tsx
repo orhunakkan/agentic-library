@@ -131,11 +131,14 @@ export function SheetFrame({
 
   useEffect(() => {
     minimizeRef.current?.focus()
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (event: KeyboardEvent) => {
       if (document.querySelector('[role="menu"][data-open]')) return
-      if (e.key === 'Escape') setExpanded(false)
-      else if (e.key === ' ' && !(e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement)) {
-        e.preventDefault()
+      if (event.key === 'Escape') setExpanded(false)
+      else if (
+        event.key === ' ' &&
+        !(event.target instanceof HTMLButtonElement || event.target instanceof HTMLInputElement)
+      ) {
+        event.preventDefault()
         toggleRef.current()
       }
     }

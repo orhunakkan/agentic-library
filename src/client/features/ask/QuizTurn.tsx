@@ -32,15 +32,15 @@ export function QuizTurn({
       <p className="text-[13.5px] font-medium text-r-muted" data-testid="quiz-heading">
         {studyHeading(study)}
       </p>
-      {study.questions.map((q, i) => (
+      {study.questions.map((question, i) => (
         <Question
           // biome-ignore lint/suspicious/noArrayIndexKey: the questions never move; the index is the question's number
           key={i}
           n={i + 1}
-          question={q}
+          question={question}
           onPick={(choice) => {
             onPick(i, choice)
-            setSaid(verdict({ ...q, picked: choice }))
+            setSaid(verdict({ ...question, picked: choice }))
           }}
           onNavigate={onNavigate}
           save={
@@ -48,7 +48,7 @@ export function QuizTurn({
               state={saves.states[i] ?? { state: 'idle' }}
               label="Save as flashcard"
               onSave={() => {
-                const { front, back, source } = cardFromQuestion(q)
+                const { front, back, source } = cardFromQuestion(question)
                 void saves.save(i, { book: bookSlug, front, back, position: source.position, origin: 'quiz' })
               }}
             />
@@ -84,8 +84,8 @@ export function QuizTurn({
 }
 
 function Question({
-  n,
-  question: q,
+  n: questionNumber,
+  question,
   onPick,
   onNavigate,
   save,
@@ -96,20 +96,20 @@ function Question({
   onNavigate?: () => void
   save: React.ReactNode
 }) {
-  const answered = q.picked !== null
+  const answered = question.picked !== null
   return (
     <fieldset
       className="min-w-0 rounded-xl border border-r-line px-3.5 pt-2 pb-3"
       data-testid="quiz-question"
-      data-key={n}
+      data-key={questionNumber}
     >
       <legend className="px-1 text-[14.5px] leading-snug font-medium [overflow-wrap:anywhere]">
-        {n}. {q.question}
+        {questionNumber}. {question.question}
       </legend>
       <div className="mt-1 space-y-1.5">
-        {q.choices.map((choice, j) => {
-          const right = answered && j === q.answer
-          const wrong = answered && j === q.picked && j !== q.answer
+        {question.choices.map((choice, j) => {
+          const right = answered && j === question.answer
+          const wrong = answered && j === question.picked && j !== question.answer
           return (
             <button
               // biome-ignore lint/suspicious/noArrayIndexKey: four fixed choices, A to D
@@ -152,12 +152,12 @@ function Question({
       {answered && (
         <div className="mt-2.5 text-[14px] leading-relaxed">
           <p className="font-medium" data-testid="quiz-verdict">
-            {verdict(q)}
+            {verdict(question)}
           </p>
           <div className="mt-1 flex gap-1">
             <span className="shrink-0">Why:</span>
             <div className="min-w-0 flex-1">
-              <AnswerText text={q.why} citations={q.citations} onNavigate={onNavigate} />
+              <AnswerText text={question.why} citations={question.citations} onNavigate={onNavigate} />
             </div>
           </div>
           {save}

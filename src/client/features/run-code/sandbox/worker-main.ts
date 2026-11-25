@@ -480,7 +480,7 @@ export function workerMain(
     const db = new engine.oo1.DB(':memory:', 'c')
     let rest = code
     let consumed = 0
-    let n = 0
+    let statementCount = 0
     try {
       while (/\S/.test(rest)) {
         const start = consumed + (rest.length - rest.trimStart().length)
@@ -489,9 +489,9 @@ export function workerMain(
           stmt = db.prepare(rest)
         } catch (error) {
           if (isError(error) && /empty SQL/i.test(String(error.message))) break
-          throw { error, statement: n + 1, start }
+          throw { error, statement: statementCount + 1, start }
         }
-        n++
+        statementCount++
         const text = engine.capi.sqlite3_sql(stmt.pointer) ?? rest
         try {
           const before = db.changes(true)
@@ -504,7 +504,7 @@ export function workerMain(
             if (changed) line('info', `${changed} ${changed === 1 ? 'row' : 'rows'} changed`)
           }
         } catch (error) {
-          throw { error, statement: n, start }
+          throw { error, statement: statementCount, start }
         } finally {
           stmt.finalize()
         }

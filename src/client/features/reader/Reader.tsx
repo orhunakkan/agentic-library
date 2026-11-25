@@ -380,12 +380,12 @@ export function Reader({
     leftScroll.current = false
     window.requestAnimationFrame(() => window.scrollTo({ top: 0 }))
   }
-  const scrollToLinked = (e: React.MouseEvent) => {
-    if (!scrollMode || !isPlainClick(e)) return
-    const link = (e.target as HTMLElement).closest?.('a[href^="/read/"]')
+  const scrollToLinked = (event: React.MouseEvent) => {
+    if (!scrollMode || !isPlainClick(event)) return
+    const link = (event.target as HTMLElement).closest?.('a[href^="/read/"]')
     const href = link?.getAttribute('href')
     if (!href || href.includes('#') || !view.nav.dots.some((d) => d.href === href) || !column.current) return
-    e.preventDefault()
+    event.preventDefault()
     setTocOpen(false)
     column.current.reveal(href, { scroll: true })
   }
@@ -863,11 +863,11 @@ function useVoiceOnPage(
     const onPointer = (e: Event) => {
       if (outside(e)) stopFollowing()
     }
-    const onKey = (e: KeyboardEvent) => {
-      if (!SCROLL_KEYS.has(e.key) || e.altKey || e.ctrlKey || e.metaKey) return
-      const el = e.target as HTMLElement | null
+    const onKey = (event: KeyboardEvent) => {
+      if (!SCROLL_KEYS.has(event.key) || event.altKey || event.ctrlKey || event.metaKey) return
+      const el = event.target as HTMLElement | null
       if (el?.closest(TYPING_OR_DIALOG)) return
-      if (e.key === ' ' && el?.closest('button, a, [role="button"], [role="slider"]')) return
+      if (event.key === ' ' && el?.closest('button, a, [role="button"], [role="slider"]')) return
       stopFollowing()
     }
     window.addEventListener('wheel', onPointer, { passive: true })

@@ -66,15 +66,15 @@ export function ReviewSession({
     setShown(false)
   }
 
-  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-    if (!card || e.altKey || e.ctrlKey || e.metaKey) return
-    const onControl = e.target instanceof HTMLButtonElement || e.target instanceof HTMLAnchorElement
-    if (e.key === ' ' && !shown && !onControl) {
-      e.preventDefault()
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (!card || event.altKey || event.ctrlKey || event.metaKey) return
+    const onControl = event.target instanceof HTMLButtonElement || event.target instanceof HTMLAnchorElement
+    if (event.key === ' ' && !shown && !onControl) {
+      event.preventDefault()
       setShown(true)
-    } else if (shown && (e.key === '1' || e.key === '2')) {
-      e.preventDefault()
-      void send(e.key === '1' ? 'again' : 'good')
+    } else if (shown && (event.key === '1' || event.key === '2')) {
+      event.preventDefault()
+      void send(event.key === '1' ? 'again' : 'good')
     }
   }
 

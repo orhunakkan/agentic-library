@@ -61,13 +61,13 @@ export type ChunkAnswer =
 
 export async function sendChunk(
   id: string,
-  n: number,
+  fileNumber: number,
   offset: number,
   bytes: Blob,
   signal?: AbortSignal,
 ): Promise<ChunkAnswer> {
   const answer = await answerOf(
-    fetch(`/account/books/${encodeURIComponent(id)}/audio/${n}?offset=${offset}`, {
+    fetch(`/account/books/${encodeURIComponent(id)}/audio/${fileNumber}?offset=${offset}`, {
       method: 'POST',
       headers: { 'content-type': 'application/octet-stream' },
       body: bytes,

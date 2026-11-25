@@ -81,10 +81,10 @@ async function load(voice: WorkerVoice, engine: Extract<ToWorker, { type: 'load'
     const session = await ort.InferenceSession.create(new Uint8Array(await model.arrayBuffer()))
     let phonemize: Loaded['phonemize'] = null
     if (config.phoneme_type !== 'text') {
-      const p = await startPhonemizer(engine)
+      const phonemizer = await startPhonemizer(engine)
       phonemize = (text) => {
-        p.out.line = ''
-        p.callMain([
+        phonemizer.out.line = ''
+        phonemizer.callMain([
           '-l',
           config.espeak.voice,
           '--input',
@@ -92,7 +92,7 @@ async function load(voice: WorkerVoice, engine: Extract<ToWorker, { type: 'load'
           '--espeak_data',
           '/espeak-ng-data',
         ])
-        const answer = JSON.parse(p.out.line || '{"phonemes":[]}') as { phonemes?: string[] }
+        const answer = JSON.parse(phonemizer.out.line || '{"phonemes":[]}') as { phonemes?: string[] }
         return (answer.phonemes ?? []).join('')
       }
     }

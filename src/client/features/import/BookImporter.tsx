@@ -183,11 +183,11 @@ export function BookImporter({
     setStage((s) => (current(s) ? { ...s, error: undefined, pdf: { ...pdf, rereading: true } } : s))
     try {
       const { draft: next, styles, report } = await pdf.book.reread(overrides)
-      setStage((s) =>
-        current(s)
+      setStage((previousStage) =>
+        current(previousStage)
           ? {
-              ...s,
-              draft: { ...s.draft, chapters: next.chapters, pictures: next.pictures },
+              ...previousStage,
+              draft: { ...previousStage.draft, chapters: next.chapters, pictures: next.pictures },
               pdf: {
                 book: pdf.book,
                 read: { styles, report, overrides },
@@ -196,7 +196,7 @@ export function BookImporter({
                 run: pdf.run + 1,
               },
             }
-          : s,
+          : previousStage,
       )
     } catch (error) {
       const message = error instanceof ImportError ? error.message : 'This file couldn’t be read again.'
@@ -486,20 +486,24 @@ function useReviewPictures(draft: DraftBook): { pictures: ReadonlyMap<number, Re
     ]
     void (async () => {
       const drawn = new Map<number, ReviewPicture>()
-      for (const n of wanted) {
-        const source = sources[n - 1]
+      for (const pictureNumber of wanted) {
+        const source = sources[pictureNumber - 1]
         if (!source || 'problem' in source) {
-          drawn.set(n, { state: { ok: false, problem: source?.problem ?? 'missing' } })
+          drawn.set(pictureNumber, { state: { ok: false, problem: source?.problem ?? 'missing' } })
           continue
         }
         const result = await drawPicture(source.bytes, source.type)
         if (!live) return
-        if ('problem' in result) drawn.set(n, { state: { ok: false, problem: result.problem } })
+        if ('problem' in result) drawn.set(pictureNumber, { state: { ok: false, problem: result.problem } })
         else {
           const url = URL.createObjectURL(result.blob)
           urls.push(url)
           const { width, height } = result
-          drawn.set(n, { state: { ok: true, bytes: result.blob.size, width, height }, blob: result.blob, url })
+          drawn.set(pictureNumber, {
+            state: { ok: true, bytes: result.blob.size, width, height },
+            blob: result.blob,
+            url,
+          })
         }
       }
       if (!live) return
@@ -941,20 +945,20 @@ const rowButton =
   'inline-flex h-11 items-center gap-1.5 rounded-full border border-line px-3.5 text-[13.5px] text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-line disabled:hover:text-ink'
 
 function ChapterRow({ index, chapter, words, previewing, onRename, onPreview, onMerge, onDrop }: ChapterRowProps) {
-  const n = index + 1
-  const id = `chapter-${n}-title`
+  const chapterNumber = index + 1
+  const id = `chapter-${chapterNumber}-title`
   return (
     <li
       className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:px-4"
       data-testid="import-chapter"
-      data-key={n}
+      data-key={chapterNumber}
     >
       <span className="w-7 shrink-0 text-right text-[13px] text-subtle tabular" aria-hidden>
-        {n}
+        {chapterNumber}
       </span>
       <div className="min-w-[180px] flex-1">
         <label htmlFor={id} className="sr-only">
-          Chapter {n} title
+          Chapter {chapterNumber} title
         </label>
         <input
           id={id}
@@ -962,14 +966,14 @@ function ChapterRow({ index, chapter, words, previewing, onRename, onPreview, on
           maxLength={300}
           onChange={(e) => onRename(e.target.value)}
           data-testid="import-chapter-title"
-          data-key={n}
+          data-key={chapterNumber}
           className="h-11 w-full rounded-xl border border-line bg-page px-3 text-[15px] text-ink outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15"
         />
       </div>
       <span
         className="w-[88px] shrink-0 text-[13px] text-muted tabular"
         data-testid="import-chapter-words"
-        data-key={n}
+        data-key={chapterNumber}
       >
         {words.toLocaleString('en')} words
       </span>
@@ -980,10 +984,10 @@ function ChapterRow({ index, chapter, words, previewing, onRename, onPreview, on
           onClick={onPreview}
           aria-pressed={previewing}
           data-testid="import-chapter-preview"
-          data-key={n}
+          data-key={chapterNumber}
         >
           <Eye className="size-4" aria-hidden />
-          Preview<span className="sr-only"> chapter {n}</span>
+          Preview<span className="sr-only"> chapter {chapterNumber}</span>
         </button>
         <button
           type="button"
@@ -991,15 +995,21 @@ function ChapterRow({ index, chapter, words, previewing, onRename, onPreview, on
           onClick={onMerge}
           disabled={index === 0}
           data-testid="import-chapter-merge"
-          data-key={n}
+          data-key={chapterNumber}
         >
           <Merge className="size-4" aria-hidden />
           Merge
-          <span className="sr-only"> chapter {n} into the one before</span>
+          <span className="sr-only"> chapter {chapterNumber} into the one before</span>
         </button>
-        <button type="button" className={rowButton} onClick={onDrop} data-testid="import-chapter-drop" data-key={n}>
+        <button
+          type="button"
+          className={rowButton}
+          onClick={onDrop}
+          data-testid="import-chapter-drop"
+          data-key={chapterNumber}
+        >
           <Trash2 className="size-4" aria-hidden />
-          Drop<span className="sr-only"> chapter {n}</span>
+          Drop<span className="sr-only"> chapter {chapterNumber}</span>
         </button>
       </div>
     </li>

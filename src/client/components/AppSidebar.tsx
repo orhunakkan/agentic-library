@@ -129,21 +129,21 @@ export function SidebarContent({
           Collections
         </h2>
         <ul className="flex flex-col gap-0.5">
-          {nav.collections.map((c) => {
-            const active = isCollectionActive(c, pathname, filter)
+          {nav.collections.map((collection) => {
+            const active = isCollectionActive(collection, pathname, filter)
             return (
-              <li key={c.slug}>
+              <li key={collection.slug}>
                 <AppLink
-                  href={c.href}
+                  href={collection.href}
                   onClick={onNavigate}
                   aria-current={active ? 'page' : undefined}
                   className={itemClass(active)}
                   data-testid="nav-collection"
-                  data-key={c.slug}
+                  data-key={collection.slug}
                 >
-                  <span aria-hidden className={cn('size-2.5 shrink-0 rounded-full', HUE_CLASSES[c.hue].dot)} />
-                  <span className="min-w-0 flex-1 truncate">{c.title}</span>
-                  <span className="text-[13px] font-normal text-subtle tabular">{c.bookCount}</span>
+                  <span aria-hidden className={cn('size-2.5 shrink-0 rounded-full', HUE_CLASSES[collection.hue].dot)} />
+                  <span className="min-w-0 flex-1 truncate">{collection.title}</span>
+                  <span className="text-[13px] font-normal text-subtle tabular">{collection.bookCount}</span>
                 </AppLink>
               </li>
             )
@@ -163,21 +163,21 @@ export function SidebarContent({
             Featured series
           </h2>
           <ul className="flex flex-col gap-0.5">
-            {nav.featured.map((s) => {
-              const href = `/library/${s.slug}`
+            {nav.featured.map((series) => {
+              const href = `/library/${series.slug}`
               const active = pathname === href
               return (
-                <li key={s.slug}>
+                <li key={series.slug}>
                   <AppLink
                     href={href}
                     onClick={onNavigate}
                     aria-current={active ? 'page' : undefined}
                     className={cn('block rounded-xl px-3 py-2 transition', active ? 'bg-panel' : 'hover:bg-panel/60')}
                     data-testid="nav-series"
-                    data-key={s.slug}
+                    data-key={series.slug}
                   >
-                    <span className="block text-[15px] font-medium text-ink">{s.title}</span>
-                    <span className="block text-[13px] text-subtle">{s.subtitle}</span>
+                    <span className="block text-[15px] font-medium text-ink">{series.title}</span>
+                    <span className="block text-[13px] text-subtle">{series.subtitle}</span>
                   </AppLink>
                 </li>
               )

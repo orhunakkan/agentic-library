@@ -14,7 +14,7 @@ export const RunCodeContext = createContext<RunCode | null>(null)
 export function RunOpenButton({
   lang,
   onOpen,
-  n,
+  n: listingNumber,
   tone,
   style,
 }: {
@@ -28,7 +28,7 @@ export function RunOpenButton({
     <button
       type="button"
       data-testid="run-open"
-      data-key={n}
+      data-key={listingNumber}
       aria-label={openLabel(lang)}
       onClick={(e) => onOpen(e.currentTarget)}
       style={style}

@@ -231,18 +231,18 @@ function Contents({ page }: { page: Page }) {
     <section aria-labelledby="toc-title">
       <SectionTitle id="toc-title">Contents</SectionTitle>
       <ol className="mt-4">
-        {page.toc.map((c) => (
-          <li key={c.href}>
+        {page.toc.map((chapter) => (
+          <li key={chapter.href}>
             <AppLink
-              href={c.href}
+              href={chapter.href}
               preload={false}
               data-testid="private-book-chapter"
-              data-key={c.number}
+              data-key={chapter.number}
               className="group -mx-3 flex items-baseline gap-5 rounded-xl border-b border-line-soft px-3 py-3.5 transition hover:bg-panel"
             >
-              <span className="w-7 shrink-0 text-[14px] text-subtle tabular">{pad2(c.number)}</span>
+              <span className="w-7 shrink-0 text-[14px] text-subtle tabular">{pad2(chapter.number)}</span>
               <span className="min-w-0 font-sans text-[16px] break-words text-ink transition group-hover:text-accent md:text-[17px]">
-                {c.title}
+                {chapter.title}
               </span>
             </AppLink>
           </li>

@@ -154,22 +154,22 @@ function DictionaryAnswer({
               {sense.partOfSpeech}
             </h3>
             <ol className="mt-1 list-decimal space-y-1.5 pl-5">
-              {sense.definitions.map((d, i) => (
+              {sense.definitions.map((definition, i) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: definitions are a fixed list per answer, in order
                 <li key={i}>
-                  {d.text}
-                  {d.lemma && (
+                  {definition.text}
+                  {definition.lemma && (
                     <>
                       {' '}
                       <button
                         type="button"
                         data-testid="lookup-lemma"
-                        data-key={d.lemma}
-                        onClick={() => d.lemma && onLemma(d.lemma)}
+                        data-key={definition.lemma}
+                        onClick={() => definition.lemma && onLemma(definition.lemma)}
                         className={cn(textLink, 'cursor-pointer')}
                         lang="en"
                       >
-                        Look up “{d.lemma}”
+                        Look up “{definition.lemma}”
                       </button>
                     </>
                   )}

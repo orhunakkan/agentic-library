@@ -35,11 +35,11 @@ async function openCopy(slug: string, env: OfflineEnv): Promise<OfflineBook> {
 export async function readerPageFromCopy(
   slug: string,
   part: string,
-  n: string | undefined,
+  pageNumber: string | undefined,
   env: OfflineEnv = offlineEnv(),
 ): Promise<OfflineReaderPage> {
   const copy = await openCopy(slug, env)
-  const view = buildReaderView(copy.context, copy.content, part, n)
+  const view = buildReaderView(copy.context, copy.content, part, pageNumber)
   if (!view) throw new OfflineMissing(slug)
   return { view, cover: copy.cover, audio: null, offlineVersion: copy.version, offline: true }
 }

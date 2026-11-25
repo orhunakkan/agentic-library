@@ -210,11 +210,11 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     state = { ...state, ...patch }
     if (current && cursor) {
       const page = current.data.chapter.pages[cursor.pageIndex]
-      const u = intro ? null : utteranceAt(current.plan, cursor)
+      const utterance = intro ? null : utteranceAt(current.plan, cursor)
       state = {
         ...state,
         page: page ? { index: cursor.pageIndex, href: page.href, label: page.label, position: page.position } : null,
-        utterance: u ? { start: u.start, end: u.end } : null,
+        utterance: utterance ? { start: utterance.start, end: utterance.end } : null,
         fraction: fraction(current.plan, cursor),
         minutesLeft: minutesLeft(current.plan, cursor, state.rate),
       }
@@ -224,11 +224,16 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
 
   const save = () => {
     if (!slug || !current || !cursor) return
-    const u = utteranceAt(current.plan, cursor)
+    const utterance = utteranceAt(current.plan, cursor)
     const page = current.data.chapter.pages[cursor.pageIndex]
-    if (!u || !page) return
+    if (!utterance || !page) return
     lastSave = now()
-    const saved = { chapter: current.data.chapter.index, position: page.position, offset: u.start, at: lastSave }
+    const saved = {
+      chapter: current.data.chapter.index,
+      position: page.position,
+      offset: utterance.start,
+      at: lastSave,
+    }
     writePosition(deps.storage, slug, saved)
     deps.onSaved?.(slug, saved)
   }
@@ -405,11 +410,11 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       })
       return
     }
-    const u = utteranceAt(current.plan, cursor)
-    if (!u) return
+    const utterance = utteranceAt(current.plan, cursor)
+    if (!utterance) return
     emit({ status: 'playing', problem: null })
     if (now() - lastSave >= SAVE_EVERY_MS) save()
-    active.speak(u.say, options(), {
+    active.speak(utterance.say, options(), {
       onEnd: () => {
         if (mine !== session) return
         failures = 0

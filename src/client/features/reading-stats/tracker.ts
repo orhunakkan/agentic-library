@@ -58,37 +58,37 @@ export function createTracker(deps: TrackerDeps): Tracker {
     return session
   }
 
-  const send = (s: Session, at: number) => {
-    const seconds = Math.floor(s.ms / 1000)
-    if (seconds < 1 || seconds <= s.sent) return
-    s.sent = seconds
-    deps.add({ id: s.id, kind: s.kind, day: s.day, seconds, at })
+  const send = (sessionToSend: Session, at: number) => {
+    const seconds = Math.floor(sessionToSend.ms / 1000)
+    if (seconds < 1 || seconds <= sessionToSend.sent) return
+    sessionToSend.sent = seconds
+    deps.add({ id: sessionToSend.id, kind: sessionToSend.kind, day: sessionToSend.day, seconds, at })
   }
 
   const count = (kind: Session['kind'], ms: number, at: number) => {
     const day = dayIn(new Date(at), deps.zone())
     let left = ms
     while (left > 0) {
-      const s = sessionFor(kind, day)
-      const step = Math.min(left, MAX_SESSION_MS - s.ms)
-      s.ms += step
+      const daySession = sessionFor(kind, day)
+      const step = Math.min(left, MAX_SESSION_MS - daySession.ms)
+      daySession.ms += step
       left -= step
-      send(s, at)
+      send(daySession, at)
     }
   }
 
   const tick = () => {
-    const t = deps.now()
+    const now = deps.now()
     const previous = lastTick
-    lastTick = t
-    if (account === null || previous === null || t <= previous) return
+    lastTick = now
+    if (account === null || previous === null || now <= previous) return
     if (listening) {
-      count('listening', Math.min(t - previous, MAX_LISTENING_STEP_MS), t)
+      count('listening', Math.min(now - previous, MAX_LISTENING_STEP_MS), now)
       return
     }
     if (!reading || !visible) return
-    const active = Math.min(t, lastActivity + IDLE_MS) - previous
-    if (active > 0) count('reading', Math.min(active, MAX_READING_STEP_MS), t)
+    const active = Math.min(now, lastActivity + IDLE_MS) - previous
+    if (active > 0) count('reading', Math.min(active, MAX_READING_STEP_MS), now)
   }
 
   return {

@@ -132,22 +132,22 @@ export function createOutbox(deps: OutboxDeps): Outbox {
     const settings = all.find((h) => h.group === 'settings')
     const out: { batch: SyncBatch; entries: Held[] }[] = []
     for (let i = 0; i === 0 || i < Math.max(reading.length, listening.length); i += MAX_BATCH_ITEMS) {
-      const r = reading.slice(i, i + MAX_BATCH_ITEMS)
-      const l = listening.slice(i, i + MAX_BATCH_ITEMS)
-      const s = i === 0 ? settings : undefined
-      if (!r.length && !l.length && !s) continue
+      const readingChunk = reading.slice(i, i + MAX_BATCH_ITEMS)
+      const listeningChunk = listening.slice(i, i + MAX_BATCH_ITEMS)
+      const heldSettings = i === 0 ? settings : undefined
+      if (!readingChunk.length && !listeningChunk.length && !heldSettings) continue
       const batch: SyncBatch = {}
-      if (r.length) batch.reading = r.map((h) => h.item as ReadingWrite)
-      if (l.length) batch.listening = l.map((h) => h.item as ListeningWrite)
-      if (s) batch.settings = s.item as SettingsWrite
-      out.push({ batch, entries: [...r, ...l, ...(s ? [s] : [])] })
+      if (readingChunk.length) batch.reading = readingChunk.map((h) => h.item as ReadingWrite)
+      if (listeningChunk.length) batch.listening = listeningChunk.map((h) => h.item as ListeningWrite)
+      if (heldSettings) batch.settings = heldSettings.item as SettingsWrite
+      out.push({ batch, entries: [...readingChunk, ...listeningChunk, ...(heldSettings ? [heldSettings] : [])] })
     }
     for (let i = 0; i < time.length; i += MAX_BATCH_ITEMS) {
-      const t = time.slice(i, i + MAX_BATCH_ITEMS)
+      const timeChunk = time.slice(i, i + MAX_BATCH_ITEMS)
       const zone = deps.zone()
-      const batch: SyncBatch = { time: t.map((h) => h.item as TimeWrite) }
+      const batch: SyncBatch = { time: timeChunk.map((h) => h.item as TimeWrite) }
       if (zone !== null) batch.zone = zone
-      out.push({ batch, entries: t })
+      out.push({ batch, entries: timeChunk })
     }
     return out
   }

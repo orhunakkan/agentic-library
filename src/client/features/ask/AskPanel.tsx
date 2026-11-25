@@ -471,27 +471,30 @@ function Suggestions({
       <p className="mb-3 text-[13.5px] text-r-muted" data-testid="ask-intro">
         {studyOff ? 'Ask about what you’ve read.' : 'Ask about what you’ve read. Answers link to the pages they use.'}
       </p>
-      {list.map((s) => {
-        const off = studyOff !== null && isStudy(s.id)
+      {list.map((suggestion) => {
+        const off = studyOff !== null && isStudy(suggestion.id)
         return (
           <button
-            key={s.id}
+            key={suggestion.id}
             type="button"
             className={cn(chip, off && 'cursor-not-allowed')}
-            onClick={() => choose(s, ask, onStart)}
+            onClick={() => choose(suggestion, ask, onStart)}
             disabled={off}
             data-testid="ask-suggestion"
-            data-key={s.id}
+            data-key={suggestion.id}
           >
-            {s.id === 'quiz' && <ListChecks className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />}
-            {s.id === 'flashcards' && <Layers className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />}
-            {s.label}
+            {suggestion.id === 'quiz' && <ListChecks className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />}
+            {suggestion.id === 'flashcards' && (
+              <Layers className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />
+            )}
+            {suggestion.label}
             {off ? (
               <span className="mt-0.5 block text-[12.5px] text-r-muted" data-testid="ask-study-off">
                 {studyOff}
               </span>
             ) : (
-              s.kind === 'ask' && s.hint && <span className="mt-0.5 block text-[12.5px] text-r-muted">{s.hint}</span>
+              suggestion.kind === 'ask' &&
+              suggestion.hint && <span className="mt-0.5 block text-[12.5px] text-r-muted">{suggestion.hint}</span>
             )}
           </button>
         )
@@ -517,20 +520,20 @@ function QuickQuestions({ view, ask, studyOff }: { view: ReaderView; ask: AskSta
   const list = quickQuestions({ chapterIndex: view.chapterIndex, wholeBook: ask.thread.wholeBook })
   return (
     <fieldset aria-label="Quick questions" className="flex min-w-0 flex-wrap gap-2">
-      {list.map((s) => {
-        const off = studyOff !== null && isStudy(s.id)
+      {list.map((quickQuestion) => {
+        const off = studyOff !== null && isStudy(quickQuestion.id)
         return (
           <button
-            key={s.id}
+            key={quickQuestion.id}
             type="button"
-            onClick={() => choose(s, ask, () => {})}
+            onClick={() => choose(quickQuestion, ask, () => {})}
             disabled={off}
             aria-describedby={off ? id : undefined}
             data-testid="ask-quick-question"
-            data-key={s.id}
+            data-key={quickQuestion.id}
             className="inline-flex min-h-9 items-center rounded-full border border-r-line px-3.5 text-[13px] transition hover:border-r-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {s.label}
+            {quickQuestion.label}
           </button>
         )
       })}

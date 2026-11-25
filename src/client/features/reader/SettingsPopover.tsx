@@ -72,18 +72,18 @@ export function SettingsPopover({
               value={prefs.theme}
               onChange={(theme) => update({ theme })}
             >
-              {(t) => (
+              {(theme) => (
                 <>
                   <span
                     className={cn(
                       'grid size-9 place-items-center rounded-full border font-serif text-[15px]',
-                      t.swatch,
+                      theme.swatch,
                     )}
                     aria-hidden
                   >
                     Aa
                   </span>
-                  <span className="text-[12.5px]">{t.label}</span>
+                  <span className="text-[12.5px]">{theme.label}</span>
                 </>
               )}
             </RadioGroup>
@@ -175,14 +175,14 @@ export function SettingsPopover({
               columns={2}
               last={!showPanel}
             >
-              {(l) => (
+              {(layout) => (
                 <>
-                  {l.value === 'pages' ? (
+                  {layout.value === 'pages' ? (
                     <BookOpen className="size-5" aria-hidden />
                   ) : (
                     <ScrollText className="size-5" aria-hidden />
                   )}
-                  <span className="text-[13px]">{l.label}</span>
+                  <span className="text-[13px]">{layout.label}</span>
                 </>
               )}
             </RadioGroup>

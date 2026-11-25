@@ -32,31 +32,31 @@ export function AccessTokensSection({ tokens, revoked }: { tokens: AccessTokenIt
         </p>
       ) : (
         <ul className="mt-5 divide-y divide-line" aria-label="Your access tokens">
-          {tokens.map((t) => (
+          {tokens.map((token) => (
             <li
-              key={t.id}
+              key={token.id}
               data-testid="account-token"
-              data-key={t.id}
+              data-key={token.id}
               className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex min-w-0 items-start gap-3 text-[14.5px]">
                 <KeySquare className="mt-0.5 size-5 shrink-0 text-subtle" aria-hidden />
                 <div className="min-w-0">
                   <p className="font-medium break-words text-ink" data-testid="account-token-name">
-                    {t.name}
+                    {token.name}
                   </p>
-                  <p className="text-muted">{tokenUseText(t)}</p>
-                  <p className="text-muted">{tokenExpiryText(t)}</p>
+                  <p className="text-muted">{tokenUseText(token)}</p>
+                  <p className="text-muted">{tokenExpiryText(token)}</p>
                 </div>
               </div>
               <form method="post" action="/account" className="shrink-0">
                 <input type="hidden" name="intent" value="token-revoke" />
-                <input type="hidden" name="token" value={t.id} />
+                <input type="hidden" name="token" value={token.id} />
                 <Button
                   variant="secondary"
                   data-testid="account-token-revoke"
-                  data-key={t.id}
-                  aria-label={`Revoke ${t.name}, created ${shortDate(t.createdAt)}`}
+                  data-key={token.id}
+                  aria-label={`Revoke ${token.name}, created ${shortDate(token.createdAt)}`}
                 >
                   Revoke
                 </Button>

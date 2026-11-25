@@ -65,14 +65,14 @@ export async function saveArticle(
   let fetched = 0
   if (wanted.length) onProgress({ stage: 'pictures', done: 0, total: wanted.length })
   await inTwos(wanted.length, async (i) => {
-    const [n, address] = wanted[i] as [number, string]
+    const [pictureNumber, address] = wanted[i] as [number, string]
     const bytes = await steps.fetchPicture(fetchId, address)
     const type = bytes && sniffImage(bytes)?.type
     const drawn: DrawnPicture = bytes && type ? await steps.drawPicture(bytes, type) : { problem: 'unreadable' }
     if ('blob' in drawn) {
-      states.set(n, { ok: true, bytes: drawn.blob.size, width: drawn.width, height: drawn.height })
-      blobs.set(n, drawn.blob)
-    } else states.set(n, { ok: false, problem: drawn.problem })
+      states.set(pictureNumber, { ok: true, bytes: drawn.blob.size, width: drawn.width, height: drawn.height })
+      blobs.set(pictureNumber, drawn.blob)
+    } else states.set(pictureNumber, { ok: false, problem: drawn.problem })
     onProgress({ stage: 'pictures', done: ++fetched, total: wanted.length })
   })
   const plan = planPictures(book.chapters, (n) => states.get(n), BOOK_ROOM(MAX_USER_IMAGE_BYTES - imageBytesUsed))

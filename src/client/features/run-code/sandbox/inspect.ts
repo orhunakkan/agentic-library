@@ -4,14 +4,14 @@ export function inspect(value: unknown): string {
   const WIDTH = 72
 
   const quote = (text: string): string => {
-    const q = text.includes("'") && !text.includes('"') ? '"' : "'"
+    const quoteMark = text.includes("'") && !text.includes('"') ? '"' : "'"
     const body = text
       .replace(/\\/g, '\\\\')
       .replace(/\n/g, '\\n')
       .replace(/\t/g, '\\t')
       .replace(/\r/g, '\\r')
-      .replaceAll(q, `\\${q}`)
-    return q + body + q
+      .replaceAll(quoteMark, `\\${quoteMark}`)
+    return quoteMark + body + quoteMark
   }
 
   const keyOf = (key: string | symbol): string => {

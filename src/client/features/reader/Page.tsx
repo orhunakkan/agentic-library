@@ -135,13 +135,13 @@ const TURN_VARIANTS = {
     scale: 1,
     transition: { duration: 0.34, ease: [0.2, 0.72, 0.28, 1] as const },
   },
-  exit: (t: Turn) =>
-    t === 'fade'
+  exit: (turn: Turn) =>
+    turn === 'fade'
       ? { opacity: 0, transition: { duration: 0.14 } }
       : {
           opacity: 0.22,
-          rotateY: t === 'forward' ? -6 : 6,
-          x: t === 'forward' ? -14 : 14,
+          rotateY: turn === 'forward' ? -6 : 6,
+          x: turn === 'forward' ? -14 : 14,
           scale: 0.98,
           transition: { duration: 0.2, ease: 'easeIn' as const },
         },
@@ -162,11 +162,11 @@ function useSwipe(onSwipe: (direction: Direction) => void) {
     },
     onTouchEnd: (e: React.TouchEvent) => {
       const start = touch.current
-      const t = e.changedTouches[0]
+      const endTouch = e.changedTouches[0]
       touch.current = null
-      if (!start || !t || window.getSelection()?.toString()) return
-      const dx = t.clientX - start.x
-      const dy = t.clientY - start.y
+      if (!start || !endTouch || window.getSelection()?.toString()) return
+      const dx = endTouch.clientX - start.x
+      const dy = endTouch.clientY - start.y
       if (Math.abs(dx) >= 64 && Math.abs(dx) >= 1.5 * Math.abs(dy) && Date.now() - start.t <= 800)
         onSwipe(dx < 0 ? 'next' : 'prev')
     },
