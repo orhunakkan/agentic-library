@@ -8,6 +8,10 @@ describe('cleanDescription', () => {
     expect(cleanDescription(html)).toBe('It is a truth universally acknowledged—\n\nMr & Mrs Bennet argue. Again.')
   })
 
+  it('keeps an entity named like an Object.prototype property as written', () => {
+    expect(cleanDescription('<p>Hello &constructor; world</p>')).toBe('Hello &constructor; world')
+  })
+
   it('reads HTML that was escaped once more, as an OPF may carry it', () => {
     expect(cleanDescription('&lt;p&gt;&lt;i&gt;Pride&lt;/i&gt; &amp;amp; more&lt;/p&gt;&lt;p&gt;Two&lt;/p&gt;')).toBe(
       'Pride & more\n\nTwo',

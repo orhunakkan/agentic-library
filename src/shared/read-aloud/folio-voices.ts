@@ -617,11 +617,14 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
 
 export const ENGINE_BYTES = 14_848_852 + 635_212 + 18_077_249
 
-const SAME_LANGUAGE: Record<string, string> = { nb: 'no', nn: 'no' }
+const SAME_LANGUAGE = new Map([
+  ['nb', 'no'],
+  ['nn', 'no'],
+])
 
 function tagParts(tag: string): { base: string; region: string | null } {
   const [first = '', ...rest] = tag.replace(/_/g, '-').toLowerCase().split('-')
-  return { base: SAME_LANGUAGE[first] ?? first, region: rest.find((p) => /^[a-z]{2}$|^\d{3}$/.test(p)) ?? null }
+  return { base: SAME_LANGUAGE.get(first) ?? first, region: rest.find((p) => /^[a-z]{2}$|^\d{3}$/.test(p)) ?? null }
 }
 
 export function folioVoicesFor(lang: string, locale?: string): FolioVoice[] {

@@ -1,4 +1,11 @@
-const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
+const ENTITIES = new Map([
+  ['amp', '&'],
+  ['lt', '<'],
+  ['gt', '>'],
+  ['quot', '"'],
+  ['apos', "'"],
+  ['nbsp', ' '],
+])
 
 export function decodeEntities(text: string): string {
   return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, code: string) => {
@@ -6,7 +13,7 @@ export function decodeEntities(text: string): string {
       const n = code[1]?.toLowerCase() === 'x' ? Number.parseInt(code.slice(2), 16) : Number(code.slice(1))
       return Number.isFinite(n) ? String.fromCodePoint(n) : m
     }
-    return ENTITIES[code.toLowerCase()] ?? m
+    return ENTITIES.get(code.toLowerCase()) ?? m
   })
 }
 

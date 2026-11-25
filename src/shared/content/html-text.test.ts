@@ -5,6 +5,10 @@ describe('decodeEntities', () => {
   it('decodes named, decimal and hex entities and leaves unknown ones', () => {
     expect(decodeEntities('a &amp; b &lt;c&gt; &#8217; &#x2192; &bogus;')).toBe('a & b <c> ’ → &bogus;')
   })
+
+  it('leaves an entity named like an Object.prototype property as written', () => {
+    expect(decodeEntities('a &constructor; b')).toBe('a &constructor; b')
+  })
 })
 
 describe('htmlParagraphs', () => {

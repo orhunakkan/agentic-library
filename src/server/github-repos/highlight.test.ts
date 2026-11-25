@@ -26,6 +26,14 @@ describe('languageFor', () => {
     expect(languageForFence('hpp')).toBe('cpp')
     expect(languageForFence('nonsense')).toBeNull()
   })
+
+  it('knows no language for names that are Object.prototype properties', () => {
+    expect(languageFor('__proto__')).toBeNull()
+    expect(languageFor('src/constructor')).toBeNull()
+    expect(languageFor('notes.constructor')).toBeNull()
+    expect(languageForFence('constructor')).toBeNull()
+    expect(languageForFence('__proto__')).toBeNull()
+  })
 })
 
 describe('highlight', () => {
