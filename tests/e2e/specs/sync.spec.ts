@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import type { Browser, Locator, Page, TestInfo } from '@playwright/test'
+import type { APIRequestContext, Browser, Locator, Page, TestInfo } from '@playwright/test'
 import type { BookContent } from '../../../src/shared/content/schema.ts'
 import { utterances } from '../../../src/shared/read-aloud/sentences.ts'
 import { speechChapter } from '../../../src/shared/read-aloud/speech-text.ts'
@@ -97,46 +97,59 @@ const comeBack = (page: Page, ms: number) =>
     document.dispatchEvent(new Event('visibilitychange'))
   }, ms)
 
+/** Signs one account in on this device and on another, which opens chapter 1 so it has been there before. */
+async function bothSignedIn(page: Page, request: APIRequestContext, browser: Browser, info: TestInfo): Promise<Page> {
+  const user = await createUser(request)
+  await signedIn(page, user, '/library')
+  const other = await otherDevice(browser, info)
+  await signedIn(other, user, '/read/pride-and-prejudice/chapter-1')
+  return other
+}
+
+/** Reads a chapter on this device, waits until it is sent, and opens chapter 1 again on the other. */
+async function readThenOpen(page: Page, other: Page, chapter: string) {
+  await page.goto(`/read/pride-and-prejudice/${chapter}`)
+  await sendUntil(page, readsOn('pride-and-prejudice', chapter))
+  await open(other, '/read/pride-and-prejudice/chapter-1')
+}
+
 test.beforeEach(async ({ page }) => {
   track(page)
 })
 
 test.describe('Sync across devices: reading places', () => {
-  test('a place read on one device is Continue reading on the other, and offered there: Go there, Dismiss, turning the page', async ({
-    page,
-    request,
-    browser,
-    readerPage,
-  }, info) => {
+  test('a place read on one device is Continue reading on the other', async ({ page, request, browser }, info) => {
     const user = await createUser(request)
     await signedIn(page, user, PAGE)
     await sendUntil(page, readsOn('pride-and-prejudice', 'chapter-6', 2))
 
-    const b = await otherDevice(browser, info)
-    await signedIn(b, user, '/library')
-    const card = b.getByRole('region', { name: 'Continue reading' })
+    const other = await otherDevice(browser, info)
+    await signedIn(other, user, '/library')
+    const card = other.getByRole('region', { name: 'Continue reading' })
     await expect(card).toContainText('Pride and Prejudice')
     await expect(card).toContainText('Chapter 6')
     await expect(card.getByRole('link', { name: /^Resume/ })).toHaveAttribute('href', PAGE)
-    await open(b, BOOK_PAGE)
-    const resume = b.getByRole('link', { name: 'Continue reading', exact: true })
+    await open(other, BOOK_PAGE)
+    const resume = other.getByRole('link', { name: 'Continue reading', exact: true })
     await expect(resume).toHaveAttribute('href', PAGE)
-    await expect(b.getByText(/^Ch\. 6 · p\. 2 · Start from the beginning$/)).toBeVisible()
-    const beginning = b.getByRole('link', { name: 'Start from the beginning' })
+    await expect(other.getByText(/^Ch\. 6 · p\. 2 · Start from the beginning$/)).toBeVisible()
+    const beginning = other.getByRole('link', { name: 'Start from the beginning' })
     await expect(beginning).toHaveAttribute('href', '/read/pride-and-prejudice/chapter-1')
-    await expectAccessible(b)
-    await expectNoSideways(b)
-    await press(b, beginning)
-    await expect(b).toHaveURL('/read/pride-and-prejudice/chapter-1')
+    await expectAccessible(other)
+    await expectNoSideways(other)
+    await press(other, beginning)
+    await expect(other).toHaveURL('/read/pride-and-prejudice/chapter-1')
+    await other.context().close()
+  })
 
-    await readerPage.goto('pride-and-prejudice', 'chapter-7')
-    await sendUntil(page, readsOn('pride-and-prejudice', 'chapter-7'))
-    await open(b, '/read/pride-and-prejudice/chapter-1')
-    await expect(bar(b)).toHaveText(/^You were on Ch\. 7 · p\. 1 in .+, just now\.$/)
-    expect(await bar(b).evaluate((el) => el.closest('[data-highlight-root]'))).toBeNull()
-    await expectAccessible(b)
-    await expectNoSideways(b)
-    const goThere = b.getByRole('link', { name: 'Go there' })
+  test('Go there on the other device opens the newer place', async ({ page, request, browser }, info) => {
+    const other = await bothSignedIn(page, request, browser, info)
+    await readThenOpen(page, other, 'chapter-7')
+    await expect(bar(other)).toHaveText(/^You were on Ch\. 7 · p\. 1 in .+, just now\.$/)
+    expect(await bar(other).evaluate((el) => el.closest('[data-highlight-root]'))).toBeNull()
+    await expectAccessible(other)
+    await expectNoSideways(other)
+    const goThere = other.getByRole('link', { name: 'Go there' })
     if (info.project.name === 'desktop') {
       const beforeText = await goThere.evaluate((el) =>
         Boolean(
@@ -146,41 +159,45 @@ test.describe('Sync across devices: reading places', () => {
       )
       expect(beforeText).toBe(true)
       await goThere.focus()
-      await b.keyboard.press('Tab')
-      await expect(button(b, 'Dismiss')).toBeFocused()
+      await other.keyboard.press('Tab')
+      await expect(button(other, 'Dismiss')).toBeFocused()
     }
-    await press(b, goThere)
-    await expect(b).toHaveURL('/read/pride-and-prejudice/chapter-7')
-    await expect(bar(b)).toHaveCount(0)
+    await press(other, goThere)
+    await expect(other).toHaveURL('/read/pride-and-prejudice/chapter-7')
+    await expect(bar(other)).toHaveCount(0)
+    await other.context().close()
+  })
 
-    await readerPage.goto('pride-and-prejudice', 'chapter-8')
-    await sendUntil(page, readsOn('pride-and-prejudice', 'chapter-8'))
-    await open(b, '/read/pride-and-prejudice/chapter-1')
-    await expect(bar(b)).toHaveText(/^You were on Ch\. 8 · p\. 1 in /)
-    await press(b, button(b, 'Dismiss'))
-    await expect(bar(b)).toHaveCount(0)
-    await press(b, b.getByRole('link', { name: 'Next page' }))
-    await expect(b).toHaveURL('/read/pride-and-prejudice/chapter-1/2')
-    await expect(bar(b)).toHaveCount(0)
+  test('a dismissed offer stays hidden on the next page', async ({ page, request, browser }, info) => {
+    const other = await bothSignedIn(page, request, browser, info)
+    await readThenOpen(page, other, 'chapter-8')
+    await expect(bar(other)).toHaveText(/^You were on Ch\. 8 · p\. 1 in /)
+    await press(other, button(other, 'Dismiss'))
+    await expect(bar(other)).toHaveCount(0)
+    await press(other, other.getByRole('link', { name: 'Next page' }))
+    await expect(other).toHaveURL('/read/pride-and-prejudice/chapter-1/2')
+    await expect(bar(other)).toHaveCount(0)
+    await other.context().close()
+  })
 
-    const readerB = new ReaderPage(b)
-    await press(b, readerB.settingsButton)
+  test('in scroll mode, Go there opens the newer place', async ({ page, request, browser }, info) => {
+    const other = await bothSignedIn(page, request, browser, info)
+    const otherReader = new ReaderPage(other)
+    await press(other, otherReader.settingsButton)
     await press(
-      b,
-      readerB.settings
+      other,
+      otherReader.settings
         .getByRole('radiogroup', { name: 'Reading mode' })
         .locator('label')
-        .filter({ has: b.getByRole('radio', { name: 'Scroll', exact: true }) }),
+        .filter({ has: other.getByRole('radio', { name: 'Scroll', exact: true }) }),
     )
-    await b.keyboard.press('Escape')
-    await readerPage.goto('pride-and-prejudice', 'chapter-9')
-    await sendUntil(page, readsOn('pride-and-prejudice', 'chapter-9'))
-    await open(b, '/read/pride-and-prejudice/chapter-1')
-    await expect(b.locator('html')).toHaveAttribute('data-reader-layout', 'scroll')
-    await expect(bar(b)).toHaveText(/^You were on Ch\. 9 · p\. 1 in /)
-    await press(b, b.getByRole('link', { name: 'Go there' }))
-    await expect(b).toHaveURL('/read/pride-and-prejudice/chapter-9')
-    await b.context().close()
+    await other.keyboard.press('Escape')
+    await readThenOpen(page, other, 'chapter-9')
+    await expect(other.locator('html')).toHaveAttribute('data-reader-layout', 'scroll')
+    await expect(bar(other)).toHaveText(/^You were on Ch\. 9 · p\. 1 in /)
+    await press(other, other.getByRole('link', { name: 'Go there' }))
+    await expect(other).toHaveURL('/read/pride-and-prejudice/chapter-9')
+    await other.context().close()
   })
 
   test('coming back to a tab left on an older page offers the newer place', async ({
