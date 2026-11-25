@@ -1,6 +1,7 @@
-import { Link, useRouteContext, useRouterState } from '@tanstack/react-router'
+import { Link, useRouteContext } from '@tanstack/react-router'
 import { Check, LibraryBig, ListPlus, X } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { SignInAgain } from '~/client/components/SignInAgain'
 import { cleanShelfName, SHELF_NAME_MAX } from '~/shared/shelves/shelves'
 import { findByName, problemText, shelfButton } from './shelf-list'
 import type { ShelfProblem } from './shelves-client'
@@ -24,7 +25,6 @@ function ShelfPicker({ slug }: { slug: string }) {
   const button = useRef<HTMLButtonElement>(null)
   const popover = useRef<HTMLDivElement>(null)
   const nameInput = useRef<HTMLInputElement>(null)
-  const here = useRouterState({ select: (s) => s.location.href })
 
   const label = shelfButton(api.shelves, slug)
   const cleaned = cleanShelfName(name)
@@ -202,19 +202,7 @@ function ShelfPicker({ slug }: { slug: string }) {
               className="mt-3 text-[14px] text-red-700 dark:text-red-300"
             >
               {problem.text}
-              {problem.signIn && (
-                <>
-                  {' '}
-                  <Link
-                    to="/login"
-                    search={{ next: here }}
-                    className="font-semibold underline underline-offset-4"
-                    data-testid="shelf-picker-sign-in"
-                  >
-                    Sign in
-                  </Link>
-                </>
-              )}
+              {problem.signIn && <SignInAgain testId="shelf-picker-sign-in" />}
             </p>
           )}
 

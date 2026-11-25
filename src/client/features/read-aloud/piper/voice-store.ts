@@ -1,7 +1,7 @@
 import { askPersistOnce, defaultStorageManager, hasRoom } from '~/client/features/offline/download'
-import { ENGINE_BYTES, FOLIO_VOICES, type FolioVoice, voiceFiles } from '~/shared/read-aloud/folio-voices'
+import { ENGINE_BYTES, FOLIO_VOICES, type FolioVoice, VOICES_CACHE, voiceFiles } from '~/shared/read-aloud/folio-voices'
 
-export const VOICES_CACHE = 'folio-voices-v1'
+export { VOICES_CACHE }
 
 export type DownloadOutcome = 'ok' | 'no_room' | 'failed' | 'cancelled'
 

@@ -7,8 +7,6 @@ import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import { parseRating } from './input.ts'
 import { clearRating, getRating, setRating } from './store.ts'
 
-export type { RatingState }
-
 const MAX_BODY_BYTES = 1024
 
 const ratings = signedInEndpoints<RatingErrorCode>({ maxBytes: MAX_BODY_BYTES })

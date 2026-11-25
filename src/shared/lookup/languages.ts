@@ -1,3 +1,5 @@
+import { isOneOf } from '../lib/json-shape.ts'
+
 export const TRANSLATE_LANGUAGES = [
   'ar',
   'bn',
@@ -35,7 +37,7 @@ export const TRANSLATE_LANGUAGES = [
 export type TranslateLanguage = (typeof TRANSLATE_LANGUAGES)[number]
 
 export function isTranslateLanguage(value: unknown): value is TranslateLanguage {
-  return TRANSLATE_LANGUAGES.some((code) => code === value)
+  return isOneOf(value, TRANSLATE_LANGUAGES)
 }
 
 export function primaryLanguage(tag: string | null | undefined): string {

@@ -11,7 +11,7 @@ import { catalogWithoutRemoved, removedShelfBooks, withoutRemoved } from '~/shar
 import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
 import { readerOf } from './auth'
 import { billingOffer } from './billing/actions'
-import { openBook, type ReaderPage, type TextBook } from './books/book'
+import { openTextBook, type ReaderPage, type TextBook } from './books/book'
 import { getConfig, type SiteContact } from './config'
 import { ratingState } from './ratings/actions'
 import { loadSpeechChapterData, speechInput } from './read-aloud'
@@ -24,10 +24,10 @@ const str = (value: unknown, name: string): string => {
 }
 
 /** Opens a text book for whoever is signed in on this request; any other answer is a 404. */
-async function openTextBook(slug: string): Promise<TextBook> {
+async function readerTextBook(slug: string): Promise<TextBook> {
   const { db, userId } = await readerOf(getRequest())
-  const book = await openBook(db, userId, slug)
-  if (book?.format !== 'text') throw notFound()
+  const book = await openTextBook(db, userId, slug)
+  if (!book) throw notFound()
   return book
 }
 
@@ -113,7 +113,7 @@ export const getReaderPage = createServerFn({ method: 'GET' })
     n: data.n === undefined ? undefined : str(data.n, 'n'),
   }))
   .handler(async ({ data }): Promise<ReaderPage> => {
-    const book = await openTextBook(data.book)
+    const book = await readerTextBook(data.book)
     const page = await book.readerPage(data.part, data.n)
     if (!page) throw notFound()
     return page
@@ -124,7 +124,7 @@ export const searchInBook = createServerFn({ method: 'GET' })
     book: str(data.book, 'book'),
     q: String(data.q ?? '').slice(0, 120),
   }))
-  .handler(async ({ data }) => (await openTextBook(data.book)).search(data.q))
+  .handler(async ({ data }) => (await readerTextBook(data.book)).search(data.q))
 
 export const getSpeechChapter = createServerFn({ method: 'GET' })
   .validator((data: { book: string; chapter: number }) => speechInput(data))

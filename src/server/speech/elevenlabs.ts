@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import { isObject } from '../../shared/lib/json-shape.ts'
 import type { SpeechModelId } from '../../shared/lib/speech-models.ts'
 import type { Alignment } from '../../shared/read-aloud/alignment.ts'
 import type { CloudVoice, SpeakErrorCode, SpeechFormat } from '../../shared/read-aloud/cloud.ts'
@@ -49,9 +50,9 @@ export async function checkKey(
 }
 
 function detailCode(body: unknown): string | null {
-  const detail = body && typeof body === 'object' ? (body as { detail?: unknown }).detail : null
-  if (!detail || typeof detail !== 'object') return null
-  const { code, status } = detail as { code?: unknown; status?: unknown }
+  const detail = isObject(body) ? body.detail : null
+  if (!isObject(detail)) return null
+  const { code, status } = detail
   return typeof code === 'string' ? code : typeof status === 'string' ? status : null
 }
 
@@ -84,13 +85,12 @@ async function jsonOf(response: Response): Promise<unknown> {
 
 const stringOr = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null)
 
-function toVoice(raw: unknown): CloudVoice | null {
-  if (!raw || typeof raw !== 'object') return null
-  const v = raw as { voice_id?: unknown; name?: unknown; labels?: unknown; verified_languages?: unknown }
+function toVoice(v: unknown): CloudVoice | null {
+  if (!isObject(v)) return null
   if (typeof v.voice_id !== 'string' || !/^[A-Za-z0-9]{1,64}$/.test(v.voice_id)) return null
   const name = stringOr(v.name)?.slice(0, 100)
   if (!name) return null
-  const labels = (v.labels && typeof v.labels === 'object' ? v.labels : {}) as Record<string, unknown>
+  const labels: Record<string, unknown> = isObject(v.labels) ? v.labels : {}
   const languages = new Set<string>()
   for (const l of Array.isArray(v.verified_languages) ? v.verified_languages : []) {
     const language = stringOr((l as { language?: unknown } | null)?.language)
@@ -127,7 +127,7 @@ export async function listVoices(key: string, options: ElevenLabsOptions = {}): 
       }
     }
     const body = await jsonOf(response)
-    const raw = body && typeof body === 'object' ? (body as { voices?: unknown }).voices : null
+    const raw = isObject(body) ? body.voices : null
     if (!Array.isArray(raw)) return { ok: false, code: 'unavailable', status: 200 }
     const voices = raw.map(toVoice).filter((v): v is CloudVoice => v !== null)
     return { ok: true, voices: voices.slice(0, VOICES_PAGE) }
@@ -167,8 +167,8 @@ export function speechBody(
 }
 
 function alignmentOf(body: Record<string, unknown>): Alignment | null {
-  const a = body.alignment as Record<string, unknown> | null | undefined
-  if (!a || typeof a !== 'object') return null
+  const a = body.alignment
+  if (!isObject(a)) return null
   const { characters, character_start_times_seconds: starts, character_end_times_seconds: ends } = a
   if (!Array.isArray(characters) || !Array.isArray(starts) || !Array.isArray(ends)) return null
   if (starts.length !== characters.length || ends.length !== characters.length) return null
@@ -195,7 +195,7 @@ export async function synthesize(
     })
     const body = await jsonOf(response)
     if (response.status !== 200) return { ok: false, status: response.status, code: errorCode(response.status, body) }
-    const audio = body && typeof body === 'object' ? (body as { audio_base64?: unknown }).audio_base64 : null
+    const audio = isObject(body) ? body.audio_base64 : null
     if (typeof audio !== 'string' || !audio) return { ok: false, status: 200, code: 'failed' }
     return { ok: true, audio, alignment: alignmentOf(body as Record<string, unknown>) }
   } catch {

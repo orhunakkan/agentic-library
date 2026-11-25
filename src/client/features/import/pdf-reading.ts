@@ -1,6 +1,8 @@
 import type { PdfLayoutReport, PdfOverrides, PdfStyle, StyleKind } from '~/shared/import/pdf/types'
 
-const count = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
+/** `n` and the word for it, singular or plural: "1 page", "2,000 pages". */
+export const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
 const CHAPTERS_TEXT: Record<PdfLayoutReport['chapters'], string> = {
   outline: 'chapters from the PDF’s bookmarks',
@@ -9,11 +11,11 @@ const CHAPTERS_TEXT: Record<PdfLayoutReport['chapters'], string> = {
 }
 
 export function readingSummary(report: PdfLayoutReport): string {
-  const parts = [count(report.pages, 'page'), CHAPTERS_TEXT[report.chapters]]
-  if (report.twoColumnPages) parts.push(`two columns on ${count(report.twoColumnPages, 'page')}`)
+  const parts = [plural(report.pages, 'page'), CHAPTERS_TEXT[report.chapters]]
+  if (report.twoColumnPages) parts.push(`two columns on ${plural(report.twoColumnPages, 'page')}`)
   if (report.furniturePages)
-    parts.push(`page numbers and running headers left out on ${count(report.furniturePages, 'page')}`)
-  if (report.pictures) parts.push(`${count(report.pictures, 'picture')} cropped from the pages`)
+    parts.push(`page numbers and running headers left out on ${plural(report.furniturePages, 'page')}`)
+  if (report.pictures) parts.push(`${plural(report.pictures, 'picture')} cropped from the pages`)
   return `${parts.join(' · ')}.`
 }
 

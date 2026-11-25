@@ -3,6 +3,7 @@ import { checkBookUpload, checkChapterUpload, UploadError } from '../shared/impo
 import { MAX_CHAPTER_REQUEST_BYTES, MAX_CHAPTERS, MAX_META_REQUEST_BYTES } from '../shared/import/limits.ts'
 import { paginate } from '../shared/import/paginate.ts'
 import { type RenderContext, renderBlocks } from '../shared/import/render.ts'
+import { isObject } from '../shared/lib/json-shape.ts'
 import { limitsFor } from '../shared/plans/plans.ts'
 import { isUuid } from '../shared/uuid.ts'
 import { take } from './articles/pending.ts'
@@ -49,9 +50,8 @@ function checked<T>(check: () => T): T | Response {
 }
 
 function articleOf(value: unknown): { book: unknown; article: string | null | undefined } {
-  if (typeof value !== 'object' || value === null || Array.isArray(value) || !('article' in value))
-    return { book: value, article: undefined }
-  const { article, ...book } = value as Record<string, unknown>
+  if (!isObject(value) || !('article' in value)) return { book: value, article: undefined }
+  const { article, ...book } = value
   return { book, article: typeof article === 'string' && isUuid(article) ? article : null }
 }
 

@@ -1,4 +1,4 @@
-import { type ChangeResult, post } from '~/client/lib/post'
+import { type ChangeResult, post, readChange } from '~/client/lib/post'
 import type { FinishedErrorCode, GoalErrorCode } from '~/shared/reading-stats/contract'
 
 export type GoalProblem = GoalErrorCode
@@ -20,19 +20,11 @@ async function send<T, P extends string>(
   body: unknown,
   pick: (body: Record<string, unknown>) => T | undefined,
   codes: readonly P[],
-  failed: P,
-): Promise<ChangeResult<T, P>> {
+): Promise<ChangeResult<T, P | 'failed'>> {
   try {
-    const response = await post(path, body)
-    const answer = (await response.json().catch(() => ({}))) as Record<string, unknown>
-    if (response.ok) {
-      const value = pick(answer)
-      return value === undefined ? { ok: false, problem: failed } : { ok: true, value }
-    }
-    const code = codes.find((c) => c === answer.error)
-    return { ok: false, problem: code ?? failed }
+    return await readChange(await post(path, body), pick, codes)
   } catch {
-    return { ok: false, problem: failed }
+    return { ok: false, problem: 'failed' }
   }
 }
 
@@ -49,15 +41,14 @@ const finishedOf = (body: Record<string, unknown>): FinishedAnswer | undefined =
     : undefined
 
 export function saveGoal(minutes: number, zone: string): Promise<ChangeResult<SavedGoal, GoalProblem>> {
-  return send('/account/stats/goal', { minutes, zone }, goalOf, ['invalid', 'signed_out', 'failed'], 'failed')
+  return send('/account/stats/goal', { minutes, zone }, goalOf, ['invalid', 'signed_out', 'failed'])
 }
 
 export function setFinished(book: string, finished: boolean): Promise<ChangeResult<FinishedAnswer, FinishedProblem>> {
-  return send(
-    '/account/stats/finished',
-    { book, finished },
-    finishedOf,
-    ['invalid', 'signed_out', 'not_found', 'failed'],
+  return send('/account/stats/finished', { book, finished }, finishedOf, [
+    'invalid',
+    'signed_out',
+    'not_found',
     'failed',
-  )
+  ])
 }

@@ -1,6 +1,7 @@
 import { removeKeys } from '~/client/lib/storage-keys'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import { type PagePosition, parsePosition as parsePagePosition } from '~/shared/content/position'
+import { isObject } from '~/shared/lib/json-shape'
 import type { ListeningWrite } from '~/shared/sync/sync'
 
 export interface SavedPosition {
@@ -29,8 +30,8 @@ const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isI
 
 function parseEntry(raw: string | null): SavedPosition | { done: true; at: number } | null {
   try {
-    const value = raw ? (JSON.parse(raw) as Record<string, unknown>) : null
-    if (value?.v !== 1) return null
+    const value: unknown = raw ? JSON.parse(raw) : null
+    if (!isObject(value) || value.v !== 1) return null
     const at = isCount(value.at) ? value.at : 0
     if (value.done === true) return { done: true, at }
     const position = parsePagePosition(value.position)
@@ -118,11 +119,9 @@ export function writeSpeed(storage: Storage | null, speed: number): void {
 
 export function readVoices(storage: Storage | null): Record<string, string> {
   try {
-    const value = JSON.parse(storage?.getItem(VOICE_KEY) ?? 'null') as unknown
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string'),
-    )
+    const value: unknown = JSON.parse(storage?.getItem(VOICE_KEY) ?? 'null')
+    if (!isObject(value)) return {}
+    return Object.fromEntries(Object.entries(value).filter((e): e is [string, string] => typeof e[1] === 'string'))
   } catch {
     return {}
   }
@@ -160,8 +159,8 @@ export function clearPrivatePositions(storage: Storage | null): void {
 
 export function offerDismissed(storage: Storage | null): boolean {
   try {
-    const value = JSON.parse(storage?.getItem(FOLIO_OFFER_KEY) ?? 'null') as { v?: unknown; dismissed?: unknown } | null
-    return value?.v === 1 && value.dismissed === true
+    const value: unknown = JSON.parse(storage?.getItem(FOLIO_OFFER_KEY) ?? 'null')
+    return isObject(value) && value.v === 1 && value.dismissed === true
   } catch {
     return false
   }

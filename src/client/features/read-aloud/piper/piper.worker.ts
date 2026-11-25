@@ -1,13 +1,12 @@
 /// <reference lib="webworker" />
 import createPiperPhonemize from '@diffusionstudio/piper-wasm/build/piper_phonemize.js'
 import * as ort from 'onnxruntime-web/wasm'
+import { VOICES_CACHE } from '~/shared/read-aloud/folio-voices'
 import { type PiperPhonemeConfig, phonemeIds, sentences, splitPhonemes, textPhonemes } from './phonemes'
 import type { FromWorker, ToWorker, WorkerErrorCode, WorkerVoice } from './protocol'
 import { normalise, wav } from './wav'
 
 declare const self: DedicatedWorkerGlobalScope
-
-const VOICES_CACHE = 'folio-voices-v1'
 
 interface VoiceConfig extends PiperPhonemeConfig {
   audio: { sample_rate: number }

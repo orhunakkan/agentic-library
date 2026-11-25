@@ -14,11 +14,6 @@ export interface RatingBody {
   stars: Stars | null
 }
 
-export interface RatingAnswer {
-  book: string
-  stars: Stars | null
-}
-
 export type RatingErrorCode = 'signed_out' | 'not_found' | 'invalid' | 'failed'
 
 export type RatingState = { state: 'hidden' } | { state: 'unavailable' } | { state: 'ready'; stars: Stars | null }

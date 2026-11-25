@@ -1,5 +1,6 @@
 import type { Provider } from '~/server/api-keys'
 import { DELETE_BILLING_FAILED } from '~/shared/billing/copy'
+import { isOneOf } from '~/shared/lib/json-shape'
 import { proNotice } from '~/shared/plans/copy'
 import { newPasswordText, type PasswordReason } from './password-text'
 
@@ -56,8 +57,7 @@ export const EMAIL_ERRORS: Record<EmailError, string> = {
   'email-failed': 'The email couldn’t be sent. Try again in a few minutes.',
 }
 
-export const isEmailError = (error: AccountError | undefined): error is EmailError =>
-  (EMAIL_ERROR_CODES as readonly string[]).includes(error ?? '')
+export const isEmailError = (error: AccountError | undefined): error is EmailError => isOneOf(error, EMAIL_ERROR_CODES)
 
 export function accountErrorText(error: AccountError, reason: PasswordReason | undefined): string {
   if (isEmailError(error)) return EMAIL_ERRORS[error]

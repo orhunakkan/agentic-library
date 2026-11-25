@@ -6,8 +6,6 @@ import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import { parseRemovedBook } from './input.ts'
 import { listRemoved, setRemoved } from './store.ts'
 
-export type { RemovedBooksState }
-
 const MAX_BODY_BYTES = 1024
 
 const removedBooks = signedInEndpoints<RemovedBookErrorCode>({ maxBytes: MAX_BODY_BYTES })

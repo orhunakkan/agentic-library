@@ -641,6 +641,9 @@ function extension(file: FolioVoiceFile): string {
   return 'md'
 }
 
+/** The Cache Storage bucket that holds downloaded voice files; the Piper worker reads it too. */
+export const VOICES_CACHE = 'folio-voices-v1'
+
 export const voiceUrl = (file: FolioVoiceFile, id: string) =>
   `/voices/${id}.${file.sha256.slice(0, 12)}.${extension(file)}`
 

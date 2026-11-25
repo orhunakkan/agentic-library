@@ -52,14 +52,17 @@ const languageName = (tag: string) => {
   }
 }
 
+function LocalDate({ iso }: { iso: string }) {
+  return (
+    <time dateTime={iso} suppressHydrationWarning>
+      {new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+    </time>
+  )
+}
+
 function FactValue({ fact }: { fact: PrivateBookFact }) {
   if (fact.format === 'language') return <>{languageName(fact.value)}</>
-  if (fact.format === 'date')
-    return (
-      <time dateTime={fact.value} suppressHydrationWarning>
-        {new Date(fact.value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-      </time>
-    )
+  if (fact.format === 'date') return <LocalDate iso={fact.value} />
   return <>{fact.value}</>
 }
 
@@ -170,18 +173,9 @@ export function BookHeader({
 }
 
 function ArticleLine({ article }: { article: NonNullable<Page['article']> }) {
-  const saved = new Date(article.savedAt).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
   return (
     <p className="mt-1 text-[15px] text-muted" data-testid="article-line">
-      From {article.site} · saved{' '}
-      <time dateTime={article.savedAt} suppressHydrationWarning>
-        {saved}
-      </time>{' '}
-      · {readTimeText(article.words)} ·{' '}
+      From {article.site} · saved <LocalDate iso={article.savedAt} /> · {readTimeText(article.words)} ·{' '}
       <a
         href={article.url}
         target="_blank"

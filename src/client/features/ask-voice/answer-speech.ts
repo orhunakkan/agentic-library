@@ -1,10 +1,8 @@
-import { CODE_SAY, cutLong, sentenceSpans } from '~/shared/read-aloud/sentences'
+import { CODE_SAY, collapse, cutLong, sentenceSpans } from '~/shared/read-aloud/sentences'
 import { type Inline, parseAnswer } from '../ask/answer-format'
 
 const HAS_WORD = /[\p{L}\p{N}]/u
 const HAS_LETTER = /\p{L}/u
-
-const collapse = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 function plainWords(inlines: readonly Inline[]): string {
   return inlines

@@ -30,3 +30,20 @@ export async function readAnswer<T>(response: Response, pick: (body: Record<stri
   if (body.error === 'stale' || body.error === 'signed_out' || body.error === 'not_found') return fail(body.error)
   return fail('failed')
 }
+
+/**
+ * Reads the answer to a change whose refusals are a feature's own `codes`: the value `pick` finds in a success, or
+ * the code refused with. A success without the value, or any other refusal, is `failed`.
+ */
+export async function readChange<T, P extends string>(
+  response: Response,
+  pick: (body: Record<string, unknown>) => T | undefined,
+  codes: readonly P[],
+): Promise<ChangeResult<T, P | 'failed'>> {
+  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  if (response.ok) {
+    const value = pick(body)
+    return value === undefined ? { ok: false, problem: 'failed' } : { ok: true, value }
+  }
+  return { ok: false, problem: codes.find((code) => code === body.error) ?? 'failed' }
+}

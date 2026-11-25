@@ -1,4 +1,4 @@
-import { type BookmarkPlace, type BookmarkView, openingAt, type PageAnchor } from './bookmarks.ts'
+import { type BookmarkPlace, type BookmarkView, byAge, openingAt, type PageAnchor } from './bookmarks.ts'
 
 export const MAX_AUDIO_BOOKMARKS_PER_BOOK = 1_000
 export const MAX_AUDIO_BOOKMARKS_PER_USER = 10_000
@@ -40,9 +40,6 @@ export type TabEntry = { kind: 'page'; bookmark: BookmarkView } | { kind: 'voice
 export function momentAnchor(text: string, offset: number): PageAnchor | null {
   return openingAt(text, offset)
 }
-
-const byAge = (a: { createdAt: string; id: string }, b: { createdAt: string; id: string }) =>
-  a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
 
 type SortKey = [number, number, number]
 

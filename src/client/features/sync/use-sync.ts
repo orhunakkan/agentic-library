@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { browserStorage } from '~/client/features/ask/thread-store'
+import { browserStorage } from '~/client/lib/storage-keys'
 import { getSyncState } from '~/server/account-functions'
 import { createSync, type Sync } from './engine'
 import { syncOutbox } from './outbox'

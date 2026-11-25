@@ -39,7 +39,8 @@ export function chapterWords(chapter: DraftChapter): number {
   return chapter.blocks.reduce((n, b) => n + (renderBlock(b)?.words ?? 0), 0)
 }
 
-function median(values: readonly number[]): number {
+export function median(values: readonly number[]): number {
+  if (!values.length) return 0
   const sorted = [...values].sort((a, b) => a - b)
   const mid = Math.floor(sorted.length / 2)
   return sorted.length % 2 ? (sorted[mid] as number) : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2

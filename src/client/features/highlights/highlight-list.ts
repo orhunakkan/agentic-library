@@ -18,11 +18,6 @@ export type HighlightsState = CollectionSnapshot<HighlightView>['state']
 
 export type HighlightItem = Entry<HighlightView>
 
-export interface HighlightsSnapshot extends CollectionSnapshot<HighlightView> {
-  /** The color the next highlight is made in: the last one the reader picked. */
-  color: HighlightColor
-}
-
 export const PROBLEM_TEXT: Record<HighlightProblem, string> = {
   'quota-book': 'You’ve reached 1,000 highlights in this book.',
   'quota-user': highlightQuotaCopy('pro', MAX_HIGHLIGHTS_PER_USER),

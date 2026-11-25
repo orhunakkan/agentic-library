@@ -42,24 +42,23 @@ export async function signInOverHttp(request: APIRequestContext, user: TestUser)
 
 export const validKey = (suffix: string) => `sk-ant-test-valid-${'x'.repeat(16)}${suffix}`
 
+async function postApiKeys(page: Page, form: Record<string, string>, status: string) {
+  const response = await page.request.post('/account/api-keys', {
+    form,
+    headers: { origin: appOrigin() },
+    maxRedirects: 0,
+  })
+  expect(response.headers().location).toContain(`status=${status}`)
+}
+
 export async function saveKey(
   page: Page,
   key = validKey('0000'),
   provider: 'anthropic' | 'openai' | 'elevenlabs' = 'anthropic',
 ) {
-  const response = await page.request.post('/account/api-keys', {
-    form: { intent: 'save', provider, key },
-    headers: { origin: appOrigin() },
-    maxRedirects: 0,
-  })
-  expect(response.headers().location).toContain('status=saved')
+  await postApiKeys(page, { intent: 'save', provider, key }, 'saved')
 }
 
 export async function chooseModel(page: Page, model: string) {
-  const response = await page.request.post('/account/api-keys', {
-    form: { intent: 'model', model },
-    headers: { origin: appOrigin() },
-    maxRedirects: 0,
-  })
-  expect(response.headers().location).toContain('status=model-saved')
+  await postApiKeys(page, { intent: 'model', model }, 'model-saved')
 }

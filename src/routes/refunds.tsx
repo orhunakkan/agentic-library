@@ -1,33 +1,20 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Contact, LegalPage, legalLink, Part } from '~/client/components/LegalPage'
+import { Contact, LegalPage, legalHead, legalLink, Part } from '~/client/components/LegalPage'
 import { getSiteContact } from '~/server/functions'
-import { REFUNDS_UPDATED, SITE_NAME } from '~/shared/lib/site'
+import { REFUNDS_UPDATED } from '~/shared/lib/site'
 
 const DESCRIPTION = 'How to get your money back for Folio Pro.'
 
 export const Route = createFileRoute('/refunds')({
   loader: () => getSiteContact(),
-  head: () => ({
-    meta: [
-      { title: `Refunds | ${SITE_NAME}` },
-      { name: 'description', content: DESCRIPTION },
-      { property: 'og:title', content: `Refunds | ${SITE_NAME}` },
-      { property: 'og:description', content: DESCRIPTION },
-    ],
-    links: [{ rel: 'canonical', href: '/refunds' }],
-  }),
+  head: () => legalHead('Refunds', '/refunds', DESCRIPTION),
   component: RefundsPage,
 })
 
 function RefundsPage() {
   const contact = Route.useLoaderData()
   return (
-    <LegalPage
-      title="Refunds"
-      titleTestId="refunds-title"
-      lead="How to get your money back for Folio Pro."
-      updated={REFUNDS_UPDATED}
-    >
+    <LegalPage title="Refunds" titleTestId="refunds-title" lead={DESCRIPTION} updated={REFUNDS_UPDATED}>
       <Part id="window" title="14 days, in full">
         <p>
           You can have any Pro payment refunded in full within 14 days of it, whether it’s your first payment or a

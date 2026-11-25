@@ -54,14 +54,5 @@ export type ReadingSummaryState =
   | { state: 'unavailable' }
   | { state: 'ready'; todaySeconds: number; goalMinutes: number; current: number; todayMet: boolean }
 
-export interface GoalRequest {
-  minutes: number
-  zone: string
-}
-export interface FinishedRequest {
-  book: string
-  finished: boolean
-}
-
 export type GoalErrorCode = 'invalid' | 'signed_out' | 'failed'
 export type FinishedErrorCode = 'invalid' | 'signed_out' | 'not_found' | 'failed'

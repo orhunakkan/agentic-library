@@ -1,4 +1,4 @@
-import { browserStorage } from '~/client/features/ask/thread-store'
+import { browserStorage } from '~/client/lib/storage-keys'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { firstReadingHref } from '~/shared/content/reader-view'
 import {

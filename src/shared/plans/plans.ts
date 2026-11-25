@@ -1,6 +1,7 @@
 import { FREE_ARTICLES, PRO_ARTICLES } from '../articles/contract.ts'
 import { MAX_HIGHLIGHTS_PER_BOOK, MAX_HIGHLIGHTS_PER_USER } from '../highlights/limits.ts'
 import { MAX_BOOKS } from '../import/limits.ts'
+import { isOneOf } from '../lib/json-shape.ts'
 
 export type Plan = 'free' | 'pro'
 
@@ -70,5 +71,5 @@ export function isPlan(value: unknown): value is Plan {
 }
 
 export function isProFeature(value: unknown): value is ProFeature {
-  return typeof value === 'string' && (PRO_FEATURE_NAMES as readonly string[]).includes(value)
+  return isOneOf(value, PRO_FEATURE_NAMES)
 }

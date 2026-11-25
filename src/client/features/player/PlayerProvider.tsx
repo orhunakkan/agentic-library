@@ -9,7 +9,6 @@ import {
   useSyncExternalStore,
 } from 'react'
 import { useToast } from '~/client/components/Toast'
-import { browserStorage } from '~/client/features/ask/thread-store'
 import type { AudioBookmarkItem } from '~/client/features/bookmarks/audio-bookmark-list'
 import type { Aside } from '~/client/features/read-aloud/aside'
 import { browserReadAloud } from '~/client/features/read-aloud/browser-read-aloud'
@@ -18,6 +17,7 @@ import { noticeMessage, problemMessage } from '~/client/features/read-aloud/mess
 import { noteFinished } from '~/client/features/reading-stats/finish'
 import { readingTime } from '~/client/features/reading-stats/reading-time'
 import { syncOutbox } from '~/client/features/sync/outbox'
+import { browserStorage } from '~/client/lib/storage-keys'
 import { createLockScreen } from './media-session'
 import type { NowPlaying } from './now-playing'
 import { type AudiobookControls, createPlayer, type PlayerState, type ReadAloudControls } from './player'

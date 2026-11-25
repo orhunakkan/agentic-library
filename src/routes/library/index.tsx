@@ -241,13 +241,21 @@ function NoRows({
   }
 }
 
+function EmptyCard({ testId, title, children }: { testId: string; title: ReactNode; children: ReactNode }) {
+  return (
+    <div className="mt-10 rounded-[22px] bg-surface p-10 text-center">
+      <p className="font-display text-[22px] font-bold text-ink" data-testid={testId}>
+        {title}
+      </p>
+      {children}
+    </div>
+  )
+}
+
 function SignedOutEmpty() {
   const { title, body, createAccount, signIn } = SIGNED_OUT_EMPTY
   return (
-    <div className="mt-10 rounded-[22px] bg-surface p-10 text-center">
-      <p className="font-display text-[22px] font-bold text-ink" data-testid="library-signed-out-empty">
-        {title}
-      </p>
+    <EmptyCard testId="library-signed-out-empty" title={title}>
       <p className="mx-auto mt-2 max-w-[48ch] text-[15px] text-muted">{body}</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Link to={createAccount.href} className={primaryButton()} data-testid="library-create-account">
@@ -262,27 +270,21 @@ function SignedOutEmpty() {
           {signIn.label}
         </Link>
       </div>
-    </div>
+    </EmptyCard>
   )
 }
 
 function EverythingRemoved() {
   return (
-    <div className="mt-10 rounded-[22px] bg-surface p-10 text-center">
-      <p className="font-display text-[22px] font-bold text-ink" data-testid="library-everything-removed">
-        You removed every book from your library.
-      </p>
+    <EmptyCard testId="library-everything-removed" title="You removed every book from your library.">
       <p className="mt-2 text-[15px] text-muted">Restore one below to put it back.</p>
-    </div>
+    </EmptyCard>
   )
 }
 
 function EmptyLibrary() {
   return (
-    <div className="mt-10 rounded-[22px] bg-surface p-10 text-center">
-      <p className="font-display text-[22px] font-bold text-ink" data-testid="library-empty">
-        Your library is empty.
-      </p>
+    <EmptyCard testId="library-empty" title="Your library is empty.">
       <p className="mt-2 text-[15px] text-muted">
         <AppLink
           href="/account/books"
@@ -293,7 +295,7 @@ function EmptyLibrary() {
         </AppLink>{' '}
         to start reading.
       </p>
-    </div>
+    </EmptyCard>
   )
 }
 
@@ -394,10 +396,7 @@ function FilterChips({
 
 function NoResults({ query, onClear }: { query: string; onClear: () => void }) {
   return (
-    <div className="mt-10 rounded-[22px] bg-surface p-10 text-center">
-      <p className="font-display text-[22px] font-bold text-ink" data-testid="library-no-results">
-        No results for “{query.trim()}”. Try another word.
-      </p>
+    <EmptyCard testId="library-no-results" title={<>No results for “{query.trim()}”. Try another word.</>}>
       <button
         type="button"
         onClick={onClear}
@@ -406,7 +405,7 @@ function NoResults({ query, onClear }: { query: string; onClear: () => void }) {
       >
         Clear filters
       </button>
-    </div>
+    </EmptyCard>
   )
 }
 

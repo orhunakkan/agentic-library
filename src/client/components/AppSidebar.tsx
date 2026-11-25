@@ -16,6 +16,7 @@ import { cn } from '~/client/lib/cn'
 import { HUE_CLASSES } from '~/client/lib/hue-classes'
 import type { Viewer } from '~/server/auth'
 import type { getNavData } from '~/server/functions'
+import { isObject } from '~/shared/lib/json-shape'
 import { AccountMenu, SignInLink } from './AccountMenu'
 import { AppLink } from './AppLink'
 import { useCommandPalette } from './CommandPalette'
@@ -69,10 +70,8 @@ const VIEWER_ITEMS = [
   { href: '/account/repos', key: 'repos', label: 'Repositories', icon: FolderGit2 },
 ] as const satisfies readonly { href: string; key: MainItem; label: string; icon: LucideIcon }[]
 
-const searchFilter = (search: unknown) => {
-  const filter = (search as Record<string, unknown> | undefined)?.filter
-  return typeof filter === 'string' ? filter : undefined
-}
+const searchFilter = (search: unknown) =>
+  isObject(search) && typeof search.filter === 'string' ? search.filter : undefined
 
 export function SidebarContent({
   nav,

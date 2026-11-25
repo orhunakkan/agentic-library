@@ -80,8 +80,6 @@ export class PicturePool {
     return {
       file: (src) => {
         const resolved = resolveSource(src, base)
-        const known = this.numbers.get(resolved.key)
-        if (known) return known
         return this.add('problem' in resolved ? resolved : { key: resolved.key, problem: 'missing' })
       },
       svg: (text) => {

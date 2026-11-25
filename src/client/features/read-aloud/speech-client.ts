@@ -1,3 +1,4 @@
+import { isObject } from '~/shared/lib/json-shape'
 import type {
   SpeakErrorCode,
   SpeakRequest,
@@ -28,9 +29,8 @@ const CODES: readonly SpeakErrorCode[] = [
 const isTime = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0
 
 function isWord(value: unknown): value is SpokenWord {
-  if (!value || typeof value !== 'object') return false
-  const w = value as Record<string, unknown>
-  return isTime(w.start) && isTime(w.end) && isTime(w.t0) && isTime(w.t1) && w.end > w.start
+  if (!isObject(value)) return false
+  return isTime(value.start) && isTime(value.end) && isTime(value.t0) && isTime(value.t1) && value.end > value.start
 }
 
 export function decodeBase64(text: string): Uint8Array<ArrayBuffer> {

@@ -1,4 +1,5 @@
 import { QUESTION_MAX } from '~/client/features/ask/ask-client'
+import { collapse } from '~/shared/read-aloud/sentences'
 import type { Mode } from './recognition'
 import { type VoiceErrorCode, voiceErrorCode } from './voice-messages'
 
@@ -81,8 +82,6 @@ const listening = (local: boolean, before: Effect[] = [], patch: Partial<VoiceTu
   turn: at('listening', patch),
   effects: [...before, { type: 'hush' }, { type: 'listen', local }],
 })
-
-const collapse = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 const answering = (turn: VoiceTurn) => turn.phase === 'sending' || (turn.phase === 'speaking' && turn.streaming)
 

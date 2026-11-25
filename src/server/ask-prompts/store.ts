@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { type AppliesTo, isAppliesTo, isPromptId, MAX_ASK_PROMPTS } from '~/shared/ask-prompts/prompts'
-import type { Db, Pool } from '../db.ts'
+import { type Db, isUniqueViolation, type Pool } from '../db.ts'
 
 export interface PromptRow {
   id: string
@@ -29,12 +29,6 @@ interface RawPrompt {
 }
 
 const NAME_INDEX = 'ask_prompts_user_name_idx'
-
-const isNameClash = (error: unknown) =>
-  typeof error === 'object' &&
-  error !== null &&
-  (error as { code?: string }).code === '23505' &&
-  (error as { constraint_name?: string }).constraint_name === NAME_INDEX
 
 function toRow(raw: RawPrompt): PromptRow | null {
   if (!isAppliesTo(raw.applies_to)) return null
@@ -99,7 +93,7 @@ export async function editPrompt(
       returning ${db.unsafe(COLUMNS)}`
     return (raw && toRow(raw)) ?? 'missing'
   } catch (error) {
-    if (isNameClash(error)) return 'exists'
+    if (isUniqueViolation(error, NAME_INDEX)) return 'exists'
     throw error
   }
 }

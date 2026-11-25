@@ -1,7 +1,7 @@
 import { isPromptId } from '~/shared/ask-prompts/prompts'
 import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { cleanText } from '~/shared/import/blocks'
-import { isObject, only } from '~/shared/lib/json-shape'
+import { isObject, isOneOf, only } from '~/shared/lib/json-shape'
 
 export const QUESTION_MAX = 2_000
 export const QUOTE_MAX = 1_000
@@ -11,7 +11,7 @@ export const HISTORY_CHARS_MAX = 16_000
 export const ASK_ACTIONS = ['explain', 'summary', 'recap', 'define', 'quiz', 'flashcards'] as const
 export type AskAction = (typeof ASK_ACTIONS)[number]
 
-const isAction = (value: unknown): value is AskAction => ASK_ACTIONS.some((action) => action === value)
+const isAction = (value: unknown): value is AskAction => isOneOf(value, ASK_ACTIONS)
 
 const ABOUT_THE_PAGES: readonly AskAction[] = ['summary', 'recap', 'quiz', 'flashcards']
 

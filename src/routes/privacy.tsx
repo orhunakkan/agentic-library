@@ -1,33 +1,20 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Contact, LegalPage, legalLink, Part } from '~/client/components/LegalPage'
+import { Contact, LegalPage, legalHead, legalLink, Part } from '~/client/components/LegalPage'
 import { getSiteContact } from '~/server/functions'
-import { PRIVACY_UPDATED, SITE_NAME } from '~/shared/lib/site'
+import { PRIVACY_UPDATED } from '~/shared/lib/site'
 
 const DESCRIPTION = 'What Folio keeps about you, why, and for how long.'
 
 export const Route = createFileRoute('/privacy')({
   loader: () => getSiteContact(),
-  head: () => ({
-    meta: [
-      { title: `Privacy | ${SITE_NAME}` },
-      { name: 'description', content: DESCRIPTION },
-      { property: 'og:title', content: `Privacy | ${SITE_NAME}` },
-      { property: 'og:description', content: DESCRIPTION },
-    ],
-    links: [{ rel: 'canonical', href: '/privacy' }],
-  }),
+  head: () => legalHead('Privacy', '/privacy', DESCRIPTION),
   component: PrivacyPage,
 })
 
 function PrivacyPage() {
   const contact = Route.useLoaderData()
   return (
-    <LegalPage
-      title="Privacy"
-      titleTestId="privacy-title"
-      lead="What Folio keeps about you, why, and for how long."
-      updated={PRIVACY_UPDATED}
-    >
+    <LegalPage title="Privacy" titleTestId="privacy-title" lead={DESCRIPTION} updated={PRIVACY_UPDATED}>
       <Part id="without-account" title="Reading without an account">
         <p>
           Reading and listening need no account and set no cookie. Your settings, reading places, Ask threads and

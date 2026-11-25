@@ -120,8 +120,20 @@ export function workerMain(
     post(error ? { kind: 'done', id: owner.id, ms, error } : { kind: 'done', id: owner.id, ms })
   }
 
+  const begin = (owner: Run) => {
+    post({ kind: 'started', id: owner.id })
+    owner.started = now()
+  }
+
+  const engineFailed = (owner: Run) => {
+    owner.ended = true
+    post({ kind: 'failed', id: owner.id, reason: 'engine' })
+  }
+
   const isError = (value: unknown): value is { name?: unknown; message?: unknown; stack?: unknown } =>
     typeof value === 'object' && value !== null && 'message' in value
+
+  const messageOf = (error: unknown) => (isError(error) ? String(error.message) : String(error))
 
   const lineOf = (error: unknown, moduleUrl: string | null): number | undefined => {
     if (!isError(error)) return undefined
@@ -325,8 +337,7 @@ export function workerMain(
 
   const runJavaScript = async (owner: Run, code: string) => {
     shim()
-    post({ kind: 'started', id: owner.id })
-    owner.started = now()
+    begin(owner)
     const source = `${code}\n//# sourceURL=${SOURCE}`
     let value: unknown
     try {
@@ -418,14 +429,11 @@ export function workerMain(
         engine.setStderr({ write: writer('error') })
         python = engine
       } catch {
-        owner.ended = true
-        post({ kind: 'failed', id: owner.id, reason: 'engine' })
-        return
+        return engineFailed(owner)
       }
     }
     const engine = python
-    post({ kind: 'started', id: owner.id })
-    owner.started = now()
+    begin(owner)
     const globals = engine.globals.get('dict')()
     try {
       await engine.runPythonAsync(code, { globals, filename: '<exec>' })
@@ -433,7 +441,7 @@ export function workerMain(
       finish(owner)
     } catch (error) {
       flushStreams(engine)
-      const text = isError(error) ? String(error.message) : String(error)
+      const text = messageOf(error)
       const { lines, last, at } = traceback(text)
       line('error', last)
       for (const entry of lines) line('error', entry)
@@ -464,14 +472,11 @@ export function workerMain(
         }
         sqlite = await module.default({ print: () => {}, printErr: () => {} })
       } catch {
-        owner.ended = true
-        post({ kind: 'failed', id: owner.id, reason: 'engine' })
-        return
+        return engineFailed(owner)
       }
     }
     const engine = sqlite
-    post({ kind: 'started', id: owner.id })
-    owner.started = now()
+    begin(owner)
     const db = new engine.oo1.DB(':memory:', 'c')
     let rest = code
     let consumed = 0
@@ -509,10 +514,7 @@ export function workerMain(
       finish(owner)
     } catch (thrown) {
       const { error, statement, start } = thrown as { error: unknown; statement: number; start: number }
-      const reason = (isError(error) ? String(error.message) : String(error)).replace(
-        /^SQLITE_\w+: sqlite3 result code \d+: /,
-        '',
-      )
+      const reason = messageOf(error).replace(/^SQLITE_\w+: sqlite3 result code \d+: /, '')
       const message = cutText(`Error in statement ${statement}: ${reason}`)
       line('error', message)
       finish(owner, { message, line: lineAt(code, start) })

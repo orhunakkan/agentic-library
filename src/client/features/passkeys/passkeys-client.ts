@@ -1,3 +1,4 @@
+import { type ChangeResult, post } from '~/client/lib/post'
 import { isObject } from '~/shared/lib/json-shape'
 import type {
   AddPasskeyError,
@@ -8,7 +9,6 @@ import type {
   RequestOptionsJSON,
   SignInError,
 } from '~/shared/passkeys/passkeys'
-import { type ChangeResult, post } from '../../lib/post'
 import { authenticationJSON, creationOptions, registrationJSON, requestOptions } from './passkey-json'
 
 export type AddProblem = AddPasskeyError | 'network'

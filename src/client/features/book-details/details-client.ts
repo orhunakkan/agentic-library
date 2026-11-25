@@ -1,6 +1,5 @@
+import type { ChangeResult } from '~/client/lib/post'
 import type { CoverSource } from '~/shared/content/private-book'
-
-export type Result<T, P extends string> = { ok: true; value: T } | { ok: false; problem: P }
 
 export type CommonProblem = 'not_found' | 'signed_out' | 'unavailable'
 export type UploadProblem = CommonProblem | 'unreadable' | 'small'
@@ -50,7 +49,7 @@ export async function uploadCover(
   id: string,
   blob: Blob,
   source: 'epub' | 'zip' | 'pdf' | 'audio' | 'upload',
-): Promise<Result<UploadedCover, UploadProblem>> {
+): Promise<ChangeResult<UploadedCover, UploadProblem>> {
   const answer = await post(`/account/books/${encodeURIComponent(id)}/cover?source=${source}`, {
     body: blob,
     type: blob.type || 'image/jpeg',
@@ -75,7 +74,7 @@ export async function lookup(query: {
   title: string
   author: string
   isbn: string
-}): Promise<Result<LookupMatch[], LookupProblem>> {
+}): Promise<ChangeResult<LookupMatch[], LookupProblem>> {
   const answer = await post('/account/books/lookup', { body: JSON.stringify(query), type: 'application/json' })
   if (!answer) return { ok: false, problem: 'unavailable' }
   if (answer.ok) return { ok: true, value: (answer.data as { matches: LookupMatch[] }).matches }
@@ -85,7 +84,7 @@ export async function lookup(query: {
 export async function applyMatch(
   id: string,
   body: { work: string; coverId: number | null; useCover: boolean; useDescription: boolean },
-): Promise<Result<Applied, LookupProblem>> {
+): Promise<ChangeResult<Applied, LookupProblem>> {
   const answer = await post(`/account/books/${encodeURIComponent(id)}/open-library`, {
     body: JSON.stringify(body),
     type: 'application/json',

@@ -35,7 +35,7 @@ export interface ColumnHandle {
   pageAtLine: () => string | null
 }
 
-export function pageName(view: ReaderView): string {
+function pageName(view: ReaderView): string {
   return view.page.kind === 'paged'
     ? `Page ${view.page.pageNumber}`
     : `Page ${view.nav.status.page} of ${view.nav.status.pageCount}`
@@ -245,14 +245,15 @@ export function ScrollColumn({
     dropHeld()
     const arrival = intent.arrival(view.canonicalPath)
     const change = onRouteChange(columnRef.current, view, arrival === 'leave')
+    const toHighlight = /^#?highlight-/.test(hash)
     if (change.kind === 'reset') {
       endSelfScroll()
       scrollTarget.current = null
       setColumn(change.column)
-      if (!/^#?highlight-/.test(hash)) window.scrollTo({ top: 0 })
+      if (!toHighlight) window.scrollTo({ top: 0 })
       return
     }
-    if (change.kind === 'scroll' && arrival === 'place' && !/^#?highlight-/.test(hash)) {
+    if (change.kind === 'scroll' && arrival === 'place' && !toHighlight) {
       const page = columnRef.current.pages[change.index]
       if (page) scrollToPage(page.href)
     }

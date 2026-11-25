@@ -1,7 +1,8 @@
-import { Link, useRouteContext, useRouter, useRouterState } from '@tanstack/react-router'
+import { useRouteContext, useRouter } from '@tanstack/react-router'
 import { EyeOff, Undo2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { forgetSearchIndex } from '~/client/components/CommandPalette'
+import { SignInAgain } from '~/client/components/SignInAgain'
 import { problemText, type RemovedBookProblem, setRemoved } from './removed-books-client'
 
 export function useBookRemoval() {
@@ -16,23 +17,10 @@ export function useBookRemoval() {
 }
 
 export function RemovalProblem({ problem }: { problem: RemovedBookProblem }) {
-  const here = useRouterState({ select: (s) => s.location.href })
   return (
     <>
       {problemText(problem)}
-      {problem === 'signed_out' && (
-        <>
-          {' '}
-          <Link
-            to="/login"
-            search={{ next: here }}
-            className="font-semibold underline underline-offset-4"
-            data-testid="removal-sign-in"
-          >
-            Sign in
-          </Link>
-        </>
-      )}
+      {problem === 'signed_out' && <SignInAgain testId="removal-sign-in" />}
     </>
   )
 }

@@ -12,6 +12,7 @@ import type { Shelf } from '../../shared/content/library.ts'
 import { chapterPageHref } from '../../shared/content/navigation.ts'
 import { myArticles } from '../../shared/content/private-book.ts'
 import { sniffImage } from '../../shared/import/image.ts'
+import { isObject } from '../../shared/lib/json-shape.ts'
 import { limitsFor } from '../../shared/plans/plans.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { recordEvent } from '../audit.ts'
@@ -53,11 +54,9 @@ function fetchOptions(extra: WebFetchOptions): WebFetchOptions {
 }
 
 function stringFields<K extends string>(value: unknown, keys: readonly K[]): Record<K, string> | null {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
-  const record = value as Record<string, unknown>
-  if (Object.keys(record).length !== keys.length) return null
-  for (const key of keys) if (typeof record[key] !== 'string') return null
-  return record as Record<K, string>
+  if (!isObject(value) || Object.keys(value).length !== keys.length) return null
+  for (const key of keys) if (typeof value[key] !== 'string') return null
+  return value as Record<K, string>
 }
 
 const limited = (retryAt: Date) => fail(429, 'limited', { retryAt: retryAt.toISOString() })

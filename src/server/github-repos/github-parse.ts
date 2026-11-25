@@ -1,3 +1,5 @@
+import { isObject } from '../../shared/lib/json-shape.ts'
+
 export interface RepoInfo {
   githubId: number
   owner: string
@@ -27,14 +29,11 @@ export const DESCRIPTION_MAX = 350
 const SHA = /^[0-9a-f]{40}$/
 export const isSha = (value: unknown): value is string => typeof value === 'string' && SHA.test(value)
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
 const text = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.length >= 1 && value.length <= max
 
 export function parseRepo(value: unknown): RepoInfo | 'private' | null {
-  if (!isRecord(value)) return null
+  if (!isObject(value)) return null
   const { id, full_name: fullName, default_branch: defaultBranch, description } = value
   if (value.private !== false || (value.visibility !== undefined && value.visibility !== 'public')) return 'private'
   if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) return null
@@ -52,7 +51,7 @@ export function parseCommitSha(body: string): string | null {
 }
 
 function parseEntry(value: unknown): TreeEntry | null {
-  if (!isRecord(value)) return null
+  if (!isObject(value)) return null
   const { path, mode, type, sha, size } = value
   if (typeof path !== 'string' || !path || path.length > 4096 || path.startsWith('/') || path.includes('\0'))
     return null
@@ -65,7 +64,7 @@ function parseEntry(value: unknown): TreeEntry | null {
 }
 
 export function parseTree(value: unknown): ParsedTree | null {
-  if (!isRecord(value) || !isSha(value.sha) || typeof value.truncated !== 'boolean' || !Array.isArray(value.tree))
+  if (!isObject(value) || !isSha(value.sha) || typeof value.truncated !== 'boolean' || !Array.isArray(value.tree))
     return null
   const entries: TreeEntry[] = []
   for (const raw of value.tree) {

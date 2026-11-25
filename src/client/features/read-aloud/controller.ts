@@ -537,6 +537,14 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
     }
   }
 
+  /** Shows the cloud voices once the list comes, if the reader is still in the same session. */
+  const showCloudVoicesLater = (mine: number, answer: Promise<SpeechVoicesState>, lang: string) => {
+    void answer.then((a) => {
+      showCloudVoices(mine, a, lang)
+      if (mine === session) emit()
+    })
+  }
+
   const start = (book: string, at: StartAt) => {
     deps.arbiter.beforeReadAloud()
     const same =
@@ -595,12 +603,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         showCloudVoices(mine, answer, language)
         const list = state.cloudVoices
         voice = (Array.isArray(list) ? list.find((v) => v.voiceURI === cloudChoice) : undefined) ?? voice
-      } else {
-        void cloud.then((answer) => {
-          showCloudVoices(mine, answer, language)
-          if (mine === session) emit()
-        })
-      }
+      } else showCloudVoicesLater(mine, cloud, language)
       state = {
         ...state,
         voices: resolved.device,
@@ -730,10 +733,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       if (!book || !language || (state.cloudVoices !== 'failed' && state.cloudVoices !== 'permission')) return
       const mine = session
       emit({ cloudVoices: 'loading' })
-      void cloudVoicesFor(book).then((answer) => {
-        showCloudVoices(mine, answer, language)
-        if (mine === session) emit()
-      })
+      showCloudVoicesLater(mine, cloudVoicesFor(book), language)
     },
     downloadLocal: (id) => {
       const language = state.book?.language

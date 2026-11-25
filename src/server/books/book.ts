@@ -16,7 +16,7 @@ import type { Db, Pool } from '../db.ts'
 import { catalogueBook, catalogueBooks, loadBook } from '../repository.ts'
 import { openCatalogueBook } from './catalogue.ts'
 import { openPrivateText } from './private.ts'
-import { type BookRef, refFor } from './ref.ts'
+import { type BookRef, refFor, slugOf } from './ref.ts'
 
 /** What every opened book carries, whether it is read or listened to. */
 export interface OpenedBook {
@@ -148,6 +148,21 @@ export async function labelsFor(db: Db, userId: number, refs: readonly BookRef[]
     })
   }
   return labels
+}
+
+/** Rows about books, each with its book's slug and label; a row whose private book is gone or not ready is left out. */
+export async function labelRows<T>(
+  db: Db,
+  userId: number,
+  rows: readonly T[],
+  refOf: (row: T) => BookRef,
+): Promise<{ row: T; slug: string; label: BookLabel }[]> {
+  const labels = await labelsFor(db, userId, rows.map(refOf))
+  return rows.flatMap((row) => {
+    const slug = slugOf(refOf(row))
+    const label = labels.get(slug)
+    return label ? [{ row, slug, label }] : []
+  })
 }
 
 export const onBook = (db: Db, ref: BookRef) =>

@@ -64,6 +64,7 @@ function ApiKeysScreen() {
   const saved = new Set(data.keys.filter((k) => k.saved).map((k) => k.provider))
   const notices = (here: Provider | undefined) =>
     provider === here ? <Notices status={status} error={error} provider={here} /> : null
+  const invalid = (here: Provider) => provider === here && isKeyError(error)
   return (
     <AccountPage
       eyebrow="Account"
@@ -74,7 +75,7 @@ function ApiKeysScreen() {
     >
       {notices(undefined)}
       {anthropic && (
-        <ProviderKey entry={anthropic} invalid={provider === 'anthropic' && isKeyError(error)}>
+        <ProviderKey entry={anthropic} invalid={invalid('anthropic')}>
           {notices('anthropic')}
         </ProviderKey>
       )}
@@ -84,7 +85,7 @@ function ApiKeysScreen() {
         </LockedKey>
       )}
       {openai && pro && (
-        <ProviderKey entry={openai} invalid={provider === 'openai' && isKeyError(error)}>
+        <ProviderKey entry={openai} invalid={invalid('openai')}>
           {notices('openai')}
         </ProviderKey>
       )}
@@ -99,7 +100,7 @@ function ApiKeysScreen() {
       {elevenlabs && pro && (
         <ProviderKey
           entry={elevenlabs}
-          invalid={provider === 'elevenlabs' && isKeyError(error)}
+          invalid={invalid('elevenlabs')}
           after={
             <>
               {elevenlabs.saved && <UsageLine usage={data.speechUsage} model={data.speechModel} />}

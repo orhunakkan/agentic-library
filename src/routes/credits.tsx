@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { legalLink, Part } from '~/client/components/LegalPage'
+import { legalHead, legalLink, Part } from '~/client/components/LegalPage'
 import { SITE_NAME } from '~/shared/lib/site'
 import {
   BASES,
@@ -13,15 +13,7 @@ import {
 const DESCRIPTION = 'Who made the Folio voice: each voice’s dataset and licence, and the software it runs on.'
 
 export const Route = createFileRoute('/credits')({
-  head: () => ({
-    meta: [
-      { title: `Credits | ${SITE_NAME}` },
-      { name: 'description', content: DESCRIPTION },
-      { property: 'og:title', content: `Credits | ${SITE_NAME}` },
-      { property: 'og:description', content: DESCRIPTION },
-    ],
-    links: [{ rel: 'canonical', href: '/credits' }],
-  }),
+  head: () => legalHead('Credits', '/credits', DESCRIPTION),
   component: CreditsPage,
 })
 

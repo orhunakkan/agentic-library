@@ -1,3 +1,4 @@
+import { sentBesidesTheBook, translated, translationAsk } from './prompt-stub.ts'
 import { type StubEvent, sseResponse } from './sse-stub.ts'
 
 /** Key endings that make the stub fail, or answer, in a given way. Valid keys start with OPENAI_VALID_PREFIX. */
@@ -62,24 +63,10 @@ function translateProblem(request: Request, body: Body): string | null {
   return null
 }
 
-const lastText = (body: Body) => {
-  const last = inputOf(body).at(-1)?.content
-  return typeof last === 'string' ? last : ''
-}
-
 function seenLine(body: Body): string {
   const first = String(inputOf(body)[0]?.content ?? '')
   const pages = first.match(/(?:^|\n)(Chapter \d+: [^\n]+, page \d+|Page \d+)\n\n/g)?.length ?? 0
-  const last = lastText(body)
-  const quoted = last.includes('<passage>') ? ' and the passage you selected' : ''
-  const highlights = last.includes('<highlights>')
-    ? ` and ${last.match(/<highlight /g)?.length ?? 0} of your highlights`
-    : ''
-  const kind = /<request kind="(\w+)">/.exec(last)?.[1]
-  const prompt = /<reader-prompt>\n([\s\S]*?)\n<\/reader-prompt>/.exec(last)?.[1]
-  const request =
-    (kind ? ` Request: ${kind}.` : '') + (prompt === undefined ? '' : ` Prompt: ${[...prompt].slice(0, 40).join('')}.`)
-  return `GPT can see ${pages} pages of the book${quoted}${highlights}.${request} `
+  return `GPT can see ${pages} pages of the book${sentBesidesTheBook(inputOf(body).at(-1)?.content)}`
 }
 
 const usage = (output: number) => ({
@@ -177,25 +164,12 @@ function answerEvents(body: Body, ending: string): StubEvent[] {
   ]
 }
 
-function openAiTranslationAsk(body: Body): { to: string; text: string; context: string | null } {
-  const content = String(inputOf(body)[0]?.content ?? '')
-  const unescaped = (t: string) => t.replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&')
-  const text = /<text>\n([\s\S]*?)\n<\/text>/.exec(content)?.[1]
-  const context = /<context>\n([\s\S]*?)\n<\/context>/.exec(content)?.[1]
-  return {
-    to: / \(([\w-]+)\)\. If it is a single word/.exec(String(body.instructions))?.[1] ?? '',
-    text: unescaped(text ?? ''),
-    context: context === undefined ? null : unescaped(context),
-  }
-}
-
 function translation(body: Body, ending: string): Response {
-  const { to, text, context } = openAiTranslationAsk(body)
-  const sense = context ? `\nSense: ${context.split(/\s+/)[0]}` : ''
+  const answer = translated(translationAsk(body.instructions, inputOf(body)[0]?.content))
   const content =
     ending === STUB_OPENAI_KEYS.refusal
       ? [{ type: 'refusal', refusal: 'I can’t help with that.' }]
-      : [{ type: 'output_text', text: `[${to}] ${text}${sense}`, annotations: [] }]
+      : [{ type: 'output_text', text: answer, annotations: [] }]
   return Response.json(
     responseBody(String(body.model), 'completed', {
       output: [

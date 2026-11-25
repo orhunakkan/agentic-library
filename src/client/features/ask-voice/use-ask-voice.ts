@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { browserStorage } from '~/client/features/ask/thread-store'
 import type { useAsk } from '~/client/features/ask/use-ask'
 import { usePlayer } from '~/client/features/player/PlayerProvider'
 import { browserTimers } from '~/client/features/read-aloud/speaker'
 import { languageName } from '~/client/features/read-aloud/voices'
+import { browserStorage } from '~/client/lib/storage-keys'
 import { browserRecognition, createRecognition, vendorOf } from './recognition'
 import { createVoiceSession, type VoiceSession } from './voice-session'
 

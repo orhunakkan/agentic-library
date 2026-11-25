@@ -1,4 +1,5 @@
 import { cleanText } from '../import/blocks.ts'
+import { isOneOf } from '../lib/json-shape.ts'
 import type { Plan } from '../plans/plans.ts'
 import { isUuid } from '../uuid.ts'
 
@@ -9,7 +10,7 @@ export const PROMPT_INSTRUCTION_MAX = 2_000
 export const APPLIES_TO = ['pages', 'passage'] as const
 export type AppliesTo = (typeof APPLIES_TO)[number]
 
-export const isAppliesTo = (value: unknown): value is AppliesTo => APPLIES_TO.some((kind) => kind === value)
+export const isAppliesTo = (value: unknown): value is AppliesTo => isOneOf(value, APPLIES_TO)
 
 export interface AskPromptView {
   id: string

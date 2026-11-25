@@ -155,16 +155,7 @@ export const handleRepoAdd = (request: Request, options: GitHubOptions = {}) =>
         return resolved.problem === 'ref-not-found' ? fail(404, 'ref_not_found') : githubFailure(resolved)
       }
       const { ref, refKind, commit, path } = resolved.value
-      const added = await addRepo(db, userId, {
-        githubId: info.value.githubId,
-        owner: info.value.owner,
-        name: info.value.name,
-        defaultBranch: info.value.defaultBranch,
-        description: info.value.description,
-        ref,
-        refKind,
-        commitSha: commit,
-      })
+      const added = await addRepo(db, userId, { ...info.value, ref, refKind, commitSha: commit })
       if (added === 'quota') {
         await taken.settle({ problem: 'quota' })
         return fail(409, 'quota', { max: MAX_REPOS })

@@ -1,10 +1,11 @@
-import { browserStorage, clearPrivateThreads } from '~/client/features/ask/thread-store'
+import { clearPrivateThreads } from '~/client/features/ask/thread-store'
 import { forgetPrivateDownloads } from '~/client/features/offline/store'
 import { forgetPrivateEpisodes } from '~/client/features/player/position-store'
 import { clearPrivatePositions } from '~/client/features/read-aloud/position-store'
 import { clearPrivateReading } from '~/client/features/reader/continue-reading'
 import { readingTime } from '~/client/features/reading-stats/reading-time'
 import { type Outbox, syncOutbox } from '~/client/features/sync/outbox'
+import { browserStorage } from '~/client/lib/storage-keys'
 
 export const SIGN_OUT_WAIT_MS = 1500
 

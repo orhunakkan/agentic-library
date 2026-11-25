@@ -23,7 +23,6 @@ import {
 } from './speaker'
 import type { SpeakResult } from './speech-client'
 
-export type { AudioLike }
 export { END_SLACK_MS, START_WATCHDOG_MS }
 
 export interface CloudSpeakerDeps {

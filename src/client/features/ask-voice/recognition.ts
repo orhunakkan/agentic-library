@@ -1,4 +1,5 @@
 import type { Timers } from '~/client/features/read-aloud/speaker'
+import { collapse } from '~/shared/read-aloud/sentences'
 
 export const MAX_LISTEN_MS = 30_000
 export const INSTALL_TIMEOUT_MS = 180_000
@@ -69,8 +70,6 @@ export function browserRecognition(scope: Record<string, unknown> = globalThis a
   const ctor = scope.SpeechRecognition ?? scope.webkitSpeechRecognition
   return typeof ctor === 'function' ? (ctor as RecognitionCtor) : null
 }
-
-const collapse = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 export function heardText(results: ResultListLike): string {
   const parts: string[] = []

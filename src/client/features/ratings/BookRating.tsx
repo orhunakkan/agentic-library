@@ -1,6 +1,6 @@
-import { Link, useRouterState } from '@tanstack/react-router'
 import { Star } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { SignInAgain } from '~/client/components/SignInAgain'
 import { cn } from '~/client/lib/cn'
 import { type RatingState, STAR_VALUES, type Stars } from '~/shared/ratings/ratings'
 import { createRatingSender, type RatingSender, type RatingSnapshot } from './rating-sender'
@@ -25,7 +25,6 @@ function RatingControl({ slug, saved }: { slug: string; saved: Stars | null }) {
     sender.current = createRatingSender({ saved, send: (s) => setRating(slug, s), onChange: setSnapshot })
   const [hovered, setHovered] = useState<Stars | null>(null)
   const firstStar = useRef<HTMLInputElement>(null)
-  const here = useRouterState({ select: (s) => s.location.href })
 
   useEffect(() => sender.current?.adopt(saved), [saved])
 
@@ -91,19 +90,7 @@ function RatingControl({ slug, saved }: { slug: string; saved: Stars | null }) {
       {problem && (
         <p role="alert" data-testid="book-rating-error" className="mt-1 text-[14px] text-red-700 dark:text-red-300">
           {problemText(problem)}
-          {problem === 'signed_out' && (
-            <>
-              {' '}
-              <Link
-                to="/login"
-                search={{ next: here }}
-                className="font-semibold underline underline-offset-4"
-                data-testid="book-rating-sign-in"
-              >
-                Sign in
-              </Link>
-            </>
-          )}
+          {problem === 'signed_out' && <SignInAgain testId="book-rating-sign-in" />}
         </p>
       )}
     </div>

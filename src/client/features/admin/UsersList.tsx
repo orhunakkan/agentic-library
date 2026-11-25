@@ -63,6 +63,8 @@ function You() {
   )
 }
 
+const COLUMNS = ['Role', 'Plan', 'Status', 'Last active', 'Sessions', 'API key', 'Email'] as const
+
 const sessionsText = (n: number) => (n === 0 ? 'No sessions' : n === 1 ? '1 session' : `${n} sessions`)
 
 function Actions({ user, busy, onChoose }: { user: AdminUserView } & Omit<ListProps, 'users'>) {
@@ -87,27 +89,11 @@ export function UsersList({ users, busy, onChoose }: ListProps) {
               <th scope="col" className="px-5 py-3 font-semibold">
                 User
               </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Role
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Plan
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Status
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Last active
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Sessions
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                API key
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Email
-              </th>
+              {COLUMNS.map((column) => (
+                <th key={column} scope="col" className="px-3 py-3 font-semibold">
+                  {column}
+                </th>
+              ))}
               <th scope="col" className="px-3 py-3">
                 <span className="sr-only">Actions</span>
               </th>

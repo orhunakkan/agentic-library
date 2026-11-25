@@ -1,5 +1,5 @@
-import { browserStorage } from '~/client/features/ask/thread-store'
 import { syncOutbox } from '~/client/features/sync/outbox'
+import { browserStorage } from '~/client/lib/storage-keys'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import type { PagePosition } from '~/shared/content/position'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'

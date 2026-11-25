@@ -13,8 +13,6 @@ export type BookmarksState = CollectionSnapshot<BookmarkView>['state']
 
 export type BookmarkItem = Entry<BookmarkView>
 
-export type Snapshot = CollectionSnapshot<BookmarkView>
-
 export interface NewBookmark {
   position: PagePosition
   place: BookmarkPlace

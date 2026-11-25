@@ -13,13 +13,10 @@ import {
   type TimeWrite,
 } from '~/shared/sync/sync'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only } from '../../shared/lib/json-shape.ts'
+import { exactly, isObject, only } from '../../shared/lib/json-shape.ts'
 
 const MAX_OFFSET = 1_000_000
 const MAX_POSITION_MS = 86_400_000
-
-const exactly = (value: Record<string, unknown>, keys: readonly string[]) =>
-  only(value, keys) && keys.every((k) => k in value)
 
 const isCount = (value: unknown, max = Number.MAX_SAFE_INTEGER): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= max

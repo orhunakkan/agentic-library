@@ -61,8 +61,6 @@ export interface NewUser {
   role: AdminRole
 }
 
-export type AdminAnswer = { user: AdminUserView; password?: string } | { deleted: string }
-
 export type RowAction =
   | 'reset-password'
   | 'make-admin'
@@ -95,10 +93,6 @@ export interface InviteView {
   by: string | null
   createdAt: string
   expiresAt: string
-}
-
-export interface NewInvite {
-  note?: string
 }
 
 export interface MadeInvite {

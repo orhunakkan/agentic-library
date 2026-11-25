@@ -7,7 +7,7 @@ import {
 } from '~/client/features/read-aloud/position-store'
 import { type RecentReading, readRecent, writeRecent } from '~/client/features/reader/continue-reading'
 import { PREFS_AT_KEY, PREFS_KEY, parsePrefs, pickSynced, withSynced } from '~/client/features/reader/prefs'
-import { removeKeys } from '~/client/lib/storage-keys'
+import { readItem, removeKeys } from '~/client/lib/storage-keys'
 import type { ListeningPlace, SyncedSettings } from '~/shared/sync/sync'
 
 export const ACCOUNT_KEY = 'sync-account'
@@ -36,14 +36,6 @@ export interface LocalChanges {
   settings?: LocalSettings
 }
 
-const get = (storage: Storage | null, key: string): string | null => {
-  try {
-    return storage?.getItem(key) ?? null
-  } catch {
-    return null
-  }
-}
-
 const set = (storage: Storage | null, key: string, value: string) => {
   try {
     storage?.setItem(key, value)
@@ -51,10 +43,10 @@ const set = (storage: Storage | null, key: string, value: string) => {
 }
 
 export function readLocal(storage: Storage | null, siteDark: boolean): LocalState {
-  const prefs = get(storage, PREFS_KEY)
-  const at = Number(get(storage, PREFS_AT_KEY))
+  const prefs = readItem(storage, PREFS_KEY)
+  const at = Number(readItem(storage, PREFS_AT_KEY))
   return {
-    account: get(storage, ACCOUNT_KEY),
+    account: readItem(storage, ACCOUNT_KEY),
     reading: readRecent(storage),
     listening: [
       ...listEpisodes(storage).map((e): LocalListening => ({ kind: 'episode', ...e })),
@@ -94,7 +86,7 @@ export function writeLocal(storage: Storage | null, changes: LocalChanges, siteD
     for (const item of changes.listening.items) writeListening(storage, item)
   }
   if (changes.settings) {
-    const prefs = withSynced(parsePrefs(get(storage, PREFS_KEY), siteDark), changes.settings.values)
+    const prefs = withSynced(parsePrefs(readItem(storage, PREFS_KEY), siteDark), changes.settings.values)
     set(storage, PREFS_KEY, JSON.stringify(prefs))
     set(storage, PREFS_AT_KEY, String(changes.settings.at))
   }

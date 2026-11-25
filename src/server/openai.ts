@@ -1,28 +1,10 @@
 import '@tanstack/react-start/server-only'
 import OpenAI from 'openai'
 import type { AskErrorCode } from '../shared/ask/events.ts'
-import type { KeyCheck } from './anthropic.ts'
+import { checkKeyAt } from './anthropic.ts'
 
-const CHECK_TIMEOUT_MS = 10_000
-
-export async function checkOpenAiKey(
-  key: string,
-  apiBase: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<{ result: KeyCheck; status?: number }> {
-  try {
-    const response = await fetchFn(`${apiBase}/v1/models`, {
-      headers: { authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
-      redirect: 'error',
-    })
-    await response.body?.cancel().catch(() => {})
-    if (response.status === 200) return { result: 'valid', status: 200 }
-    if (response.status === 401 || response.status === 403) return { result: 'rejected', status: response.status }
-    return { result: 'unavailable', status: response.status }
-  } catch {
-    return { result: 'unavailable' }
-  }
+export function checkOpenAiKey(key: string, apiBase: string, fetchFn: typeof fetch = fetch) {
+  return checkKeyAt(`${apiBase}/v1/models`, { authorization: `Bearer ${key}` }, fetchFn)
 }
 
 export function isOpenAiKeyShape(key: string): boolean {

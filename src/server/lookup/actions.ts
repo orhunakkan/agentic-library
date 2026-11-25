@@ -11,14 +11,7 @@ import { take } from '../quota.ts'
 import { signedInEndpoints } from '../signed-in.ts'
 import { getAiModel } from '../users.ts'
 import { parseTranslateInput, parseWordInput } from './input.ts'
-import {
-  openAiTranslateRequest,
-  runOpenAiTranslation,
-  runTranslation,
-  type TranslateJob,
-  type TranslateOutcome,
-  translateRequest,
-} from './translate.ts'
+import { runOpenAiTranslation, runTranslation, type TranslateJob } from './translate.ts'
 import {
   definition,
   summary,
@@ -100,16 +93,9 @@ export const handleWordLookup = (request: Request, options: LookupOptions = {}) 
     return noStoreJson(200, found.value.answer)
   })
 
-type Translator = (
-  db: Db,
-  userId: number,
-  job: TranslateJob,
-  options: { signal: AbortSignal; fetch?: typeof fetch },
-) => Promise<TranslateOutcome>
-
-const TRANSLATORS: Record<AiProvider, Translator> = {
-  anthropic: (db, userId, job, options) => runTranslation(db, userId, translateRequest(job), options),
-  openai: (db, userId, job, options) => runOpenAiTranslation(db, userId, openAiTranslateRequest(job), options),
+const TRANSLATORS: Record<AiProvider, typeof runTranslation> = {
+  anthropic: runTranslation,
+  openai: runOpenAiTranslation,
 }
 
 /** The model to credit: Claude's as served, which may be a fallback; GPT's as chosen, not its dated snapshot. */

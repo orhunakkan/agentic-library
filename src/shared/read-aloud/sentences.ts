@@ -111,7 +111,8 @@ export function cutLong(text: string, start: number, end: number, max = MAX_UTTE
   return out
 }
 
-const collapse = (text: string) => text.replace(/\s+/g, ' ').trim()
+/** Runs of whitespace become one space, and the ends are trimmed. */
+export const collapse = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 export function utterances(page: SpeechPageText, lang: string, options: { intl?: boolean } = {}): Utterance[] {
   const out: Utterance[] = []

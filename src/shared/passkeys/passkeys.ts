@@ -1,11 +1,12 @@
+import { isOneOf } from '../lib/json-shape.ts'
+
 export const MAX_PASSKEYS = 10
 export const CHALLENGE_TTL_MS = 5 * 60 * 1000
 export const NAME_MAX = 60
 export const KNOWN_TRANSPORTS = ['usb', 'nfc', 'ble', 'internal', 'hybrid', 'smart-card'] as const
 export type Transport = (typeof KNOWN_TRANSPORTS)[number]
 
-export const isTransport = (value: unknown): value is Transport =>
-  typeof value === 'string' && (KNOWN_TRANSPORTS as readonly string[]).includes(value)
+export const isTransport = (value: unknown): value is Transport => isOneOf(value, KNOWN_TRANSPORTS)
 
 export type AddPasskeyError =
   | 'signed_out'
@@ -91,30 +92,4 @@ export interface AuthenticationCredentialJSON {
   }
   authenticatorAttachment?: 'platform' | 'cross-platform'
   clientExtensionResults: Record<string, unknown>
-}
-
-export interface AddOptionsRequest {
-  password: string
-}
-export interface AddOptionsAnswer {
-  options: CreationOptionsJSON
-}
-
-export interface NewPasskeyRequest {
-  credential: RegistrationCredentialJSON
-}
-export interface NewPasskeyAnswer {
-  passkey: PasskeyView
-}
-
-export interface SignInChallengeAnswer {
-  options: RequestOptionsJSON
-}
-
-export interface SignInRequest {
-  credential: AuthenticationCredentialJSON
-  next?: string
-}
-export interface SignInAnswer {
-  next: string
 }

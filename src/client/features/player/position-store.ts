@@ -1,4 +1,6 @@
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
+import { isObject } from '~/shared/lib/json-shape'
+
 export const SPEED_KEY = 'player-speed'
 const PREFIX = 'listen-pos:'
 const LEGACY_PREFIX = 'player-pos:'
@@ -20,8 +22,8 @@ const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isI
 
 function parseEntry(raw: string | null): EpisodeStamp | null {
   try {
-    const value = raw ? (JSON.parse(raw) as Record<string, unknown>) : null
-    if (value?.v !== 1 || !isCount(value.at)) return null
+    const value: unknown = raw ? JSON.parse(raw) : null
+    if (!isObject(value) || value.v !== 1 || !isCount(value.at)) return null
     if (value.done === true) return { ms: null, at: value.at }
     return isCount(value.ms) ? { ms: value.ms, at: value.at } : null
   } catch {

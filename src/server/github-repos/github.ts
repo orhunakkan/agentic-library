@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { KB, MB } from '../../shared/import/limits.ts'
 import { getConfig } from '../config.ts'
-import { fetchCapped } from '../outbound.ts'
+import { fetchCapped, folioUserAgent } from '../outbound.ts'
 import { type ParsedTree, parseCommitSha, parseRateLimit, parseRepo, parseTree, type RepoInfo } from './github-parse.ts'
 
 export type GitHubProblem = 'not-found' | 'empty' | 'busy' | 'unavailable' | 'too-large'
@@ -21,10 +21,6 @@ const DEFAULT_BACKOFF_MS = 60_000
 const ETAGS_MAX = 5000
 const API_STATUSES = [304, 403, 409, 422, 429] as const
 const GITHUB_JSON = 'application/vnd.github+json'
-
-export function userAgent(): string {
-  return `Folio (+${getConfig().appOrigin})`
-}
 
 let inFlight = 0
 let blockedUntil = 0
@@ -75,7 +71,7 @@ async function api(
       timeoutMs: TIMEOUT_MS,
       redirects: MAX_REDIRECTS,
       allowRedirect: sameHost(githubApiBase),
-      userAgent: userAgent(),
+      userAgent: folioUserAgent(),
       headers: {
         'x-github-api-version': '2022-11-28',
         ...(githubToken ? { authorization: `Bearer ${githubToken}` } : {}),
@@ -198,7 +194,7 @@ export async function getRaw(
       timeoutMs: TIMEOUT_MS,
       redirects: MAX_REDIRECTS,
       allowRedirect: sameHost(githubRawBase),
-      userAgent: userAgent(),
+      userAgent: folioUserAgent(),
       log: { label: 'github raw', path: () => '/:o/:r/:commit/:path' },
       fetch: options.fetch,
     })

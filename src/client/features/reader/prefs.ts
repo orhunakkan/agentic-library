@@ -19,7 +19,7 @@ export interface ReaderPrefs {
 
 export const PREFS_KEY = 'reader-prefs'
 export const PREFS_AT_KEY = 'reader-prefs-at'
-export const SYNCED_KEYS = ['theme', 'font', 'leading', 'measure'] as const
+const SYNCED_KEYS = ['theme', 'font', 'leading', 'measure'] as const
 export const FONT_SIZES = [15, 17, 19, 21, 23, 25, 27] as const
 export const LEADING_VALUES: Record<Leading, number> = { compact: 1.6, normal: 1.85, relaxed: 2.15 }
 export const MEASURE_VALUES: Record<Measure, number> = { narrow: 560, normal: 660, wide: 780 }

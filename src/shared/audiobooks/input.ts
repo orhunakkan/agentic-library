@@ -1,6 +1,6 @@
 import { AUTHOR_MAX, checkDetails, cleanText, LANGUAGE_TAG, TITLE_MAX } from '../import/blocks.ts'
 import type { BookDetails } from '../import/details.ts'
-import { isObject } from '../lib/json-shape.ts'
+import { isObject, only } from '../lib/json-shape.ts'
 import { type AudioChapter, CHAPTER_TITLE_MAX, chaptersTile, cleanTitle } from './chapters.ts'
 import {
   type AudioFileType,
@@ -24,9 +24,6 @@ export interface AudiobookStart {
   cover: boolean
 }
 
-const only = (value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []) =>
-  Object.keys(value).every((k) => required.includes(k) || optional.includes(k)) && required.every((k) => k in value)
-
 const isInt = (value: unknown, min: number, max: number): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
 
@@ -48,7 +45,7 @@ function parseChapter(value: unknown, fileCount: number): AudioChapter | null {
 
 export function parseAudiobookStart(value: unknown, now = new Date()): AudiobookStart | null {
   if (!isObject(value)) return null
-  if (!only(value, ['title', 'author', 'language', 'details', 'files', 'chapters', 'cover'], ['narrator'])) return null
+  if (!only(value, ['title', 'author', 'narrator', 'language', 'details', 'files', 'chapters', 'cover'])) return null
   const title = line(value.title, TITLE_MAX)
   const author = line(value.author, AUTHOR_MAX)
   const language = typeof value.language === 'string' ? value.language.trim() : ''
@@ -63,7 +60,7 @@ export function parseAudiobookStart(value: unknown, now = new Date()): Audiobook
   }
 
   const raw = value.details
-  if (!isObject(raw) || !only(raw, [], ['description', 'isbn', 'publisher', 'publishedYear'])) return null
+  if (!isObject(raw) || !only(raw, ['description', 'isbn', 'publisher', 'publishedYear'])) return null
   let details: BookDetails
   try {
     details = checkDetails(raw, now)

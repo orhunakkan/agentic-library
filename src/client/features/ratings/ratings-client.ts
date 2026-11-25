@@ -1,19 +1,15 @@
-import { type ChangeResult, post } from '~/client/lib/post'
+import { type ChangeResult, post, readChange } from '~/client/lib/post'
 import { isStars, type Stars } from '~/shared/ratings/ratings'
 
 export type RatingProblem = 'signed_out' | 'not_found' | 'failed' | 'offline'
 
 export type RatingResult = ChangeResult<Stars | null, RatingProblem>
 
-export async function readRatingAnswer(response: Response): Promise<RatingResult> {
-  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
-  if (response.ok) {
-    return body.stars === null || isStars(body.stars)
-      ? { ok: true, value: body.stars }
-      : { ok: false, problem: 'failed' }
-  }
-  if (body.error === 'signed_out' || body.error === 'not_found') return { ok: false, problem: body.error }
-  return { ok: false, problem: 'failed' }
+export function readRatingAnswer(response: Response): Promise<RatingResult> {
+  return readChange(response, (body) => (body.stars === null || isStars(body.stars) ? body.stars : undefined), [
+    'signed_out',
+    'not_found',
+  ])
 }
 
 export async function setRating(book: string, stars: Stars | null): Promise<RatingResult> {

@@ -69,8 +69,3 @@ export type TranslateErrorCode =
   | 'refused'
   | 'busy'
   | 'failed'
-
-export interface LookupRefusal<Code extends string> {
-  error: Code
-  retryAt?: string
-}

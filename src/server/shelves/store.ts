@@ -3,7 +3,7 @@ import { MAX_SHELF_BOOKS_PER_USER, MAX_SHELVES_PER_USER } from '~/shared/shelves
 import { isUuid } from '../../shared/uuid.ts'
 import { onBook, onReadableBook, ownsBook } from '../books/book.ts'
 import { type BookRef, bookOf } from '../books/ref.ts'
-import type { Db, Pool } from '../db.ts'
+import { type Db, isUniqueViolation, type Pool } from '../db.ts'
 
 export interface ShelfRow {
   id: string
@@ -28,12 +28,6 @@ interface RawBook {
 }
 
 const NAME_KEY_CONSTRAINT = 'shelves_user_id_name_key_key'
-
-const isNameClash = (error: unknown) =>
-  typeof error === 'object' &&
-  error !== null &&
-  (error as { code?: string }).code === '23505' &&
-  (error as { constraint_name?: string }).constraint_name === NAME_KEY_CONSTRAINT
 
 function bookRows(db: Db, userId: number, shelfId: string | null) {
   return db<RawBook[]>`
@@ -113,7 +107,7 @@ export async function renameShelf(
       returning id`
     if (!renamed) return 'missing'
   } catch (error) {
-    if (isNameClash(error)) return 'duplicate'
+    if (isUniqueViolation(error, NAME_KEY_CONSTRAINT)) return 'duplicate'
     throw error
   }
   return (await shelfOf(db, userId, id)) ?? 'missing'

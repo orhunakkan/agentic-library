@@ -5,17 +5,14 @@ const TIMEOUT_MS = 10_000
 
 export type KeyCheck = 'valid' | 'rejected' | 'unavailable'
 
-export async function checkAnthropicKey(
-  key: string,
-  apiBase: string,
-  fetchFn: typeof fetch = fetch,
+/** Asks a provider's model list whether it takes a key: 200 is valid, 401 or 403 rejected, anything else unavailable. */
+export async function checkKeyAt(
+  url: string,
+  headers: Record<string, string>,
+  fetchFn: typeof fetch,
 ): Promise<{ result: KeyCheck; status?: number }> {
   try {
-    const response = await fetchFn(`${apiBase}/v1/models?limit=1`, {
-      headers: { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      redirect: 'error',
-    })
+    const response = await fetchFn(url, { headers, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'error' })
     await response.body?.cancel().catch(() => {})
     if (response.status === 200) return { result: 'valid', status: 200 }
     if (response.status === 401 || response.status === 403) return { result: 'rejected', status: response.status }
@@ -23,6 +20,11 @@ export async function checkAnthropicKey(
   } catch {
     return { result: 'unavailable' }
   }
+}
+
+export function checkAnthropicKey(key: string, apiBase: string, fetchFn: typeof fetch = fetch) {
+  const headers = { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION }
+  return checkKeyAt(`${apiBase}/v1/models?limit=1`, headers, fetchFn)
 }
 
 export function isAnthropicKeyShape(key: string): boolean {

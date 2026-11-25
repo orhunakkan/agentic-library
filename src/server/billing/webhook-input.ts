@@ -1,5 +1,5 @@
 import { type BillingStatus, type Cadence, isBillingStatus } from '../../shared/billing/billing.ts'
-import { isObject } from '../../shared/lib/json-shape.ts'
+import { isObject, isOneOf } from '../../shared/lib/json-shape.ts'
 
 const WEBHOOK_EVENTS = [
   'subscription.created',
@@ -51,7 +51,7 @@ const idOf = (value: unknown, prefix: string): string | null =>
   typeof value === 'string' && new RegExp(`^${prefix}_[a-z0-9]{4,60}$`).test(value) ? value : null
 
 export function isWebhookEvent(type: string): type is WebhookEventType {
-  return (WEBHOOK_EVENTS as readonly string[]).includes(type)
+  return isOneOf(type, WEBHOOK_EVENTS)
 }
 
 export function parsePaddleEvent(value: unknown): PaddleEvent | null {

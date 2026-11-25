@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { browserStorage } from '~/client/lib/storage-keys'
 import type { PagePosition } from '~/shared/content/position'
 import { citationMarker, cleanModelText } from './answer-format'
 import { type AskAction, type AskProblem, historyFor, isStudyAction, sendQuestion } from './ask-client'
 import { newQuiz, pick as pickIn, studyText } from './study'
 import {
-  browserStorage,
   clearThread,
   emptyThread,
   loadThread,

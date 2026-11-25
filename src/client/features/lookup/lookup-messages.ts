@@ -1,21 +1,21 @@
-import { AI_PROVIDERS, type AiProvider } from '~/shared/lib/ai-models'
+import { AI_PROVIDERS, type AiProvider, providerName } from '~/shared/lib/ai-models'
 import type { WordSource } from '~/shared/lookup/contract'
 import type { TranslateProblem, WordProblem } from './lookup-client'
 
 export const SOURCE_NAME: Record<WordSource, string> = { dictionary: 'Wiktionary', wikipedia: 'Wikipedia' }
 
 export const SIGNED_OUT_TEXT = 'Sign in to look up words and translate passages.'
-const named = (provider: AiProvider) => AI_PROVIDERS[provider].name
 
-export const noKeyText = (provider: AiProvider = 'anthropic') => `Translating uses your own ${named(provider)} key.`
+export const noKeyText = (provider: AiProvider = 'anthropic') =>
+  `Translating uses your own ${providerName(provider)} key.`
 
 export const translatedByText = (model: string, provider: AiProvider) =>
-  `Translated by ${model} with your ${named(provider)} key.`
+  `Translated by ${model} with your ${providerName(provider)} key.`
 
 export const translatePrivacyText = (provider: AiProvider) =>
-  `The text and the sentence around it go to ${named(provider)} with your key. The book doesn’t.`
+  `The text and the sentence around it go to ${providerName(provider)} with your key. The book doesn’t.`
 
-export const explainUsesText = (provider: AiProvider) => `Uses Ask with your ${named(provider)} key.`
+export const explainUsesText = (provider: AiProvider) => `Uses Ask with your ${providerName(provider)} key.`
 
 export const noEntryText = (term: string) => `Wiktionary has no entry for “${term}”.`
 export const NO_ENTRY_HINT = 'Try the Wikipedia tab or Explain in context.'
@@ -26,7 +26,7 @@ export const otherLanguageText = (bookLanguage: string, entryLanguage: string) =
   `No ${bookLanguage} entry. From the ${entryLanguage} entries:`
 
 export const keyRejected = (provider: AiProvider = 'anthropic') => ({
-  before: `${named(provider)} rejected your key. Check it on the `,
+  before: `${providerName(provider)} rejected your key. Check it on the `,
   link: 'API keys page',
   after: '.',
 })
@@ -36,7 +36,7 @@ export interface Notice {
   retry: boolean
 }
 
-export const clock = (at: Date) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(at)
+const clock = (at: Date) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(at)
 
 function shared(problem: WordProblem | TranslateProblem, retryAt: Date | undefined, limitText: string): Notice | null {
   if (problem === 'not_found') return { text: 'This book is no longer available.', retry: false }
@@ -64,9 +64,9 @@ export function translateNotice(
   if (common) return common
   switch (problem) {
     case 'billing':
-      return { text: `Your ${named(provider)} account needs credit.`, retry: false }
+      return { text: `Your ${providerName(provider)} account needs credit.`, retry: false }
     case 'busy':
-      return { text: `${named(provider)} is busy. Try again in a moment.`, retry: true }
+      return { text: `${providerName(provider)} is busy. Try again in a moment.`, retry: true }
     case 'refused':
       return { text: `${AI_PROVIDERS[provider].family} didn’t translate this.`, retry: false }
     default:

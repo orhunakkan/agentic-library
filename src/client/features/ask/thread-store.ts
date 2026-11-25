@@ -2,6 +2,7 @@ import { removeKeys } from '~/client/lib/storage-keys'
 import type { CardDraft, QuizQuestion, StudySource, StudySpan } from '~/shared/ask/events'
 import { hasPrivateSlugPrefix } from '~/shared/content/book-slug'
 import { parsePosition } from '~/shared/content/position'
+import { isObject } from '~/shared/lib/json-shape'
 
 export interface ThreadCitation {
   pageHref: string
@@ -35,10 +36,9 @@ export const threadKey = (bookSlug: string) => `ask:${bookSlug}`
 export const emptyThread = (): Thread => ({ v: 1, wholeBook: false, turns: [] })
 
 const isString = (v: unknown): v is string => typeof v === 'string'
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 function citation(c: unknown): ThreadCitation | null {
-  if (!isRecord(c)) return null
+  if (!isObject(c)) return null
   if (!isString(c.pageHref) || !c.pageHref.startsWith('/read/') || !isString(c.label) || !isString(c.citedText))
     return null
   return { pageHref: c.pageHref, label: c.label, citedText: c.citedText }
@@ -55,13 +55,13 @@ function all<T>(value: unknown, parse: (item: unknown) => T | null): T[] | null 
 const citations = (value: unknown) => all(value, citation)
 
 function source(value: unknown): StudySource | null {
-  if (!isRecord(value) || !isString(value.label)) return null
+  if (!isObject(value) || !isString(value.label)) return null
   const at = parsePosition(value.position)
   return at && { position: at, label: value.label }
 }
 
 function question(value: unknown): ThreadQuestion | null {
-  if (!isRecord(value) || !isString(value.question) || !isString(value.why) || !isIndex(value.answer)) return null
+  if (!isObject(value) || !isString(value.question) || !isString(value.why) || !isIndex(value.answer)) return null
   const { choices } = value
   if (!Array.isArray(choices) || choices.length !== 4 || !choices.every(isString)) return null
   if (value.picked !== null && !isIndex(value.picked)) return null
@@ -80,14 +80,14 @@ function question(value: unknown): ThreadQuestion | null {
 }
 
 function card(value: unknown): CardDraft | null {
-  if (!isRecord(value) || !isString(value.front) || !isString(value.back)) return null
+  if (!isObject(value) || !isString(value.front) || !isString(value.back)) return null
   const cited = citations(value.citations)
   const from = source(value.source)
   return cited && from ? { front: value.front, back: value.back, citations: cited, source: from } : null
 }
 
 function study(value: unknown): ThreadStudy | null {
-  if (!isRecord(value) || (value.span !== 'chapter' && value.span !== 'two')) return null
+  if (!isObject(value) || (value.span !== 'chapter' && value.span !== 'two')) return null
   if (value.kind === 'quiz') {
     const questions = all(value.questions, question)
     return questions?.length ? { kind: 'quiz', span: value.span, questions } : null
@@ -100,7 +100,7 @@ function study(value: unknown): ThreadStudy | null {
 }
 
 function turn(t: unknown): ThreadTurn | null {
-  if (!isRecord(t)) return null
+  if (!isObject(t)) return null
   if ((t.role !== 'user' && t.role !== 'assistant') || !isString(t.text) || typeof t.at !== 'number') return null
   const cited = Array.isArray(t.citations) ? t.citations.map(citation).filter((c) => c !== null) : []
   const parsed = t.study === undefined ? undefined : study(t.study)
@@ -152,12 +152,4 @@ export function clearThread(storage: Storage | null, bookSlug: string): void {
 
 export function clearPrivateThreads(storage: Storage | null): void {
   removeKeys(storage, (key) => key.startsWith(threadKey('')) && hasPrivateSlugPrefix(key.slice(threadKey('').length)))
-}
-
-export function browserStorage(): Storage | null {
-  try {
-    return typeof localStorage === 'undefined' ? null : localStorage
-  } catch {
-    return null
-  }
 }

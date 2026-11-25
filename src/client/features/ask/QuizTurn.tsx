@@ -10,7 +10,7 @@ export function QuizTurn({
   study,
   bookSlug,
   busy,
-  newQuizOff = null,
+  newQuizOff,
   onPick,
   onNewQuiz,
   onNavigate,
@@ -19,7 +19,7 @@ export function QuizTurn({
   bookSlug: string
   busy: boolean
   /** Why a new quiz can't be made now, as with a GPT model; null when it can. */
-  newQuizOff?: string | null
+  newQuizOff: string | null
   onPick: (question: number, choice: number) => void
   onNewQuiz: () => void
   onNavigate?: () => void

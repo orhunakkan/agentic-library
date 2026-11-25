@@ -1,4 +1,4 @@
-import { type ChangeResult, post } from '~/client/lib/post'
+import { type ChangeResult, post, readChange } from '~/client/lib/post'
 import {
   ADMIN_PROBLEMS,
   type AdminProblem,
@@ -18,19 +18,6 @@ export interface ChangedUser {
   password: string | null
 }
 
-async function readAdminAnswer<T>(
-  response: Response,
-  pick: (body: Record<string, unknown>) => T | undefined,
-): Promise<AdminResult<T>> {
-  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
-  if (response.ok) {
-    const value = pick(body)
-    return value === undefined ? { ok: false, problem: 'failed' } : { ok: true, value }
-  }
-  const code = ADMIN_PROBLEMS.find((p) => p === body.error)
-  return { ok: false, problem: code ?? 'failed' }
-}
-
 async function send<T>(
   path: string,
   body: unknown,
@@ -42,7 +29,7 @@ async function send<T>(
   } catch {
     return { ok: false, problem: 'failed' }
   }
-  return readAdminAnswer(response, pick)
+  return readChange(response, pick, ADMIN_PROBLEMS)
 }
 
 const changedOf = (body: Record<string, unknown>): ChangedUser | undefined =>

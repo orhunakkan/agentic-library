@@ -1,5 +1,5 @@
 import type { PagePosition } from '../content/position.ts'
-import { isObject } from '../lib/json-shape.ts'
+import { isObject, isOneOf } from '../lib/json-shape.ts'
 
 export const READER_THEMES = ['light', 'sepia', 'dark'] as const
 export const READER_FONTS = ['literata', 'source-serif', 'geist', 'atkinson', 'opendyslexic'] as const
@@ -14,9 +14,6 @@ export interface SyncedSettings {
 }
 
 const SETTINGS_KEYS = ['theme', 'font', 'leading', 'measure'] as const
-
-const isOneOf = <T extends string>(value: unknown, options: readonly T[]): value is T =>
-  typeof value === 'string' && (options as readonly string[]).includes(value)
 
 export function parseSyncedSettings(value: unknown): SyncedSettings | null {
   if (!isObject(value)) return null

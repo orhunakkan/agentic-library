@@ -1,12 +1,11 @@
+import { RUN_CODE_PREFIX } from '~/shared/run-code/engines'
 import { inspect } from './inspect'
 import { workerMain } from './worker-main'
 
 export const FRAME_SANDBOX = 'allow-scripts'
 
-export const ENGINE_PATH = '/run-code/'
-
 export function framePolicy(origin: string): string {
-  const engines = `${origin}${ENGINE_PATH}`
+  const engines = `${origin}${RUN_CODE_PREFIX}`
   return [
     "default-src 'none'",
     `script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: ${engines}`,
@@ -56,7 +55,7 @@ export function frameMain(workerSource: string, scope: FrameScope): void {
   tell({ kind: 'ready' })
 }
 
-export function workerSource(): string {
+function workerSource(): string {
   return `(${String(workerMain)})(${String(inspect)}, self, (url) => import(url))`
 }
 

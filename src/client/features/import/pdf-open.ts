@@ -20,17 +20,14 @@ export interface PdfRead {
   overrides: PdfOverrides
 }
 
-export interface PdfBook extends PdfRead {
-  reread(
-    overrides: PdfOverrides,
-    options?: { signal?: AbortSignal; onProgress?: (p: PdfProgress) => void },
-  ): Promise<PdfRead>
-  close(): void
-}
-
 interface OpenOptions {
   signal?: AbortSignal
   onProgress?: (p: PdfProgress) => void
+}
+
+export interface PdfBook extends PdfRead {
+  reread(overrides: PdfOverrides, options?: OpenOptions): Promise<PdfRead>
+  close(): void
 }
 
 export const CROP_PADDING = 4

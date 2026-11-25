@@ -1,3 +1,4 @@
+import { requestKind, sentBesidesTheBook, translated, translationAsk } from './prompt-stub.ts'
 import { type StubEvent, sseResponse } from './sse-stub.ts'
 
 export const STUB_KEYS = {
@@ -53,36 +54,15 @@ function shapeProblem(request: Request, body: Record<string, unknown>): string |
   return null
 }
 
-function documents(body: Record<string, unknown>): StubDocument[] {
-  const first = (body.messages as { content: unknown }[] | undefined)?.[0]?.content
-  return Array.isArray(first) ? first.filter((b): b is StubDocument => b?.type === 'document') : []
-}
+const firstContent = (body: Record<string, unknown>) =>
+  (body.messages as { content: unknown }[] | undefined)?.[0]?.content
 
 const lastContent = (body: Record<string, unknown>) =>
   (body.messages as { content: unknown }[] | undefined)?.at(-1)?.content
 
-function quotedPassage(body: Record<string, unknown>): boolean {
-  const last = lastContent(body)
-  return typeof last === 'string' && last.includes('<passage>')
-}
-
-function sentHighlights(body: Record<string, unknown>): number | null {
-  const last = lastContent(body)
-  if (typeof last !== 'string' || !last.includes('<highlights>')) return null
-  return last.match(/<highlight /g)?.length ?? 0
-}
-
-function requestKind(body: Record<string, unknown>): string | null {
-  const last = lastContent(body)
-  if (typeof last !== 'string') return null
-  return /<request kind="(\w+)">/.exec(last)?.[1] ?? null
-}
-
-function readerPrompt(body: Record<string, unknown>): string | null {
-  const last = lastContent(body)
-  if (typeof last !== 'string') return null
-  const instruction = /<reader-prompt>\n([\s\S]*?)\n<\/reader-prompt>/.exec(last)?.[1]
-  return instruction === undefined ? null : [...instruction].slice(0, 40).join('')
+function documents(body: Record<string, unknown>): StubDocument[] {
+  const first = firstContent(body)
+  return Array.isArray(first) ? first.filter((b): b is StubDocument => b?.type === 'document') : []
 }
 
 const citationDelta = (index: number, documentIndex: number, blockIndex: number): StubEvent => ({
@@ -101,15 +81,7 @@ const citationDelta = (index: number, documentIndex: number, blockIndex: number)
   },
 })
 
-function answerEvents(
-  model: string,
-  docs: StubDocument[],
-  ending: string,
-  quoted: boolean,
-  highlights: number | null,
-  kind: string | null,
-  prompt: string | null = null,
-): StubEvent[] {
+function answerEvents(model: string, docs: StubDocument[], ending: string, lastMessage: unknown): StubEvent[] {
   const pages = docs.flatMap((d) => d.source.content).filter((b) => HEADING.test(b.text)).length
   const last = docs.length - 1
   const lastBlock = (docs[last]?.source.content.length ?? 1) - 1
@@ -154,12 +126,11 @@ function answerEvents(
     { type: 'content_block_delta', index: 0, delta: { type: 'signature_delta', signature: 'stub' } },
     stop(0),
   ]
+  const kind = requestKind(lastMessage)
   if ((kind === 'quiz' || kind === 'flashcards') && ending !== STUB_KEYS.badFormat) {
     return [start, ...thinking, ...studyBlocks(kind, last, lastBlock, block, text, stop), ...end('end_turn', 900)]
   }
-  const marked = highlights === null ? '' : ` and ${highlights} of your highlights`
-  const request = (kind ? ` Request: ${kind}.` : '') + (prompt === null ? '' : ` Prompt: ${prompt}.`)
-  const seen = `I can see ${pages} pages of the book${quoted ? ' and the passage you selected' : ''}${marked}.${request} `
+  const seen = `I can see ${pages} pages of the book${sentBesidesTheBook(lastMessage)}`
   const opening = [block(1), text(1, seen), stop(1)]
   if (ending === STUB_KEYS.midStreamError) {
     return [
@@ -208,18 +179,6 @@ function studyBlocks(
   return out
 }
 
-function translationAsk(body: Record<string, unknown>): { to: string; text: string; context: string | null } {
-  const content = String((body.messages as { content: unknown }[] | undefined)?.[0]?.content ?? '')
-  const unescaped = (t: string) => t.replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&')
-  const text = /<text>\n([\s\S]*?)\n<\/text>/.exec(content)?.[1]
-  const context = /<context>\n([\s\S]*?)\n<\/context>/.exec(content)?.[1]
-  return {
-    to: / \(([\w-]+)\)\. If it is a single word/.exec(String(body.system))?.[1] ?? '',
-    text: unescaped(text ?? ''),
-    context: context === undefined ? null : unescaped(context),
-  }
-}
-
 function translationProblem(request: Request, body: Record<string, unknown>): string | null {
   const shared = headersOrModelProblem(request, body)
   if (shared) return shared
@@ -229,7 +188,7 @@ function translationProblem(request: Request, body: Record<string, unknown>): st
   if (body.fallbacks !== 'default') return 'fallbacks'
   const messages = body.messages as { role: string; content: unknown }[] | undefined
   if (messages?.length !== 1 || typeof messages[0]?.content !== 'string') return 'messages'
-  const { to, text } = translationAsk(body)
+  const { to, text } = translationAsk(body.system, firstContent(body))
   if (!to || !text) return 'text or target'
   return null
 }
@@ -245,15 +204,14 @@ async function translation(request: Request, body: Record<string, unknown>, endi
       })
     })
   }
-  const { to, text, context } = translationAsk(body)
-  const sense = context ? `\nSense: ${context.split(/\s+/)[0]}` : ''
+  const answer = translated(translationAsk(body.system, firstContent(body)))
   const refused = ending === STUB_KEYS.refusal
   return Response.json({
     id: 'msg_stub',
     type: 'message',
     role: 'assistant',
     model: String(body.model),
-    content: refused ? [] : [{ type: 'text', text: `[${to}] ${text}${sense}`, citations: null }],
+    content: refused ? [] : [{ type: 'text', text: answer, citations: null }],
     stop_reason: refused ? 'refusal' : 'end_turn',
     stop_sequence: null,
     stop_details: null,
@@ -289,15 +247,7 @@ async function messages(request: Request): Promise<Response> {
   }
   if (translating) return translation(request, body, ending)
   return sseResponse(
-    answerEvents(
-      String(body.model),
-      documents(body),
-      ending,
-      quotedPassage(body),
-      sentHighlights(body),
-      requestKind(body),
-      readerPrompt(body),
-    ),
+    answerEvents(String(body.model), documents(body), ending, lastContent(body)),
     ending === STUB_KEYS.slow ? 150 : 0,
     request.signal,
     () => stats.aborted++,

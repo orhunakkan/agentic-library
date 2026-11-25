@@ -54,6 +54,7 @@ import { BAD_ISBN, importSaveText, PICTURE_FAILED, SAVE_FAILED } from './import-
 import { latestPick } from './latest-pick'
 import { PdfReading } from './PdfReading'
 import type { PdfBook, PdfProgress, PdfRead } from './pdf-open'
+import { plural } from './pdf-reading'
 import { pickerAccept, pickRefusal, routePick } from './pick'
 import { drawPicture } from './picture-draw'
 import {
@@ -694,8 +695,6 @@ function savingText({ stage, done, total }: SaveProgress): string {
 }
 
 const megabytes = (bytes: number) => `${(bytes / MB).toFixed(bytes < 10 * MB ? 1 : 0).replace(/\.0$/, '')} MB`
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
 function reasonText(reason: LeftOutReason, n: number, imageBytesLeft: number): string {
   const count = n.toLocaleString('en-GB')

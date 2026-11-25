@@ -30,12 +30,6 @@ export interface SpokenWord {
   t1: number
 }
 
-export interface SpeakAnswer {
-  audio: string
-  words: SpokenWord[]
-  format: SpeechFormat
-}
-
 export type SpeakErrorCode =
   | 'invalid'
   | 'not_found'

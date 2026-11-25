@@ -4,6 +4,17 @@ import { SITE_NAME, shortDate } from '~/shared/lib/site'
 
 export const legalLink = 'font-medium text-accent underline-offset-2 hover:underline'
 
+/** A legal page's head: the title and description for the tab, search results and link previews, and its canonical. */
+export const legalHead = (title: string, path: string, description: string) => ({
+  meta: [
+    { title: `${title} | ${SITE_NAME}` },
+    { name: 'description', content: description },
+    { property: 'og:title', content: `${title} | ${SITE_NAME}` },
+    { property: 'og:description', content: description },
+  ],
+  links: [{ rel: 'canonical', href: path }],
+})
+
 export function LegalPage({
   title,
   titleTestId,

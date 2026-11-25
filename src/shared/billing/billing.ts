@@ -1,3 +1,4 @@
+import { isOneOf } from '../lib/json-shape.ts'
 import type { Plan, PlanSource } from '../plans/plans.ts'
 import { FOUNDING_PRICE, PRO_PRICE } from '../plans/pricing.ts'
 
@@ -15,11 +16,11 @@ export function isCadence(value: unknown): value is Cadence {
 }
 
 export function isBillingStatus(value: unknown): value is BillingStatus {
-  return typeof value === 'string' && (BILLING_STATUSES as readonly string[]).includes(value)
+  return isOneOf(value, BILLING_STATUSES)
 }
 
 export function isProStatus(status: BillingStatus): boolean {
-  return (PRO_STATUSES as readonly string[]).includes(status)
+  return isOneOf(status, PRO_STATUSES)
 }
 
 export function foundingLeft(count: number): number {
@@ -57,7 +58,7 @@ export const BILLING_PROBLEMS = ['signed_out', 'invalid', 'not_found', 'subscrib
 export type BillingProblem = (typeof BILLING_PROBLEMS)[number]
 
 export function isBillingProblem(value: unknown): value is BillingProblem {
-  return typeof value === 'string' && (BILLING_PROBLEMS as readonly string[]).includes(value)
+  return isOneOf(value, BILLING_PROBLEMS)
 }
 
 export interface CheckoutAnswer {

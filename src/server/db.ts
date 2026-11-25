@@ -6,7 +6,7 @@ export type Db = ISql
 
 export type Pool = Sql
 
-export class DatabaseNotConfiguredError extends Error {
+class DatabaseNotConfiguredError extends Error {
   name = 'DatabaseNotConfiguredError'
   constructor() {
     super('The database is not configured (DATABASE_URL is not set)')
@@ -32,6 +32,13 @@ export function getDb(): Sql {
   })
   return client
 }
+
+/** Whether `error` is Postgres refusing a write because it would break the unique `constraint` (code 23505). */
+export const isUniqueViolation = (error: unknown, constraint: string) =>
+  typeof error === 'object' &&
+  error !== null &&
+  (error as { code?: string }).code === '23505' &&
+  (error as { constraint_name?: string }).constraint_name === constraint
 
 export async function closeDb(): Promise<void> {
   const current = client

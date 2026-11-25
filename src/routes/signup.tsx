@@ -12,6 +12,7 @@ import {
 import { AccountPage, Button, Notice, TextField } from '~/client/features/account/ui'
 import { getSignInAvailable, getSignupPage } from '~/server/account-functions'
 import { handleSignup } from '~/server/signup/actions'
+import { isOneOf } from '~/shared/lib/json-shape'
 import { SITE_NAME } from '~/shared/lib/site'
 import {
   SIGNUP_ERRORS,
@@ -29,10 +30,8 @@ interface SignupSearch {
   username?: string
 }
 
-const isRequestError = (e: SignupSearch['error']): e is SignupRequestError =>
-  (SIGNUP_REQUEST_ERRORS as readonly string[]).includes(e ?? '')
-const isFinishError = (e: SignupSearch['error']): e is SignupFinishError =>
-  (SIGNUP_FINISH_ERRORS as readonly string[]).includes(e ?? '')
+const isRequestError = (e: SignupSearch['error']): e is SignupRequestError => isOneOf(e, SIGNUP_REQUEST_ERRORS)
+const isFinishError = (e: SignupSearch['error']): e is SignupFinishError => isOneOf(e, SIGNUP_FINISH_ERRORS)
 
 export const Route = createFileRoute('/signup')({
   validateSearch: (search: Record<string, unknown>): SignupSearch => ({

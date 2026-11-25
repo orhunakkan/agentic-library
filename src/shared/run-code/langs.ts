@@ -1,8 +1,10 @@
+import { isOneOf } from '../lib/json-shape.ts'
+
 export const RUN_LANGS = ['javascript', 'typescript', 'python', 'sql'] as const
 export type RunLang = (typeof RUN_LANGS)[number]
 
 export function isRunLang(value: unknown): value is RunLang {
-  return typeof value === 'string' && (RUN_LANGS as readonly string[]).includes(value)
+  return isOneOf(value, RUN_LANGS)
 }
 
 const ALIASES: Record<string, RunLang> = {

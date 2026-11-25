@@ -1,7 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { sessionForRequest } from '../auth.ts'
-import { labelsFor } from '../books/book.ts'
-import { slugOf } from '../books/ref.ts'
+import { labelRows } from '../books/book.ts'
 import { getDb } from '../db.ts'
 import { type BookHighlights, highlightsFor } from './resolve.ts'
 import { bookSummaries } from './store.ts'
@@ -30,20 +29,10 @@ export async function highlightsPageState(request: Request, book: string | undef
     const found = await highlightsFor(db, session.userId, book)
     return found ? { kind: 'book', ...found } : { kind: 'not_found' }
   }
-  const summaries = await bookSummaries(db, session.userId)
-  const labels = await labelsFor(
-    db,
-    session.userId,
-    summaries.map((s) => s.book),
-  )
-  const books = summaries.flatMap((s): HighlightsSummary[] => {
-    const slug = slugOf(s.book)
-    const label = labels.get(slug)
-    if (!label) return []
-    const { title, author, removed } = label
-    return [
-      { slug, title, author, removed, highlights: s.highlights, notes: s.notes, updatedAt: s.updatedAt.toISOString() },
-    ]
+  const labelled = await labelRows(db, session.userId, await bookSummaries(db, session.userId), (s) => s.book)
+  const books = labelled.map(({ row, slug, label: { title, author, removed } }): HighlightsSummary => {
+    const { highlights, notes, updatedAt } = row
+    return { slug, title, author, removed, highlights, notes, updatedAt: updatedAt.toISOString() }
   })
   return { kind: 'all', books }
 }

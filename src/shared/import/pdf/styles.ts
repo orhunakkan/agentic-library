@@ -1,4 +1,4 @@
-import { MIN_CHAPTERS, MIN_MEDIAN_WORDS } from '../detect.ts'
+import { MIN_CHAPTERS, MIN_MEDIAN_WORDS, median } from '../detect.ts'
 import { charCount, type PdfLine, type PdfStyle, roundSize, STYLE_KINDS, type StyleKind } from './types.ts'
 
 export const HEADING_RATIO = 1.08
@@ -26,13 +26,6 @@ export function bodyStyle(pages: readonly PdfLine[][]): BodyStyle {
     .filter(([, e]) => e.chars > 0)
     .sort((a, b) => b[1].chars - a[1].chars || (a[0] < b[0] ? -1 : 1))
   return best ? { style: best[0], size: best[1].size } : { style: '', size: 10 }
-}
-
-function median(values: readonly number[]): number {
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  if (!sorted.length) return 0
-  return sorted.length % 2 ? (sorted[mid] as number) : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2
 }
 
 export function bodyLineGap(pages: readonly PdfLine[][], body: BodyStyle): number {

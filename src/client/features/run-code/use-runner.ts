@@ -4,7 +4,13 @@ import type { RunLang } from '~/shared/run-code/langs'
 import { hintFor, type RunStatus } from './run-messages'
 import { FRAME_SANDBOX, frameHtml } from './sandbox/frame-source'
 import { appendOutput, EMPTY_OUTPUT, type Output } from './sandbox/output'
-import { ENGINE_LOAD_LIMIT, parseFrameMessage, RUN_TIME_LIMIT, type RunError } from './sandbox/protocol'
+import {
+  ENGINE_LOAD_LIMIT,
+  parseFrameMessage,
+  RUN_TIME_LIMIT,
+  type RunError,
+  type RunRequest,
+} from './sandbox/protocol'
 import { transpile } from './transpile'
 
 export interface RunnerState {
@@ -151,7 +157,7 @@ export function useRunner(lang: RunLang) {
           lang: lang === 'typescript' ? 'javascript' : lang,
           code: source,
           engineBase: warm(lang) ? engineBase(lang === 'python' ? 'python' : 'sqlite', window.location.origin) : '',
-        },
+        } satisfies RunRequest,
         '*',
       )
     },

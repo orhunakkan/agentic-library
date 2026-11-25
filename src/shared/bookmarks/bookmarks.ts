@@ -45,7 +45,8 @@ export function resolveBookmark(anchor: Anchor, pages: readonly BookPage[]): Res
   return stored >= 0 ? { status: 'ok', pageIndex: stored, start: 0, end: 0 } : { status: 'missing' }
 }
 
-const byAge = (a: BookmarkView, b: BookmarkView) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
+export const byAge = (a: { createdAt: string; id: string }, b: { createdAt: string; id: string }) =>
+  a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
 
 export function inReadingOrder<T extends BookmarkView>(bookmarks: readonly T[]): T[] {
   return [...bookmarks].sort((a, b) => {

@@ -3,7 +3,7 @@ import { type PagePosition, parsePosition } from '~/shared/content/position'
 import { BACK_MAX, CARD_ORIGINS, type CardOrigin, FRONT_MAX } from '~/shared/flashcards/limits'
 import type { ReviewResult } from '~/shared/flashcards/schedule'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
-import { isObject, only } from '../../shared/lib/json-shape.ts'
+import { isObject, isOneOf, only } from '../../shared/lib/json-shape.ts'
 import { clean } from '../ask/input.ts'
 
 export interface NewCardInput {
@@ -22,7 +22,7 @@ function text(value: unknown, max: number): string | null {
   return cleaned && length(cleaned) <= max ? cleaned : null
 }
 
-const isOrigin = (value: unknown): value is CardOrigin => CARD_ORIGINS.some((o) => o === value)
+const isOrigin = (value: unknown): value is CardOrigin => isOneOf(value, CARD_ORIGINS)
 
 export function parseNewCard(value: unknown): NewCardInput | null {
   if (!isObject(value) || !only(value, ['book', 'front', 'back', 'position', 'origin'])) return null

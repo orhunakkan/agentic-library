@@ -1,3 +1,5 @@
+import { isOneOf } from '../lib/json-shape.ts'
+
 export const HIGHLIGHT_COLORS = ['yellow', 'green', 'blue', 'pink'] as const
 
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number]
@@ -12,7 +14,7 @@ export const COLOR_NAMES: Record<HighlightColor, string> = {
 }
 
 export function isHighlightColor(value: unknown): value is HighlightColor {
-  return typeof value === 'string' && (HIGHLIGHT_COLORS as readonly string[]).includes(value)
+  return isOneOf(value, HIGHLIGHT_COLORS)
 }
 
 export function knownColor(value: string): HighlightColor {

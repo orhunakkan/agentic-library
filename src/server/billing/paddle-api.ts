@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import { isObject } from '../../shared/lib/json-shape.ts'
 import { type BillingConfig, getConfig } from '../config.ts'
 import { readCapped } from '../json-body.ts'
 
@@ -67,17 +68,16 @@ async function call(method: 'GET' | 'POST', path: string, body: object | null, o
   } catch {
     value = null
   }
-  const envelope = value && typeof value === 'object' ? (value as Partial<Envelope> & { error?: unknown }) : {}
+  const envelope: Partial<Envelope> & { error?: unknown } = isObject(value) ? value : {}
   if (!response.ok) {
-    const error = envelope.error && typeof envelope.error === 'object' ? (envelope.error as { code?: unknown }) : {}
+    const error: { code?: unknown } = isObject(envelope.error) ? envelope.error : {}
     throw new PaddleApiError(response.status, typeof error.code === 'string' ? error.code.slice(0, 80) : null)
   }
   if (!('data' in envelope)) throw new PaddleApiError(response.status, 'no_data')
   return { data: envelope.data, meta: envelope.meta } as Envelope
 }
 
-const field = (value: unknown, key: string): unknown =>
-  value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined
+const field = (value: unknown, key: string): unknown => (isObject(value) ? value[key] : undefined)
 
 export async function createTransaction(priceId: string, userId: number, options: PaddleOptions = {}): Promise<string> {
   if (!PRICE_ID.test(priceId)) throw new PaddleApiError(0, 'bad_price')

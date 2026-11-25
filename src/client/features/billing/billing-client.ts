@@ -1,11 +1,11 @@
+import { type ChangeResult, post, readChange } from '~/client/lib/post'
 import {
+  BILLING_PROBLEMS,
   type BillingProblem,
   type Cadence,
   type CheckoutAnswer,
-  isBillingProblem,
   type PlanState,
 } from '~/shared/billing/billing'
-import { type ChangeResult, post } from '../../lib/post'
 
 export type BillingResult<T> = ChangeResult<T, BillingProblem | 'network'>
 
@@ -20,12 +20,7 @@ async function send<T>(
   } catch {
     return { ok: false, problem: 'network' }
   }
-  const answer = (await response.json().catch(() => ({}))) as Record<string, unknown>
-  if (response.ok) {
-    const value = pick(answer)
-    return value === undefined ? { ok: false, problem: 'failed' } : { ok: true, value }
-  }
-  return { ok: false, problem: isBillingProblem(answer.error) ? answer.error : 'failed' }
+  return readChange(response, pick, BILLING_PROBLEMS)
 }
 
 const text = (value: unknown) => (typeof value === 'string' && value.length > 0 ? value : undefined)

@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Contact, LegalPage, legalLink, Part } from '~/client/components/LegalPage'
+import { Contact, LegalPage, legalHead, legalLink, Part } from '~/client/components/LegalPage'
 import { getSiteContact } from '~/server/functions'
 import { FOUNDING_LIMIT } from '~/shared/billing/billing'
-import { SITE_NAME, TERMS_UPDATED } from '~/shared/lib/site'
+import { TERMS_UPDATED } from '~/shared/lib/site'
 import { FREE_LIMITS, PRO_FEATURES } from '~/shared/plans/plans'
 import { FOUNDING_PRICE, formatPrice, PRO_PRICE } from '~/shared/plans/pricing'
 
@@ -10,27 +10,14 @@ const DESCRIPTION = 'The terms for using Folio, and for buying Folio Pro.'
 
 export const Route = createFileRoute('/terms')({
   loader: () => getSiteContact(),
-  head: () => ({
-    meta: [
-      { title: `Terms | ${SITE_NAME}` },
-      { name: 'description', content: DESCRIPTION },
-      { property: 'og:title', content: `Terms | ${SITE_NAME}` },
-      { property: 'og:description', content: DESCRIPTION },
-    ],
-    links: [{ rel: 'canonical', href: '/terms' }],
-  }),
+  head: () => legalHead('Terms', '/terms', DESCRIPTION),
   component: TermsPage,
 })
 
 function TermsPage() {
   const contact = Route.useLoaderData()
   return (
-    <LegalPage
-      title="Terms"
-      titleTestId="terms-title"
-      lead="The terms for using Folio, and for buying Folio Pro."
-      updated={TERMS_UPDATED}
-    >
+    <LegalPage title="Terms" titleTestId="terms-title" lead={DESCRIPTION} updated={TERMS_UPDATED}>
       <Part id="who" title="Who you’re dealing with">
         <p>
           Folio is run by Orhun Akkan. Folio Pro is sold through Paddle (Paddle.com), which acts as the reseller: Paddle

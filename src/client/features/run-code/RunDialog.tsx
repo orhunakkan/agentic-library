@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { CircleAlert, Play, RotateCcw, Square, TriangleAlert, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ProNotice } from '~/client/features/plans/ProNotice'
 import { cn } from '~/client/lib/cn'
 import type { RunLang } from '~/shared/run-code/langs'
@@ -257,7 +257,6 @@ export function RunDialog({
     }
   }, [target])
 
-  const close = useCallback(() => onClose(), [onClose])
   const here = typeof window === 'undefined' ? '/' : `${window.location.pathname}${window.location.search}`
 
   return (
@@ -267,7 +266,7 @@ export function RunDialog({
       aria-labelledby="run-title"
       onCancel={(e) => {
         e.preventDefault()
-        close()
+        onClose()
       }}
       onKeyDown={(e) => {
         e.stopPropagation()
@@ -288,7 +287,7 @@ export function RunDialog({
               type="button"
               data-testid="run-close"
               aria-label="Close"
-              onClick={close}
+              onClick={onClose}
               className="grid size-11 shrink-0 place-items-center rounded-full text-muted transition hover:bg-inset hover:text-ink"
             >
               <X className="size-5" aria-hidden />

@@ -1,16 +1,14 @@
-import { type ChangeResult, post } from '~/client/lib/post'
+import { type ChangeResult, post, readChange } from '~/client/lib/post'
 
 export type RemovedBookProblem = 'signed_out' | 'not_found' | 'failed' | 'offline'
 
 export type RemovedBookResult = ChangeResult<boolean, RemovedBookProblem>
 
-export async function readRemovedAnswer(response: Response): Promise<RemovedBookResult> {
-  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
-  if (response.ok) {
-    return typeof body.removed === 'boolean' ? { ok: true, value: body.removed } : { ok: false, problem: 'failed' }
-  }
-  if (body.error === 'signed_out' || body.error === 'not_found') return { ok: false, problem: body.error }
-  return { ok: false, problem: 'failed' }
+export function readRemovedAnswer(response: Response): Promise<RemovedBookResult> {
+  return readChange(response, (body) => (typeof body.removed === 'boolean' ? body.removed : undefined), [
+    'signed_out',
+    'not_found',
+  ])
 }
 
 export async function setRemoved(book: string, removed: boolean): Promise<RemovedBookResult> {

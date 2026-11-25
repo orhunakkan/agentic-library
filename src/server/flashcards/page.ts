@@ -3,10 +3,9 @@ import type { BookFlashcards, FlashcardBookCount, FlashcardBookSummary } from '~
 import { REVIEW_SESSION_MAX } from '~/shared/flashcards/limits'
 import { canUse } from '~/shared/plans/plans'
 import { sessionForRequest } from '../auth.ts'
-import { type BookLabel, labelsFor, openTextBook } from '../books/book.ts'
-import { slugOf } from '../books/ref.ts'
+import { labelRows, openTextBook } from '../books/book.ts'
 import { getDb } from '../db.ts'
-import { bookCards, type CardBook, cardBooks, dueCards } from './store.ts'
+import { bookCards, cardBooks, dueCards } from './store.ts'
 import { toCardView } from './view.ts'
 
 export type FlashcardsProState = { kind: 'pro'; books: FlashcardBookCount[] }
@@ -22,24 +21,14 @@ export type BookFlashcardsState =
   | ({ kind: 'book' } & BookFlashcards)
   | FlashcardsProState
 
-async function labelled(userId: number, now: Date): Promise<{ book: CardBook; slug: string; label: BookLabel }[]> {
+async function labelled(userId: number, now: Date) {
   const db = getDb()
-  const books = await cardBooks(db, userId, now)
-  const labels = await labelsFor(
-    db,
-    userId,
-    books.map((b) => b.book),
-  )
-  return books.flatMap((book) => {
-    const slug = slugOf(book.book)
-    const label = labels.get(slug)
-    return label ? [{ book, slug, label }] : []
-  })
+  return labelRows(db, userId, await cardBooks(db, userId, now), (b) => b.book)
 }
 
 async function counts(userId: number, now: Date): Promise<FlashcardsProState> {
   const books = await labelled(userId, now)
-  return { kind: 'pro', books: books.map((b) => ({ slug: b.slug, title: b.label.title, cards: b.book.cards })) }
+  return { kind: 'pro', books: books.map((b) => ({ slug: b.slug, title: b.label.title, cards: b.row.cards })) }
 }
 
 export async function flashcardBooksState(request: Request, now = new Date()): Promise<FlashcardBooksState> {
@@ -49,7 +38,7 @@ export async function flashcardBooksState(request: Request, now = new Date()): P
   const books = await labelled(session.userId, now)
   return {
     kind: 'all',
-    books: books.map(({ book, slug, label }) => ({
+    books: books.map(({ row: book, slug, label }) => ({
       slug,
       title: label.title,
       removed: label.removed,

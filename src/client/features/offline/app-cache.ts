@@ -1,3 +1,4 @@
+import { isObject } from '~/shared/lib/json-shape'
 import {
   APP_CACHE_PREFIX,
   clearAppCache,
@@ -17,8 +18,8 @@ export interface AppFilesManifest {
 }
 
 export function parseManifest(value: unknown): AppFilesManifest | null {
-  if (typeof value !== 'object' || value === null) return null
-  const { build, files } = value as Record<string, unknown>
+  if (!isObject(value)) return null
+  const { build, files } = value
   if (typeof build !== 'string' || !/^[0-9a-f]{12}$/.test(build)) return null
   if (!Array.isArray(files) || !files.every((f) => typeof f === 'string' && f.startsWith('/') && !f.startsWith('//')))
     return null

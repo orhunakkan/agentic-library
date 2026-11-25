@@ -1,5 +1,6 @@
 import type { AskEvent } from '~/shared/ask/events'
 import type { PagePosition } from '~/shared/content/position'
+import { isObject } from '~/shared/lib/json-shape'
 import { plainAnswer } from './answer-format'
 import type { ThreadTurn } from './thread-store'
 
@@ -12,8 +13,6 @@ export type AskAction = 'explain' | 'summary' | 'recap' | 'define' | 'quiz' | 'f
 
 export const isStudyAction = (action: AskAction | null | undefined): action is 'quiz' | 'flashcards' =>
   action === 'quiz' || action === 'flashcards'
-
-export type AnswerEvent = AskEvent
 
 export type AskProblem =
   | 'signed_out'
@@ -47,14 +46,14 @@ export function historyFor(turns: readonly ThreadTurn[]): { role: 'user' | 'assi
   return plain
 }
 
-export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<AnswerEvent> {
+export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<AskEvent> {
   const reader = body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
-  const parse = (line: string): AnswerEvent | null => {
+  const parse = (line: string): AskEvent | null => {
     try {
-      const value = JSON.parse(line) as AnswerEvent
-      return value && typeof value === 'object' && typeof value.type === 'string' ? value : null
+      const value: unknown = JSON.parse(line)
+      return isObject(value) && typeof value.type === 'string' ? (value as AskEvent) : null
     } catch {
       return null
     }
@@ -89,7 +88,7 @@ export interface AskRequest {
 }
 
 export type AskResult =
-  | { ok: true; events: AsyncGenerator<AnswerEvent> }
+  | { ok: true; events: AsyncGenerator<AskEvent> }
   | { ok: false; problem: AskProblem; retryAt?: string }
 
 const KNOWN: readonly AskProblem[] = [

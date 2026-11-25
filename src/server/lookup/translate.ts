@@ -124,21 +124,25 @@ function failure(
   error: unknown,
   signal: AbortSignal | undefined,
   read: (error: unknown) => ReturnType<typeof askErrorCode>,
-  status: string,
+  ApiError: typeof Anthropic.APIError | typeof OpenAI.APIError,
 ): TranslateOutcome {
   if (signal?.aborted) return { ok: false, code: 'stopped', ...NO_USAGE }
   const asked = read(error)
   const code = asked === null || asked === 'too_long' ? 'failed' : asked
-  if (code === 'failed') logError('translate', new Error(status))
+  if (code === 'failed') {
+    const status = error instanceof ApiError ? `status ${error.status ?? 'none'}` : String((error as Error)?.name)
+    logError('translate', new Error(status))
+  }
   return { ok: false, code, ...NO_USAGE }
 }
 
 export async function runTranslation(
   db: Db,
   userId: number,
-  params: Params,
+  job: TranslateJob,
   { signal, fetch: doFetch }: RunOptions = {},
 ): Promise<TranslateOutcome> {
+  const params = translateRequest(job)
   const abort = deadlineFor(signal)
   try {
     const message = await withApiKey(
@@ -159,18 +163,17 @@ export async function runTranslation(
     const translation = translationOf(message)
     return translation ? { ok: true, translation, ...usage } : { ok: false, code: 'failed', ...usage }
   } catch (error) {
-    const status =
-      error instanceof Anthropic.APIError ? `status ${error.status ?? 'none'}` : String((error as Error)?.name)
-    return failure(error, signal, askErrorCode, status)
+    return failure(error, signal, askErrorCode, Anthropic.APIError)
   }
 }
 
 export async function runOpenAiTranslation(
   db: Db,
   userId: number,
-  params: OpenAiParams,
+  job: TranslateJob,
   { signal, fetch: doFetch }: RunOptions = {},
 ): Promise<TranslateOutcome> {
+  const params = openAiTranslateRequest(job)
   const abort = deadlineFor(signal)
   try {
     const response = await withApiKey(
@@ -196,8 +199,6 @@ export async function runOpenAiTranslation(
     if (refused) return { ok: false, code: 'refused', ...usage }
     return text ? { ok: true, translation: text, ...usage } : { ok: false, code: 'failed', ...usage }
   } catch (error) {
-    const status =
-      error instanceof OpenAI.APIError ? `status ${error.status ?? 'none'}` : String((error as Error)?.name)
-    return failure(error, signal, openAiErrorCode, status)
+    return failure(error, signal, openAiErrorCode, OpenAI.APIError)
   }
 }

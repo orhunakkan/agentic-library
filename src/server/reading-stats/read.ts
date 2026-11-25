@@ -1,8 +1,7 @@
 import '@tanstack/react-start/server-only'
 import type { ReadingStatsState, ReadingSummaryState } from '~/shared/reading-stats/contract'
 import { dayIn, isTimeZone } from '~/shared/reading-stats/days'
-import { labelsFor } from '../books/book.ts'
-import { slugOf } from '../books/ref.ts'
+import { labelRows } from '../books/book.ts'
 import type { Db } from '../db.ts'
 import { signedInRead } from '../signed-in.ts'
 import { dayTotals, type FinishedRow, goalHistory, listFinished, timeZoneOf } from './store.ts'
@@ -14,16 +13,10 @@ async function zoneOf(db: Db, userId: number): Promise<string> {
 }
 
 async function resolveFinished(db: Db, userId: number, rows: readonly FinishedRow[]): Promise<ResolvedFinished[]> {
-  const labels = await labelsFor(
-    db,
-    userId,
-    rows.map((r) => r.ref),
+  const labelled = await labelRows(db, userId, rows, (r) => r.ref)
+  return labelled.flatMap(({ row, slug: book, label }) =>
+    label.href ? [{ book, title: label.title, href: label.href, finishedAt: row.finishedAt }] : [],
   )
-  return rows.flatMap((row) => {
-    const book = slugOf(row.ref)
-    const label = labels.get(book)
-    return label?.href ? [{ book, title: label.title, href: label.href, finishedAt: row.finishedAt }] : []
-  })
 }
 
 export const statsState = (request: Request): Promise<ReadingStatsState> =>
