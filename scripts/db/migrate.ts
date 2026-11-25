@@ -57,15 +57,15 @@ export async function migrate({ url, role, dir, log = () => {} }: MigrateOptions
         throw new Error(`Applied migration ${name} has changed since it ran; add a new migration instead`)
     }
     const done: string[] = []
-    for (const m of migrations) {
-      if (applied.has(m.name)) continue
-      log(`applying ${m.name}`)
+    for (const migration of migrations) {
+      if (applied.has(migration.name)) continue
+      log(`applying ${migration.name}`)
       await sql.begin(async (tx) => {
         await asOwner(tx)
-        await tx.unsafe(m.sql).simple()
-        await tx`insert into schema_migrations (name, checksum) values (${m.name}, ${m.checksum})`
+        await tx.unsafe(migration.sql).simple()
+        await tx`insert into schema_migrations (name, checksum) values (${migration.name}, ${migration.checksum})`
       })
-      done.push(m.name)
+      done.push(migration.name)
     }
     log(done.length === 0 ? 'database is up to date' : `applied ${done.length} migration(s)`)
     return done

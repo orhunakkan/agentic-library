@@ -64,10 +64,10 @@ export const Route = createFileRoute('/library/')({
 function LibraryPage() {
   const library = Route.useLoaderData()
   const signedIn = Route.useRouteContext().viewer !== null
-  const { q, filter: asked = 'all' } = Route.useSearch()
+  const { q: urlQuery, filter: asked = 'all' } = Route.useSearch()
   const navigate = useNavigate({ from: '/library/' })
   const router = useRouter()
-  const [text, setText] = useState(q ?? '')
+  const [text, setText] = useState(urlQuery ?? '')
   const deferredQuery = useDeferredValue(text)
   const readerShelves = useShelves({ initial: library.readerShelves })
   const filter = resolveFilter(asked, readerShelves.shelves)
@@ -103,8 +103,8 @@ function LibraryPage() {
   }
   useEffect(() => {
     const latest = validateSearch(router.latestLocation.search).q
-    setText((current) => textForQuery(current, q, latest))
-  }, [q, router])
+    setText((current) => textForQuery(current, urlQuery, latest))
+  }, [urlQuery, router])
 
   const hasAudio = library.stats.audiobooks > 0
   const browsing = !text && filter === 'all'
@@ -350,17 +350,17 @@ function FilterChips({
   shown: number
   onSelect: (filter: string | undefined) => void
 }) {
-  const chip = (c: Chip) => {
-    const active = filter === c.value
+  const chip = (filterChip: Chip) => {
+    const active = filter === filterChip.value
     return (
       <button
-        key={c.value}
-        id={c.value === 'all' ? ALL_CHIP_ID : undefined}
+        key={filterChip.value}
+        id={filterChip.value === 'all' ? ALL_CHIP_ID : undefined}
         data-testid="library-filter"
-        data-key={c.value}
+        data-key={filterChip.value}
         type="button"
         aria-pressed={active}
-        onClick={() => onSelect(c.value === 'all' ? undefined : c.value)}
+        onClick={() => onSelect(filterChip.value === 'all' ? undefined : filterChip.value)}
         className={cn(
           'inline-flex h-11 max-w-full items-center gap-1.5 rounded-full border px-4 text-[14px] font-semibold transition',
           active
@@ -368,8 +368,8 @@ function FilterChips({
             : 'border-line bg-surface text-body hover:border-accent-line hover:text-ink',
         )}
       >
-        {c.value === 'audio' && <Headphones className="size-3.5" aria-hidden />}
-        <span className="truncate">{c.label}</span>
+        {filterChip.value === 'audio' && <Headphones className="size-3.5" aria-hidden />}
+        <span className="truncate">{filterChip.label}</span>
       </button>
     )
   }

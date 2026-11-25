@@ -163,24 +163,28 @@ function FormatTabs({ showAudio, onSelect }: { showAudio: boolean; onSelect: (ta
       data-testid="book-format-tabs"
       className="mb-8 inline-flex rounded-full border border-line bg-surface p-1"
     >
-      {(['text', 'audio'] as const).map((t) => {
-        const selected = (t === 'audio') === showAudio
+      {(['text', 'audio'] as const).map((format) => {
+        const selected = (format === 'audio') === showAudio
         return (
           <button
-            key={t}
+            key={format}
             type="button"
             role="tab"
             data-testid="book-format-tab"
-            data-key={t}
+            data-key={format}
             aria-selected={selected}
-            onClick={() => onSelect(t)}
+            onClick={() => onSelect(format)}
             className={cn(
               'inline-flex h-11 items-center gap-2 rounded-full px-5 text-[14px] font-semibold transition',
               selected ? 'bg-accent-fill text-on-accent' : 'text-muted hover:text-ink',
             )}
           >
-            {t === 'text' ? <BookOpen className="size-4" aria-hidden /> : <Headphones className="size-4" aria-hidden />}
-            {t === 'text' ? 'Text' : 'Audiobook'}
+            {format === 'text' ? (
+              <BookOpen className="size-4" aria-hidden />
+            ) : (
+              <Headphones className="size-4" aria-hidden />
+            )}
+            {format === 'text' ? 'Text' : 'Audiobook'}
           </button>
         )
       })}
@@ -197,26 +201,26 @@ function MoreFromSeries() {
           More from this series
         </h2>
         <ul className="mt-4 grid grid-cols-4 gap-3 xl:grid-cols-2">
-          {siblings.map((b) => (
-            <li key={b.slug}>
+          {siblings.map((sibling) => (
+            <li key={sibling.slug}>
               <AppLink
-                href={b.href}
+                href={sibling.href}
                 viewTransition
-                title={b.title}
+                title={sibling.title}
                 className="group block"
                 data-testid="book-sibling"
-                data-key={b.slug}
+                data-key={sibling.slug}
               >
                 <BookCover
-                  title={b.title}
-                  author={b.author}
-                  cover={b.cover}
-                  image={b.image}
-                  transitionName={`cover-${b.slug}`}
+                  title={sibling.title}
+                  author={sibling.author}
+                  cover={sibling.cover}
+                  image={sibling.image}
+                  transitionName={`cover-${sibling.slug}`}
                   className="shadow-[0_12px_28px_-14px_rgb(0_0_0/0.6)] transition group-hover:-translate-y-0.5"
                 />
                 <span className="mt-2 line-clamp-2 block text-[12.5px] leading-snug text-muted group-hover:text-accent">
-                  {b.title}
+                  {sibling.title}
                 </span>
               </AppLink>
             </li>
@@ -305,18 +309,18 @@ function Contents() {
 
       {chapters.length > 0 ? (
         <ol className="mt-4">
-          {chapters.map((c) => (
-            <li key={c.href}>
+          {chapters.map((chapter) => (
+            <li key={chapter.href}>
               <AppLink
-                href={c.href}
+                href={chapter.href}
                 preload={false}
                 data-testid="book-chapter"
-                data-key={c.href}
+                data-key={chapter.href}
                 className="group -mx-3 flex items-baseline gap-5 rounded-xl border-b border-line-soft px-3 py-3.5 transition hover:bg-panel"
               >
-                <span className="w-7 shrink-0 text-[14px] text-subtle tabular">{pad2(c.number)}</span>
+                <span className="w-7 shrink-0 text-[14px] text-subtle tabular">{pad2(chapter.number)}</span>
                 <span className="font-sans text-[16px] text-ink transition group-hover:text-accent md:text-[17px]">
-                  {c.title}
+                  {chapter.title}
                 </span>
               </AppLink>
             </li>
@@ -377,15 +381,15 @@ function TextHits({ hits, paged }: { hits: BookSearchHit[]; paged: boolean }) {
                 {hit.chapterTitle} · {paged ? `p. ${hit.page}` : `page ${hit.page}`}
               </span>
               <span className="mt-1 block text-[15px] leading-relaxed text-body">
-                {hit.snippet.map((s, i) =>
-                  s.hit ? (
+                {hit.snippet.map((part, i) =>
+                  part.hit ? (
                     // biome-ignore lint/suspicious/noArrayIndexKey: snippet parts are static per result.
                     <mark key={i} className="rounded-sm bg-hue-amber/30 px-0.5 text-ink">
-                      {s.text}
+                      {part.text}
                     </mark>
                   ) : (
                     // biome-ignore lint/suspicious/noArrayIndexKey: snippet parts are static per result.
-                    <span key={i}>{s.text}</span>
+                    <span key={i}>{part.text}</span>
                   ),
                 )}
               </span>

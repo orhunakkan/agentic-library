@@ -387,18 +387,18 @@ function SessionsSection({ sessions }: { sessions: Session[] }) {
   return (
     <Section id="sessions" title="Sessions">
       <ul className="divide-y divide-line">
-        {sessions.map((s) => (
+        {sessions.map((session) => (
           <li
-            key={`${s.createdAt}-${s.device}`}
+            key={`${session.createdAt}-${session.device}`}
             data-testid="account-session"
-            data-key={`${s.createdAt}-${s.device}`}
+            data-key={`${session.createdAt}-${session.device}`}
             className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
           >
             <Laptop className="mt-0.5 size-5 shrink-0 text-subtle" aria-hidden />
             <div className="min-w-0 text-[14.5px]">
               <p className="font-medium text-ink">
-                {s.device}
-                {s.current && (
+                {session.device}
+                {session.current && (
                   <span
                     data-testid="account-session-current"
                     className="ml-2 rounded-[4px] bg-accent-soft px-1.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-accent uppercase"
@@ -408,8 +408,8 @@ function SessionsSection({ sessions }: { sessions: Session[] }) {
                 )}
               </p>
               <p className="text-muted">
-                Last active <DateTime iso={s.lastSeenAt} />
-                {s.ip && <> · {s.ip}</>}
+                Last active <DateTime iso={session.lastSeenAt} />
+                {session.ip && <> · {session.ip}</>}
               </p>
             </div>
           </li>

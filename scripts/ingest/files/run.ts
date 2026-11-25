@@ -88,8 +88,8 @@ const PICTURE_EXTENSIONS: Record<ImageInfo['type'], string> = {
 function catalogPictures(def: BookDef, book: EpubBook): { chapters: RenderedChapter[]; pictures: CatalogPicture[] } {
   const drop = new Set(def.dropImages ?? [])
   const checked = new Map<number, CatalogPicture>()
-  const state = (n: number): PictureState => {
-    const picture = book.pictures[n - 1]
+  const state = (pictureNumber: number): PictureState => {
+    const picture = book.pictures[pictureNumber - 1]
     if (!picture || drop.has(picture.key)) return { ok: false, problem: 'missing' }
     const fix = `; fix it in the EPUB or add "${picture.key}" to the book's dropImages`
     if ('problem' in picture) throw new Error(`${def.slug}: the picture ${picture.key} is ${picture.problem}${fix}`)
@@ -102,7 +102,11 @@ function catalogPictures(def: BookDef, book: EpubBook): { chapters: RenderedChap
       )
     if (info.width < IMAGE_MIN_SIDE || info.height < IMAGE_MIN_SIDE) return { ok: false, problem: 'small' }
     const hash = createHash('sha256').update(picture.bytes).digest('hex')
-    checked.set(n, { file: `${hash.slice(0, 12)}.${PICTURE_EXTENSIONS[info.type]}`, bytes: picture.bytes, info })
+    checked.set(pictureNumber, {
+      file: `${hash.slice(0, 12)}.${PICTURE_EXTENSIONS[info.type]}`,
+      bytes: picture.bytes,
+      info,
+    })
     return { ok: true, bytes: picture.bytes.length, width: info.width, height: info.height }
   }
   const plan = planPictures(book.chapters, state, { count: Infinity, bytes: Infinity, userBytesLeft: Infinity })

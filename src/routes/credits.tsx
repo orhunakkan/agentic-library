@@ -118,30 +118,30 @@ function CreditsPage() {
 
       <Part id="software" title="Software">
         <ul className="list-disc space-y-2 pl-5">
-          {ENGINE_SOFTWARE.map((s) => (
-            <li key={s.name}>
-              <strong>{s.name}</strong>
-              {s.version ? ` ${s.version}` : ''}: {s.what}.{' '}
+          {ENGINE_SOFTWARE.map((software) => (
+            <li key={software.name}>
+              <strong>{software.name}</strong>
+              {software.version ? ` ${software.version}` : ''}: {software.what}.{' '}
               <a
-                href={s.licence.url}
+                href={software.licence.url}
                 className={legalLink}
                 rel="license noreferrer"
                 data-testid="credits-software-licence"
-                data-key={s.name}
+                data-key={software.name}
               >
-                {s.licence.name}
+                {software.licence.name}
               </a>
               ,{' '}
               <a
-                href={s.source}
+                href={software.source}
                 className={legalLink}
                 rel="noreferrer"
                 data-testid="credits-software-source"
-                data-key={s.name}
+                data-key={software.name}
               >
                 source
               </a>
-              {s.parts.map((part) => (
+              {software.parts.map((part) => (
                 <span key={part.name}>
                   ,{' '}
                   <a

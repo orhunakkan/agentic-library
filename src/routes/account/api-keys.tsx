@@ -153,17 +153,17 @@ function ModelForm({ current, saved }: { current: AiModelId; saved: ReadonlySet<
           Quizzes and flashcards need a Claude model. Costs are rough.
         </legend>
         <div className="mt-3 space-y-2">
-          {AI_MODELS.map((m) => (
+          {AI_MODELS.map((model) => (
             <ModelChoice
-              key={m.id}
+              key={model.id}
               testId="api-keys-model"
-              id={m.id}
-              name={m.name}
-              provider={providerName(m.provider)}
-              description={m.description}
-              note={saved.has(m.provider) ? undefined : noKeyNote(m.provider)}
-              checked={m.id === current}
-              isDefault={m.id === DEFAULT_AI_MODEL}
+              id={model.id}
+              name={model.name}
+              provider={providerName(model.provider)}
+              description={model.description}
+              note={saved.has(model.provider) ? undefined : noKeyNote(model.provider)}
+              checked={model.id === current}
+              isDefault={model.id === DEFAULT_AI_MODEL}
             />
           ))}
         </div>
@@ -188,15 +188,15 @@ function SpeechModelForm({ current }: { current: SpeechModelId }) {
           Prices are ElevenLabs’ pay-as-you-go rates; a subscription’s included characters cost less.
         </p>
         <div className="mt-3 space-y-2">
-          {SPEECH_MODELS.map((m) => (
+          {SPEECH_MODELS.map((speechModel) => (
             <ModelChoice
-              key={m.id}
+              key={speechModel.id}
               testId="api-keys-speech-model"
-              id={m.id}
-              name={m.name}
-              description={speechModelDescription(m.id)}
-              checked={m.id === current}
-              isDefault={m.id === DEFAULT_SPEECH_MODEL}
+              id={speechModel.id}
+              name={speechModel.name}
+              description={speechModelDescription(speechModel.id)}
+              checked={speechModel.id === current}
+              isDefault={speechModel.id === DEFAULT_SPEECH_MODEL}
             />
           ))}
         </div>

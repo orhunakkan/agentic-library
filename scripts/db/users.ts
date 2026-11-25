@@ -170,15 +170,15 @@ async function run(argv: string[]): Promise<void> {
       const users = await listUsers(db)
       const date = (d: Date | null) => (d ? d.toISOString().slice(0, 16).replace('T', ' ') : '-')
       console.table(
-        users.map((u) => ({
-          username: u.username,
-          role: u.role,
-          plan: planLabel(planSourceFor(u.role, u.proGiven, u.paid !== null), u.paid),
-          created: date(u.createdAt),
-          disabled: date(u.disabledAt),
-          sessions: u.activeSessions,
-          'api key': u.hasApiKey ? 'yes' : 'no',
-          email: u.email,
+        users.map((user) => ({
+          username: user.username,
+          role: user.role,
+          plan: planLabel(planSourceFor(user.role, user.proGiven, user.paid !== null), user.paid),
+          created: date(user.createdAt),
+          disabled: date(user.disabledAt),
+          sessions: user.activeSessions,
+          'api key': user.hasApiKey ? 'yes' : 'no',
+          email: user.email,
         })),
       )
       return
