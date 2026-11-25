@@ -18,7 +18,7 @@ with open sign-up, and make the project safe and practical for outside contribut
 | CI / deploy | **All CI moves to GitHub-hosted runners, and no self-hosted runner is left.** The `if:` fork guard can't protect a self-hosted runner, because a fork PR controls the workflow file it runs. The server pulls deploy requests instead of running jobs. Decided 2026-11-25 in [SPEC-repo-security.md](SPEC-repo-security.md). |
 | Built-in catalogue | Stays empty. Every user starts with an empty library, so no content needs publishing or licence review. |
 | Login | Unchanged: password, passkeys and personal access tokens. There is no OAuth in the code and none is added. |
-| Licence | **MIT.** `package.json` changes from `AGPL-3.0-only` (set in the first commit and never published) to `MIT`, and a `LICENSE` file is added. The owner accepts that forks may be run closed-source or sold. All dependencies are compatible (MIT, ISC, Apache, BSD, MPL-2.0, Unlicense). |
+| Licence | **MIT.** `package.json` changes from `AGPL-3.0-only` (set in the first commit and never published) to `MIT`, and a `LICENSE` file is added. The owner accepts that forks may be run closed-source or sold. All dependencies are compatible (MIT, ISC, Apache, BSD, MPL-2.0, Unlicense). **One exception, accepted 2026-11-25:** the Folio voice worker ships espeak-ng and piper-phonemize, which are GPL-3.0, inside `@diffusionstudio/piper-wasm`. They're shipped with their source offered, and Folio's own code stays MIT. See [SPEC-legal-and-attribution.md](SPEC-legal-and-attribution.md). |
 
 ## Assumptions (correct any of these)
 
@@ -57,8 +57,8 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 | `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | — | — |
 | `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | — | — |
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | — | — |
-| `legal-and-attribution` | **next** | — | — |
-| `contributor-docs` | — | — | — |
+| `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | — | — |
+| `contributor-docs` | **next** | — | — |
 | `go-public` | — | — | — |
 
 The owner chose to write every module spec before planning or building any of them. Specs are written one per
