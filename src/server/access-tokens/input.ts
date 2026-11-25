@@ -35,9 +35,7 @@ function tokenName(value: unknown): string | null {
 
 function tokenDays(value: unknown): number | null {
   if (value === undefined) return MAX_TOKEN_DAYS
-  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= MAX_TOKEN_DAYS
-    ? (value as number)
-    : null
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= MAX_TOKEN_DAYS ? value : null
 }
 
 export function parseTokenCreate(value: unknown): TokenCreateInput | null {

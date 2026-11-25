@@ -14,7 +14,7 @@ import { CODE_SAY, chapterIntro, type Utterance, utterances } from '../../shared
 import type { SpeechChapter } from '../../shared/read-aloud/speech-text.ts'
 import { hasKey, withApiKey } from '../api-keys.ts'
 import { noStoreJson } from '../auth.ts'
-import { openBook } from '../books/book.ts'
+import { openTextBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
 import { requirePro } from '../plans/plan.ts'
 import { take } from '../quota.ts'
@@ -49,7 +49,7 @@ interface LoadedChapter {
 }
 
 async function chapterFor(db: Db, userId: number, slug: string, index: number): Promise<LoadedChapter | null> {
-  const book = await openBook(db, userId, slug).then((b) => (b?.format === 'text' ? b : null))
+  const book = await openTextBook(db, userId, slug)
   const chapter = (await book?.speechChapter(index))?.chapter
   return book && chapter ? { language: book.language, chapter } : null
 }
@@ -146,11 +146,6 @@ export const handleSpeak = (request: Request, options: SpeechOptions = {}) =>
     },
   )
 
-async function bookLanguage(db: Db, userId: number, slug: string): Promise<string | null> {
-  const book = await openBook(db, userId, slug)
-  return book?.format === 'text' ? book.language : null
-}
-
 export function speechVoicesState(
   request: Request,
   book: string,
@@ -159,8 +154,8 @@ export function speechVoicesState(
   return signedInRead(request, 'read aloud voices', async ({ session, db }): Promise<SpeechVoicesState> => {
     if (!canUse(session.plan, 'elevenlabs')) return { state: 'pro' }
     if (!isBookSlug(book)) return { state: 'not_found' }
-    const language = await bookLanguage(db, session.userId, book)
-    if (language === null) return { state: 'not_found' }
+    const language = (await openTextBook(db, session.userId, book))?.language
+    if (language === undefined) return { state: 'not_found' }
     if (!(await hasKey(db, session.userId, 'elevenlabs'))) return { state: 'no_key' }
     const listed = await withApiKey(session.userId, 'elevenlabs', (key) => listVoices(key, options), db)
     if (!listed.ok) {

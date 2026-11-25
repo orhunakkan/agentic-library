@@ -3,7 +3,7 @@ import { chapterPageHref, pageLabel } from '~/shared/content/navigation'
 import { fromStored, type PagePosition } from '~/shared/content/position'
 import { type BookPage, pageIndexOf } from '~/shared/highlights/page-text'
 import { privateBookSlug } from '../../shared/content/book-slug.ts'
-import { openBook } from '../books/book.ts'
+import { openBook, openTextBook } from '../books/book.ts'
 import { type BookRef, refFor } from '../books/ref.ts'
 import type { Db } from '../db.ts'
 import { type BookOutline, loadOutlines } from '../user-books.ts'
@@ -122,8 +122,8 @@ export function bookFor(db: Db, userId: number, slug: string, cache: PlaceCache)
     const id = refFor(slug).userBookId
     found = id
       ? loadOutlines(db, userId, [id]).then((outlines) => fromOutlines(outlines, slug, id))
-      : openBook(db, userId, slug).then(async (book) =>
-          book?.format === 'text' ? catalogueBook(book.ref, book.title, await book.pages()) : null,
+      : openTextBook(db, userId, slug).then(
+          async (book) => book && catalogueBook(book.ref, book.title, await book.pages()),
         )
     cache.set(slug, found)
   }

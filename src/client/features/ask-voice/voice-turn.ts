@@ -188,6 +188,6 @@ export function step(turn: VoiceTurn, event: VoiceEvent): Step {
 }
 
 export function statusOf(turn: VoiceTurn): 'listening' | 'sending' | 'speaking' | null {
-  if (turn.phase === 'listening' || turn.phase === 'sending') return turn.phase
-  return turn.phase === 'speaking' ? 'speaking' : null
+  if (turn.phase === 'listening' || turn.phase === 'sending' || turn.phase === 'speaking') return turn.phase
+  return null
 }

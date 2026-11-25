@@ -58,7 +58,7 @@ export function addFolder(tree: RepoTree, folder: string, parsed: ParsedTree): v
 
 export const treeBytes = (tree: RepoTree) => 200 + tree.byPath.size * 160
 
-export function entryKind(entry: TreeEntry): RepoEntryKind {
+function entryKind(entry: TreeEntry): RepoEntryKind {
   if (entry.type === 'tree') return 'folder'
   if (entry.type === 'commit') return 'submodule'
   return entry.mode === LINK_MODE ? 'link' : 'file'
@@ -88,7 +88,7 @@ const extensionOf = (name: string) => {
   return dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
 }
 
-export const isMarkdownName = (name: string) => {
+const isMarkdownName = (name: string) => {
   const extension = extensionOf(name)
   return extension === 'md' || extension === 'markdown'
 }
@@ -194,7 +194,7 @@ export const kindOfIn = (tree: RepoTree) => (path: string) => {
   return path === '' ? 'folder' : null
 }
 
-export function renderMarkdownFor(text: string, path: string, target: RenderTarget): Promise<RenderedMarkdown> {
+function renderMarkdownFor(text: string, path: string, target: RenderTarget): Promise<RenderedMarkdown> {
   return renderMarkdown(text, {
     owner: target.owner,
     name: target.name,

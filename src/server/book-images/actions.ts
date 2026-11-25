@@ -3,7 +3,7 @@ import { checkBookImage } from '../../shared/import/image.ts'
 import { MAX_IMAGE_BYTES } from '../../shared/import/limits.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson, sessionForRequest } from '../auth.ts'
-import type { ImportErrorCode } from '../book-actions.ts'
+import { IMPORT_CODES, type ImportErrorCode } from '../book-actions.ts'
 import { COVER_HEADERS, imageText } from '../book-details/actions.ts'
 import { getDb, isDatabaseConfigured } from '../db.ts'
 import { logError } from '../redact.ts'
@@ -11,16 +11,7 @@ import { type RawBody, signedInEndpoints } from '../signed-in.ts'
 import { parseImageNumber } from './input.ts'
 import { loadImage, newImage, storeImage } from './store.ts'
 
-const pictures = signedInEndpoints<ImportErrorCode>({
-  maxBytes: MAX_IMAGE_BYTES,
-  codes: {
-    signedOut: 'signed-out',
-    invalid: 'invalid',
-    notFound: 'not-found',
-    failed: 'failed',
-    tooLarge: 'request-too-large',
-  },
-})
+const pictures = signedInEndpoints<ImportErrorCode>({ maxBytes: MAX_IMAGE_BYTES, codes: IMPORT_CODES })
 const { fail } = pictures
 const notFound = () => fail(404, 'not-found')
 

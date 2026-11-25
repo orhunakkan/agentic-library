@@ -4,7 +4,7 @@ import { pageIndexOf } from '~/shared/highlights/page-text'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson, seeOther } from '../auth.ts'
-import { openBook } from '../books/book.ts'
+import { openTextBook } from '../books/book.ts'
 import { refFor, slugOf } from '../books/ref.ts'
 import { requirePro } from '../plans/plan.ts'
 import { signedInEndpoints, signedInForm } from '../signed-in.ts'
@@ -29,7 +29,7 @@ export const handleCardSave = (request: Request) =>
     },
     async ({ session, db, input }) => {
       const { userId } = session
-      const book = await openBook(db, userId, input.book).then((b) => (b?.format === 'text' ? b : null))
+      const book = await openTextBook(db, userId, input.book)
       if (!book) return fail(404, 'not_found')
       const pages = await book.pages()
       const page = pages[pageIndexOf(pages, input.position)]
@@ -68,7 +68,7 @@ export const handleCardChange = (request: Request, id: string) =>
       if (notPro) return notPro
       const row = await reviewCard(db, userId, id, change.review, new Date())
       if (!row) return fail(404, 'not_found')
-      const book = await openBook(db, userId, slugOf(row.book)).then((b) => (b?.format === 'text' ? b : null))
+      const book = await openTextBook(db, userId, slugOf(row.book))
       return noStoreJson(200, { card: toCardView(row, (await book?.pages()) ?? null) })
     },
   )

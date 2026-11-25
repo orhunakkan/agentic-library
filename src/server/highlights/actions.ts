@@ -4,7 +4,7 @@ import { pageIndexOf } from '~/shared/highlights/page-text'
 import { limitsFor } from '~/shared/plans/plans'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { noStoreJson, seeOther } from '../auth.ts'
-import { openBook } from '../books/book.ts'
+import { openTextBook } from '../books/book.ts'
 import { refFor, slugOf } from '../books/ref.ts'
 import { signedInEndpoints, signedInForm } from '../signed-in.ts'
 import { parseCreate, parseUpdate } from './input.ts'
@@ -32,7 +32,7 @@ export const handleCreate = (request: Request) =>
     { log: 'highlight create', body: { json: MAX_CREATE_BYTES }, parse: parseCreate },
     async ({ session, db, input }) => {
       const { userId, plan } = session
-      const book = await openBook(db, userId, input.book).then((b) => (b?.format === 'text' ? b : null))
+      const book = await openTextBook(db, userId, input.book)
       if (!book) return fail(404, 'not_found')
       const pages = await book.pages()
       const page = pages[pageIndexOf(pages, input.position)]
@@ -77,7 +77,7 @@ export const handleChange = (request: Request, id: string) =>
       }
       const row = await updateHighlight(db, userId, id, { color: input.color, note: input.note })
       if (!row) return fail(404, 'not_found')
-      const book = await openBook(db, userId, slugOf(row.book)).then((b) => (b?.format === 'text' ? b : null))
+      const book = await openTextBook(db, userId, slugOf(row.book))
       return noStoreJson(200, { highlight: toView(row, (await book?.pages()) ?? null) })
     },
   )

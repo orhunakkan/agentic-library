@@ -3,7 +3,7 @@ import { crc32, deflateSync } from 'node:zlib'
 
 const page = (name: string) => readFileSync(new URL(`./articles/${name}`, import.meta.url))
 
-export function solidPng(width: number, height: number, rgb: [number, number, number]): Uint8Array<ArrayBuffer> {
+function solidPng(width: number, height: number, rgb: [number, number, number]): Uint8Array<ArrayBuffer> {
   const chunk = (type: string, data: Buffer) => {
     const length = Buffer.alloc(4)
     length.writeUInt32BE(data.length)

@@ -3,7 +3,7 @@ import { notFound } from '@tanstack/react-router'
 import { getRequest } from '@tanstack/react-start/server'
 import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
 import { readerOf } from './auth.ts'
-import { openBook } from './books/book.ts'
+import { openTextBook } from './books/book.ts'
 
 export function speechInput(data: { book?: unknown; chapter?: unknown }): { book: string; chapter: number } {
   const { book, chapter } = data
@@ -16,8 +16,8 @@ export function speechInput(data: { book?: unknown; chapter?: unknown }): { book
 /** One chapter of a text book to read aloud, for whoever is signed in on this request; any other answer is a 404. */
 export async function loadSpeechChapterData(slug: string, chapter: number): Promise<SpeechChapterData> {
   const { db, userId } = await readerOf(getRequest())
-  const book = await openBook(db, userId, slug)
-  const found = book?.format === 'text' ? await book.speechChapter(chapter) : null
+  const book = await openTextBook(db, userId, slug)
+  const found = book ? await book.speechChapter(chapter) : null
   if (!found) throw notFound()
   return found
 }

@@ -13,7 +13,7 @@ export const STUB_TITLES = {
 
 export const STUB_COVERS = { huge: 2, missing: 3, redirect: 4, away: 5 } as const
 
-export const SLOW_MS = 10_000
+const SLOW_MS = 10_000
 
 function waitOrAbort(ms: number, signal: AbortSignal | null): Promise<void> {
   return new Promise((resolve, reject) => {

@@ -11,7 +11,7 @@ import { isBadIsbn } from '~/shared/import/isbn'
 import { finishAudiobook, sendChunk, startAudiobook } from './audiobook-client'
 import { type AudiobookProblem, isResumable, problemText } from './audiobook-problems'
 import { type AudiobookDraft, AudiobookReadError, readAudiobook } from './read-audiobook'
-import { uploadAll } from './upload'
+import { type UploadResult, uploadAll } from './upload'
 
 type Stage =
   | { kind: 'reading'; done: number; total: number }
@@ -21,6 +21,8 @@ type Stage =
   | { kind: 'checking'; draft: AudiobookDraft }
 
 const isAbort = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
+
+const sum = (bytes: readonly number[]) => bytes.reduce((n, b) => n + b, 0)
 
 const FROM_TEXT: Record<AudiobookDraft['from'], string> = {
   file: 'Chapters from the file.',
@@ -87,8 +89,8 @@ export function AudiobookImporter({
     const abort = new AbortController()
     controller.current = abort
     const total = (bytes: number) => setStage({ kind: 'uploading', draft, id, sent: bytes })
-    total(received.reduce((n, b) => n + b, 0))
-    let result: Awaited<ReturnType<typeof uploadAll>>
+    total(sum(received))
+    let result: UploadResult
     try {
       result = await uploadAll(
         draft.files,
@@ -105,8 +107,7 @@ export function AudiobookImporter({
     }
     if (!result.ok) {
       if (isResumable(result.problem)) {
-        const sent = result.received.reduce((n, b) => n + b, 0)
-        setStage({ kind: 'stopped', draft, id, received: result.received, sent })
+        setStage({ kind: 'stopped', draft, id, received: result.received, sent: sum(result.received) })
         return
       }
       return refused(draft, id, result.problem)

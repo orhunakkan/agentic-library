@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import { getConfig } from './config.ts'
 import { readCapped } from './json-body.ts'
 import { logError } from './redact.ts'
 
@@ -19,6 +20,12 @@ export interface OutboundOptions {
   log: { label: string; path: (url: URL) => string }
   fetch?: typeof fetch
   signal?: AbortSignal
+}
+
+/** How Folio names itself to other sites: its origin, and a contact when one is configured. */
+export function folioUserAgent(contact: string | null = null): string {
+  const { appOrigin } = getConfig()
+  return contact ? `Folio (${contact}; +${appOrigin})` : `Folio (+${appOrigin})`
 }
 
 class Failure extends Error {

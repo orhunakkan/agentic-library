@@ -93,9 +93,14 @@ export async function coverFile(slug: string): Promise<{ path: string; meta: Cat
   if (!isCatalogueBookSlug(slug)) return null
   const meta = (await catalogueBook(slug))?.coverImage
   if (!meta || !/^[a-z0-9-]+\.(jpg|png|webp)$/.test(meta.file)) return null
+  const path = firstExisting('covers', meta.file)
+  return path ? { path, meta } : null
+}
+
+function firstExisting(...path: string[]): string | null {
   for (const dir of CONTENT_DIRS) {
-    const path = join(dir, 'covers', meta.file)
-    if (existsSync(path)) return { path, meta }
+    const found = join(dir, ...path)
+    if (existsSync(found)) return found
   }
   return null
 }
@@ -116,9 +121,5 @@ function cachedBySlug<T>(
 
 export async function contentImageFile(slug: string, file: string): Promise<string | null> {
   if (!isCatalogueBookSlug(slug) || !/^[0-9a-f]{12}\.[a-z]{3,4}$/.test(file)) return null
-  for (const dir of CONTENT_DIRS) {
-    const path = join(dir, 'images', slug, file)
-    if (existsSync(path)) return path
-  }
-  return null
+  return firstExisting('images', slug, file)
 }

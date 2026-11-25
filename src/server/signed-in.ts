@@ -22,7 +22,7 @@ export interface Codes<C extends string> {
   tooLarge?: C
 }
 
-export const SNAKE = { signedOut: 'signed_out', invalid: 'invalid', notFound: 'not_found', failed: 'failed' } as const
+const SNAKE = { signedOut: 'signed_out', invalid: 'invalid', notFound: 'not_found', failed: 'failed' } as const
 
 type SnakeCode = (typeof SNAKE)[keyof typeof SNAKE]
 

@@ -13,7 +13,7 @@ import { usePlayer } from './PlayerProvider'
 const SECTION_MARGIN = 24
 const SLIDE_MS = 450
 
-export function momentLabel(item: AudioBookmarkItem): string | null {
+function momentLabel(item: AudioBookmarkItem): string | null {
   if (item.kind === 'voice') return item.place?.label ?? null
   return item.episode ? `Chapter ${item.episode.number} · ${formatClock(item.positionMs)}` : null
 }

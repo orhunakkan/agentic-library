@@ -74,7 +74,7 @@ export function createPrompt(pool: Pool, userId: number, input: PromptInput): Pr
     const [count] = await tx<{ n: string; last: number | null }[]>`
       select count(*) as n, max(position) as last from ask_prompts where user_id = ${userId}`
     if (Number(count?.n ?? 0) >= MAX_ASK_PROMPTS) return 'quota'
-    const position = count?.last === null || count?.last === undefined ? 0 : count.last + 1
+    const position = (count?.last ?? -1) + 1
     const [raw] = await tx<RawPrompt[]>`
       insert into ask_prompts (user_id, name, applies_to, instruction, position)
       values (${userId}, ${input.name}, ${input.appliesTo}, ${input.instruction}, ${position})

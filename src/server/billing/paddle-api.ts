@@ -28,8 +28,8 @@ const CUSTOMER_ID = /^ctm_[a-z0-9]{4,60}$/
 const TRANSACTION_ID = /^txn_[a-z0-9]{4,60}$/
 const PRICE_ID = /^pri_[a-z0-9]{4,60}$/
 
-export const isSubscriptionId = (id: unknown): id is string => typeof id === 'string' && SUBSCRIPTION_ID.test(id)
-export const isCustomerId = (id: unknown): id is string => typeof id === 'string' && CUSTOMER_ID.test(id)
+const isSubscriptionId = (id: unknown): id is string => typeof id === 'string' && SUBSCRIPTION_ID.test(id)
+const isCustomerId = (id: unknown): id is string => typeof id === 'string' && CUSTOMER_ID.test(id)
 
 function settings(options: PaddleOptions): BillingConfig {
   const config = options.config ?? getConfig().billing

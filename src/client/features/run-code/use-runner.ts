@@ -94,10 +94,9 @@ export function useRunner(lang: RunLang) {
       const run = current.current
       if (run?.timer) clearTimeout(run.timer)
       current.current = null
-      frame.current?.el.remove()
-      frame.current = null
+      removeFrame()
     }
-  }, [lang, end])
+  }, [lang, end, removeFrame])
 
   const makeFrame = useCallback((): Frame => {
     const el = document.createElement('iframe')
@@ -151,10 +150,7 @@ export function useRunner(lang: RunLang) {
           id,
           lang: lang === 'typescript' ? 'javascript' : lang,
           code: source,
-          engineBase:
-            lang === 'python' || lang === 'sql'
-              ? engineBase(lang === 'python' ? 'python' : 'sqlite', window.location.origin)
-              : '',
+          engineBase: warm(lang) ? engineBase(lang === 'python' ? 'python' : 'sqlite', window.location.origin) : '',
         },
         '*',
       )

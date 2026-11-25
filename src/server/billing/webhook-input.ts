@@ -1,7 +1,7 @@
 import { type BillingStatus, type Cadence, isBillingStatus } from '../../shared/billing/billing.ts'
 import { isObject } from '../../shared/lib/json-shape.ts'
 
-export const WEBHOOK_EVENTS = [
+const WEBHOOK_EVENTS = [
   'subscription.created',
   'subscription.activated',
   'subscription.updated',

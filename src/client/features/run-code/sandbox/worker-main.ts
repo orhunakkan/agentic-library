@@ -232,6 +232,16 @@ export function workerMain(
     const ms = (n: number) => `${Number(n.toFixed(3))} ms`
     const label = (value: unknown) => (value === undefined ? 'default' : String(value))
     const log = (...args: unknown[]) => line('log', formatArgs(args))
+    const elapsed = (name: unknown): boolean => {
+      const start = run?.times.get(label(name))
+      if (start === undefined) {
+        line('warn', `Timer '${label(name)}' does not exist`)
+        return false
+      }
+      line('log', `${label(name)}: ${ms(now() - start)}`)
+      return true
+    }
+    const asked = (message: unknown) => (message === undefined ? '' : formatArgs([message]))
     const group = (...args: unknown[]) => {
       if (args.length) log(...args)
       if (run) run.indent = Math.min(run.indent + 1, 20)
@@ -256,17 +266,10 @@ export function workerMain(
       },
       time: (name?: unknown) => run?.times.set(label(name), now()),
       timeLog: (name?: unknown) => {
-        const start = run?.times.get(label(name))
-        if (start === undefined) line('warn', `Timer '${label(name)}' does not exist`)
-        else line('log', `${label(name)}: ${ms(now() - start)}`)
+        elapsed(name)
       },
       timeEnd: (name?: unknown) => {
-        const start = run?.times.get(label(name))
-        if (start === undefined) line('warn', `Timer '${label(name)}' does not exist`)
-        else {
-          line('log', `${label(name)}: ${ms(now() - start)}`)
-          run?.times.delete(label(name))
-        }
+        if (elapsed(name)) run?.times.delete(label(name))
       },
       count: (name?: unknown) => {
         const n = (run?.counts.get(label(name)) ?? 0) + 1
@@ -275,13 +278,13 @@ export function workerMain(
       },
       countReset: (name?: unknown) => run?.counts.set(label(name), 0),
     }
-    scope.alert = (message?: unknown) => line('info', `alert: ${message === undefined ? '' : formatArgs([message])}`)
+    scope.alert = (message?: unknown) => line('info', `alert: ${asked(message)}`)
     scope.confirm = (message?: unknown) => {
-      line('info', `confirm: ${message === undefined ? '' : formatArgs([message])} (no answer here, so false)`)
+      line('info', `confirm: ${asked(message)} (no answer here, so false)`)
       return false
     }
     scope.prompt = (message?: unknown) => {
-      line('info', `prompt: ${message === undefined ? '' : formatArgs([message])} (no answer here, so null)`)
+      line('info', `prompt: ${asked(message)} (no answer here, so null)`)
       return null
     }
     scope.setTimeout = (handler: unknown, delay?: number, ...args: unknown[]) => {

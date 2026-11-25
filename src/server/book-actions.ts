@@ -10,7 +10,7 @@ import { forgetBookAudio } from './audiobooks/files.ts'
 import { recordEvent } from './audit.ts'
 import { noStoreJson, requestIp, seeOther } from './auth.ts'
 import { imageSizes } from './book-images/store.ts'
-import { signedInEndpoints, signedInForm } from './signed-in.ts'
+import { type Codes, signedInEndpoints, signedInForm } from './signed-in.ts'
 import { deleteBook, finishImport, startImport, storeChapter } from './user-books.ts'
 
 export type ImportErrorCode =
@@ -27,16 +27,15 @@ export type ImportErrorCode =
   | 'unavailable'
   | 'failed'
 
-const imports = signedInEndpoints<ImportErrorCode>({
-  maxBytes: MAX_META_REQUEST_BYTES,
-  codes: {
-    signedOut: 'signed-out',
-    invalid: 'invalid',
-    notFound: 'not-found',
-    failed: 'failed',
-    tooLarge: 'request-too-large',
-  },
-})
+export const IMPORT_CODES: Codes<ImportErrorCode> = {
+  signedOut: 'signed-out',
+  invalid: 'invalid',
+  notFound: 'not-found',
+  failed: 'failed',
+  tooLarge: 'request-too-large',
+}
+
+const imports = signedInEndpoints<ImportErrorCode>({ maxBytes: MAX_META_REQUEST_BYTES, codes: IMPORT_CODES })
 const { fail } = imports
 const notFound = () => fail(404, 'not-found')
 

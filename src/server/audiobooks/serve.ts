@@ -9,7 +9,7 @@ import { parseFileNumber } from './actions.ts'
 import { audiobooksDir, audioPath } from './files.ts'
 import { readyAudioFile, typeOfMedia } from './store.ts'
 
-export const AUDIO_HEADERS = {
+const AUDIO_HEADERS = {
   'x-content-type-options': 'nosniff',
   'cross-origin-resource-policy': 'same-origin',
   'cache-control': 'private, no-store',

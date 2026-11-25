@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { KB, MB } from '../../shared/import/limits.ts'
 import { getConfig } from '../config.ts'
-import { fetchCapped, type OutboundProblem } from '../outbound.ts'
+import { fetchCapped, folioUserAgent, type OutboundProblem } from '../outbound.ts'
 import type { LookupQuery } from './input.ts'
 import { MAX_MATCHES, type OpenLibraryMatch, parseSearch, parseWork } from './open-library-parse.ts'
 
@@ -21,11 +21,6 @@ const CACHE_MS = 60 * 60_000
 const CACHE_MAX = 200
 
 export const spacing = () => (getConfig().openLibraryContact ? 334 : 1000)
-
-export function userAgent(): string {
-  const { appOrigin, openLibraryContact } = getConfig()
-  return openLibraryContact ? `Folio (${openLibraryContact}; +${appOrigin})` : `Folio (+${appOrigin})`
-}
 
 let nextStart = 0
 const cache = new Map<string, { at: number; value: unknown }>()
@@ -60,7 +55,7 @@ function remember(url: string, value: unknown): void {
   while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value as string)
 }
 
-export function allowedRedirect(target: URL): boolean {
+function allowedRedirect(target: URL): boolean {
   const { openLibraryBase, openLibraryCoversBase } = getConfig()
   for (const base of [openLibraryBase, openLibraryCoversBase]) {
     const b = new URL(base)
@@ -82,7 +77,7 @@ async function request(
     timeoutMs: TIMEOUT_MS,
     redirects: MAX_REDIRECTS,
     allowRedirect: allowedRedirect,
-    userAgent: userAgent(),
+    userAgent: folioUserAgent(getConfig().openLibraryContact),
     log: { label: 'open library', path: (at) => at.pathname },
     fetch: options.fetch,
   })

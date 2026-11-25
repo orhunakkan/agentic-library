@@ -30,6 +30,4 @@ export function parseAudioBookmarkCreate(value: unknown): AudioBookmarkCreateInp
   return null
 }
 
-export function parseAudioBookmarkChange(value: unknown): { intent: 'delete' } | null {
-  return isObject(value) && only(value, ['intent']) && value.intent === 'delete' ? { intent: 'delete' } : null
-}
+export { parseBookmarkChange as parseAudioBookmarkChange } from './input.ts'

@@ -83,8 +83,7 @@ async function handleRequest(request: Request, form: FormData | null): Promise<R
       if (overLimit(times, SIGNUP_IP_LIMIT, now)) return seeOther('/signup?error=limited')
     }
     if ((await dailySignupCount(db)) >= SIGNUP_DAILY_LIMIT.max) return seeOther('/signup?error=busy')
-    const email = input.email
-    const work = requestLink(email, ip)
+    const work = requestLink(input.email, ip)
       .catch((error) => logError('sign-up request', error))
       .finally(() => inFlight.delete(work))
     inFlight.add(work)

@@ -23,14 +23,14 @@ function groupOf(item: OutboxItem): Group {
 }
 const keyOf = (item: OutboxItem) => ('values' in item ? itemKey('settings') : itemKey(item))
 
-export const SEND_AFTER_MS: Record<Group, number> = {
+const SEND_AFTER_MS: Record<Group, number> = {
   reading: 10_000,
   settings: 10_000,
   listening: 30_000,
   time: 60_000,
 }
 const GROUPS = Object.keys(SEND_AFTER_MS) as Group[]
-export const RETRY_MS = [10_000, 30_000, 60_000, 300_000] as const
+const RETRY_MS = [10_000, 30_000, 60_000, 300_000] as const
 
 export interface OutboxDeps {
   send: (batch: SyncBatch, options: { keepalive: boolean }) => Promise<SendResult>

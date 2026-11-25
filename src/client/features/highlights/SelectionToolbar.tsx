@@ -1,6 +1,7 @@
 import { AudioLines, BookA, Highlighter, Languages, Lightbulb, MessagesSquare, NotebookPen } from 'lucide-react'
 import { type RefObject, useEffect, useState } from 'react'
 import { QUOTE_MAX } from '~/client/features/ask/ask-client'
+import type { LookupTarget } from '~/client/features/lookup/lookup-answers'
 import type { PageRoot } from '~/client/features/reader/Page'
 import { cn } from '~/client/lib/cn'
 import { MAX_PASSAGE } from '~/shared/highlights/limits'
@@ -14,17 +15,9 @@ export interface Selected {
   text: string
 }
 
-export interface LookupSelection {
-  kind: 'term' | 'passage'
-  text: string
-  term: string | null
-  context: string | null
-  rect: DOMRect
-}
-
 interface Spot {
   quote: string
-  lookup: LookupSelection | null
+  lookup: LookupTarget | null
   passage: Selected | null
   path: string | null
   tooLong: boolean
@@ -122,7 +115,7 @@ function spotFor(
   const rect = range.getBoundingClientRect()
   const raw = selection.toString().trim()
   const kind = canLookUp && !inCode(range) ? selectionKind(raw) : null
-  const lookup: LookupSelection | null = kind
+  const lookup: LookupTarget | null = kind
     ? {
         kind,
         text: raw,
@@ -162,7 +155,7 @@ export function SelectionToolbar({
   onHighlight: (passage: Selected, withNote: boolean, path: string) => void
   onReadAloud?: (start: number, path: string) => void
   lang: string
-  onLookUp?: (selection: LookupSelection) => void
+  onLookUp?: (selection: LookupTarget) => void
 }) {
   const [spot, setSpot] = useState<Spot | null>(null)
   const canReadAloud = onReadAloud !== undefined

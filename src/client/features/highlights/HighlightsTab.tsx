@@ -1,6 +1,7 @@
 import { Link, useRouteContext } from '@tanstack/react-router'
 import { useId, useState } from 'react'
 import { AppLink } from '~/client/components/AppLink'
+import { TAB_MESSAGE, TabNotice } from '~/client/features/reader/TabNotice'
 import { cn } from '~/client/lib/cn'
 import type { ReaderView } from '~/shared/content/reader-view'
 import { COLOR_NAMES } from '~/shared/highlights/colors'
@@ -31,50 +32,17 @@ export function HighlightsTab({
 }) {
   const id = useId()
   const canExport = useRouteContext({ from: '__root__' }).viewer?.plan === 'pro'
-  const message = 'px-2 py-4 text-[14px] leading-relaxed text-r-muted'
-  if (offline)
+  if (offline || api.state !== 'ready')
     return (
-      <p data-testid="highlights-offline" className={message}>
-        Highlights show here when you’re back online.
-      </p>
+      <TabNotice
+        name="highlights"
+        state={api.state}
+        offline={offline}
+        signInText="Sign in to highlight passages and keep notes on this book."
+        next={view.canonicalPath}
+        onRetry={api.retry}
+      />
     )
-  if (api.state === 'signed_out') {
-    return (
-      <div className="space-y-3 px-2 py-4 text-[14px] leading-relaxed">
-        <p>Sign in to highlight passages and keep notes on this book.</p>
-        <Link
-          to="/login"
-          data-testid="highlights-sign-in"
-          search={{ next: view.canonicalPath }}
-          className="inline-flex h-11 items-center rounded-xl bg-r-accent px-5 text-[14.5px] font-semibold text-r-paper transition hover:brightness-105"
-        >
-          Sign in
-        </Link>
-      </div>
-    )
-  }
-  if (api.state === 'loading')
-    return (
-      <p data-testid="highlights-loading" className={message}>
-        Loading your highlights…
-      </p>
-    )
-  if (api.state === 'unavailable') {
-    return (
-      <div className="space-y-3 px-2 py-4 text-[14px]">
-        <p data-testid="highlights-error">Your highlights couldn’t be loaded.</p>
-        <button
-          type="button"
-          data-testid="highlights-retry"
-          onClick={api.retry}
-          className="inline-flex h-10 items-center rounded-full border border-r-line px-4 text-[13.5px] font-medium transition hover:border-r-accent/60"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
-  if (api.state === 'off') return null
 
   const all = inReadingOrder(api.items) as HighlightItem[]
   const here = all.filter((h) => h.place?.pageHref === view.canonicalPath)
@@ -96,7 +64,7 @@ export function HighlightsTab({
   return (
     <div className="space-y-6 px-2 pt-2 pb-4">
       {all.length === 0 && (
-        <p data-testid="highlights-empty" className={message}>
+        <p data-testid="highlights-empty" className={TAB_MESSAGE}>
           Select text on the page to highlight it or add a note.
         </p>
       )}

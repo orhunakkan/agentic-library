@@ -1,3 +1,5 @@
+import { type StubEvent, sseResponse } from './sse-stub.ts'
+
 export const STUB_KEYS = {
   rejected: 'reject',
   billing: 'nobill',
@@ -56,8 +58,6 @@ function documents(body: Record<string, unknown>): StubDocument[] {
   return Array.isArray(first) ? first.filter((b): b is StubDocument => b?.type === 'document') : []
 }
 
-type StubEvent = { type: string; [field: string]: unknown }
-
 const lastContent = (body: Record<string, unknown>) =>
   (body.messages as { content: unknown }[] | undefined)?.at(-1)?.content
 
@@ -72,20 +72,18 @@ function sentHighlights(body: Record<string, unknown>): number | null {
   return last.match(/<highlight /g)?.length ?? 0
 }
 
-export function requestKind(body: Record<string, unknown>): string | null {
+function requestKind(body: Record<string, unknown>): string | null {
   const last = lastContent(body)
   if (typeof last !== 'string') return null
   return /<request kind="(\w+)">/.exec(last)?.[1] ?? null
 }
 
-export function readerPrompt(body: Record<string, unknown>): string | null {
+function readerPrompt(body: Record<string, unknown>): string | null {
   const last = lastContent(body)
   if (typeof last !== 'string') return null
   const instruction = /<reader-prompt>\n([\s\S]*?)\n<\/reader-prompt>/.exec(last)?.[1]
   return instruction === undefined ? null : [...instruction].slice(0, 40).join('')
 }
-
-const sse = (event: StubEvent) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`
 
 const citationDelta = (index: number, documentIndex: number, blockIndex: number): StubEvent => ({
   type: 'content_block_delta',
@@ -210,46 +208,14 @@ function studyBlocks(
   return out
 }
 
-function streamResponse(events: StubEvent[], delayMs: number, signal: AbortSignal): Response {
-  const encoder = new TextEncoder()
-  let stopped = false
-  const stop = () => {
-    if (stopped) return false
-    stopped = true
-    stats.aborted++
-    return true
-  }
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      signal.addEventListener('abort', () => {
-        if (stop()) controller.error(new DOMException('The connection was closed', 'AbortError'))
-      })
-      for (const event of events) {
-        if (stopped) return
-        controller.enqueue(encoder.encode(sse(event)))
-        if (delayMs) await new Promise((r) => setTimeout(r, delayMs))
-      }
-      if (!stopped) {
-        stopped = true
-        controller.close()
-      }
-    },
-    cancel() {
-      stop()
-    },
-  })
-  return new Response(body, { headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store' } })
-}
-
-export function translationAsk(body: Record<string, unknown>): { to: string; text: string; context: string | null } {
+function translationAsk(body: Record<string, unknown>): { to: string; text: string; context: string | null } {
   const content = String((body.messages as { content: unknown }[] | undefined)?.[0]?.content ?? '')
   const unescaped = (t: string) => t.replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&')
-  const part = (tag: 'text' | 'context') =>
-    (tag === 'text' ? /<text>\n([\s\S]*?)\n<\/text>/ : /<context>\n([\s\S]*?)\n<\/context>/).exec(content)?.[1]
-  const context = part('context')
+  const text = /<text>\n([\s\S]*?)\n<\/text>/.exec(content)?.[1]
+  const context = /<context>\n([\s\S]*?)\n<\/context>/.exec(content)?.[1]
   return {
     to: / \(([\w-]+)\)\. If it is a single word/.exec(String(body.system))?.[1] ?? '',
-    text: unescaped(part('text') ?? ''),
+    text: unescaped(text ?? ''),
     context: context === undefined ? null : unescaped(context),
   }
 }
@@ -322,7 +288,7 @@ async function messages(request: Request): Promise<Response> {
       return apiError(400, 'invalid_request_error', 'prompt is too long: 1200000 tokens > 1000000 maximum')
   }
   if (translating) return translation(request, body, ending)
-  return streamResponse(
+  return sseResponse(
     answerEvents(
       String(body.model),
       documents(body),
@@ -334,6 +300,7 @@ async function messages(request: Request): Promise<Response> {
     ),
     ending === STUB_KEYS.slow ? 150 : 0,
     request.signal,
+    () => stats.aborted++,
   )
 }
 

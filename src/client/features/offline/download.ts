@@ -3,7 +3,7 @@ import { planAppCache, refreshAppCache } from './app-cache'
 import { bookFiles, type OfflineEnv, offlineEnv, saveBook, saveNav, sweepOrphans } from './store'
 
 export const PERSIST_ASKED_KEY = 'offline-persist-asked'
-export const ROOM_MARGIN = 1.2
+const ROOM_MARGIN = 1.2
 
 export type DownloadResult =
   | { result: 'ok'; book: OfflineBook }

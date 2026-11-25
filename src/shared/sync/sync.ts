@@ -1,4 +1,5 @@
 import type { PagePosition } from '../content/position.ts'
+import { isObject } from '../lib/json-shape.ts'
 
 export const READER_THEMES = ['light', 'sepia', 'dark'] as const
 export const READER_FONTS = ['literata', 'source-serif', 'geist', 'atkinson', 'opendyslexic'] as const
@@ -18,18 +19,18 @@ const isOneOf = <T extends string>(value: unknown, options: readonly T[]): value
   typeof value === 'string' && (options as readonly string[]).includes(value)
 
 export function parseSyncedSettings(value: unknown): SyncedSettings | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const v = value as Record<string, unknown>
-  const keys = Object.keys(v)
+  if (!isObject(value)) return null
+  const keys = Object.keys(value)
   if (keys.length !== SETTINGS_KEYS.length || !SETTINGS_KEYS.every((k) => keys.includes(k))) return null
+  const { theme, font, leading, measure } = value
   if (
-    !isOneOf(v.theme, READER_THEMES) ||
-    !isOneOf(v.font, READER_FONTS) ||
-    !isOneOf(v.leading, LEADINGS) ||
-    !isOneOf(v.measure, MEASURES)
+    !isOneOf(theme, READER_THEMES) ||
+    !isOneOf(font, READER_FONTS) ||
+    !isOneOf(leading, LEADINGS) ||
+    !isOneOf(measure, MEASURES)
   )
     return null
-  return { theme: v.theme, font: v.font, leading: v.leading, measure: v.measure }
+  return { theme, font, leading, measure }
 }
 
 export const MAX_BATCH_ITEMS = 20

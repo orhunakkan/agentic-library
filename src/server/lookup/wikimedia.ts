@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { KB } from '../../shared/import/limits.ts'
 import { getConfig } from '../config.ts'
-import { fetchCapped } from '../outbound.ts'
+import { fetchCapped, folioUserAgent } from '../outbound.ts'
 import { type ParsedDefinition, type ParsedSummary, parseDefinition, parseSummary } from './wikimedia-parse.ts'
 
 export type WikimediaProblem = 'busy' | 'unavailable'
@@ -18,11 +18,6 @@ const MAX_REDIRECTS = 2
 export const MAX_IN_FLIGHT = 8
 const CACHE_MS = 6 * 60 * 60_000
 const CACHE_MAX = 1000
-
-export function userAgent(): string {
-  const { appOrigin, wikimediaContact } = getConfig()
-  return wikimediaContact ? `Folio (${wikimediaContact}; +${appOrigin})` : `Folio (+${appOrigin})`
-}
 
 const titlePath = (term: string) => encodeURIComponent(term.replaceAll(' ', '_'))
 
@@ -76,7 +71,7 @@ async function getParsed<T>(
       timeoutMs: TIMEOUT_MS,
       redirects: MAX_REDIRECTS,
       allowRedirect: (target) => target.protocol === origin.protocol && target.host === origin.host,
-      userAgent: userAgent(),
+      userAgent: folioUserAgent(getConfig().wikimediaContact),
       log: { label: 'wikimedia', path: (at) => at.pathname.split('/').slice(0, 3).join('/') },
       fetch: options.fetch,
       signal: options.signal,

@@ -54,8 +54,7 @@ export interface VoiceSession {
 }
 
 export function createVoiceSession(deps: VoiceSessionDeps): VoiceSession {
-  const { recognition, storage } = deps
-  const aside = () => deps.aside()
+  const { recognition, storage, aside } = deps
   let state: VoiceState = {
     turn: IDLE,
     mode: null,

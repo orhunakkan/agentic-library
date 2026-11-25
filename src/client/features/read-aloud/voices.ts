@@ -21,7 +21,7 @@ export interface VoiceSource {
   removeEventListener: (type: 'voiceschanged', listener: () => void) => void
 }
 
-export const VOICES_WAIT_MS = 2000
+const VOICES_WAIT_MS = 2000
 
 export function loadVoices(
   synth: VoiceSource,

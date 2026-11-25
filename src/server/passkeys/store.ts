@@ -89,17 +89,12 @@ export async function removePasskey(db: Db, userId: number, id: string): Promise
   return result.count > 0
 }
 
-export async function removeAllPasskeys(db: Db, userId: number): Promise<number> {
-  const result = await db`delete from passkeys where user_id = ${userId}`
-  return result.count
-}
-
 export async function removePasskeysForReset(
   db: Db,
   userId: number,
   { ip = null, detail }: { ip?: string | null; detail: Record<string, unknown> },
 ): Promise<number> {
-  const count = await removeAllPasskeys(db, userId)
+  const { count } = await db`delete from passkeys where user_id = ${userId}`
   if (count > 0) await recordEvent(db, 'passkey.removed', { userId, ip, detail: { ...detail, count } })
   return count
 }

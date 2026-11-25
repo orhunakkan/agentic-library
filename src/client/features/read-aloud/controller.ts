@@ -445,11 +445,7 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       emit({ status: 'ended', problem: { kind: 'end-of-book' } })
       return
     }
-    if (deps.arbiter.partEnded() === 'stop') {
-      void goToChapter(chapter.index + 1, { at: 'start', play: false })
-      return
-    }
-    void goToChapter(chapter.index + 1, { at: 'start', play: true })
+    void goToChapter(chapter.index + 1, { at: 'start', play: deps.arbiter.partEnded() !== 'stop' })
   }
 
   const goToChapter = async (

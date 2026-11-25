@@ -108,6 +108,12 @@ export async function openBook(db: Db | null, userId: number | null, slug: strin
     : asTextBook(openPrivateText(db, userId, bookId, opened))
 }
 
+/** Opens a book with text to read, as `openBook` does; a recorded audiobook is null like a missing book. */
+export async function openTextBook(db: Db | null, userId: number | null, slug: string): Promise<TextBook | null> {
+  const book = await openBook(db, userId, slug)
+  return book?.format === 'text' ? book : null
+}
+
 export interface BookLabel {
   title: string
   author: string

@@ -117,10 +117,9 @@ function Drawer({ open, onClose, children }: { open: boolean; onClose: () => voi
 }
 
 function Breadcrumbs({ repo, path }: { repo: RepoView; path: string }) {
-  const parts = path ? path.split('/') : []
   const crumbs = [
     { label: repo.name, path: '' },
-    ...parts.map((label, i) => ({ label, path: parts.slice(0, i + 1).join('/') })),
+    ...parentsOf(path).map((parent) => ({ label: parent.slice(parent.lastIndexOf('/') + 1), path: parent })),
   ]
   return (
     <nav aria-label="Breadcrumbs" data-testid="repo-breadcrumbs" className="min-w-0">

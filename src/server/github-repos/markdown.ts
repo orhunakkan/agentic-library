@@ -116,7 +116,7 @@ type Address =
   | { kind: 'relative'; path: string; query: string; fragment: string | null }
   | { kind: 'refused' }
 
-export function readAddress(raw: string): Address {
+function readAddress(raw: string): Address {
   const url = cleanUrl(raw)
   if (url === null) return { kind: 'refused' }
   const absolute = url.startsWith('//') ? `https:${url}` : SCHEME.test(url) ? url : null

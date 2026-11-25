@@ -1,8 +1,8 @@
-import { Link } from '@tanstack/react-router'
 import { Headphones, Play, X } from 'lucide-react'
 import { type ReactNode, useId } from 'react'
 import { AppLink } from '~/client/components/AppLink'
 import { usePlayer } from '~/client/features/player/PlayerProvider'
+import { TAB_MESSAGE, TabNotice } from '~/client/features/reader/TabNotice'
 import { type TabEntry, tabOrder } from '~/shared/bookmarks/audio'
 import type { BookmarkPlace } from '~/shared/bookmarks/bookmarks'
 import { fromStored } from '~/shared/content/position'
@@ -30,57 +30,24 @@ export function BookmarksTab({
   offline?: boolean
 }) {
   const id = useId()
-  const message = 'px-2 py-4 text-[14px] leading-relaxed text-r-muted'
-  if (offline)
+  if (offline || api.state !== 'ready')
     return (
-      <p data-testid="bookmarks-offline" className={message}>
-        Bookmarks show here when you’re back online.
-      </p>
+      <TabNotice
+        name="bookmarks"
+        state={api.state}
+        offline={offline}
+        signInText="Sign in to bookmark pages in this book."
+        next={view.canonicalPath}
+        onRetry={api.retry}
+      />
     )
-  if (api.state === 'signed_out') {
-    return (
-      <div className="space-y-3 px-2 py-4 text-[14px] leading-relaxed">
-        <p>Sign in to bookmark pages in this book.</p>
-        <Link
-          to="/login"
-          data-testid="bookmarks-sign-in"
-          search={{ next: view.canonicalPath }}
-          className="inline-flex h-11 items-center rounded-xl bg-r-accent px-5 text-[14.5px] font-semibold text-r-paper transition hover:brightness-105"
-        >
-          Sign in
-        </Link>
-      </div>
-    )
-  }
-  if (api.state === 'loading')
-    return (
-      <p data-testid="bookmarks-loading" className={message}>
-        Loading your bookmarks…
-      </p>
-    )
-  if (api.state === 'unavailable') {
-    return (
-      <div className="space-y-3 px-2 py-4 text-[14px]">
-        <p data-testid="bookmarks-error">Your bookmarks couldn’t be loaded.</p>
-        <button
-          type="button"
-          data-testid="bookmarks-retry"
-          onClick={api.retry}
-          className="inline-flex h-10 items-center rounded-full border border-r-line px-4 text-[13.5px] font-medium transition hover:border-r-accent/60"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
-  if (api.state === 'off') return null
 
   const all = tabOrder(api.items, audio?.items ?? [])
   const found = all.filter((e) => e.bookmark.place)
   const missing = all.filter((e) => !e.bookmark.place)
   if (all.length === 0) {
     return (
-      <p data-testid="bookmarks-empty" className={message}>
+      <p data-testid="bookmarks-empty" className={TAB_MESSAGE}>
         No bookmarks yet. Press the ribbon at the top of a page to bookmark it, or Bookmark in the player to mark a
         moment while listening.
       </p>

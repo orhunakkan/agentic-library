@@ -11,7 +11,7 @@ export const STUB_ELEVENLABS_KEYS = {
 
 export const elevenLabsKey = (ending = '', id = '') => `el-test-valid-${id.padEnd(12, 'k')}${ending}`
 
-export const STUB_VOICES = [
+const STUB_VOICES = [
   {
     voice_id: 'StubVoiceAria01',
     name: 'Aria',

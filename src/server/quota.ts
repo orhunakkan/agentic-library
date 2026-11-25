@@ -41,9 +41,6 @@ const EVENT_QUOTAS = {
 
 type EventKind = keyof typeof EVENT_QUOTAS
 
-/** A metered action with its own usage quota. Speech spends characters, the rest one unit per request. */
-export type QuotaKind = EventKind | 'speech'
-
 /** Imports are counted when they finish, so their callers only check, under their own lock. */
 type CheckedKind = 'import' | 'article-save'
 

@@ -1,3 +1,4 @@
+import { isObject, only } from '../lib/json-shape.ts'
 import type { CollectionKind } from './schema.ts'
 
 /** Where in a book someone is: a page of a chapter, or a printed page. */
@@ -31,15 +32,13 @@ const CHAPTER_SLUG_MAX = 200
 const isPage = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= PAGE_MAX
 
-const hasOnly = (value: object, keys: readonly string[]) => Object.keys(value).every((k) => keys.includes(k))
-
 /** Reads a position from a request body, refusing any other shape. */
 export function parsePosition(value: unknown): PagePosition | null {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  if (!isObject(value)) return null
   if ('printedPage' in value) {
-    return hasOnly(value, ['printedPage']) && isPage(value.printedPage) ? { printedPage: value.printedPage } : null
+    return only(value, ['printedPage']) && isPage(value.printedPage) ? { printedPage: value.printedPage } : null
   }
-  if (!hasOnly(value, ['chapter', 'page']) || !('chapter' in value) || !('page' in value)) return null
+  if (!only(value, ['chapter', 'page'])) return null
   const { chapter, page } = value
   if (typeof chapter !== 'string' || chapter.length > CHAPTER_SLUG_MAX || !CHAPTER_SLUG.test(chapter) || !isPage(page))
     return null

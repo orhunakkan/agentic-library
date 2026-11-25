@@ -15,8 +15,8 @@ import {
 export const LOCAL_VOICE_PREFIX = 'folio:'
 
 export const LOCAL_CACHE_SIZE = 20
-export const AHEAD = 2
-export const SLOW_RUN = 3
+const AHEAD = 2
+const SLOW_RUN = 3
 
 export interface LocalSpeakerDeps {
   audio: AudioLike

@@ -9,7 +9,7 @@ const STALE_MS = 60_000
 
 let app: Sync | null = null
 
-export function appSync(): Sync {
+function appSync(): Sync {
   app ??= createSync({
     storage: browserStorage(),
     read: () => readState(() => getSyncState()),

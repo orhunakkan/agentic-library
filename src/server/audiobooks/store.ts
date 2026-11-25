@@ -10,7 +10,7 @@ import { type CoverColumns, coverMetaOf } from '../book-details/store.ts'
 import type { Db, Pool } from '../db.ts'
 import { retryAtLocked } from '../quota.ts'
 import { IMPORT_LIMIT } from '../rate-limit.ts'
-import { COVER_COLUMNS, countedBooks, sweepStaleUploads } from '../user-books.ts'
+import { COVER_COLUMNS, countedBooks, type DetailColumns, detailsOf, sweepStaleUploads } from '../user-books.ts'
 
 export type MediaType = 'audio/mp4' | 'audio/mpeg'
 
@@ -200,15 +200,12 @@ export async function loadAudiobook(db: Db, userId: number, bookId: string): Pro
       language: string
       ready_at: Date
       open_library_work: string | null
-      description: string | null
-      isbn: string | null
-      publisher: string | null
-      published_year: number | null
       audio_ms: string
       audio_bytes: string
       media_type: MediaType
       file_count: number
-    } & CoverColumns)[]
+    } & DetailColumns &
+      CoverColumns)[]
   >`
     select b.title, b.author, b.narrator, b.language, b.ready_at, b.open_library_work, b.description, b.isbn,
       b.publisher, b.published_year, b.audio_ms, b.audio_bytes, ${db.unsafe(COVER_COLUMNS)},
@@ -224,12 +221,7 @@ export async function loadAudiobook(db: Db, userId: number, bookId: string): Pro
     author: book.author,
     narrator: book.narrator,
     language: book.language,
-    details: {
-      description: book.description,
-      isbn: book.isbn,
-      publisher: book.publisher,
-      publishedYear: book.published_year,
-    },
+    details: detailsOf(book),
     openLibraryWork: book.open_library_work,
     cover: coverMetaOf(book),
     readyAt: book.ready_at,

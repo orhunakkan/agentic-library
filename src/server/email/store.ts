@@ -13,8 +13,6 @@ export type TokenPurpose = 'verify' | 'reset'
 
 const TOKEN_TTL_SECONDS: Record<TokenPurpose, number> = { verify: 24 * 60 * 60, reset: 30 * 60 }
 
-export type BounceKind = MailEventKind
-
 export interface AddressState {
   confirmed: { email: string; verifiedAt: Date } | null
   bounced: boolean
@@ -196,7 +194,7 @@ export function removeAddress(pool: Pool, userId: number, { pendingOnly }: { pen
   })
 }
 
-export function markBounced(pool: Pool, email: string, kind: BounceKind): Promise<number> {
+export function markBounced(pool: Pool, email: string, kind: MailEventKind): Promise<number> {
   return pool.begin(async (tx) => {
     const users = await tx<{ id: string }[]>`
       update users set email_bounced_at = now()

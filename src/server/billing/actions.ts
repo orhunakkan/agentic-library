@@ -14,7 +14,7 @@ import {
 import { isObject, only } from '../../shared/lib/json-shape.ts'
 import { recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp } from '../auth.ts'
-import { getConfig } from '../config.ts'
+import { type BillingConfig, getConfig } from '../config.ts'
 import { type Db, getDb, isDatabaseConfigured } from '../db.ts'
 import { planUsage } from '../plans/plan.ts'
 import { logError } from '../redact.ts'
@@ -40,6 +40,11 @@ async function checkoutEmail(db: Db, userId: number): Promise<string | null> {
   return row?.email ?? null
 }
 
+function priceFor({ prices }: BillingConfig, cadence: Cadence, founding: boolean): string {
+  if (cadence === 'month') return prices.monthly
+  return founding ? prices.founding : prices.yearly
+}
+
 async function orBadGateway(context: string, work: () => Promise<Response>): Promise<Response> {
   try {
     return await work()
@@ -60,9 +65,7 @@ export async function handleCheckout(request: Request, options: Pick<PaddleOptio
       if (current && isProStatus(current.status)) return fail(409, 'subscribed')
       if (session.plan === 'pro') return fail(409, 'pro')
       const founding = input.cadence === 'year' && (await foundingCount(db)) < FOUNDING_LIMIT
-      const price =
-        input.cadence === 'month' ? billing.prices.monthly : founding ? billing.prices.founding : billing.prices.yearly
-      const transactionId = await createTransaction(price, userId, options)
+      const transactionId = await createTransaction(priceFor(billing, input.cadence, founding), userId, options)
       await recordEvent(db, 'billing.checkout', {
         userId,
         ip: requestIp(request),

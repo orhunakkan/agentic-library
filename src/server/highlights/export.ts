@@ -8,7 +8,7 @@ import {
 } from '~/shared/highlights/markdown'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { NO_STORE, noStoreText, sessionForRequest, toSignIn } from '../auth.ts'
-import { openBook } from '../books/book.ts'
+import { openTextBook } from '../books/book.ts'
 import { slugOf } from '../books/ref.ts'
 import { getConfig } from '../config.ts'
 import { getDb, isDatabaseConfigured } from '../db.ts'
@@ -36,7 +36,7 @@ export async function handleExport(request: Request, slug: string): Promise<Resp
   if (notPro) return notPro
   try {
     const db = getDb()
-    const book = await openBook(db, session.userId, slug).then((b) => (b?.format === 'text' ? b : null))
+    const book = await openTextBook(db, session.userId, slug)
     if (!book) return noStoreText(404, 'Not found')
     const highlights = await resolvedHighlights(db, session.userId, book)
     const markdown = toMarkdown({ slug, title: book.title, author: book.author }, highlights, {

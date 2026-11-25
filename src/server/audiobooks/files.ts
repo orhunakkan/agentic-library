@@ -76,7 +76,7 @@ export async function removeBook(root: string, userId: number, bookId: string): 
   await rm(bookDir(root, userId, bookId), { recursive: true, force: true })
 }
 
-export async function removeUser(root: string, userId: number): Promise<void> {
+async function removeUser(root: string, userId: number): Promise<void> {
   await rm(userDir(root, userId), { recursive: true, force: true })
 }
 

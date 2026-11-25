@@ -369,8 +369,6 @@ export function toAccountExport(
   }
 }
 
-export type AccountExport = ReturnType<typeof toAccountExport>
-
 export function exportFileName(username: string, now: Date): string {
   return `folio-account-${username}-${now.toISOString().slice(0, 10)}.json`
 }

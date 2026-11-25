@@ -1,3 +1,5 @@
+import Anthropic from '@anthropic-ai/sdk'
+
 export const ANTHROPIC_VERSION = '2026-10-21'
 const TIMEOUT_MS = 10_000
 
@@ -25,4 +27,24 @@ export async function checkAnthropicKey(
 
 export function isAnthropicKeyShape(key: string): boolean {
   return key.startsWith('sk-ant-') && key.length >= 20 && key.length <= 300 && !/\s/.test(key)
+}
+
+/** A client that sends the key only to the configured API base and never logs. */
+export function anthropicClient({
+  apiKey,
+  apiBase,
+  fetch: doFetch,
+}: {
+  apiKey: string
+  apiBase: string
+  fetch?: typeof fetch
+}): Anthropic {
+  return new Anthropic({
+    apiKey,
+    baseURL: apiBase,
+    defaultHeaders: { 'anthropic-version': ANTHROPIC_VERSION },
+    logLevel: 'off',
+    openTelemetry: false,
+    ...(doFetch ? { fetch: doFetch } : {}),
+  })
 }

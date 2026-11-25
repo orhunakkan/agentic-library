@@ -3,7 +3,7 @@ import { sessionForRequest } from '../auth.ts'
 import { labelsFor } from '../books/book.ts'
 import { slugOf } from '../books/ref.ts'
 import { getDb } from '../db.ts'
-import { highlightsFor } from './resolve.ts'
+import { type BookHighlights, highlightsFor } from './resolve.ts'
 import { bookSummaries } from './store.ts'
 
 export interface HighlightsSummary {
@@ -19,7 +19,7 @@ export interface HighlightsSummary {
 export type HighlightsPageState =
   | { kind: 'signed_out' }
   | { kind: 'not_found' }
-  | ({ kind: 'book' } & NonNullable<Awaited<ReturnType<typeof highlightsFor>>>)
+  | ({ kind: 'book' } & BookHighlights)
   | { kind: 'all'; books: HighlightsSummary[] }
 
 export async function highlightsPageState(request: Request, book: string | undefined): Promise<HighlightsPageState> {

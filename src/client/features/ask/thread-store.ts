@@ -46,11 +46,13 @@ function citation(c: unknown): ThreadCitation | null {
 
 const isIndex = (v: unknown): v is 0 | 1 | 2 | 3 => v === 0 || v === 1 || v === 2 || v === 3
 
-function citations(value: unknown): ThreadCitation[] | null {
+function all<T>(value: unknown, parse: (item: unknown) => T | null): T[] | null {
   if (!Array.isArray(value)) return null
-  const out = value.map(citation)
-  return out.every((c) => c !== null) ? out : null
+  const out = value.map(parse)
+  return out.every((item) => item !== null) ? out : null
 }
+
+const citations = (value: unknown) => all(value, citation)
 
 function source(value: unknown): StudySource | null {
   if (!isRecord(value) || !isString(value.label)) return null
@@ -86,14 +88,15 @@ function card(value: unknown): CardDraft | null {
 
 function study(value: unknown): ThreadStudy | null {
   if (!isRecord(value) || (value.span !== 'chapter' && value.span !== 'two')) return null
-  const items = value.kind === 'quiz' ? value.questions : value.kind === 'cards' ? value.cards : null
-  if (!Array.isArray(items) || !items.length) return null
   if (value.kind === 'quiz') {
-    const questions = items.map(question)
-    return questions.every((q) => q !== null) ? { kind: 'quiz', span: value.span, questions } : null
+    const questions = all(value.questions, question)
+    return questions?.length ? { kind: 'quiz', span: value.span, questions } : null
   }
-  const cards = items.map(card)
-  return cards.every((c) => c !== null) ? { kind: 'cards', span: value.span, cards } : null
+  if (value.kind === 'cards') {
+    const cards = all(value.cards, card)
+    return cards?.length ? { kind: 'cards', span: value.span, cards } : null
+  }
+  return null
 }
 
 function turn(t: unknown): ThreadTurn | null {

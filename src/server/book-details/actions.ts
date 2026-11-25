@@ -107,8 +107,6 @@ export async function handleCoverGet(request: Request, id: string): Promise<Resp
   }
 }
 
-export type BookFormError = 'invalid' | 'invalid-isbn' | 'too-long' | 'missing' | 'unavailable'
-
 export function handleBookForm(request: Request, id: string): Promise<Response> {
   const page = `/account/books/${id}`
   const back = (query: string) => seeOther(`${page}?${query}`)

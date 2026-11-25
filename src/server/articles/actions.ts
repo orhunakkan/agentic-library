@@ -19,6 +19,7 @@ import { noStoreJson, requestIp, seeOther } from '../auth.ts'
 import { COVER_HEADERS } from '../book-details/actions.ts'
 import { imageBytesUsed } from '../book-images/store.ts'
 import { getConfig } from '../config.ts'
+import { folioUserAgent } from '../outbound.ts'
 import { signedInEndpoints, signedInForm, signedInRead } from '../signed-in.ts'
 import { deleteArticle, findArticle, listArticles, type UserArticle } from '../user-books.ts'
 import { enter, takeFetch } from './pacing.ts'
@@ -31,7 +32,7 @@ const BODY_BYTES = 4 * 1024
 const articles = signedInEndpoints<ArticleErrorCode>({ maxBytes: BODY_BYTES })
 const { fail } = articles
 
-export const PROBLEM_STATUSES: Record<WebFetchProblem, number> = {
+const PROBLEM_STATUSES: Record<WebFetchProblem, number> = {
   blocked: 422,
   page_not_found: 404,
   refused: 422,
@@ -46,7 +47,7 @@ function fetchOptions(extra: WebFetchOptions): WebFetchOptions {
   return {
     ownHosts: [new URL(config.appOrigin).hostname],
     testHosts: config.articleTestHosts,
-    userAgent: `Folio (+${config.appOrigin})`,
+    userAgent: folioUserAgent(),
     ...extra,
   }
 }
@@ -121,7 +122,7 @@ export const handleArticlesForm = (request: Request) =>
     return seeOther('/account/articles?status=deleted')
   })
 
-export function toArticleView(article: UserArticle): ArticleView {
+function toArticleView(article: UserArticle): ArticleView {
   return {
     id: article.id,
     title: article.title,

@@ -38,14 +38,14 @@ export interface UserArticle {
   firstChapter: string
 }
 
-interface DetailColumns {
+export interface DetailColumns {
   description: string | null
   isbn: string | null
   publisher: string | null
   published_year: number | null
 }
 
-const detailsOf = (r: DetailColumns): BookDetails => ({
+export const detailsOf = (r: DetailColumns): BookDetails => ({
   description: r.description,
   isbn: r.isbn,
   publisher: r.publisher,

@@ -36,10 +36,8 @@ export interface FolioVoice {
   bytes: number
 }
 
-const voice = (v: FolioVoice) => v
-
 export const FOLIO_VOICES: readonly FolioVoice[] = [
-  voice({
+  {
     id: 'en_GB-cori-medium',
     bytes: 63228626,
     name: 'Cori',
@@ -69,8 +67,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'b1cdf93d1b0586941518677eb69c4ebd2db65573c57daeb7e45d3a658aae6cb8',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'en_US-ljspeech-medium',
     bytes: 63536868,
     name: 'LJSpeech',
@@ -100,8 +98,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'fbee1529c89d36b3fe76d7e9f3f832dce17f44900a52d76a9bda735654766b4d',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'de_DE-thorsten-medium',
     bytes: 63227871,
     name: 'Thorsten',
@@ -131,8 +129,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'c638118fb06eb07d59e60270097c250cf2de81a037320a8a6306fec652ad13b0',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'fr_FR-siwis-medium',
     bytes: 63227944,
     name: 'Siwis',
@@ -162,8 +160,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'f75d76ec577b5e7a49a7462883d31ef65383022387818a9a0b75bdaf90b9010c',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'es_ES-davefx-medium',
     bytes: 63227860,
     name: 'Davefx',
@@ -189,8 +187,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '2d55d0d84100cde9d9ed88866c2625c89d333a45507d88aa8bae40f6de94c134',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'it_IT-serena-medium',
     bytes: 63521571,
     name: 'Serena',
@@ -220,8 +218,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '1d0dbdc0182d19f6510fd3dcd2893587912a65f8cafe6da57754863f168bbe7e',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'pt_BR-cadu-medium',
     bytes: 63227869,
     name: 'Cadu',
@@ -247,8 +245,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'ccd97b4369f50e6fba3a4fb730643ef2675f87b43c5d22298404c58f8204a375',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'nl_NL-pim-medium',
     bytes: 63227865,
     name: 'Pim',
@@ -274,8 +272,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '3f7439321a995ecd70fdf480d4702147abb06fc9deca6d195fe5b339fb2b6d15',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'pl_PL-darkman-medium',
     bytes: 63227860,
     name: 'Darkman',
@@ -301,8 +299,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'a2c89d3059a830d47fb0159973088c02ae3a4c7e56235a3abe63b9507340bdab',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'ru_RU-denis-medium',
     bytes: 63227866,
     name: 'Denis',
@@ -328,8 +326,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '917110d5056810771fd3daea2644bbadf1341816b7631f2043b33be245903432',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'uk_UA-ukrainian_tts-medium',
     bytes: 76737932,
     name: 'Ukrainian TTS',
@@ -355,8 +353,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'ce09d0c9d1d90cdc98d1ea8a4ecbdeb5e937d44593876e4194302c5eabbaad9d',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'sv_SE-nst-medium',
     bytes: 63108989,
     name: 'NST',
@@ -386,8 +384,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'c85d3e26e47d93e9d9b8572d3c89537c3f8ff212595cb9a3fbd2e07c19432317',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'no_NO-nvcc-medium',
     bytes: 76775892,
     name: 'NVCC',
@@ -417,8 +415,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '309bb60e631d9c826e862bb0f5732eefd9d2fc4a2ca442b8f93fcf69c78cb3bd',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'fi_FI-harri-medium',
     bytes: 63227886,
     name: 'Harri',
@@ -448,8 +446,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '49561a63fbbe0bf678a84102617615e2aa7b0b2396417e21773ba795dedd74f5',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'hu_HU-imre-medium',
     bytes: 63227862,
     name: 'Imre',
@@ -475,8 +473,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '948c1d744bfe1431ad06bcc3aa1e8be2ff275b46c80dda7e8c5d05ae4722bf4c',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'ro_RO-mihai-medium',
     bytes: 63227864,
     name: 'Mihai',
@@ -502,8 +500,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '40fc63296c26be3d826390102a39e6e90b299b6431210c33a368338a3f9f2a8b',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'bg_BG-dimitar-medium',
     bytes: 63227883,
     name: 'Dimitar',
@@ -529,8 +527,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '88fd2a9181a24bb4dbd21b76e2f8aad9eafb43fd1d78cd1ef4a5bbd0ac2eb6f8',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'el_GR-rapunzelina-medium',
     bytes: 62955293,
     name: 'Rapunzelina',
@@ -560,8 +558,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'dc69f15382dabed061fa8d31b65c14e5c4b57ba2fe6906012c756478da156b50',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'ne_NP-chitwan-medium',
     bytes: 63227871,
     name: 'Chitwan',
@@ -587,8 +585,8 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: 'dbc908356b71858b89020de9aa81e5f35456f9d8ecdc417ced4712e27b708bb7',
       },
     },
-  }),
-  voice({
+  },
+  {
     id: 'kk_KZ-issai-high',
     bytes: 127868853,
     name: 'ISSAI',
@@ -614,7 +612,7 @@ export const FOLIO_VOICES: readonly FolioVoice[] = [
         sha256: '1b0704348a17a5f84fba84caa20d14a116eea9953bb9bc147ada4234d18687a2',
       },
     },
-  }),
+  },
 ]
 
 export const ENGINE_BYTES = 14_848_852 + 635_212 + 18_077_249
