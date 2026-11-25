@@ -106,6 +106,18 @@ describe('code', () => {
     expect(blockTypes(chapter)).toEqual(['paragraph', 'code', 'paragraph'])
     expect(chapter?.blocks[1]).toEqual({ type: 'code', text: 'function trim(wick) {\n  return wick\n\n}' })
   })
+
+  it('reads a listing that runs across 2,000 pages of 80 lines', () => {
+    const pages = Array.from({ length: 2000 }, (_, p) =>
+      page(p + 1, [
+        ...(p === 0 ? bodyLines(filler(3), { y: 40 }) : []),
+        ...Array.from({ length: 80 }, (_, i) => codeLine(`line_${p}_${i}()`, 90 + i * 5.5)),
+      ]),
+    )
+    const code = layoutPdf(pages, []).chapters.flatMap((c) => c.blocks.filter((b) => b.type === 'code'))
+    expect(code).toHaveLength(1)
+    expect(code[0]?.type === 'code' && code[0].text.split('\n').length).toBe(160_000)
+  }, 30_000)
 })
 
 describe('lists', () => {

@@ -59,6 +59,29 @@ describe('chapter level detection', () => {
     ])
   })
 
+  it('falls back to one chapter for a book of 200,000 items with no headings', () => {
+    const items = Array.from({ length: 200_000 }, (): HtmlItem => para(1))
+    const { chapters, level } = chaptersOf(items, 'Whole Book')
+    expect(level).toBeNull()
+    expect(chapters).toHaveLength(1)
+    expect(chapters[0]?.blocks).toHaveLength(200_000)
+  })
+
+  it('makes the smallest heading level present h3 in the fallback chapter, and deeper ones h4', () => {
+    const items = [heading(3, 'C'), para(5), heading(2, 'B'), para(5), heading(5, 'E'), heading(2, 'B2'), para(5)]
+    const { chapters, level } = chaptersOf(items, 'Whole Book')
+    expect(level).toBeNull()
+    expect(chapters[0]?.blocks.map((b) => (b.type === 'heading' ? `h${b.level}` : b.type))).toEqual([
+      'h4',
+      'paragraph',
+      'h3',
+      'paragraph',
+      'h4',
+      'h3',
+      'paragraph',
+    ])
+  })
+
   it('splits at a given level: deeper headings become h3 and h4, front matter and empty chapters go', () => {
     const items = [
       para(5),

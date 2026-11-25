@@ -186,7 +186,7 @@ function dropLeading(runs: readonly TextRun[], count: number): TextRun[] {
 function codeText(entries: readonly Entry[]): string {
   const runs = entries.flatMap((e) => e.line.runs).filter((r) => r.text.trim().length > 1)
   const charWidth = median(runs.map((r) => r.width / r.text.length)) ?? 5
-  const left = Math.min(...entries.map((e) => e.line.x))
+  const left = entries.reduce((least, e) => Math.min(least, e.line.x), Number.POSITIVE_INFINITY)
   const gaps = entries.slice(1).flatMap((e, i) => {
     const before = (entries[i] as Entry).line
     return e.line.page === before.page && e.line.y > before.y ? [e.line.y - before.y] : []

@@ -23,7 +23,7 @@ function splitChapters(items: readonly HtmlItem[], level: ChapterLevel): DraftCh
 }
 
 function singleChapter(items: readonly HtmlItem[], title: string): DraftChapter[] {
-  const top = Math.min(...items.map((i) => (i.kind === 'heading' ? i.level : 7)))
+  const top = items.reduce((least, item) => (item.kind === 'heading' && item.level < least ? item.level : least), 7)
   const blocks: BookBlock[] = []
   for (const item of items) {
     if (item.kind === 'block') blocks.push(item.block)
