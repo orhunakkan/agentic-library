@@ -39,18 +39,18 @@ const COLUMNS = [
 
 type Raw = CappedRaw<'flashcards', (typeof COLUMNS)[number]>
 
-const toRow = (r: Raw): CardRow => ({
-  id: r.id,
-  book: bookOf(r),
-  chapter: r.chapter,
-  page: r.page,
-  front: r.front,
-  back: r.back,
-  origin: r.origin,
-  box: r.box,
-  dueAt: r.due_at,
-  reviewedAt: r.reviewed_at,
-  createdAt: r.created_at,
+const toRow = (card: Raw): CardRow => ({
+  id: card.id,
+  book: bookOf(card),
+  chapter: card.chapter,
+  page: card.page,
+  front: card.front,
+  back: card.back,
+  origin: card.origin,
+  box: card.box,
+  dueAt: card.due_at,
+  reviewedAt: card.reviewed_at,
+  createdAt: card.created_at,
 })
 
 /** A card saved, or the one with the same front already there (`created: false`). */
@@ -141,11 +141,11 @@ export async function cardBooks(db: Db, userId: number, now: Date): Promise<Card
     where user_id = ${userId}
     group by book_slug, user_book_id
     order by 6 desc, book_slug, user_book_id`
-  return rows.map((r) => ({
-    book: bookOf(r),
-    cards: Number(r.cards),
-    due: Number(r.due),
-    nextDueAt: r.next_due_at,
-    activeAt: r.active_at,
+  return rows.map((cardBook) => ({
+    book: bookOf(cardBook),
+    cards: Number(cardBook.cards),
+    due: Number(cardBook.due),
+    nextDueAt: cardBook.next_due_at,
+    activeAt: cardBook.active_at,
   }))
 }

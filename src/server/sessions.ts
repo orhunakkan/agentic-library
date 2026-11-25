@@ -81,12 +81,12 @@ export async function listSessions(db: Db, userId: number, current: Buffer): Pro
     from sessions
     where user_id = ${userId} and expires_at > now() and last_seen_at > now() - ${SESSION_IDLE}::interval
     order by (token_hash = ${current}) desc, last_seen_at desc`
-  return rows.map((r) => ({
-    current: r.current,
-    createdAt: r.created_at,
-    lastSeenAt: r.last_seen_at,
-    ip: r.ip,
-    userAgent: r.user_agent,
+  return rows.map((session) => ({
+    current: session.current,
+    createdAt: session.created_at,
+    lastSeenAt: session.last_seen_at,
+    ip: session.ip,
+    userAgent: session.user_agent,
   }))
 }
 

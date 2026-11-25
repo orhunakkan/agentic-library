@@ -30,16 +30,16 @@ interface Raw {
 
 const COLUMNS = 'id, credential_id, public_key, sign_count, transports, backed_up, name, created_at, last_used_at'
 
-const toRow = (r: Raw): PasskeyRow => ({
-  id: r.id,
-  credentialId: r.credential_id,
-  publicKey: r.public_key,
-  signCount: Number(r.sign_count),
-  transports: r.transports.filter(isTransport),
-  backedUp: r.backed_up,
-  name: r.name,
-  createdAt: r.created_at,
-  lastUsedAt: r.last_used_at,
+const toRow = (passkey: Raw): PasskeyRow => ({
+  id: passkey.id,
+  credentialId: passkey.credential_id,
+  publicKey: passkey.public_key,
+  signCount: Number(passkey.sign_count),
+  transports: passkey.transports.filter(isTransport),
+  backedUp: passkey.backed_up,
+  name: passkey.name,
+  createdAt: passkey.created_at,
+  lastUsedAt: passkey.last_used_at,
 })
 
 export async function listPasskeys(db: Db, userId: number): Promise<PasskeyRow[]> {

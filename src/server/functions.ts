@@ -39,17 +39,20 @@ export const getNavData = createServerFn({ method: 'GET' }).handler(async () => 
   const pagedShelf = library.shelves.find((s) => s.collectionSlug === paged?.slug)
   return {
     stats: library.stats,
-    collections: library.collections.map((c) => ({
-      slug: c.slug,
-      title: c.title,
-      kind: c.kind,
-      hue: c.hue,
-      bookCount: c.bookCount,
+    collections: library.collections.map((collection) => ({
+      slug: collection.slug,
+      title: collection.title,
+      kind: collection.kind,
+      hue: collection.hue,
+      bookCount: collection.bookCount,
       subtitle:
-        c.kind === 'paged'
-          ? `${c.bookCount} books · page-by-page reading`
-          : `${c.seriesCount} series · ${c.bookCount} books`,
-      href: c.kind === 'paged' && pagedShelf ? `/library/${pagedShelf.slug}` : `/library?filter=${c.slug}`,
+        collection.kind === 'paged'
+          ? `${collection.bookCount} books · page-by-page reading`
+          : `${collection.seriesCount} series · ${collection.bookCount} books`,
+      href:
+        collection.kind === 'paged' && pagedShelf
+          ? `/library/${pagedShelf.slug}`
+          : `/library?filter=${collection.slug}`,
     })),
     featured: catalog.series
       .filter((s) => s.featuredLabel)
@@ -134,25 +137,35 @@ export const getSearchIndex = createServerFn({ method: 'GET' }).handler(async ()
   const [full, removed] = await Promise.all([loadCatalog(), libraryExclusionsFor(getRequest())])
   const catalog = catalogWithoutRemoved(full, removed)
   const entries: { kind: 'book' | 'series' | 'chapter'; title: string; context: string; href: string }[] = []
-  for (const s of catalog.series) {
-    const count = catalog.books.filter((b) => b.seriesSlug === s.slug).length
+  for (const series of catalog.series) {
+    const count = catalog.books.filter((b) => b.seriesSlug === series.slug).length
     entries.push({
       kind: 'series',
-      title: s.title,
+      title: series.title,
       context: `${count} ${count === 1 ? 'book' : 'books'}`,
-      href: `/library/${s.slug}`,
+      href: `/library/${series.slug}`,
     })
   }
-  for (const b of catalog.books) {
-    entries.push({ kind: 'book', title: b.title, context: b.author, href: bookHref(b) })
-    const content = await loadBook(b.slug)
+  for (const book of catalog.books) {
+    entries.push({ kind: 'book', title: book.title, context: book.author, href: bookHref(book) })
+    const content = await loadBook(book.slug)
     if (!content) continue
     if (content.kind === 'paged') {
-      for (const c of content.chapters)
-        entries.push({ kind: 'chapter', title: c.title, context: b.title, href: pagedHref(b.slug, c.startPage) })
+      for (const chapter of content.chapters)
+        entries.push({
+          kind: 'chapter',
+          title: chapter.title,
+          context: book.title,
+          href: pagedHref(book.slug, chapter.startPage),
+        })
     } else {
-      for (const c of content.chapters)
-        entries.push({ kind: 'chapter', title: c.title, context: b.title, href: chapterPageHref(b.slug, c.slug, 1) })
+      for (const chapter of content.chapters)
+        entries.push({
+          kind: 'chapter',
+          title: chapter.title,
+          context: book.title,
+          href: chapterPageHref(book.slug, chapter.slug, 1),
+        })
     }
   }
   return entries

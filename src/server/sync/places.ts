@@ -34,15 +34,15 @@ export type PlaceCache = Map<string, Promise<PlaceBook | null>>
 
 export const newPlaceCache = (): PlaceCache => new Map()
 
-function fromPage(p: BookPage): PlacePage {
+function fromPage(bookPage: BookPage): PlacePage {
   return {
-    chapterIndex: p.chapterIndex,
-    chapterTitle: p.chapterTitle,
-    chapter: p.chapterSlug,
-    page: p.page,
-    href: p.href,
-    label: p.label,
-    position: fromStored(p.chapterSlug, p.page),
+    chapterIndex: bookPage.chapterIndex,
+    chapterTitle: bookPage.chapterTitle,
+    chapter: bookPage.chapterSlug,
+    page: bookPage.page,
+    href: bookPage.href,
+    label: bookPage.label,
+    position: fromStored(bookPage.chapterSlug, bookPage.page),
   }
 }
 
@@ -66,16 +66,16 @@ function catalogueBook(ref: BookRef, title: string, pages: readonly BookPage[]):
 
 function privateBook(slug: string, ref: BookRef, outline: BookOutline): PlaceBook {
   const pageOf = (chapterIndex: number, page: number): PlacePage | null => {
-    const c = outline.chapters[chapterIndex]
-    if (!c || page < 1 || page > c.pageCount) return null
+    const chapter = outline.chapters[chapterIndex]
+    if (!chapter || page < 1 || page > chapter.pageCount) return null
     return {
       chapterIndex,
-      chapterTitle: c.title,
-      chapter: c.slug,
+      chapterTitle: chapter.title,
+      chapter: chapter.slug,
       page,
-      href: chapterPageHref(slug, c.slug, page),
+      href: chapterPageHref(slug, chapter.slug, page),
       label: pageLabel({ chapterIndex, page }),
-      position: { chapter: c.slug, page },
+      position: { chapter: chapter.slug, page },
     }
   }
   const indexOf = (chapter: string | null) => outline.chapters.findIndex((c) => c.slug === chapter)

@@ -33,12 +33,12 @@ interface Raw {
   expires_at: Date
 }
 
-const toRow = (r: Raw): AccessTokenRow => ({
-  id: r.id,
-  name: r.name,
-  createdAt: r.created_at,
-  lastUsedAt: r.last_used_at,
-  expiresAt: r.expires_at,
+const toRow = (accessToken: Raw): AccessTokenRow => ({
+  id: accessToken.id,
+  name: accessToken.name,
+  createdAt: accessToken.created_at,
+  lastUsedAt: accessToken.last_used_at,
+  expiresAt: accessToken.expires_at,
 })
 
 export interface TokenUser extends SessionUser {

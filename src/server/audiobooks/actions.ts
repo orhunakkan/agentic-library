@@ -93,33 +93,37 @@ export const handleAudioChunk = (request: Request, id: string, number: string, o
       signedOut: 404,
       body: { bytes: CHUNK_BYTES, types: ['application/octet-stream'] },
       before: async () => {
-        const n = parseFileNumber(number)
+        const fileNumber = parseFileNumber(number)
         const root = await audiobooksDir()
-        if (!isUuid(id) || n === null || !root) return notFound()
+        if (!isUuid(id) || fileNumber === null || !root) return notFound()
         const offset = new URL(request.url).searchParams.get('offset') ?? ''
         if (!/^\d{1,10}$/.test(offset)) return fail(400, 'invalid')
-        return { n, root, offset: Number(offset) }
+        return { n: fileNumber, root, offset: Number(offset) }
       },
     },
-    async ({ session, db, pre: { n, root, offset }, input: body }) => {
+    async ({ session, db, pre: { n: fileNumber, root, offset }, input: body }) => {
       const { userId } = session
-      const file = await uploadingFile(db, userId, id, n)
+      const file = await uploadingFile(db, userId, id, fileNumber)
       if (!file) {
-        const ready = await readyAudioFile(db, userId, id, n)
+        const ready = await readyAudioFile(db, userId, id, fileNumber)
         return ready ? fail(409, 'offset', { received: ready.bytes }) : notFound()
       }
       if (offset !== file.received) return fail(409, 'offset', { received: file.received })
       if (offset + body.bytes.length > file.bytes) return fail(400, 'invalid')
       if ((await (options.freeBytes ?? diskFreeBytes)(root)) - body.bytes.length < MIN_FREE_BYTES_UPLOADING)
         return serverFull()
-      const written = await appendAt(audioPath(root, userId, id, n, typeOfMedia(file.mediaType)), offset, body.bytes)
+      const written = await appendAt(
+        audioPath(root, userId, id, fileNumber, typeOfMedia(file.mediaType)),
+        offset,
+        body.bytes,
+      )
       if (written !== 'ok') {
-        await rewindFile(db, userId, id, n, written.size)
+        await rewindFile(db, userId, id, fileNumber, written.size)
         return fail(409, 'offset', { received: Math.min(written.size, file.received) })
       }
-      const received = await recordChunk(db, userId, id, n, offset, body.bytes.length)
+      const received = await recordChunk(db, userId, id, fileNumber, offset, body.bytes.length)
       if (received === null) {
-        const now = await uploadingFile(db, userId, id, n)
+        const now = await uploadingFile(db, userId, id, fileNumber)
         return now ? fail(409, 'offset', { received: now.received }) : notFound()
       }
       return noStoreJson(200, { received })

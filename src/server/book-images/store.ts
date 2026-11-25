@@ -29,7 +29,7 @@ export function storeImage(
   pool: Pool,
   userId: number,
   bookId: string,
-  n: number,
+  imageNumber: number,
   image: NewImage,
 ): Promise<StoreImageResult> {
   return pool.begin(async (tx): Promise<StoreImageResult> => {
@@ -38,20 +38,20 @@ export function storeImage(
       select image_count, image_bytes from user_books
       where id = ${bookId} and user_id = ${userId} and status = 'uploading'`
     if (!book) return 'missing'
-    if (n > (book.image_count ?? 0)) return 'position'
+    if (imageNumber > (book.image_count ?? 0)) return 'position'
     const size = image.bytes.length
     const [used] = await tx<{ book: string; user: string }[]>`
       select
         coalesce(sum(octet_length(i.bytes)) filter (where i.book_id = ${bookId}), 0) as book,
         coalesce(sum(octet_length(i.bytes)), 0) as user
       from user_book_images i join user_books b on b.id = i.book_id
-      where b.user_id = ${userId} and not (i.book_id = ${bookId} and i.n = ${n})`
+      where b.user_id = ${userId} and not (i.book_id = ${bookId} and i.n = ${imageNumber})`
     const bookMax = book.image_bytes ?? 0
     if (Number(used?.book ?? 0) + size > bookMax) return { quota: 'book', max: bookMax }
     if (Number(used?.user ?? 0) + size > MAX_USER_IMAGE_BYTES) return { quota: 'user', max: MAX_USER_IMAGE_BYTES }
     await tx`
       insert into user_book_images (book_id, n, media_type, bytes, width, height, sha256)
-      values (${bookId}, ${n}, ${image.info.type}, ${Buffer.from(image.bytes)}, ${image.info.width},
+      values (${bookId}, ${imageNumber}, ${image.info.type}, ${Buffer.from(image.bytes)}, ${image.info.width},
         ${image.info.height}, ${image.sha256})
       on conflict (book_id, n) do update set media_type = excluded.media_type, bytes = excluded.bytes,
         width = excluded.width, height = excluded.height, sha256 = excluded.sha256, created_at = now()`
@@ -82,12 +82,12 @@ export async function loadImage(
   db: Db,
   userId: number,
   bookId: string,
-  n: number,
+  imageNumber: number,
 ): Promise<{ mediaType: StoredImageType; bytes: Uint8Array; sha256: string } | null> {
   const [row] = await db<{ media_type: StoredImageType; bytes: Buffer; sha256: string }[]>`
     select i.media_type, i.bytes, i.sha256
     from user_book_images i join user_books b on b.id = i.book_id
-    where i.book_id = ${bookId} and i.n = ${n} and b.user_id = ${userId} and b.status = 'ready'`
+    where i.book_id = ${bookId} and i.n = ${imageNumber} and b.user_id = ${userId} and b.status = 'ready'`
   return row ? { mediaType: row.media_type, bytes: new Uint8Array(row.bytes), sha256: row.sha256 } : null
 }
 

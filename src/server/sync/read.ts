@@ -30,13 +30,14 @@ async function toPlace(db: Db, userId: number, row: ReadingRow, cache: PlaceCach
   )
 }
 
-function toListening(l: ListeningRow): ListeningPlace {
-  const common = { book: slugOf(l.ref), at: l.at.getTime(), device: l.device }
-  if (l.kind === 'episode') return { ...common, kind: 'episode', episode: l.episode, positionMs: l.positionMs }
-  if (l.chapterIndex === null || l.page === null || l.offset === null)
+function toListening(listeningRow: ListeningRow): ListeningPlace {
+  const common = { book: slugOf(listeningRow.ref), at: listeningRow.at.getTime(), device: listeningRow.device }
+  if (listeningRow.kind === 'episode')
+    return { ...common, kind: 'episode', episode: listeningRow.episode, positionMs: listeningRow.positionMs }
+  if (listeningRow.chapterIndex === null || listeningRow.page === null || listeningRow.offset === null)
     return { ...common, kind: 'voice', chapter: 0, position: null, offset: 0 }
-  const position = fromStored(l.chapter, l.page)
-  return { ...common, kind: 'voice', chapter: l.chapterIndex, position, offset: l.offset }
+  const position = fromStored(listeningRow.chapter, listeningRow.page)
+  return { ...common, kind: 'voice', chapter: listeningRow.chapterIndex, position, offset: listeningRow.offset }
 }
 
 export function syncState(request: Request): Promise<SyncState> {

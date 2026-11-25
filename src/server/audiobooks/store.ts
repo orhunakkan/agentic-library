@@ -76,11 +76,16 @@ export interface UploadingFile {
   received: number
 }
 
-export async function uploadingFile(db: Db, userId: number, bookId: string, n: number): Promise<UploadingFile | null> {
+export async function uploadingFile(
+  db: Db,
+  userId: number,
+  bookId: string,
+  fileNumber: number,
+): Promise<UploadingFile | null> {
   const [row] = await db<{ media_type: MediaType; bytes: string; received: string }[]>`
     select f.media_type, f.bytes, f.received
     from user_book_audio_files f join user_books b on b.id = f.book_id
-    where f.book_id = ${bookId} and f.n = ${n} and b.user_id = ${userId} and b.status = 'uploading'
+    where f.book_id = ${bookId} and f.n = ${fileNumber} and b.user_id = ${userId} and b.status = 'uploading'
       and b.format = 'audio'`
   return row ? { mediaType: row.media_type, bytes: Number(row.bytes), received: Number(row.received) } : null
 }
@@ -89,14 +94,14 @@ export async function recordChunk(
   db: Db,
   userId: number,
   bookId: string,
-  n: number,
+  fileNumber: number,
   offset: number,
   length: number,
 ): Promise<number | null> {
   const [row] = await db<{ received: string }[]>`
     update user_book_audio_files f set received = f.received + ${length}
     from user_books b
-    where f.book_id = ${bookId} and f.n = ${n} and b.id = f.book_id and b.user_id = ${userId}
+    where f.book_id = ${bookId} and f.n = ${fileNumber} and b.id = f.book_id and b.user_id = ${userId}
       and b.status = 'uploading' and f.received = ${offset} and f.received + ${length} <= f.bytes
     returning f.received`
   return row ? Number(row.received) : null
@@ -119,17 +124,17 @@ export async function finishingBook(db: Db, userId: number, bookId: string): Pro
       order by position`,
   ])
   return {
-    files: files.map((f) => ({
-      n: f.n,
-      mediaType: f.media_type,
-      bytes: Number(f.bytes),
-      received: Number(f.received),
+    files: files.map((file) => ({
+      n: file.n,
+      mediaType: file.media_type,
+      bytes: Number(file.bytes),
+      received: Number(file.received),
     })),
-    chapters: chapters.map((c) => ({
-      title: c.title,
-      fileN: c.file_n,
-      startMs: c.start_ms,
-      durationMs: c.duration_ms,
+    chapters: chapters.map((chapter) => ({
+      title: chapter.title,
+      fileN: chapter.file_n,
+      startMs: chapter.start_ms,
+      durationMs: chapter.duration_ms,
     })),
   }
 }
@@ -239,12 +244,12 @@ export async function audiobookChapters(db: Db, userId: number, bookId: string):
     from user_book_audio_chapters c join user_books b on b.id = c.book_id
     where c.book_id = ${bookId} and b.user_id = ${userId} and b.status = 'ready' and b.format = 'audio'
     order by c.position`
-  return rows.map((r) => ({
-    position: r.position,
-    title: r.title,
-    fileN: r.file_n,
-    startMs: r.start_ms,
-    durationMs: r.duration_ms,
+  return rows.map((chapter) => ({
+    position: chapter.position,
+    title: chapter.title,
+    fileN: chapter.file_n,
+    startMs: chapter.start_ms,
+    durationMs: chapter.duration_ms,
   }))
 }
 
@@ -252,19 +257,25 @@ export async function readyAudioFile(
   db: Db,
   userId: number,
   bookId: string,
-  n: number,
+  fileNumber: number,
 ): Promise<{ mediaType: MediaType; bytes: number } | null> {
   const [row] = await db<{ media_type: MediaType; bytes: string }[]>`
     select f.media_type, f.bytes
     from user_book_audio_files f join user_books b on b.id = f.book_id
-    where f.book_id = ${bookId} and f.n = ${n} and b.user_id = ${userId} and b.status = 'ready' and b.format = 'audio'`
+    where f.book_id = ${bookId} and f.n = ${fileNumber} and b.user_id = ${userId} and b.status = 'ready' and b.format = 'audio'`
   return row ? { mediaType: row.media_type, bytes: Number(row.bytes) } : null
 }
 
-export async function rewindFile(db: Db, userId: number, bookId: string, n: number, size: number): Promise<void> {
+export async function rewindFile(
+  db: Db,
+  userId: number,
+  bookId: string,
+  fileNumber: number,
+  size: number,
+): Promise<void> {
   await db`
     update user_book_audio_files f set received = least(f.received, ${size})
     from user_books b
-    where f.book_id = ${bookId} and f.n = ${n} and b.id = f.book_id and b.user_id = ${userId}
+    where f.book_id = ${bookId} and f.n = ${fileNumber} and b.id = f.book_id and b.user_id = ${userId}
       and b.status = 'uploading'`
 }

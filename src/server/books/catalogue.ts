@@ -39,13 +39,13 @@ export function openCatalogueBook(meta: BookMeta, loaded: BookContent): BuiltTex
     audio,
     content,
     pages: async () => sharedPages(loaded),
-    readerPage: async (part, n) => {
+    readerPage: async (part, pageNumber) => {
       const [catalog, recorded, offlineVersion] = await Promise.all([
         loadCatalog(),
         audio(),
         catalogueVersion(meta.slug),
       ])
-      const view = buildReaderView({ meta, catalog }, loaded, part, n)
+      const view = buildReaderView({ meta, catalog }, loaded, part, pageNumber)
       return (
         view && {
           view,

@@ -30,9 +30,13 @@ export function openPrivateText(db: Db, userId: number, bookId: string, opened: 
       pages ??= loadContent().then(bookPages)
       return pages
     },
-    readerPage: async (part, n) => {
-      if (n !== undefined && (!/^[1-9]\d{0,5}$/.test(n) || n === '1' || Number(n) > MAX_PAGE)) return null
-      const pageIndex = n === undefined ? 0 : Number(n) - 1
+    readerPage: async (part, pageNumber) => {
+      if (
+        pageNumber !== undefined &&
+        (!/^[1-9]\d{0,5}$/.test(pageNumber) || pageNumber === '1' || Number(pageNumber) > MAX_PAGE)
+      )
+        return null
+      const pageIndex = pageNumber === undefined ? 0 : Number(pageNumber) - 1
       const book = await loadReaderBook(db, userId, bookId, part, pageIndex)
       if (!book || book.html === null) return null
       const context = privateContext(bookId, book, book.chapters.length)
@@ -41,7 +45,7 @@ export function openPrivateText(db: Db, userId: number, bookId: string, opened: 
         index: pageIndex,
         html: book.html,
       })
-      const view = buildReaderView(context, partial, part, n)
+      const view = buildReaderView(context, partial, part, pageNumber)
       return (
         view && { view, cover: context.meta.cover, audio: null, offlineVersion: privateVersion(context, book.chapters) }
       )

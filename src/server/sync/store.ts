@@ -32,46 +32,46 @@ export interface SyncItems {
 
 export async function saveBatch(pool: Pool, userId: number, device: string, items: SyncItems): Promise<void> {
   await pool.begin(async (tx) => {
-    for (const r of items.reading) {
+    for (const readingItem of items.reading) {
       await tx`
         insert into reading_places (user_id, book_slug, user_book_id, chapter, page, at, device)
-        select ${userId}::bigint, ${r.ref.slug}::text, ${r.ref.userBookId}::uuid, ${r.chapter}::text, ${r.page}::int,
-          ${new Date(r.at)}::timestamptz, ${device}::text
-        where ${ownedBook(tx, userId, r.ref)}
-        on conflict ${onBookConflict(tx, r.ref)}
+        select ${userId}::bigint, ${readingItem.ref.slug}::text, ${readingItem.ref.userBookId}::uuid, ${readingItem.chapter}::text, ${readingItem.page}::int,
+          ${new Date(readingItem.at)}::timestamptz, ${device}::text
+        where ${ownedBook(tx, userId, readingItem.ref)}
+        on conflict ${onBookConflict(tx, readingItem.ref)}
         do update set chapter = excluded.chapter, page = excluded.page, at = excluded.at, device = excluded.device
         where reading_places.at < excluded.at`
     }
-    for (const l of items.listening) {
-      if (l.kind === 'episode') {
+    for (const listeningItem of items.listening) {
+      if (listeningItem.kind === 'episode') {
         await tx`
           insert into listening_places (user_id, book_slug, user_book_id, kind, episode, position_ms, at, device)
-          select ${userId}::bigint, ${l.ref.slug}::text, ${l.ref.userBookId}::uuid, 'episode', ${l.episode}::text,
-            ${l.positionMs}::int, ${new Date(l.at)}::timestamptz, ${device}::text
-          where ${ownedBook(tx, userId, l.ref)}
-          on conflict ${onBookConflict(tx, l.ref, { keys: ['episode'], where: tx`kind = 'episode'` })}
+          select ${userId}::bigint, ${listeningItem.ref.slug}::text, ${listeningItem.ref.userBookId}::uuid, 'episode', ${listeningItem.episode}::text,
+            ${listeningItem.positionMs}::int, ${new Date(listeningItem.at)}::timestamptz, ${device}::text
+          where ${ownedBook(tx, userId, listeningItem.ref)}
+          on conflict ${onBookConflict(tx, listeningItem.ref, { keys: ['episode'], where: tx`kind = 'episode'` })}
           do update set position_ms = excluded.position_ms, at = excluded.at, device = excluded.device
           where listening_places.at < excluded.at`
         continue
       }
-      const p = l.place
+      const place = listeningItem.place
       await tx`
         insert into listening_places
           (user_id, book_slug, user_book_id, kind, chapter_index, chapter, page, start_offset, at, device)
-        select ${userId}::bigint, ${l.ref.slug}::text, ${l.ref.userBookId}::uuid, 'voice', ${p?.chapterIndex ?? null}::int,
-          ${p?.chapter ?? null}::text, ${p?.page ?? null}::int, ${p?.offset ?? null}::int, ${new Date(l.at)}::timestamptz,
+        select ${userId}::bigint, ${listeningItem.ref.slug}::text, ${listeningItem.ref.userBookId}::uuid, 'voice', ${place?.chapterIndex ?? null}::int,
+          ${place?.chapter ?? null}::text, ${place?.page ?? null}::int, ${place?.offset ?? null}::int, ${new Date(listeningItem.at)}::timestamptz,
           ${device}::text
-        where ${ownedBook(tx, userId, l.ref)}
-        on conflict ${onBookConflict(tx, l.ref, { where: tx`kind = 'voice'` })}
+        where ${ownedBook(tx, userId, listeningItem.ref)}
+        on conflict ${onBookConflict(tx, listeningItem.ref, { where: tx`kind = 'voice'` })}
         do update set chapter_index = excluded.chapter_index, chapter = excluded.chapter, page = excluded.page,
           start_offset = excluded.start_offset, at = excluded.at, device = excluded.device
         where listening_places.at < excluded.at`
     }
-    const s = items.settings
-    if (s) {
+    const settingsItem = items.settings
+    if (settingsItem) {
       await tx`
         insert into reader_settings (user_id, settings, at, device)
-        values (${userId}, ${tx.json(s.values as never)}, ${new Date(s.at)}, ${device})
+        values (${userId}, ${tx.json(settingsItem.values as never)}, ${new Date(settingsItem.at)}, ${device})
         on conflict (user_id)
         do update set settings = excluded.settings, at = excluded.at, device = excluded.device
         where reader_settings.at < excluded.at`
@@ -109,12 +109,12 @@ interface RawReading {
   device: string
 }
 
-const toReading = (r: RawReading): ReadingRow => ({
-  ref: bookOf(r),
-  chapter: r.chapter,
-  page: r.page,
-  at: r.at,
-  device: r.device,
+const toReading = (rawReading: RawReading): ReadingRow => ({
+  ref: bookOf(rawReading),
+  chapter: rawReading.chapter,
+  page: rawReading.page,
+  at: rawReading.at,
+  device: rawReading.device,
 })
 
 export async function listReading(db: Db, userId: number, limit: number): Promise<ReadingRow[]> {
@@ -154,17 +154,17 @@ export async function listListening(db: Db, userId: number, limit: number): Prom
     where user_id = ${userId}
     order by at desc, id
     limit ${limit}`
-  return rows.map((r): ListeningRow => {
-    const common = { ref: bookOf(r), at: r.at, device: r.device }
-    return r.kind === 'episode'
-      ? { ...common, kind: 'episode', episode: r.episode ?? '', positionMs: r.position_ms }
+  return rows.map((rawListening): ListeningRow => {
+    const common = { ref: bookOf(rawListening), at: rawListening.at, device: rawListening.device }
+    return rawListening.kind === 'episode'
+      ? { ...common, kind: 'episode', episode: rawListening.episode ?? '', positionMs: rawListening.position_ms }
       : {
           ...common,
           kind: 'voice',
-          chapterIndex: r.chapter_index,
-          chapter: r.chapter,
-          page: r.page,
-          offset: r.start_offset,
+          chapterIndex: rawListening.chapter_index,
+          chapter: rawListening.chapter,
+          page: rawListening.page,
+          offset: rawListening.start_offset,
         }
   })
 }

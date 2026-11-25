@@ -130,11 +130,11 @@ function readAddress(raw: string): Address {
   const hash = url.indexOf('#')
   const beforeHash = hash === -1 ? url : url.slice(0, hash)
   const fragment = hash === -1 ? null : url.slice(hash + 1)
-  const q = beforeHash.indexOf('?')
-  const encodedPath = q === -1 ? beforeHash : beforeHash.slice(0, q)
+  const queryStart = beforeHash.indexOf('?')
+  const encodedPath = queryStart === -1 ? beforeHash : beforeHash.slice(0, queryStart)
   const path = safeDecode(encodedPath)
   if (path === null) return { kind: 'refused' }
-  return { kind: 'relative', path, query: q === -1 ? '' : beforeHash.slice(q), fragment }
+  return { kind: 'relative', path, query: queryStart === -1 ? '' : beforeHash.slice(queryStart), fragment }
 }
 
 const anchorId = (fragment: string) => `user-content-${safeDecode(fragment) ?? fragment}`

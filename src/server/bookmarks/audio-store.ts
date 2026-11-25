@@ -43,26 +43,26 @@ const COLUMNS = [
 
 type Raw = CappedRaw<'audio_bookmarks', (typeof COLUMNS)[number]>
 
-function toRow(r: Raw): AudioBookmarkRow {
-  if (r.kind === 'episode')
+function toRow(bookmark: Raw): AudioBookmarkRow {
+  if (bookmark.kind === 'episode')
     return {
-      id: r.id,
+      id: bookmark.id,
       kind: 'episode',
-      episode: r.episode ?? '',
-      positionMs: r.position_ms ?? 0,
-      createdAt: r.created_at,
+      episode: bookmark.episode ?? '',
+      positionMs: bookmark.position_ms ?? 0,
+      createdAt: bookmark.created_at,
     }
   return {
-    id: r.id,
+    id: bookmark.id,
     kind: 'voice',
-    chapter: r.chapter,
-    page: r.page ?? 1,
-    start: r.start_offset ?? 0,
-    end: r.end_offset ?? 0,
-    exact: r.exact ?? '',
-    prefix: r.prefix ?? '',
-    suffix: r.suffix ?? '',
-    createdAt: r.created_at,
+    chapter: bookmark.chapter,
+    page: bookmark.page ?? 1,
+    start: bookmark.start_offset ?? 0,
+    end: bookmark.end_offset ?? 0,
+    exact: bookmark.exact ?? '',
+    prefix: bookmark.prefix ?? '',
+    suffix: bookmark.suffix ?? '',
+    createdAt: bookmark.created_at,
   }
 }
 

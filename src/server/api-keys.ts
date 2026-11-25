@@ -16,11 +16,11 @@ export interface ApiKeyStatus {
 export async function getKeyStatuses(db: Db, userId: number): Promise<ApiKeyStatus[]> {
   const rows = await db<{ provider: Provider; last4: string; created_at: Date; last_used_at: Date | null }[]>`
     select provider, last4, created_at, last_used_at from api_keys where user_id = ${userId} order by provider`
-  return rows.map((r) => ({
-    provider: r.provider,
-    last4: r.last4,
-    createdAt: r.created_at,
-    lastUsedAt: r.last_used_at,
+  return rows.map((apiKey) => ({
+    provider: apiKey.provider,
+    last4: apiKey.last4,
+    createdAt: apiKey.created_at,
+    lastUsedAt: apiKey.last_used_at,
   }))
 }
 

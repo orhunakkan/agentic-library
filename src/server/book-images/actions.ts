@@ -45,12 +45,12 @@ export const handleImage = (request: Request, id: string, number: string) =>
 const pictureNotFound = () => imageText(404, 'Not found')
 
 export async function serveImage(request: Request, id: string, number: string): Promise<Response> {
-  const n = parseImageNumber(number)
-  if (!isUuid(id) || n === null || !isDatabaseConfigured()) return pictureNotFound()
+  const imageNumber = parseImageNumber(number)
+  if (!isUuid(id) || imageNumber === null || !isDatabaseConfigured()) return pictureNotFound()
   const session = await sessionForRequest(request)
   if (!session) return pictureNotFound()
   try {
-    const image = await loadImage(getDb(), session.userId, id, n)
+    const image = await loadImage(getDb(), session.userId, id, imageNumber)
     if (!image) return pictureNotFound()
     return new Response(new Uint8Array(image.bytes), {
       headers: {

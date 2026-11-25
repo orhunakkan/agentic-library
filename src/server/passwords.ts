@@ -56,12 +56,12 @@ interface Parsed {
 }
 
 function parseHash(encoded: string): Parsed | null {
-  const m = /^\$argon2id\$v=19\$m=(\d+),t=(\d+),p=(\d+)\$([A-Za-z0-9+/]+)\$([A-Za-z0-9+/]+)$/.exec(encoded)
-  if (!m) return null
+  const match = /^\$argon2id\$v=19\$m=(\d+),t=(\d+),p=(\d+)\$([A-Za-z0-9+/]+)\$([A-Za-z0-9+/]+)$/.exec(encoded)
+  if (!match) return null
   return {
-    params: { memory: Number(m[1]), passes: Number(m[2]), parallelism: Number(m[3]) },
-    salt: Buffer.from(m[4] ?? '', 'base64'),
-    hash: Buffer.from(m[5] ?? '', 'base64'),
+    params: { memory: Number(match[1]), passes: Number(match[2]), parallelism: Number(match[3]) },
+    salt: Buffer.from(match[4] ?? '', 'base64'),
+    hash: Buffer.from(match[5] ?? '', 'base64'),
   }
 }
 

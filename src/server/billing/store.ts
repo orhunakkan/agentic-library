@@ -101,16 +101,16 @@ type SubscriptionDbRow = {
   event_at: Date
 }
 
-const toStored = (r: SubscriptionDbRow): StoredSubscription => ({
-  id: r.id,
-  customerId: r.customer_id,
-  cadence: r.cadence,
-  founding: r.founding,
-  status: r.status,
-  periodEndsAt: r.period_ends_at,
-  cancelAt: r.cancel_at,
-  canceledAt: r.canceled_at,
-  eventAt: r.event_at,
+const toStored = (subscription: SubscriptionDbRow): StoredSubscription => ({
+  id: subscription.id,
+  customerId: subscription.customer_id,
+  cadence: subscription.cadence,
+  founding: subscription.founding,
+  status: subscription.status,
+  periodEndsAt: subscription.period_ends_at,
+  cancelAt: subscription.cancel_at,
+  canceledAt: subscription.canceled_at,
+  eventAt: subscription.event_at,
 })
 
 export async function subscriptionFor(db: Db, userId: number): Promise<StoredSubscription | null> {

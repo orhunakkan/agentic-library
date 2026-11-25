@@ -45,19 +45,19 @@ type Raw = CappedRaw<'highlights', (typeof COLUMNS)[number]>
 
 type RawWithBook = CappedRaw<'highlights', (typeof WITH_BOOK)[number]>
 
-const toRow = (r: Raw): HighlightRow => ({
-  id: r.id,
-  chapter: r.chapter,
-  page: r.page,
-  start: r.start_offset,
-  end: r.end_offset,
-  exact: r.exact,
-  prefix: r.prefix,
-  suffix: r.suffix,
-  color: r.color,
-  note: r.note,
-  createdAt: r.created_at,
-  updatedAt: r.updated_at,
+const toRow = (highlight: Raw): HighlightRow => ({
+  id: highlight.id,
+  chapter: highlight.chapter,
+  page: highlight.page,
+  start: highlight.start_offset,
+  end: highlight.end_offset,
+  exact: highlight.exact,
+  prefix: highlight.prefix,
+  suffix: highlight.suffix,
+  color: highlight.color,
+  note: highlight.note,
+  createdAt: highlight.created_at,
+  updatedAt: highlight.updated_at,
 })
 
 export type CreateResult = Capped<HighlightRow>
@@ -157,10 +157,10 @@ export async function bookSummaries(db: Db, userId: number): Promise<BookSummary
     where user_id = ${userId}
     group by book_slug, user_book_id
     order by max(updated_at) desc, book_slug, user_book_id`
-  return rows.map((r) => ({
-    book: bookOf(r),
-    highlights: Number(r.highlights),
-    notes: Number(r.notes),
-    updatedAt: r.updated_at,
+  return rows.map((bookSummary) => ({
+    book: bookOf(bookSummary),
+    highlights: Number(bookSummary.highlights),
+    notes: Number(bookSummary.notes),
+    updatedAt: bookSummary.updated_at,
   }))
 }

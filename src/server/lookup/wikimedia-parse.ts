@@ -61,12 +61,12 @@ function senses(sections: unknown): { senses: Sense[]; name: string | null } {
       sense = { partOfSpeech, definitions: [] }
       out.push(sense)
     }
-    for (const d of section.definitions) {
+    for (const definition of section.definitions) {
       if (sense.definitions.length >= MAX_DEFINITIONS) break
-      if (!isObject(d) || typeof d.definition !== 'string') continue
-      const text = cutText(htmlToText(d.definition), DEFINITION_MAX)
+      if (!isObject(definition) || typeof definition.definition !== 'string') continue
+      const text = cutText(htmlToText(definition.definition), DEFINITION_MAX)
       if (!text) continue
-      const lemma = lemmaOf(d.definition)
+      const lemma = lemmaOf(definition.definition)
       sense.definitions.push(lemma ? { text, lemma } : { text })
     }
   }

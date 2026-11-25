@@ -46,13 +46,13 @@ function summaryOf({ today, totals, history }: Rows) {
 }
 
 export function toSummaryState(rows: Rows): Extract<ReadingSummaryState, { state: 'ready' }> {
-  const s = summaryOf(rows)
+  const summary = summaryOf(rows)
   return {
     state: 'ready',
-    todaySeconds: s.sums.get(rows.today) ?? 0,
-    goalMinutes: s.goalMinutes,
-    current: s.current,
-    todayMet: s.todayMet,
+    todaySeconds: summary.sums.get(rows.today) ?? 0,
+    goalMinutes: summary.goalMinutes,
+    current: summary.current,
+    todayMet: summary.todayMet,
   }
 }
 
@@ -60,22 +60,22 @@ export function toStatsState(
   rows: Rows & { finished: readonly ResolvedFinished[] },
 ): Extract<ReadingStatsState, { state: 'ready' }> {
   const { today, zone, history } = rows
-  const s = summaryOf(rows)
+  const summary = summaryOf(rows)
   const week: DayStats[] = Array.from({ length: 7 }, (_, i) => {
     const day = addDays(today, i - 6)
-    const t = s.days.get(day) ?? { reading: 0, listening: 0 }
+    const dayTotal = summary.days.get(day) ?? { reading: 0, listening: 0 }
     const goalMinutes = goalOn(day, history)
     return {
       day,
-      readingSeconds: t.reading,
-      listeningSeconds: t.listening,
+      readingSeconds: dayTotal.reading,
+      listeningSeconds: dayTotal.listening,
       goalMinutes,
-      met: t.reading + t.listening >= goalMinutes * 60,
+      met: dayTotal.reading + dayTotal.listening >= goalMinutes * 60,
     }
   })
   const sum = (keep: (day: Day) => boolean): TotalStats => {
     const total = { reading: 0, listening: 0 }
-    for (const [day, t] of s.days) {
+    for (const [day, t] of summary.days) {
       if (!keep(day)) continue
       total.reading += t.reading
       total.listening += t.listening
@@ -87,12 +87,12 @@ export function toStatsState(
   return {
     state: 'ready',
     today,
-    goalMinutes: s.goalMinutes,
-    todaySeconds: s.sums.get(today) ?? 0,
-    current: s.current,
-    best: s.best,
-    todayMet: s.todayMet,
-    toKeepSeconds: s.toKeepSeconds,
+    goalMinutes: summary.goalMinutes,
+    todaySeconds: summary.sums.get(today) ?? 0,
+    current: summary.current,
+    best: summary.best,
+    todayMet: summary.todayMet,
+    toKeepSeconds: summary.toKeepSeconds,
     week,
     totals: {
       week: sum((day) => day >= weekStart),
@@ -104,6 +104,6 @@ export function toStatsState(
       .slice(0, MAX_FINISHED_SHOWN)
       .map((f) => ({ book: f.book, title: f.title, href: f.href, finishedAt: f.finishedAt.toISOString() })),
     finishedThisYear: rows.finished.filter((f) => dayIn(f.finishedAt, zone).slice(0, 4) === year).length,
-    hasAny: s.days.size > 0 || rows.finished.length > 0,
+    hasAny: summary.days.size > 0 || rows.finished.length > 0,
   }
 }

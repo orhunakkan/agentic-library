@@ -33,16 +33,16 @@ const COLUMNS = [
 
 type Raw = CappedRaw<'bookmarks', (typeof COLUMNS)[number]>
 
-const toRow = (r: Raw): BookmarkRow => ({
-  id: r.id,
-  chapter: r.chapter,
-  page: r.page,
-  start: r.start_offset,
-  end: r.end_offset,
-  exact: r.exact,
-  prefix: r.prefix,
-  suffix: r.suffix,
-  createdAt: r.created_at,
+const toRow = (bookmark: Raw): BookmarkRow => ({
+  id: bookmark.id,
+  chapter: bookmark.chapter,
+  page: bookmark.page,
+  start: bookmark.start_offset,
+  end: bookmark.end_offset,
+  exact: bookmark.exact,
+  prefix: bookmark.prefix,
+  suffix: bookmark.suffix,
+  createdAt: bookmark.created_at,
 })
 
 export type CreateResult = Capped<BookmarkRow>

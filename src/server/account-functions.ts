@@ -113,12 +113,12 @@ export const getAccountPage = createServerFn({ method: 'GET' }).handler(async ()
     },
     passkeys: passkeys.map(toPasskeyView),
     passkeyMax: MAX_PASSKEYS,
-    sessions: sessions.map((s) => ({
-      current: s.current,
-      device: describeDevice(s.userAgent),
-      ip: s.ip,
-      createdAt: s.createdAt.toISOString(),
-      lastSeenAt: s.lastSeenAt.toISOString(),
+    sessions: sessions.map((sessionInfo) => ({
+      current: sessionInfo.current,
+      device: describeDevice(sessionInfo.userAgent),
+      ip: sessionInfo.ip,
+      createdAt: sessionInfo.createdAt.toISOString(),
+      lastSeenAt: sessionInfo.lastSeenAt.toISOString(),
     })),
     accessTokens: accessTokens.map((t) => toAccessTokenView(t)),
   }
@@ -192,19 +192,21 @@ export const getMyBooksPage = createServerFn({ method: 'GET' }).handler(async ()
     plan: session.plan,
     bookCount: await countedBooks(getDb(), session.userId),
     articleIds: (await listArticles(getDb(), session.userId)).map((a) => a.id),
-    books: books.map((b) => ({
-      id: b.id,
-      title: b.title,
-      author: b.author,
-      chapterCount: b.chapterCount,
-      htmlBytes: b.htmlBytes,
-      audioMs: b.format === 'audio' ? (b.audioMs ?? 0) : null,
-      importedAt: b.readyAt.toISOString(),
-      href: privateBookHref(b.id),
+    books: books.map((book) => ({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      chapterCount: book.chapterCount,
+      htmlBytes: book.htmlBytes,
+      audioMs: book.format === 'audio' ? (book.audioMs ?? 0) : null,
+      importedAt: book.readyAt.toISOString(),
+      href: privateBookHref(book.id),
       readHref:
-        b.format === 'audio' ? privateBookHref(b.id) : chapterPageHref(privateBookSlug(b.id), b.firstChapter, 1),
-      cover: privateCover(b.title),
-      image: privateCoverImage(b.id, b.cover),
+        book.format === 'audio'
+          ? privateBookHref(book.id)
+          : chapterPageHref(privateBookSlug(book.id), book.firstChapter, 1),
+      cover: privateCover(book.title),
+      image: privateCoverImage(book.id, book.cover),
     })),
   }
 })

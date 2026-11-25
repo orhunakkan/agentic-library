@@ -183,12 +183,12 @@ function parseBilling(env: Env, credential: (name: string) => string | null): Bi
     .map(([name]) => name)
   if (missing.length === Object.keys(values).length) return null
   if (missing.length > 0) throw new ConfigError(`Billing is half set up. Missing: ${missing.join(', ')}`)
-  const v = values as Record<keyof typeof values, string>
+  const billing = values as Record<keyof typeof values, string>
 
-  const paddleEnv = v.PADDLE_ENV
+  const paddleEnv = billing.PADDLE_ENV
   if (paddleEnv !== 'sandbox' && paddleEnv !== 'production')
     throw new ConfigError(`PADDLE_ENV must be sandbox or production, got "${paddleEnv}"`)
-  const token = v.PADDLE_CLIENT_TOKEN
+  const token = billing.PADDLE_CLIENT_TOKEN
   if (!/^(test|live)_[A-Za-z0-9]{8,100}$/.test(token))
     throw new ConfigError('PADDLE_CLIENT_TOKEN must be test_ or live_ followed by letters and digits')
   if (!token.startsWith(TOKEN_PREFIX[paddleEnv]))
@@ -197,22 +197,22 @@ function parseBilling(env: Env, credential: (name: string) => string | null): Bi
     )
 
   const prices = {
-    monthly: v.PADDLE_PRICE_MONTHLY,
-    yearly: v.PADDLE_PRICE_YEARLY,
-    founding: v.PADDLE_PRICE_FOUNDING,
+    monthly: billing.PADDLE_PRICE_MONTHLY,
+    yearly: billing.PADDLE_PRICE_YEARLY,
+    founding: billing.PADDLE_PRICE_FOUNDING,
   }
   for (const [name, id] of Object.entries(prices))
     if (!/^pri_[a-z0-9]{4,60}$/.test(id))
       throw new ConfigError(`PADDLE_PRICE_${name.toUpperCase()} must be a Paddle price id (pri_…), got "${id}"`)
   if (new Set(Object.values(prices)).size !== 3) throw new ConfigError('The three PADDLE_PRICE_ ids must differ')
 
-  const apiKey = v['paddle_api_key (or PADDLE_API_KEY)']
+  const apiKey = billing['paddle_api_key (or PADDLE_API_KEY)']
   if (/\s/.test(apiKey) || apiKey.length < 20 || apiKey.length > 200)
     throw new ConfigError('The Paddle API key must be 20–200 characters with no whitespace')
   const keyEnv = KEY_ENV.exec(apiKey)?.[1]
   if (keyEnv && (keyEnv === 'live') !== (paddleEnv === 'production'))
     throw new ConfigError(`The Paddle API key is for the other environment than PADDLE_ENV=${paddleEnv}`)
-  const webhookSecret = v['paddle_webhook_secret (or PADDLE_WEBHOOK_SECRET)']
+  const webhookSecret = billing['paddle_webhook_secret (or PADDLE_WEBHOOK_SECRET)']
   if (/\s/.test(webhookSecret) || webhookSecret.length < 16 || webhookSecret.length > 200)
     throw new ConfigError('The Paddle webhook secret must be 16–200 characters with no whitespace')
 

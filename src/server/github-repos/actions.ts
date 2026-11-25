@@ -114,14 +114,19 @@ async function resolveAddress(
     return head.problem === 'not-found' ? { ok: false, problem: 'ref-not-found' } : head
   }
   const most = Math.min(3, mode === 'blob' ? segments.length - 1 : segments.length)
-  for (let n = 1; n <= most; n++) {
-    const ref = segments.slice(0, n).join('/')
+  for (let segmentCount = 1; segmentCount <= most; segmentCount++) {
+    const ref = segments.slice(0, segmentCount).join('/')
     if (ref.length > 255) break
     const found = await resolveNamedRef(info, ref, options)
     if (found.ok)
       return {
         ok: true,
-        value: { ref, refKind: found.value.kind, commit: found.value.commit, path: segments.slice(n).join('/') },
+        value: {
+          ref,
+          refKind: found.value.kind,
+          commit: found.value.commit,
+          path: segments.slice(segmentCount).join('/'),
+        },
       }
     if (found.problem === 'empty') return { ok: false, problem: 'ref-not-found' }
     if (found.problem !== 'not-found') return found

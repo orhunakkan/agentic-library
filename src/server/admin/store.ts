@@ -187,23 +187,27 @@ export async function listForAdmin(db: Db, viewerId: number, username?: string):
     ${username === undefined ? db`` : db`where u.username = ${username}`}
     order by u.username`
   return Promise.all(
-    rows.map(async (r) => ({
-      id: Number(r.id),
-      username: r.username,
-      role: r.role,
-      createdAt: r.created_at,
-      passwordChangedAt: r.password_changed_at,
-      disabledAt: r.disabled_at,
-      lastActiveAt: r.last_active_at,
-      sessions: Number(r.sessions),
-      hasKey: r.has_key,
-      email: emailStatus(r.has_email, r.email_bounced),
-      given: r.given,
-      paid: r.paid_cadence
-        ? { cadence: r.paid_cadence, founding: r.paid_founding === true, pastDue: r.paid_status === 'past_due' }
+    rows.map(async (user) => ({
+      id: Number(user.id),
+      username: user.username,
+      role: user.role,
+      createdAt: user.created_at,
+      passwordChangedAt: user.password_changed_at,
+      disabledAt: user.disabled_at,
+      lastActiveAt: user.last_active_at,
+      sessions: Number(user.sessions),
+      hasKey: user.has_key,
+      email: emailStatus(user.has_email, user.email_bounced),
+      given: user.given,
+      paid: user.paid_cadence
+        ? {
+            cadence: user.paid_cadence,
+            founding: user.paid_founding === true,
+            pastDue: user.paid_status === 'past_due',
+          }
         : null,
-      lockedUntil: await usernameLockedUntil(db, r.username),
-      you: Number(r.id) === viewerId,
+      lockedUntil: await usernameLockedUntil(db, user.username),
+      you: Number(user.id) === viewerId,
     })),
   )
 }

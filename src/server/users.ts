@@ -47,18 +47,18 @@ interface UserRow {
   email_bounced_at: Date | null
 }
 
-const toUser = (r: UserRow): User => ({
-  id: Number(r.id),
-  username: r.username,
-  passwordHash: r.password_hash,
-  role: r.role,
-  createdAt: r.created_at,
-  passwordChangedAt: r.password_changed_at,
-  disabledAt: r.disabled_at,
-  aiModel: resolveAiModel(r.ai_model),
-  email: r.email,
-  emailVerifiedAt: r.email_verified_at,
-  emailBouncedAt: r.email_bounced_at,
+const toUser = (user: UserRow): User => ({
+  id: Number(user.id),
+  username: user.username,
+  passwordHash: user.password_hash,
+  role: user.role,
+  createdAt: user.created_at,
+  passwordChangedAt: user.password_changed_at,
+  disabledAt: user.disabled_at,
+  aiModel: resolveAiModel(user.ai_model),
+  email: user.email,
+  emailVerifiedAt: user.email_verified_at,
+  emailBouncedAt: user.email_bounced_at,
 })
 
 export async function findUserByUsername(db: Db, username: string): Promise<User | null> {
@@ -163,17 +163,17 @@ export async function listUsers(db: Db): Promise<UserSummary[]> {
       order by s.created_at desc limit 1
     ) paid on true
     order by u.username`
-  return rows.map((r) => ({
-    username: r.username,
-    role: r.role,
-    createdAt: r.created_at,
-    disabledAt: r.disabled_at,
-    activeSessions: Number(r.active_sessions),
-    hasApiKey: r.has_api_key,
-    email: emailStatus(r.has_email, r.email_bounced),
-    proGiven: r.pro_given,
-    paid: r.paid_cadence
-      ? { cadence: r.paid_cadence, founding: r.paid_founding === true, pastDue: r.paid_status === 'past_due' }
+  return rows.map((user) => ({
+    username: user.username,
+    role: user.role,
+    createdAt: user.created_at,
+    disabledAt: user.disabled_at,
+    activeSessions: Number(user.active_sessions),
+    hasApiKey: user.has_api_key,
+    email: emailStatus(user.has_email, user.email_bounced),
+    proGiven: user.pro_given,
+    paid: user.paid_cadence
+      ? { cadence: user.paid_cadence, founding: user.paid_founding === true, pastDue: user.paid_status === 'past_due' }
       : null,
   }))
 }

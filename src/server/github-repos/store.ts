@@ -37,20 +37,20 @@ interface RawRepo {
   gone_at: Date | null
 }
 
-const toRow = (r: RawRepo): RepoRow => ({
-  id: r.id,
-  githubId: Number(r.github_id),
-  owner: r.owner,
-  name: r.name,
-  ref: r.ref,
-  refKind: r.ref_kind,
-  defaultBranch: r.default_branch,
-  description: r.description,
-  commitSha: r.commit_sha,
-  addedAt: r.added_at,
-  checkedAt: r.checked_at,
-  openedAt: r.opened_at,
-  goneAt: r.gone_at,
+const toRow = (repo: RawRepo): RepoRow => ({
+  id: repo.id,
+  githubId: Number(repo.github_id),
+  owner: repo.owner,
+  name: repo.name,
+  ref: repo.ref,
+  refKind: repo.ref_kind,
+  defaultBranch: repo.default_branch,
+  description: repo.description,
+  commitSha: repo.commit_sha,
+  addedAt: repo.added_at,
+  checkedAt: repo.checked_at,
+  openedAt: repo.opened_at,
+  goneAt: repo.gone_at,
 })
 
 const COLUMNS = (db: Db) =>

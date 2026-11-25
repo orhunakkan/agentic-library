@@ -28,27 +28,27 @@ export interface SubscriptionFixture {
   updatedAt?: string
 }
 
-export function paddleSubscription(f: SubscriptionFixture = {}): Record<string, unknown> {
-  const priceId = f.priceId ?? TEST_PRICES.monthly
+export function paddleSubscription(fixture: SubscriptionFixture = {}): Record<string, unknown> {
+  const priceId = fixture.priceId ?? TEST_PRICES.monthly
   const interval = priceId === TEST_PRICES.monthly ? 'month' : 'year'
-  const periodEndsAt = f.periodEndsAt === undefined ? '2026-12-10T09:00:00.000Z' : f.periodEndsAt
+  const periodEndsAt = fixture.periodEndsAt === undefined ? '2026-12-10T09:00:00.000Z' : fixture.periodEndsAt
   return {
-    id: f.id ?? 'sub_01testsubscription',
-    status: f.status ?? 'active',
-    customer_id: f.customerId ?? 'ctm_01testcustomer',
+    id: fixture.id ?? 'sub_01testsubscription',
+    status: fixture.status ?? 'active',
+    customer_id: fixture.customerId ?? 'ctm_01testcustomer',
     address_id: 'add_01testaddress',
     currency_code: 'USD',
-    created_at: f.createdAt ?? '2026-11-10T09:00:00.000Z',
-    updated_at: f.updatedAt ?? '2026-11-10T09:00:00.000Z',
+    created_at: fixture.createdAt ?? '2026-11-10T09:00:00.000Z',
+    updated_at: fixture.updatedAt ?? '2026-11-10T09:00:00.000Z',
     started_at: '2026-11-10T09:00:00.000Z',
     first_billed_at: '2026-11-10T09:00:00.000Z',
     next_billed_at: periodEndsAt,
     paused_at: null,
-    canceled_at: f.canceledAt ?? null,
+    canceled_at: fixture.canceledAt ?? null,
     collection_mode: 'automatic',
     billing_cycle: { interval, frequency: 1 },
     current_billing_period: periodEndsAt ? { starts_at: '2026-11-10T09:00:00.000Z', ends_at: periodEndsAt } : null,
-    scheduled_change: f.cancelAt ? { action: 'cancel', effective_at: f.cancelAt, resume_at: null } : null,
+    scheduled_change: fixture.cancelAt ? { action: 'cancel', effective_at: fixture.cancelAt, resume_at: null } : null,
     items: [
       {
         status: 'active',
@@ -62,7 +62,7 @@ export function paddleSubscription(f: SubscriptionFixture = {}): Record<string, 
         },
       },
     ],
-    custom_data: f.userId === null ? null : { folio_user: String(f.userId ?? 1) },
+    custom_data: fixture.userId === null ? null : { folio_user: String(fixture.userId ?? 1) },
   }
 }
 

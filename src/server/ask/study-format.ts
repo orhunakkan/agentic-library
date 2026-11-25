@@ -111,11 +111,11 @@ const withMarkers = (text: string, citations: readonly StudyCitation[]) =>
   `${text}${citations.map((_, i) => citationMarker(i)).join('')}`
 
 function question(item: RawItem, citations: StudyCitation[], rng: Rng): ReadQuestion | null {
-  const q = tidy(item.fields.get('question') ?? '')
+  const questionText = tidy(item.fields.get('question') ?? '')
   const why = tidy(item.fields.get('why') ?? '')
   const choices = (['A', 'B', 'C', 'D'] as const).map((letter) => tidy(item.fields.get(letter) ?? ''))
   const answer = answerIndex(item.fields.get('answer') ?? '')
-  if (item.repeated || answer === null || !within(q, QUESTION_CHARS) || !within(why, WHY_CHARS)) return null
+  if (item.repeated || answer === null || !within(questionText, QUESTION_CHARS) || !within(why, WHY_CHARS)) return null
   if (!choices.every((c) => within(c, CHOICE_CHARS))) return null
   if (new Set(choices.map((c) => c.toLowerCase())).size !== 4) return null
   const order = [0, 1, 2, 3]
@@ -124,7 +124,7 @@ function question(item: RawItem, citations: StudyCitation[], rng: Rng): ReadQues
     ;[order[i], order[j]] = [order[j] as number, order[i] as number]
   }
   return {
-    question: q,
+    question: questionText,
     choices: order.map((i) => choices[i] as string) as ReadQuestion['choices'],
     answer: order.indexOf(answer) as ReadQuestion['answer'],
     why: withMarkers(why, citations),

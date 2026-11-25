@@ -84,13 +84,16 @@ function spokenFor(input: SpeakInput, loaded: LoadedChapter): Spoken | null {
   const page = chapter.pages[pageIndex]
   if (!page) return null
   const at = all.findIndex((a) => a.pageIndex === pageIndex && a.u.start === input.start && a.u.end === input.end)
-  const u = all[at]?.u
-  if (!u) return null
+  const utterance = all[at]?.u
+  if (!utterance) return null
   return {
-    say: u.say,
+    say: utterance.say,
     previous: around(flat.slice(0, at), enough, true),
     next: around(flat.slice(at + 1), enough, false),
-    words: u.kind === 'code' && u.say === CODE_SAY ? null : { text: page.text, start: u.start, end: u.end },
+    words:
+      utterance.kind === 'code' && utterance.say === CODE_SAY
+        ? null
+        : { text: page.text, start: utterance.start, end: utterance.end },
   }
 }
 

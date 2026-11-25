@@ -7,13 +7,13 @@ import { type AudiobookChapterRow, audiobookChapters } from './store.ts'
 export const audioFileHref = (bookId: string, n: number) => `/account/books/${bookId}/audio/${n}`
 
 export function audioEpisodes(bookId: string, chapters: readonly AudiobookChapterRow[]): AudioEpisode[] {
-  return chapters.map((c) => ({
-    id: String(c.position),
-    slug: `chapter-${c.position}`,
-    title: c.title,
-    number: c.position,
-    durationMs: c.durationMs,
-    audioUrl: audioFileHref(bookId, c.fileN),
+  return chapters.map((chapter) => ({
+    id: String(chapter.position),
+    slug: `chapter-${chapter.position}`,
+    title: chapter.title,
+    number: chapter.position,
+    durationMs: chapter.durationMs,
+    audioUrl: audioFileHref(bookId, chapter.fileN),
   }))
 }
 

@@ -85,20 +85,20 @@ async function jsonOf(response: Response): Promise<unknown> {
 
 const stringOr = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null)
 
-function toVoice(v: unknown): CloudVoice | null {
-  if (!isObject(v)) return null
-  if (typeof v.voice_id !== 'string' || !VOICE_ID.test(v.voice_id)) return null
-  const name = stringOr(v.name)?.slice(0, 100)
+function toVoice(voice: unknown): CloudVoice | null {
+  if (!isObject(voice)) return null
+  if (typeof voice.voice_id !== 'string' || !VOICE_ID.test(voice.voice_id)) return null
+  const name = stringOr(voice.name)?.slice(0, 100)
   if (!name) return null
-  const labels: Record<string, unknown> = isObject(v.labels) ? v.labels : {}
+  const labels: Record<string, unknown> = isObject(voice.labels) ? voice.labels : {}
   const languages = new Set<string>()
-  for (const l of Array.isArray(v.verified_languages) ? v.verified_languages : []) {
+  for (const l of Array.isArray(voice.verified_languages) ? voice.verified_languages : []) {
     const language = stringOr(isObject(l) ? l.language : null)
     const base = language?.replace(/_/g, '-').split('-')[0]?.toLowerCase()
     if (base && /^[a-z]{2,3}$/.test(base)) languages.add(base)
   }
   return {
-    id: v.voice_id,
+    id: voice.voice_id,
     name,
     accent: stringOr(labels.accent)?.slice(0, 40) ?? null,
     gender: stringOr(labels.gender)?.slice(0, 20) ?? null,

@@ -45,11 +45,11 @@ export interface DetailColumns {
   published_year: number | null
 }
 
-export const detailsOf = (r: DetailColumns): BookDetails => ({
-  description: r.description,
-  isbn: r.isbn,
-  publisher: r.publisher,
-  publishedYear: r.published_year,
+export const detailsOf = (detailColumns: DetailColumns): BookDetails => ({
+  description: detailColumns.description,
+  isbn: detailColumns.isbn,
+  publisher: detailColumns.publisher,
+  publishedYear: detailColumns.published_year,
 })
 
 export const COVER_COLUMNS =
@@ -236,19 +236,19 @@ export async function listBooks(db: Db, userId: number): Promise<UserBook[]> {
     from user_books b left join user_book_covers k on k.book_id = b.id
     where b.user_id = ${userId} and b.status = 'ready' and b.article_url is null
     order by b.ready_at desc, b.id`
-  return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    author: r.author,
-    language: r.language,
-    chapterCount: r.chapter_count,
-    htmlBytes: Number(r.html_bytes),
-    readyAt: r.ready_at,
-    firstChapter: r.first_chapter ?? 'chapter-1',
-    details: detailsOf(r),
-    cover: coverMetaOf(r),
-    format: r.format,
-    audioMs: r.audio_ms === null ? null : Number(r.audio_ms),
+  return rows.map((book) => ({
+    id: book.id,
+    title: book.title,
+    author: book.author,
+    language: book.language,
+    chapterCount: book.chapter_count,
+    htmlBytes: Number(book.html_bytes),
+    readyAt: book.ready_at,
+    firstChapter: book.first_chapter ?? 'chapter-1',
+    details: detailsOf(book),
+    cover: coverMetaOf(book),
+    format: book.format,
+    audioMs: book.audio_ms === null ? null : Number(book.audio_ms),
   }))
 }
 
@@ -269,15 +269,15 @@ export async function listArticles(db: Db, userId: number): Promise<UserArticle[
     from user_books b left join user_book_covers k on k.book_id = b.id
     where b.user_id = ${userId} and b.status = 'ready' and b.article_url is not null
     order by b.ready_at desc, b.id`
-  return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    author: r.author,
-    cover: coverMetaOf(r),
-    url: r.article_url,
-    words: r.article_words ?? 0,
-    savedAt: r.ready_at,
-    firstChapter: r.first_chapter ?? 'chapter-1',
+  return rows.map((article) => ({
+    id: article.id,
+    title: article.title,
+    author: article.author,
+    cover: coverMetaOf(article),
+    url: article.article_url,
+    words: article.article_words ?? 0,
+    savedAt: article.ready_at,
+    firstChapter: article.first_chapter ?? 'chapter-1',
   }))
 }
 
