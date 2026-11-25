@@ -12,6 +12,7 @@ export const STUB_OPENAI_KEYS = {
   midStreamError: 'break',
   failedResponse: 'failed',
   slow: 'slow',
+  cached: 'cached',
 } as const
 
 export const OPENAI_VALID_PREFIX = 'sk-test-openai-valid'
@@ -176,7 +177,10 @@ function translation(body: Body, ending: string): Response {
         { type: 'reasoning', id: 'rs_stub', summary: [] },
         { type: 'message', id: 'msg_stub', role: 'assistant', status: 'completed', content },
       ],
-      usage: { ...usage(12), input_tokens: 90, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 } },
+      usage:
+        ending === STUB_OPENAI_KEYS.cached
+          ? usage(12)
+          : { ...usage(12), input_tokens: 90, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 } },
     }),
   )
 }

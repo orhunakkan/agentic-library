@@ -4,6 +4,7 @@ import OpenAI from 'openai'
 import { englishName, type TranslateLanguage } from '../../shared/lookup/languages.ts'
 import { anthropicClient, FALLBACK_BETA } from '../anthropic.ts'
 import { withApiKey } from '../api-keys.ts'
+import { openAiUsage } from '../ask/openai-stream.ts'
 import { askErrorCode } from '../ask/stream.ts'
 import { getConfig } from '../config.ts'
 import type { Db } from '../db.ts'
@@ -166,6 +167,11 @@ export async function runTranslation(
   }
 }
 
+export function openAiTranslateUsage(response: Pick<OpenAI.Responses.Response, 'model' | 'usage'>): TranslateUsage {
+  const { inputTokens, outputTokens } = openAiUsage(response.usage)
+  return { servedBy: response.model, inputTokens, outputTokens }
+}
+
 export async function runOpenAiTranslation(
   db: Db,
   userId: number,
@@ -189,11 +195,7 @@ export async function runOpenAiTranslation(
       },
       db,
     )
-    const usage: TranslateUsage = {
-      servedBy: response.model,
-      inputTokens: response.usage?.input_tokens ?? 0,
-      outputTokens: response.usage?.output_tokens ?? 0,
-    }
+    const usage = openAiTranslateUsage(response)
     const { text, refused } = openAiTranslationOf(response)
     if (refused) return { ok: false, code: 'refused', ...usage }
     return text ? { ok: true, translation: text, ...usage } : { ok: false, code: 'failed', ...usage }

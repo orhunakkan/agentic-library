@@ -2,6 +2,7 @@ import type OpenAI from 'openai'
 import { describe, expect, it } from 'vitest'
 import {
   openAiTranslateRequest,
+  openAiTranslateUsage,
   openAiTranslationOf,
   systemPrompt,
   TRANSLATION_MAX,
@@ -121,5 +122,36 @@ describe('openAiTranslationOf', () => {
   it('reads a refusal with no text as refused, and no output as empty', () => {
     expect(openAiTranslationOf(output({ type: 'refusal', refusal: 'No.' }))).toEqual({ text: '', refused: true })
     expect(openAiTranslationOf({ output: [] })).toEqual({ text: '', refused: false })
+  })
+})
+
+describe('openAiTranslateUsage', () => {
+  const answer = (input: number, cached: number) =>
+    ({
+      model: 'gpt-6.1-terra-2026-10-01',
+      usage: {
+        input_tokens: input,
+        input_tokens_details: { cached_tokens: cached },
+        output_tokens: 12,
+        output_tokens_details: { reasoning_tokens: 0 },
+        total_tokens: input + 12,
+      },
+    }) as Pick<OpenAI.Responses.Response, 'model' | 'usage'>
+
+  it('counts input tokens without the cached ones, as Ask does', () => {
+    expect(openAiTranslateUsage(answer(1200, 1000))).toEqual({
+      servedBy: 'gpt-6.1-terra-2026-10-01',
+      inputTokens: 200,
+      outputTokens: 12,
+    })
+    expect(openAiTranslateUsage(answer(90, 0)).inputTokens).toBe(90)
+  })
+
+  it('counts nothing when OpenAI sends no usage', () => {
+    expect(openAiTranslateUsage({ model: 'gpt-6.1-terra', usage: undefined })).toEqual({
+      servedBy: 'gpt-6.1-terra',
+      inputTokens: 0,
+      outputTokens: 0,
+    })
   })
 })

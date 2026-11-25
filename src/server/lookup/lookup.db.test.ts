@@ -437,6 +437,16 @@ describe('POST /account/lookup/translate on a GPT model', () => {
     ])
   })
 
+  it('records input tokens without the ones OpenAI served from its cache, as Ask does', async () => {
+    const { user, cookie } = await gptReader({ openai: openAiKey(STUB_OPENAI_KEYS.cached) })
+    expect((await translate(cookie, { book: BOOK, text: 'chaise', to: 'tr' })).status).toBe(200)
+    expect((await details('word.translated', user.id))[0]).toMatchObject({
+      provider: 'openai',
+      inputTokens: 200,
+      outputTokens: 12,
+    })
+  })
+
   it('is 409 no_key with only an Anthropic key, and doesn’t fall back to Claude', async () => {
     const { user, cookie } = await gptReader({ openai: null, anthropic: true })
     const res = await translate(cookie, { book: BOOK, text: 'chaise', to: 'tr' })
