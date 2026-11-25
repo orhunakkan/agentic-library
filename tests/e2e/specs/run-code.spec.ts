@@ -1,8 +1,17 @@
+import type { Page } from '@playwright/test'
 import { signedInAt } from '../support/accounts'
 import { expect, expectAccessible, expectNoSideways, hydrated, test } from '../support/fixtures'
 
 const LISTING = '/read/fixture-code-book/values-and-names/2'
 const ORIGINAL = 'let ten = 10;\nconsole.log(ten * ten);\n// → 100'
+
+/** What code run in the reader could change about Folio in this browser, if it got out of its sandbox. */
+const folioState = (page: Page) =>
+  page.evaluate(async () => ({
+    cookie: document.cookie,
+    storage: Object.keys(localStorage).sort(),
+    databases: (await indexedDB.databases()).map((d) => d.name).sort(),
+  }))
 
 test.describe('Run code', () => {
   test('a Pro reader runs a JavaScript example, edits and breaks it, resets it, and runs a TypeScript one', async ({
@@ -67,13 +76,8 @@ test.describe('Run code', () => {
     await expect(page.getByRole('button', { name: /^Run .* example$/ })).toHaveCount(0)
   })
 
-  test('Python and SQL run, and code can’t outlast its time, reach the network or touch Folio', async ({
-    page,
-    runDialog,
-  }, testInfo) => {
+  test('signed out, the dialog shows the code read-only and asks to sign in', async ({ page, runDialog }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The engines and the sandbox are the same on every layout.')
-    test.setTimeout(90_000)
-
     await page.goto(LISTING)
     await hydrated(page)
     await runDialog.openFrom(runDialog.openButtons('JavaScript'))
@@ -85,13 +89,13 @@ test.describe('Run code', () => {
     await expect(runDialog.readOnlyCode).toHaveText(ORIGINAL)
     await expect(runDialog.editor).toHaveCount(0)
     await runDialog.close()
+  })
 
+  test('Python runs, and says it is getting ready the first time', async ({ page, runDialog }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The engines and the sandbox are the same on every layout.')
+    test.setTimeout(90_000)
     await signedInAt(page, '/read/fixture-code-book/other-languages')
-    const before = await page.evaluate(async () => ({
-      cookie: document.cookie,
-      storage: Object.keys(localStorage).sort(),
-      databases: (await indexedDB.databases()).map((d) => d.name).sort(),
-    }))
+    const before = await folioState(page)
 
     await runDialog.openFrom(runDialog.openButtons('Python'))
     await runDialog.status.evaluate((status) => {
@@ -109,51 +113,85 @@ test.describe('Run code', () => {
       'Getting Python ready. The first time downloads about 12 MB.',
     )
     await runDialog.close()
+    expect(await folioState(page)).toEqual(before)
+  })
 
-    await page.route('**/run-code/sqlite-*/sqlite3.mjs', (route) => route.abort())
-    await runDialog.openFrom(runDialog.openButtons('SQL'))
-    await runDialog.run()
-    await expect(runDialog.status).toHaveText('Couldn’t get SQLite ready. Check your connection and try again.', {
-      timeout: 30_000,
+  test('SQL that couldn’t get ready runs once it can', async ({ page, runDialog }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The engines and the sandbox are the same on every layout.')
+    await signedInAt(page, '/read/fixture-code-book/other-languages')
+    const before = await folioState(page)
+
+    await test.step('a failed download of SQLite says so', async () => {
+      await page.route('**/run-code/sqlite-*/sqlite3.mjs', (route) => route.abort())
+      await runDialog.openFrom(runDialog.openButtons('SQL'))
+      await runDialog.run()
+      await expect(runDialog.status).toHaveText('Couldn’t get SQLite ready. Check your connection and try again.', {
+        timeout: 30_000,
+      })
+      await runDialog.close()
+      await page.unroute('**/run-code/sqlite-*/sqlite3.mjs')
     })
-    await runDialog.close()
-    await page.unroute('**/run-code/sqlite-*/sqlite3.mjs')
 
-    await runDialog.openFrom(runDialog.openButtons('SQL'))
-    await runDialog.run()
-    const table = runDialog.output.getByRole('table')
-    await expect(table.getByRole('row')).toHaveCount(4, { timeout: 30_000 })
-    await expect(table.getByRole('columnheader')).toHaveText(['title', 'pages'])
-    await expect(table.getByRole('row').nth(1).getByRole('cell')).toHaveText(['Sanditon', '120'])
-    await expect(runDialog.output).toContainText('3 rows changed')
-    await runDialog.close()
+    await test.step('the next run shows its table and the rows it changed', async () => {
+      await runDialog.openFrom(runDialog.openButtons('SQL'))
+      await runDialog.run()
+      const table = runDialog.output.getByRole('table')
+      await expect(table.getByRole('row')).toHaveCount(4, { timeout: 30_000 })
+      await expect(table.getByRole('columnheader')).toHaveText(['title', 'pages'])
+      await expect(table.getByRole('row').nth(1).getByRole('cell')).toHaveText(['Sanditon', '120'])
+      await expect(runDialog.output).toContainText('3 rows changed')
+      await runDialog.close()
+    })
+    expect(await folioState(page)).toEqual(before)
+  })
 
-    await page.goto(LISTING)
-    await hydrated(page)
+  test('code can’t outlast its time or its output limit', async ({ page, runDialog }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The engines and the sandbox are the same on every layout.')
+    test.setTimeout(60_000)
+    await signedInAt(page, LISTING)
+    const before = await folioState(page)
     const open = runDialog.openButtons('JavaScript')
     await runDialog.openFrom(open)
 
-    await runDialog.write('while (true) {}')
-    await runDialog.run()
-    await expect(runDialog.stopButton).toBeVisible()
-    await expect(runDialog.status).toHaveText('Stopped after 5 seconds. A loop or a timer may never end.', {
-      timeout: 15_000,
+    await test.step('a loop that never ends is stopped after 5 seconds', async () => {
+      await runDialog.write('while (true) {}')
+      await runDialog.run()
+      await expect(runDialog.stopButton).toBeVisible()
+      await expect(runDialog.status).toHaveText('Stopped after 5 seconds. A loop or a timer may never end.', {
+        timeout: 15_000,
+      })
     })
-    await runDialog.run()
-    await expect(runDialog.status).toHaveText('Running…')
-    await runDialog.stopButton.click()
-    await expect(runDialog.status).toHaveText('Stopped.')
-    await runDialog.run()
-    await expect(runDialog.status).toHaveText('Running…')
-    await runDialog.close()
-    await expect(page.locator('iframe[sandbox]')).toHaveCount(0)
-    await runDialog.openFrom(open)
 
-    await runDialog.write('for (;;) console.log("again")')
-    await runDialog.run()
-    await expect(runDialog.status).toHaveText('Stopped: the output reached its limit.')
-    await expect(runDialog.output.getByText('again')).toHaveCount(1000)
+    await test.step('Stop ends a run', async () => {
+      await runDialog.run()
+      await expect(runDialog.status).toHaveText('Running…')
+      await runDialog.stopButton.click()
+      await expect(runDialog.status).toHaveText('Stopped.')
+    })
 
+    await test.step('closing the dialog ends a run', async () => {
+      await runDialog.run()
+      await expect(runDialog.status).toHaveText('Running…')
+      await runDialog.close()
+      await expect(page.locator('iframe[sandbox]')).toHaveCount(0)
+    })
+
+    await test.step('output that never ends is stopped at its limit', async () => {
+      await runDialog.openFrom(open)
+      await runDialog.write('for (;;) console.log("again")')
+      await runDialog.run()
+      await expect(runDialog.status).toHaveText('Stopped: the output reached its limit.')
+      await expect(runDialog.output.getByText('again')).toHaveCount(1000)
+      await runDialog.close()
+    })
+    expect(await folioState(page)).toEqual(before)
+  })
+
+  test('code can’t reach the network', async ({ page, runDialog }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The engines and the sandbox are the same on every layout.')
+    await signedInAt(page, LISTING)
+    const before = await folioState(page)
+    await runDialog.openFrom(runDialog.openButtons('JavaScript'))
     const origin = new URL(page.url()).origin
     for (const address of ['/account', `${origin}/account`]) {
       await runDialog.write(`const answer = await fetch('${address}')\nconsole.log(await answer.text())`)
@@ -161,7 +199,15 @@ test.describe('Run code', () => {
       await expect(runDialog.status).toHaveText(/^Stopped by an error/)
       await expect(runDialog.hint).toHaveText('Code here has no network access.')
     }
+    await runDialog.close()
+    expect(await folioState(page)).toEqual(before)
+  })
 
+  test('code can’t touch Folio’s storage or page', async ({ page, runDialog }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The engines and the sandbox are the same on every layout.')
+    await signedInAt(page, LISTING)
+    const before = await folioState(page)
+    await runDialog.openFrom(runDialog.openButtons('JavaScript'))
     for (const code of [
       "indexedDB.open('x')\nconsole.log('opened')",
       "caches.keys().then(() => console.log('opened'))",
@@ -173,13 +219,6 @@ test.describe('Run code', () => {
       await expect(runDialog.output).not.toContainText(/opened|reached/)
     }
     await runDialog.close()
-
-    expect(
-      await page.evaluate(async () => ({
-        cookie: document.cookie,
-        storage: Object.keys(localStorage).sort(),
-        databases: (await indexedDB.databases()).map((d) => d.name).sort(),
-      })),
-    ).toEqual(before)
+    expect(await folioState(page)).toEqual(before)
   })
 })
