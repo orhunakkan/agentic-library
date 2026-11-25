@@ -58,8 +58,8 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 | `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | — | — |
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | — | — |
 | `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | — | — |
-| `contributor-docs` | **next** | — | — |
-| `go-public` | — | — | — |
+| `contributor-docs` | [approved 2026-11-25](SPEC-contributor-docs.md) | — | — |
+| `go-public` | **next** | — | — |
 
 The owner chose to write every module spec before planning or building any of them. Specs are written one per
 session.
