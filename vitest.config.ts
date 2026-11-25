@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.ts', 'scripts/**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/*.db.test.ts'],
+    exclude: ['**/node_modules/**', '**/*.db.test.ts', '**/*.browser.test.tsx'],
     environment: 'node',
     env: { CONTENT_DIR },
     coverage: {
@@ -14,7 +14,7 @@ export default defineConfig({
       reporter: [['text-summary', { file: 'summary.txt' }], 'html', 'lcovonly'],
       reportsDirectory: 'coverage/unit',
       include: ['src/shared/**/*.ts', 'src/client/**/*.ts'],
-      exclude: ['**/*.test.ts'],
+      exclude: ['**/*.test.ts', 'src/client/testing/**'],
       thresholds: { statements: 91, branches: 89, functions: 91, lines: 92 },
     },
   },

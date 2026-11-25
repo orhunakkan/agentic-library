@@ -80,7 +80,7 @@ function resolveImport(fromFile: string, specifier: string): string | null {
 }
 
 function importedByTests(): Set<string> {
-  const tests = ['src', 'tests', 'scripts'].flatMap(filesUnder).filter((f) => f.endsWith('.test.ts'))
+  const tests = ['src', 'tests', 'scripts'].flatMap(filesUnder).filter((f) => /\.test\.tsx?$/.test(f))
   const imported = new Set<string>()
   for (const file of tests) {
     const source = readFileSync(file, 'utf8')
@@ -96,9 +96,12 @@ function importedByTests(): Set<string> {
   return imported
 }
 
+/** Helpers that only tests use, like src/server/testing's fixtures and src/client/testing's mount. */
+const TEST_HELPERS = ['src/server/testing/', 'src/client/testing/']
+
 const modules = ['src/server', 'src/shared', 'src/client']
   .flatMap(filesUnder)
-  .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !f.startsWith('src/server/testing/'))
+  .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !TEST_HELPERS.some((dir) => f.startsWith(dir)))
   .sort()
 const imported = importedByTests()
 const isImported = (file: string) => imported.has(file.replace(/\.ts$/, ''))
@@ -109,9 +112,15 @@ describe('every module is tested', () => {
     expect(isImported('src/shared/import/paginate.ts')).toBe(true)
   })
 
+  it('counts imports from component tests (*.test.tsx) too', () => {
+    expect(isImported('src/client/testing/mount.ts'), 'only the *.browser.test.tsx files import it').toBe(true)
+  })
+
   it('has a test that imports each module, or an allowlist entry saying why not', () => {
     const untested = modules.filter((file) => !isImported(file) && !(file in ALLOWLIST))
-    expect(untested, 'Add a *.test.ts that imports these, or (with a reason) an ALLOWLIST entry').toEqual([])
+    expect(untested, 'Add a *.test.ts or *.test.tsx that imports these, or (with a reason) an ALLOWLIST entry').toEqual(
+      [],
+    )
   })
 
   it('has no stale allowlist entries', () => {
