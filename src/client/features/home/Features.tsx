@@ -36,7 +36,8 @@ export function Features() {
             passage to have it explained, or ask for a recap of the story so far.
           </p>
           <p className="text-[15px] text-muted">
-            Uses your own Anthropic key. Anthropic bills you directly; Folio adds nothing.
+            Uses your own Anthropic or OpenAI key, and they bill you directly; Folio adds nothing. Page links need a
+            Claude model.
           </p>
         </FeatureRow>
         <FeatureRow

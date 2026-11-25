@@ -28,10 +28,12 @@ export async function signedInAt(page: Page, next = '/library'): Promise<TestUse
   return user
 }
 
+const appOrigin = () => new URL(String(test.info().project.use.baseURL)).origin
+
 export async function signInOverHttp(request: APIRequestContext, user: TestUser): Promise<void> {
   const response = await request.post('/login', {
     form: { username: user.username, password: user.password },
-    headers: { origin: new URL(String(test.info().project.use.baseURL)).origin },
+    headers: { origin: appOrigin() },
     maxRedirects: 0,
   })
   expect(response.status(), 'sign-in answers 303').toBe(303)
@@ -40,12 +42,24 @@ export async function signInOverHttp(request: APIRequestContext, user: TestUser)
 
 export const validKey = (suffix: string) => `sk-ant-test-valid-${'x'.repeat(16)}${suffix}`
 
-export async function saveKey(page: Page, key = validKey('0000'), provider: 'anthropic' | 'elevenlabs' = 'anthropic') {
-  const origin = new URL(String(test.info().project.use.baseURL)).origin
+export async function saveKey(
+  page: Page,
+  key = validKey('0000'),
+  provider: 'anthropic' | 'openai' | 'elevenlabs' = 'anthropic',
+) {
   const response = await page.request.post('/account/api-keys', {
     form: { intent: 'save', provider, key },
-    headers: { origin },
+    headers: { origin: appOrigin() },
     maxRedirects: 0,
   })
   expect(response.headers().location).toContain('status=saved')
+}
+
+export async function chooseModel(page: Page, model: string) {
+  const response = await page.request.post('/account/api-keys', {
+    form: { intent: 'model', model },
+    headers: { origin: appOrigin() },
+    maxRedirects: 0,
+  })
+  expect(response.headers().location).toContain('status=model-saved')
 }

@@ -201,6 +201,13 @@ Answer from the book and cite the passages you rely on. If the book doesn't cove
 
 Call it "the book", never "the documents" or "the provided text". Be concise. Format with paragraphs, lists, inline code and fenced code blocks only: no headings, tables or links.`
 
+const CITE = 'Answer from the book and cite the passages you rely on.'
+const NAME_PAGES =
+  "Answer from the book. You can't attach citations here, so where it helps, name the chapter or page you draw on in words, as each page's heading gives it."
+
+/** For models without cited documents: the same rules, but pages are named in words instead of cited. */
+export const OPENAI_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(CITE, NAME_PAGES)
+
 export function describePosition(text: BookText, pageIndex: number): string {
   const page = pageAt(text, pageIndex)
   const chapter = text.chapters[page.chapterIndex]
@@ -257,7 +264,7 @@ export function highlightsForAsk(
   return picked
 }
 
-export function highlightsPart(highlights: readonly AskHighlight[]): string {
+function highlightsPart(highlights: readonly AskHighlight[]): string {
   const entries = highlights.map(
     (h) => `<highlight page="${h.label}">\n${h.text}\n</highlight>${h.note ? `\n<note>\n${h.note}\n</note>` : ''}`,
   )

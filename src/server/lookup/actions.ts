@@ -1,16 +1,24 @@
 import '@tanstack/react-start/server-only'
+import { type AiModelId, type AiProvider, isAiModel, providerOf } from '../../shared/lib/ai-models.ts'
 import type { TranslateErrorCode, WordAnswer, WordErrorCode } from '../../shared/lookup/contract.ts'
 import { primaryLanguage } from '../../shared/lookup/languages.ts'
 import { hasKey } from '../api-keys.ts'
 import { noStoreJson, requestIp } from '../auth.ts'
-import { openBook } from '../books/book.ts'
+import { openTextBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
 import { requirePro } from '../plans/plan.ts'
 import { take } from '../quota.ts'
 import { signedInEndpoints } from '../signed-in.ts'
 import { getAiModel } from '../users.ts'
 import { parseTranslateInput, parseWordInput } from './input.ts'
-import { runTranslation, translateRequest } from './translate.ts'
+import {
+  openAiTranslateRequest,
+  runOpenAiTranslation,
+  runTranslation,
+  type TranslateJob,
+  type TranslateOutcome,
+  translateRequest,
+} from './translate.ts'
 import {
   definition,
   summary,
@@ -32,7 +40,7 @@ interface LookupBook {
 }
 
 async function lookupBook(db: Db, userId: number, slug: string): Promise<LookupBook | null> {
-  const book = await openBook(db, userId, slug).then((b) => (b?.format === 'text' ? b : null))
+  const book = await openTextBook(db, userId, slug)
   return book && { title: book.title, lang: primaryLanguage(book.language) }
 }
 
@@ -92,6 +100,24 @@ export const handleWordLookup = (request: Request, options: LookupOptions = {}) 
     return noStoreJson(200, found.value.answer)
   })
 
+type Translator = (
+  db: Db,
+  userId: number,
+  job: TranslateJob,
+  options: { signal: AbortSignal; fetch?: typeof fetch },
+) => Promise<TranslateOutcome>
+
+const TRANSLATORS: Record<AiProvider, Translator> = {
+  anthropic: (db, userId, job, options) => runTranslation(db, userId, translateRequest(job), options),
+  openai: (db, userId, job, options) => runOpenAiTranslation(db, userId, openAiTranslateRequest(job), options),
+}
+
+/** The model to credit: Claude's as served, which may be a fallback; GPT's as chosen, not its dated snapshot. */
+const CREDITED: Record<AiProvider, (servedBy: string | null, model: AiModelId) => string> = {
+  anthropic: (servedBy, model) => servedBy ?? model,
+  openai: (servedBy, model) => (isAiModel(servedBy) ? servedBy : model),
+}
+
 export const handleTranslate = (request: Request, options: LookupOptions = {}) =>
   lookups.post(
     request,
@@ -105,30 +131,32 @@ export const handleTranslate = (request: Request, options: LookupOptions = {}) =
       const { userId } = session
       const book = await lookupBook(db, userId, input.book)
       if (!book) return fail(404, 'not_found')
-      if (!(await hasKey(db, userId, 'anthropic'))) return fail(409, 'no_key')
       const model = await getAiModel(db, userId)
+      const provider = providerOf(model)
+      if (!(await hasKey(db, userId, provider))) return fail(409, 'no_key')
       const taken = await take(db, userId, 'translate', {
         ip: requestIp(request),
-        detail: { book: input.book, kind: input.kind, to: input.to, model },
+        detail: { book: input.book, kind: input.kind, to: input.to, model, provider },
       })
       if (!taken.ok) return fail(429, 'rate', { retryAt: taken.retryAt.toISOString() })
 
-      const params = translateRequest({
+      const job: TranslateJob = {
         text: input.text,
         context: input.context,
         to: input.to,
         bookTitle: book.title,
         bookLang: book.lang,
         model,
-      })
-      const result = await runTranslation(db, userId, params, { signal: request.signal, fetch: options.fetch })
+      }
+      const result = await TRANSLATORS[provider](db, userId, job, { signal: request.signal, fetch: options.fetch })
       await taken.settle({
         servedBy: result.servedBy,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         error: result.ok ? null : result.code,
       })
-      if (result.ok) return noStoreJson(200, { translation: result.translation, model: result.servedBy ?? model })
+      if (result.ok)
+        return noStoreJson(200, { translation: result.translation, model: CREDITED[provider](result.servedBy, model) })
       if (result.code === 'busy') return fail(503, 'busy')
       return fail(502, result.code === 'stopped' ? 'failed' : result.code)
     },

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
 import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { saveKey } from '~/server/api-keys'
 import { handleAsk } from '~/server/ask/ask'
+import { askSetup } from '~/server/ask/setup'
 import { createPrompt } from '~/server/ask-prompts/store'
 import { refFor } from '~/server/books/ref'
 import { getConfig } from '~/server/config'
@@ -16,6 +17,7 @@ import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
 import { anthropicStub, STUB_KEYS, STUB_RIGHT_ANSWER } from '../../../tests/e2e/support/anthropic-stub'
+import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/e2e/support/openai-stub'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
@@ -36,8 +38,10 @@ beforeEach(async () => {
 const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 const key = (ending = '0000') => `sk-ant-test-valid-${'x'.repeat(16)}${ending}`
-const stubFetch = ((input: RequestInfo | URL, init?: RequestInit) =>
-  anthropicStub(new Request(input, init))) as typeof fetch
+const stubFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  const request = new Request(input, init)
+  return request.url.startsWith(getConfig().openAiApiBase) ? openAiStub(request) : anthropicStub(request)
+}) as typeof fetch
 
 let users = 0
 async function reader({ withKey = key() as string | null } = {}) {
@@ -116,6 +120,7 @@ describe('POST /read/<book>/ask', () => {
     expect(audit).toEqual({
       book: 'pride-and-prejudice',
       model: 'claude-opus-5-5',
+      provider: 'anthropic',
       servedBy: 'claude-opus-5-5',
       inputTokens: 120,
       cacheReadTokens: 0,
@@ -743,5 +748,174 @@ describe('Ask for a quiz or flashcards', () => {
     const out = await events(await ask('pride-and-prejudice', cookie, body(QUIZ)))
     expect(out).toEqual([{ type: 'error', code: 'bad_format' }])
     expect((await askedEvents(user.id))[0]).toMatchObject({ action: 'quiz', items: null, error: 'bad_format' })
+  })
+})
+
+describe('Ask on a GPT model', () => {
+  async function gptReader({ model = 'gpt-6-luna', openai = openAiKey() as string | null, anthropic = false } = {}) {
+    const found = await reader({ withKey: anthropic ? key() : null })
+    if (openai) await saveKey(db(), found.user.id, 'openai', openai)
+    await setAiModel(db(), found.user.id, model as Parameters<typeof setAiModel>[2])
+    return found
+  }
+
+  it('tells the panel which keys are saved and which provider the chosen model needs', async () => {
+    const { user, cookie } = await gptReader()
+    const setup = () => askSetup(new Request(`${origin}/read/pride-and-prejudice`, { headers: { cookie } }))
+    expect(await setup()).toMatchObject({
+      signedIn: true,
+      pro: true,
+      hasKey: true,
+      keys: { anthropic: false, openai: true },
+      model: 'gpt-6-luna',
+      provider: 'openai',
+    })
+    await setAiModel(db(), user.id, 'claude-sonnet-5-5')
+    expect(await setup()).toMatchObject({ hasKey: false, provider: 'anthropic', model: 'claude-sonnet-5-5' })
+    await saveKey(db(), user.id, 'anthropic', key())
+    expect(await setup()).toMatchObject({ hasKey: true, keys: { anthropic: true, openai: true } })
+  })
+
+  it('streams the answer through OpenAI on the reader’s key, with no citation events', async () => {
+    const { user, cookie } = await gptReader()
+    const response = await ask('pride-and-prejudice', cookie)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('application/x-ndjson; charset=utf-8')
+    const out = await events(response)
+    expect(out.map((e) => e.type)).toEqual(['text', 'text', 'done'])
+    expect(out[0]?.text).toMatch(/^GPT can see \d+ pages of the book\. $/)
+    expect(out.at(-1)).toEqual({ type: 'done', stop: 'end_turn' })
+
+    const [audit] = await askedEvents(user.id)
+    expect(audit).toEqual({
+      book: 'pride-and-prejudice',
+      model: 'gpt-6-luna',
+      provider: 'openai',
+      servedBy: 'gpt-6-luna-2026-10-01',
+      inputTokens: 200,
+      cacheReadTokens: 1_000,
+      cacheWriteTokens: 0,
+      outputTokens: 64,
+      wholeBook: false,
+      highlights: 0,
+      action: null,
+      items: null,
+      stop: 'end_turn',
+    })
+    expect(JSON.stringify(await raw`select * from audit_events`)).not.toContain('proud')
+    const [row] = await raw<
+      { last_used_at: Date | null }[]
+    >`select last_used_at from api_keys where provider = 'openai'`
+    expect(row?.last_used_at).not.toBeNull()
+  })
+
+  it('sends GPT the same pages Claude gets, the quote and a saved prompt', async () => {
+    const claude = await reader()
+    const gpt = await gptReader()
+    const pages = async (cookie: string, payload: unknown) =>
+      Number(
+        /can see (\d+) pages/.exec(
+          String((await events(await ask('pride-and-prejudice', cookie, payload)))[0]?.text),
+        )?.[1],
+      )
+    for (const payload of [body(), body({ wholeBook: true })]) {
+      expect(await pages(gpt.cookie, payload)).toBe(await pages(claude.cookie, payload))
+    }
+    const quoted = await events(await ask('pride-and-prejudice', gpt.cookie, body({ quote: 'He was the proudest' })))
+    expect(quoted[0]?.text).toContain('and the passage you selected')
+    const prompt = await createPrompt(db(), gpt.user.id, {
+      name: 'Who',
+      instruction: 'List the people',
+      appliesTo: 'pages',
+    })
+    if (typeof prompt === 'string') throw new Error(prompt)
+    const ran = await events(await ask('pride-and-prejudice', gpt.cookie, body({ question: 'Who', prompt: prompt.id })))
+    expect(ran[0]?.text).toContain('Prompt: List the people.')
+  })
+
+  it('uses the OpenAI key for a GPT model and the Anthropic key for a Claude one', async () => {
+    const both = await gptReader({ anthropic: true })
+    expect((await events(await ask('pride-and-prejudice', both.cookie)))[0]?.text).toMatch(/^GPT can see/)
+    await setAiModel(db(), both.user.id, 'claude-haiku-5-5')
+    expect((await events(await ask('pride-and-prejudice', both.cookie)))[0]?.text).toMatch(/^I can see/)
+    expect((await askedEvents(both.user.id)).map((a) => a.provider)).toEqual(['openai', 'anthropic'])
+  })
+
+  it('is 409 no_key with a GPT model and only an Anthropic key, and never falls back to Claude', async () => {
+    const { user, cookie } = await gptReader({ openai: null, anthropic: true })
+    const response = await ask('pride-and-prejudice', cookie)
+    expect([response.status, await response.json()]).toEqual([409, { error: 'no_key' }])
+    const claudeOnly = await reader()
+    await setAiModel(db(), claudeOnly.user.id, 'claude-haiku-5-5')
+    await raw`delete from api_keys where user_id = ${claudeOnly.user.id}`
+    await saveKey(db(), claudeOnly.user.id, 'openai', openAiKey())
+    const noAnthropic = await ask('pride-and-prejudice', claudeOnly.cookie)
+    expect([noAnthropic.status, await noAnthropic.json()]).toEqual([409, { error: 'no_key' }])
+    expect(await askedEvents(user.id)).toEqual([])
+  })
+
+  it('refuses a quiz or flashcards with 409 needs_claude, even with an Anthropic key saved, before auditing', async () => {
+    const { user, cookie } = await gptReader({ anthropic: true })
+    for (const action of ['quiz', 'flashcards']) {
+      const response = await ask('pride-and-prejudice', cookie, body({ question: 'Quiz me', action }))
+      expect([response.status, await response.json()], action).toEqual([409, { error: 'needs_claude' }])
+    }
+    expect(await askedEvents(user.id)).toEqual([])
+  })
+
+  it('runs the other actions on GPT', async () => {
+    const { user, cookie } = await gptReader()
+    const out = await events(await ask('pride-and-prejudice', cookie, body({ question: 'Recap', action: 'recap' })))
+    expect(out[0]?.text).toContain('Request: recap.')
+    expect((await askedEvents(user.id))[0]).toMatchObject({ action: 'recap', provider: 'openai' })
+  })
+
+  describe('maps every OpenAI failure to its code', () => {
+    const cases: [string, string][] = [
+      [STUB_OPENAI_KEYS.rejected, 'key_rejected'],
+      [STUB_OPENAI_KEYS.billing, 'billing'],
+      [STUB_OPENAI_KEYS.rateLimited, 'busy'],
+      [STUB_OPENAI_KEYS.down, 'busy'],
+      [STUB_OPENAI_KEYS.tooLong, 'too_long'],
+      [STUB_OPENAI_KEYS.midStreamError, 'busy'],
+      [STUB_OPENAI_KEYS.failedResponse, 'failed'],
+    ]
+    for (const [ending, code] of cases) {
+      it(`${ending} → ${code}`, async () => {
+        const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+        try {
+          const { user, cookie } = await gptReader({ openai: openAiKey(ending) })
+          const out = await events(await ask('pride-and-prejudice', cookie))
+          expect(out.at(-1)).toEqual({ type: 'error', code })
+          expect(out.some((e) => e.type === 'citation')).toBe(false)
+          expect((await askedEvents(user.id))[0]).toMatchObject({ error: code, provider: 'openai' })
+          expect(errors.mock.calls.join(' ')).not.toContain(openAiKey(ending))
+        } finally {
+          errors.mockRestore()
+        }
+      })
+    }
+
+    it('a refusal ends with stop "refusal"', async () => {
+      const { user, cookie } = await gptReader({ openai: openAiKey(STUB_OPENAI_KEYS.refusal) })
+      const out = await events(await ask('pride-and-prejudice', cookie))
+      expect(out).toEqual([{ type: 'done', stop: 'refusal' }])
+      expect((await askedEvents(user.id))[0]).toMatchObject({ stop: 'refusal' })
+    })
+  })
+
+  it('aborts the upstream call when the browser goes away, and audits it as stopped', async () => {
+    const { user, cookie } = await gptReader({ openai: openAiKey(STUB_OPENAI_KEYS.slow) })
+    const stats = async () =>
+      ((await (await openAiStub(new Request('http://stub/stats'))).json()) as { aborted: number }).aborted
+    const before = await stats()
+    const response = await ask('pride-and-prejudice', cookie)
+    const reader_ = response.body?.getReader()
+    const decoder = new TextDecoder()
+    let seen = ''
+    while (!seen.includes('word2')) seen += decoder.decode((await reader_?.read())?.value)
+    await reader_?.cancel()
+    expect((await askedEvents(user.id))[0]).toMatchObject({ error: 'stopped', provider: 'openai' })
+    expect(await stats()).toBe(before + 1)
   })
 })

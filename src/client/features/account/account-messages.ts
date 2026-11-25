@@ -86,6 +86,7 @@ export type ApiKeyStatus = (typeof API_KEY_STATUSES)[number]
 export const API_KEY_ERRORS = [
   'shape',
   'anthropic',
+  'openai',
   'rejected',
   'permission',
   'unavailable',
@@ -96,7 +97,7 @@ export const API_KEY_ERRORS = [
 ] as const
 export type ApiKeyError = (typeof API_KEY_ERRORS)[number]
 
-const COMMON_KEY_ERRORS: Record<Exclude<ApiKeyError, 'shape' | 'anthropic' | 'permission'>, string> = {
+const COMMON_KEY_ERRORS: Record<Exclude<ApiKeyError, 'shape' | 'anthropic' | 'openai' | 'permission'>, string> = {
   rejected: 'This key was rejected.',
   unavailable: 'Couldn’t check the key, try again.',
   limit: 'Too many key changes in the last hour. Try again later.',
@@ -108,15 +109,36 @@ const COMMON_KEY_ERRORS: Record<Exclude<ApiKeyError, 'shape' | 'anthropic' | 'pe
 const ELEVENLABS_PERMISSION =
   'This key can’t read your voices. In ElevenLabs, allow it Voices (read) and Text to Speech.'
 
+const ANTHROPIC_SHAPE = 'That doesn’t look like an Anthropic API key. Keys start with sk-ant- and have no spaces.'
+const IN_ANTHROPIC = 'That’s an Anthropic key. Paste it in the Anthropic section above.'
+
+/** Each section's own sentences; anything not here is said the same way everywhere. */
+const PROVIDER_KEY_ERRORS: Record<Provider, Partial<Record<ApiKeyError, string>>> = {
+  anthropic: {
+    shape: ANTHROPIC_SHAPE,
+    anthropic: ANTHROPIC_SHAPE,
+    openai: 'That’s an OpenAI key. Paste it in the OpenAI section below.',
+  },
+  openai: {
+    shape: 'That doesn’t look like an OpenAI API key. Keys start with sk- and have no spaces.',
+    anthropic: IN_ANTHROPIC,
+    openai: 'That doesn’t look like an OpenAI API key. Keys start with sk- and have no spaces.',
+    pro: 'OpenAI keys are part of Pro, for Ask the book and Translate.',
+  },
+  elevenlabs: {
+    shape: 'That doesn’t look like an ElevenLabs API key.',
+    anthropic: IN_ANTHROPIC,
+    openai: 'That doesn’t look like an ElevenLabs API key.',
+    permission: ELEVENLABS_PERMISSION,
+  },
+}
+
 export function apiKeyErrorText(error: ApiKeyError, provider: Provider | undefined): string {
-  if (provider === 'elevenlabs') {
-    if (error === 'shape') return 'That doesn’t look like an ElevenLabs API key.'
-    if (error === 'anthropic') return 'That’s an Anthropic key. Paste it in the Anthropic section above.'
-    if (error === 'permission') return ELEVENLABS_PERMISSION
-  } else if (error === 'shape' || error === 'anthropic') {
-    return 'That doesn’t look like an Anthropic API key. Keys start with sk-ant- and have no spaces.'
-  }
-  return error === 'permission' ? COMMON_KEY_ERRORS.rejected : COMMON_KEY_ERRORS[error]
+  const own = PROVIDER_KEY_ERRORS[provider ?? 'anthropic'][error]
+  if (own) return own
+  return error === 'permission'
+    ? COMMON_KEY_ERRORS.rejected
+    : COMMON_KEY_ERRORS[error as keyof typeof COMMON_KEY_ERRORS]
 }
 
 export const API_KEY_STATUS_TEXT: Record<ApiKeyStatus, string> = {

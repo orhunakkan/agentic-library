@@ -14,7 +14,7 @@ import { ProNotice } from '~/client/features/plans/ProNotice'
 import { handleApiKeys } from '~/server/account-actions'
 import { getApiKeysPage } from '~/server/account-functions'
 import type { Provider } from '~/server/api-keys'
-import { AI_MODELS, type AiModelId, DEFAULT_AI_MODEL } from '~/shared/lib/ai-models'
+import { AI_MODELS, type AiModelId, type AiProvider, DEFAULT_AI_MODEL, providerName } from '~/shared/lib/ai-models'
 import { SITE_NAME } from '~/shared/lib/site'
 import {
   DEFAULT_SPEECH_MODEL,
@@ -24,8 +24,9 @@ import {
   speechModelName,
   usd,
 } from '~/shared/lib/speech-models'
+import type { ProFeature } from '~/shared/plans/plans'
 
-const SEARCH_PROVIDERS = ['anthropic', 'elevenlabs'] as const
+const SEARCH_PROVIDERS = ['anthropic', 'openai', 'elevenlabs'] as const
 
 interface ApiKeysSearch {
   status?: ApiKeyStatus
@@ -33,7 +34,7 @@ interface ApiKeysSearch {
   provider?: Provider
 }
 
-const PROVIDER_NAMES: Record<Provider, string> = { anthropic: 'Anthropic', elevenlabs: 'ElevenLabs' }
+const PROVIDER_NAMES: Record<Provider, string> = { anthropic: 'Anthropic', openai: 'OpenAI', elevenlabs: 'ElevenLabs' }
 
 type PageData = Awaited<ReturnType<typeof getApiKeysPage>>
 type KeyEntry = PageData['keys'][number]
@@ -57,8 +58,10 @@ function ApiKeysScreen() {
   const data = Route.useLoaderData()
   const { status, error, provider } = Route.useSearch()
   const anthropic = data.keys.find((k) => k.provider === 'anthropic')
+  const openai = data.keys.find((k) => k.provider === 'openai')
   const elevenlabs = data.keys.find((k) => k.provider === 'elevenlabs')
-  const elevenlabsPro = Route.useRouteContext().viewer?.plan === 'pro'
+  const pro = Route.useRouteContext().viewer?.plan === 'pro'
+  const saved = new Set(data.keys.filter((k) => k.saved).map((k) => k.provider))
   const notices = (here: Provider | undefined) =>
     provider === here ? <Notices status={status} error={error} provider={here} /> : null
   return (
@@ -75,17 +78,25 @@ function ApiKeysScreen() {
           {notices('anthropic')}
         </ProviderKey>
       )}
-      <Section id="model" title="Model for agent features">
-        <ModelForm current={data.model} />
-      </Section>
-      {elevenlabs && !elevenlabsPro && (
-        <Section id="elevenlabs" title="ElevenLabs">
-          {notices('elevenlabs') && <div className="-mt-6 mb-5">{notices('elevenlabs')}</div>}
-          <ProNotice feature="elevenlabs" className="space-y-2 text-[14.5px] leading-relaxed text-body" />
-          {elevenlabs.saved && <SavedKeyToDelete saved={elevenlabs.saved} />}
-        </Section>
+      {openai && !pro && (
+        <LockedKey entry={openai} feature="ask">
+          {notices('openai')}
+        </LockedKey>
       )}
-      {elevenlabs && elevenlabsPro && (
+      {openai && pro && (
+        <ProviderKey entry={openai} invalid={provider === 'openai' && isKeyError(error)}>
+          {notices('openai')}
+        </ProviderKey>
+      )}
+      <Section id="model" title="Model for agent features">
+        <ModelForm current={data.model} saved={saved} />
+      </Section>
+      {elevenlabs && !pro && (
+        <LockedKey entry={elevenlabs} feature="elevenlabs">
+          {notices('elevenlabs')}
+        </LockedKey>
+      )}
+      {elevenlabs && pro && (
         <ProviderKey
           entry={elevenlabs}
           invalid={provider === 'elevenlabs' && isKeyError(error)}
@@ -104,7 +115,7 @@ function ApiKeysScreen() {
 }
 
 const isKeyError = (error: ApiKeyError | undefined) =>
-  error === 'shape' || error === 'anthropic' || error === 'rejected' || error === 'permission'
+  error === 'shape' || error === 'anthropic' || error === 'openai' || error === 'rejected' || error === 'permission'
 
 function Notices({
   status,
@@ -131,13 +142,14 @@ function Notices({
   )
 }
 
-function ModelForm({ current }: { current: AiModelId }) {
+function ModelForm({ current, saved }: { current: AiModelId; saved: ReadonlySet<Provider> }) {
   return (
     <form method="post" action="/account/api-keys" className="space-y-4">
       <input type="hidden" name="intent" value="model" />
       <fieldset>
         <legend className="text-[14.5px] leading-relaxed text-muted">
-          Ask the book uses this model with your Anthropic key, and Anthropic bills you for it. Costs are rough.
+          Ask the book and Translate use this model with your key for its provider, and that provider bills you for it.
+          Quizzes and flashcards need a Claude model. Costs are rough.
         </legend>
         <div className="mt-3 space-y-2">
           {AI_MODELS.map((m) => (
@@ -146,7 +158,9 @@ function ModelForm({ current }: { current: AiModelId }) {
               testId="api-keys-model"
               id={m.id}
               name={m.name}
+              provider={providerName(m.provider)}
               description={m.description}
+              note={saved.has(m.provider) ? undefined : noKeyNote(m.provider)}
               checked={m.id === current}
               isDefault={m.id === DEFAULT_AI_MODEL}
             />
@@ -191,18 +205,24 @@ function SpeechModelForm({ current }: { current: SpeechModelId }) {
   )
 }
 
+const noKeyNote = (provider: AiProvider) => `No ${providerName(provider)} key saved yet.`
+
 function ModelChoice({
   testId,
   id,
   name,
+  provider,
   description,
+  note,
   checked,
   isDefault,
 }: {
   testId: string
   id: string
   name: string
+  provider?: string
   description: string
+  note?: string
   checked: boolean
   isDefault: boolean
 }) {
@@ -222,9 +242,20 @@ function ModelChoice({
         <span className="block text-[15px] font-medium text-ink">
           {name}
           {isDefault && <span className="font-normal text-muted"> (default)</span>}
+          {provider && (
+            <span className="font-normal text-muted" data-testid="api-keys-model-provider" data-key={id}>
+              {' '}
+              · {provider}
+            </span>
+          )}
         </span>
         <span id={`model-${id}-about`} className="block text-[13.5px] leading-relaxed text-muted">
           {description}
+          {note && (
+            <span className="block text-ink" data-testid="api-keys-model-no-key" data-key={id}>
+              {note}
+            </span>
+          )}
         </span>
       </span>
     </label>
@@ -243,6 +274,11 @@ function UsageLine({ usage, model }: { usage: PageData['speechUsage']; model: Sp
 
 const ABOUT: Record<Provider, ReactNode> = {
   anthropic: null,
+  openai: (
+    <p className="mb-4 text-[14.5px] leading-relaxed text-muted">
+      An OpenAI key runs Ask the book and Translate when you choose a GPT model below. GPT answers don’t link to pages.
+    </p>
+  ),
   elevenlabs: (
     <p className="mb-4 text-[14.5px] leading-relaxed text-muted">
       ElevenLabs voices read books aloud in Read aloud, on your key.
@@ -252,6 +288,11 @@ const ABOUT: Record<Provider, ReactNode> = {
 
 const NOTE: Record<Provider, ReactNode> = {
   anthropic: null,
+  openai: (
+    <p className="text-[13.5px] leading-relaxed text-muted">
+      Create a key on the OpenAI platform under API keys. OpenAI bills you for what Folio asks on it.
+    </p>
+  ),
   elevenlabs: (
     <p className="text-[13.5px] leading-relaxed text-muted">
       Create a key in ElevenLabs under Developers → API keys. It needs Text to Speech and Voices (read). On ElevenLabs’
@@ -305,7 +346,7 @@ function SavedKey({
         <KeyRound className="mt-0.5 size-5 shrink-0 text-subtle" aria-hidden />
         <div className="min-w-0 flex-1 text-[14.5px]">
           <p className="font-mono text-ink" data-testid="saved-key">
-            {provider === 'anthropic' ? 'sk-ant-' : ''}…{saved.last4}
+            {KEY_PREFIX[provider]}…{saved.last4}
           </p>
           <p className="text-muted">
             Saved <DateTime iso={saved.createdAt} /> ·{' '}
@@ -336,14 +377,27 @@ function SavedKey({
   )
 }
 
-function SavedKeyToDelete({ saved }: { saved: NonNullable<KeyEntry['saved']> }) {
+const KEY_PREFIX: Record<Provider, string> = { anthropic: 'sk-ant-', openai: 'sk-', elevenlabs: '' }
+
+/** A key section on the free plan: the Pro notice, and a key saved before, which can still be deleted. */
+function LockedKey({ entry, feature, children }: { entry: KeyEntry; feature: ProFeature; children?: ReactNode }) {
+  return (
+    <Section id={entry.provider} title={PROVIDER_NAMES[entry.provider]}>
+      {children && <div className="-mt-6 mb-5">{children}</div>}
+      <ProNotice feature={feature} className="space-y-2 text-[14.5px] leading-relaxed text-body" />
+      {entry.saved && <SavedKeyToDelete provider={entry.provider} saved={entry.saved} />}
+    </Section>
+  )
+}
+
+function SavedKeyToDelete({ provider, saved }: { provider: Provider; saved: NonNullable<KeyEntry['saved']> }) {
   return (
     <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-5">
       <KeyRound className="size-5 shrink-0 text-subtle" aria-hidden />
       <p className="min-w-0 flex-1 font-mono text-[14.5px] text-ink" data-testid="saved-key">
-        …{saved.last4}
+        {KEY_PREFIX[provider]}…{saved.last4}
       </p>
-      <DeleteKeyForm provider="elevenlabs" />
+      <DeleteKeyForm provider={provider} />
     </div>
   )
 }
@@ -358,6 +412,12 @@ function DeleteKeyForm({ provider }: { provider: Provider }) {
       </Button>
     </form>
   )
+}
+
+const PLACEHOLDER: Record<Provider, string> = {
+  anthropic: 'sk-ant-…',
+  openai: 'sk-…',
+  elevenlabs: 'Your ElevenLabs API key',
 }
 
 function KeyForm({ provider, label, invalid }: { provider: Provider; label: string; invalid: boolean }) {
@@ -376,13 +436,13 @@ function KeyForm({ provider, label, invalid }: { provider: Provider; label: stri
         spellCheck={false}
         required
         maxLength={300}
-        placeholder={provider === 'anthropic' ? 'sk-ant-…' : 'Your ElevenLabs API key'}
+        placeholder={PLACEHOLDER[provider]}
         aria-invalid={invalid || undefined}
         aria-describedby={invalid ? `${provider}-key-error` : undefined}
       />
       {NOTE[provider]}
       <Button data-testid="api-keys-save" data-key={provider}>
-        {provider === 'anthropic' ? 'Save' : 'Save key'}
+        {provider === 'elevenlabs' ? 'Save key' : 'Save'}
       </Button>
     </form>
   )

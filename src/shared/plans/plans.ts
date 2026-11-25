@@ -51,7 +51,7 @@ export function canUse(plan: Plan, _feature: ProFeature): boolean {
 }
 
 export const PRO_FEATURES: readonly { feature?: ProFeature; label: string }[] = [
-  { feature: 'ask', label: 'Ask the book, with your own Anthropic key' },
+  { feature: 'ask', label: 'Ask the book, with your own Anthropic or OpenAI key' },
   { feature: 'translate', label: 'Translate and Explain in context' },
   { label: `Up to ${PRO_LIMITS.books} of your own books` },
   { label: 'Unlimited highlights and notes' },

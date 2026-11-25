@@ -9,7 +9,7 @@ const NOTICES: Record<ProFeature, ProNoticeCopy> = {
   ask: {
     heading: 'Ask the book is part of Pro.',
     sentence:
-      'Ask questions about the book and get answers that link to the pages they came from. It uses your own Anthropic key.',
+      'Ask questions about the book and get answers that link to the pages they came from. It uses your own Anthropic or OpenAI key.',
   },
   translate: { heading: 'Translate is part of Pro.', sentence: 'Look up stays free.' },
   export: {

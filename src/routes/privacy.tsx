@@ -116,8 +116,9 @@ function PrivacyPage() {
         </p>
         <p>
           When you use Ask the book, Explain, summaries, recaps, quizzes, flashcards, one of your saved prompts or
-          Translate, the passages, your question, the prompt’s text and any highlights sent with it go to Anthropic on
-          your own API key, under your own agreement with Anthropic. Folio doesn’t log your questions or prompts.
+          Translate, the passages, your question, the prompt’s text and any highlights sent with it go to Anthropic or
+          OpenAI, whichever your chosen model is from, on your own API key and under your own agreement with that
+          provider. Folio asks OpenAI not to store them. Folio doesn’t log your questions or prompts.
         </p>
         <p>
           When you look up a book’s details or a word, Folio’s server asks Open Library, Wiktionary or Wikipedia for the

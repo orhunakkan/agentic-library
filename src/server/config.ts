@@ -17,6 +17,7 @@ export interface Config {
   appOrigin: string
   cookieSecure: boolean
   anthropicApiBase: string
+  openAiApiBase: string
   elevenLabsApiBase: string
   openLibraryBase: string
   openLibraryCoversBase: string
@@ -100,6 +101,12 @@ function parseBase(value: string | undefined, fallback: string, name: string): s
   if (url.protocol !== 'https:' && url.protocol !== 'http:')
     throw new ConfigError(`${name} must be an http: or https: URL, got "${value}"`)
   return text
+}
+
+function requireLocalhost(appOrigin: string, what: string): void {
+  const host = new URL(appOrigin).hostname
+  if (host !== 'localhost' && host !== '127.0.0.1')
+    throw new ConfigError(`${what} only runs on localhost or 127.0.0.1, not ${host}`)
 }
 
 const hasControlCharacter = (text: string) =>
@@ -235,9 +242,7 @@ function parseMail(env: Env, credential: (name: string) => string | null, appOri
     throw new ConfigError(`MAIL_TRANSPORT must be resend or capture, got "${transport}"`)
   const from = parseMailFrom(env.MAIL_FROM)
   if (transport === 'capture') {
-    const host = new URL(appOrigin).hostname
-    if (host !== 'localhost' && host !== '127.0.0.1')
-      throw new ConfigError(`MAIL_TRANSPORT=capture only runs on localhost or 127.0.0.1, not ${host}`)
+    requireLocalhost(appOrigin, 'MAIL_TRANSPORT=capture')
     return { transport, from, dir: env.MAIL_CAPTURE_DIR?.trim() || '.mail' }
   }
   return {
@@ -254,9 +259,7 @@ function parseArticleTestHosts(value: string | undefined, appOrigin: string): st
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean)
   if (!hosts.length) return []
-  const host = new URL(appOrigin).hostname
-  if (host !== 'localhost' && host !== '127.0.0.1')
-    throw new ConfigError(`ARTICLE_TEST_HOSTS only runs on localhost or 127.0.0.1, not ${host}`)
+  requireLocalhost(appOrigin, 'ARTICLE_TEST_HOSTS')
   for (const entry of hosts)
     if (!/^[a-z0-9.-]+:\d{1,5}$/.test(entry))
       throw new ConfigError(`ARTICLE_TEST_HOSTS must be host:port pairs, such as 127.0.0.1:3100, got "${entry}"`)
@@ -325,6 +328,7 @@ export function parseConfig(env: Env, readFile: ReadFile = readOptionalFile): Co
     appOrigin,
     cookieSecure: cookieSecureRaw !== 'false',
     anthropicApiBase: (env.ANTHROPIC_API_BASE?.trim() || 'https://api.anthropic.com').replace(/\/+$/, ''),
+    openAiApiBase: parseBase(env.OPENAI_API_BASE, 'https://api.openai.com', 'OPENAI_API_BASE'),
     elevenLabsApiBase: parseBase(env.ELEVENLABS_API_BASE, 'https://api.elevenlabs.io', 'ELEVENLABS_API_BASE'),
     openLibraryBase: parseBase(env.OPEN_LIBRARY_BASE, 'https://openlibrary.org', 'OPEN_LIBRARY_BASE'),
     openLibraryCoversBase: parseBase(

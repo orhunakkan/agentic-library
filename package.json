@@ -54,6 +54,7 @@
     "music-metadata": "12.3.5",
     "node-html-parser": "^9.0.6",
     "onnxruntime-web": "1.31.1",
+    "openai": "7.62.0",
     "postgres": "^4.0.0",
     "pyodide": "314.0.8",
     "react": "^19.3.1",

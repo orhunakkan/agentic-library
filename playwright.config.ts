@@ -119,6 +119,7 @@ export default defineConfig({
       COOKIE_SECURE: 'false',
       ANTHROPIC_API_BASE: `http://127.0.0.1:${PORT}/test-anthropic`,
       ELEVENLABS_API_BASE: `http://127.0.0.1:${PORT}/test-elevenlabs`,
+      OPENAI_API_BASE: `http://127.0.0.1:${PORT}/test-openai`,
       OPEN_LIBRARY_BASE: `http://127.0.0.1:${PORT}/test-open-library/api`,
       OPEN_LIBRARY_COVERS_BASE: `http://127.0.0.1:${PORT}/test-open-library/covers`,
       WIKTIONARY_BASE: `http://127.0.0.1:${PORT}/test-wikimedia/wiktionary`,

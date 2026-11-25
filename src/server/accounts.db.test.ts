@@ -37,6 +37,7 @@ import {
 } from '~/server/users'
 import { anthropicStub } from '../../tests/e2e/support/anthropic-stub'
 import { elevenLabsKey, elevenLabsStub, STUB_ELEVENLABS_KEYS } from '../../tests/e2e/support/elevenlabs-stub'
+import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../tests/e2e/support/openai-stub'
 import { databaseUrl, freshDatabase } from './testing/db'
 import { spend } from './testing/quota'
 import { testUser } from './testing/users'
@@ -286,6 +287,30 @@ describe('API keys', () => {
     await expect(withApiKey(b.id, 'anthropic', async (k) => k)).rejects.toThrow()
   })
 
+  it('seals an OpenAI key to its user and provider, beside an Anthropic one, and rotates both', async () => {
+    const user = await newUser()
+    const previous: Kek = { key: Buffer.alloc(32, 4), id: kekId(Buffer.alloc(32, 4)) }
+    const current = getConfig().kek as Kek
+    const openai = 'sk-proj-a-test-key-that-is-long-enough-4242'
+    await saveKey(db(), user.id, 'anthropic', KEY, previous)
+    await saveKey(db(), user.id, 'openai', openai, previous)
+    expect(JSON.stringify(await raw`select * from api_keys`)).not.toContain(openai)
+    expect(await rotateKeys(db(), current, previous)).toEqual({ rotated: 2, unreadable: 0 })
+    expect(await withApiKey(user.id, 'openai', async (k) => k)).toBe(openai)
+    expect(await withApiKey(user.id, 'anthropic', async (k) => k)).toBe(KEY)
+    expect((await getKeyStatuses(db(), user.id)).map((k) => [k.provider, k.last4])).toEqual([
+      ['anthropic', '0001'],
+      ['openai', '4242'],
+    ])
+  })
+
+  it('will not open an OpenAI key as the user’s Anthropic key', async () => {
+    const user = await newUser()
+    await saveKey(db(), user.id, 'openai', 'sk-proj-a-test-key-that-is-long-enough-4242')
+    await raw`update api_keys set provider = 'anthropic' where user_id = ${user.id}`
+    await expect(withApiKey(user.id, 'anthropic', async (k) => k)).rejects.toThrow()
+  })
+
   it('rotates rows from the previous KEK to the current one', async () => {
     const user = await newUser()
     const previous: Kek = { key: Buffer.alloc(32, 3), id: kekId(Buffer.alloc(32, 3)) }
@@ -404,7 +429,9 @@ describe('the key form posts', () => {
   const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
   const stubs = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input)
-    return url.includes('elevenlabs') ? elevenLabsStub(new Request(url, init)) : anthropicStub(new Request(url, init))
+    if (url.includes('elevenlabs')) return elevenLabsStub(new Request(url, init))
+    if (url.includes('openai')) return openAiStub(new Request(url, init))
+    return anthropicStub(new Request(url, init))
   }) as typeof fetch
   const post = (cookie: string, body: Record<string, string>, fetchFn: typeof fetch = stubs) =>
     handleApiKeys(
@@ -497,8 +524,94 @@ describe('the key form posts', () => {
     expect(rejected.headers.get('location')).toBe(at('error=rejected&provider=anthropic', 'anthropic'))
     const unknown = await post(cookie, { intent: 'rotate', provider: 'anthropic' })
     expect(unknown.headers.get('location')).toBe(at('error=invalid&provider=anthropic', 'anthropic'))
-    const provider = await post(cookie, { intent: 'save', provider: 'openai', key: 'sk-whatever-long-enough' })
+    const provider = await post(cookie, { intent: 'save', provider: 'gemini', key: 'sk-whatever-long-enough' })
     expect(provider.headers.get('location')).toBe('/account/api-keys?error=invalid')
+  })
+
+  it('saves, replaces and deletes an OpenAI key OpenAI accepts', async () => {
+    const { user, cookie } = await signedIn()
+    const saved = await save(cookie, 'openai', `  ${openAiKey('1234')}  `)
+    expect(saved.headers.get('location')).toBe(at('status=saved&provider=openai', 'openai'))
+    const replaced = await save(cookie, 'openai', openAiKey('5678'))
+    expect(replaced.headers.get('location')).toBe(at('status=saved&provider=openai', 'openai'))
+    expect(await getKeyStatuses(db(), user.id)).toMatchObject([{ provider: 'openai', last4: '5678' }])
+    expect(await withApiKey(user.id, 'openai', async (k) => k)).toBe(openAiKey('5678'))
+    const deleted = await post(cookie, { intent: 'delete', provider: 'openai' })
+    expect(deleted.headers.get('location')).toBe(at('status=deleted&provider=openai', 'openai'))
+    expect(await getKeyStatuses(db(), user.id)).toEqual([])
+    expect((await keyEvents(user.id)).map((e) => [e.event, e.detail])).toEqual([
+      ['api_key.saved', { provider: 'openai' }],
+      ['api_key.saved', { provider: 'openai' }],
+      ['api_key.deleted', { provider: 'openai' }],
+    ])
+  })
+
+  it('sends an Anthropic key and an OpenAI key back to their own sections, before asking anyone', async () => {
+    const { user, cookie } = await signedIn()
+    const asked = vi.fn(stubs)
+    for (const [provider, key, error] of [
+      ['openai', 'sk-ant-api03-a-test-key-that-is-long-enough-0001', 'anthropic'],
+      ['openai', 'not-a-key-at-all-but-long', 'shape'],
+      ['openai', 'sk-proj with spaces in it, long enough', 'shape'],
+      ['anthropic', openAiKey(), 'openai'],
+      ['anthropic', 'not-a-key-at-all-but-long', 'shape'],
+    ] as const) {
+      const response = await post(cookie, { intent: 'save', provider, key }, asked)
+      expect(response.headers.get('location'), key).toBe(at(`error=${error}&provider=${provider}`, provider))
+    }
+    expect(asked).not.toHaveBeenCalled()
+    expect(await getKeyStatuses(db(), user.id)).toEqual([])
+  })
+
+  it('maps what OpenAI says about a key: 401 rejected, anything else try again', async () => {
+    const { user, cookie } = await signedIn()
+    const rejected = await save(cookie, 'openai', 'sk-proj-this-is-a-fake-key-0000')
+    expect(rejected.headers.get('location')).toBe(at('error=rejected&provider=openai', 'openai'))
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const down = await save(cookie, 'openai', openAiKey(STUB_OPENAI_KEYS.down))
+    expect(down.headers.get('location')).toBe(at('error=unavailable&provider=openai', 'openai'))
+    const logged = errors.mock.calls.join(' ')
+    errors.mockRestore()
+    expect(logged).toContain('openai check failed with status 503')
+    expect(logged).not.toContain(openAiKey(STUB_OPENAI_KEYS.down))
+    expect(await getKeyStatuses(db(), user.id)).toEqual([])
+    expect((await keyEvents(user.id)).map((e) => [e.event, e.detail])).toEqual([
+      ['api_key.rejected', { provider: 'openai', outcome: 'rejected' }],
+      ['api_key.rejected', { provider: 'openai', outcome: 'unavailable' }],
+    ])
+  })
+
+  it('asks OpenAI about the key at the configured base, with the key as a bearer token', async () => {
+    const { cookie } = await signedIn()
+    const seen: string[] = []
+    const asked = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input instanceof Request ? input.url : input)
+      seen.push(`${url} ${new Headers(init?.headers).get('authorization')}`)
+      return stubs(input, init)
+    }) as typeof fetch
+    await post(cookie, { intent: 'save', provider: 'openai', key: openAiKey('7777') }, asked)
+    expect(seen).toEqual([`${getConfig().openAiApiBase}/v1/models Bearer ${openAiKey('7777')}`])
+  })
+
+  it('lets a free reader delete an OpenAI key saved before, but not save one', async () => {
+    const { user, cookie } = await signedIn()
+    await saveKey(db(), user.id, 'openai', openAiKey('1111'))
+    await raw`update users set pro_granted_at = null where id = ${user.id}`
+    const asked = vi.fn(stubs)
+    const refused = await post(cookie, { intent: 'save', provider: 'openai', key: openAiKey('2222') }, asked)
+    expect(refused.headers.get('location')).toBe(at('error=pro&provider=openai', 'openai'))
+    expect(asked).not.toHaveBeenCalled()
+    expect((await getKeyStatuses(db(), user.id)).map((k) => k.last4)).toEqual(['1111'])
+    const deleted = await post(cookie, { intent: 'delete', provider: 'openai' })
+    expect(deleted.headers.get('location')).toBe(at('status=deleted&provider=openai', 'openai'))
+    expect(await getKeyStatuses(db(), user.id)).toEqual([])
+  })
+
+  it('counts OpenAI key changes against the same limit', async () => {
+    const { user, cookie } = await signedIn()
+    await spend(db(), user.id, 'api-key', API_KEY_LIMIT.max)
+    const limited = await save(cookie, 'openai', openAiKey())
+    expect(limited.headers.get('location')).toBe(at('error=limit&provider=openai', 'openai'))
   })
 
   it('counts both providers’ changes against the one limit', async () => {

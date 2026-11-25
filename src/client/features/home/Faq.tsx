@@ -13,7 +13,7 @@ const QUESTIONS = [
   },
   {
     q: 'What does Ask the book cost?',
-    a: 'Folio doesn’t charge for it. You add your own Anthropic API key, and Anthropic bills you per question: from about a cent to a couple of dollars, depending on the model and how much of the book it reads.',
+    a: 'Folio doesn’t charge for it. You add your own Anthropic or OpenAI API key, and they bill you per question: from about a cent to a few dollars, depending on the model and how much of the book it reads.',
   },
   {
     q: 'Are my own books private?',

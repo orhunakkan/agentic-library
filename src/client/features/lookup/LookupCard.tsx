@@ -8,7 +8,7 @@ import { useToast } from '~/client/components/Toast'
 import { BottomSheet } from '~/client/features/reader/Sheets'
 import { cn } from '~/client/lib/cn'
 import type { Tone } from '~/shared/content/schema'
-import { aiModelName, isAiModel } from '~/shared/lib/ai-models'
+import { type AiProvider, aiModelName, isAiModel } from '~/shared/lib/ai-models'
 import type { DictionaryEntry, WordAnswer, WordSource } from '~/shared/lookup/contract'
 import { englishName, primaryLanguage, type TranslateLanguage, translateOptions } from '~/shared/lookup/languages'
 import { ProNotice } from '../plans/ProNotice'
@@ -16,20 +16,26 @@ import { translationText } from './lookup-answers'
 import type { TranslateProblem, WordProblem } from './lookup-client'
 import {
   ambiguousText,
-  KEY_REJECTED,
+  explainUsesText,
+  keyRejected,
   NO_ENTRY_HINT,
-  NO_KEY_TEXT,
   type Notice as NoticeText,
   noArticleText,
   noEntryText,
+  noKeyText,
   otherLanguageText,
   SIGNED_OUT_TEXT,
   SOURCE_NAME,
+  translatedByText,
   translateNotice,
+  translatePrivacyText,
   wordNotice,
 } from './lookup-messages'
 import { writeTarget } from './lookup-prefs'
-import type { Loaded, LookupState, LookupTab } from './use-lookup'
+import type { Loaded, LookupState, LookupTab, Setup } from './use-lookup'
+
+/** The provider the reader's chosen model uses, and so the one their text goes to; Anthropic until known. */
+const providerFor = (setup: Setup | null): AiProvider => (setup?.signedIn ? setup.provider : 'anthropic')
 
 const action =
   'inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-[14px] font-semibold transition focus-visible:outline-2 focus-visible:outline-r-accent'
@@ -82,10 +88,10 @@ function SignedOut({ currentHref }: { currentHref: string }) {
   )
 }
 
-function NoKey() {
+function NoKey({ provider }: { provider: AiProvider }) {
   return (
     <div className="space-y-3 py-2">
-      <p>{NO_KEY_TEXT}</p>
+      <p>{noKeyText(provider)}</p>
       <Link to="/account/api-keys" data-testid="lookup-add-key" className={primary}>
         Add a key
       </Link>
@@ -253,29 +259,42 @@ function TranslateFailure({
   retryAt,
   onRetry,
   currentHref,
+  provider,
 }: {
   problem: TranslateProblem
   retryAt?: Date
   onRetry: () => void
   currentHref: string
+  provider: AiProvider
 }) {
+  const rejected = keyRejected(provider)
   if (problem === 'signed_out') return <SignedOut currentHref={currentHref} />
   if (problem === 'pro') return <TranslatePro />
-  if (problem === 'no_key') return <NoKey />
+  if (problem === 'no_key') return <NoKey provider={provider} />
   if (problem === 'key_rejected')
     return (
       <Notice>
-        {KEY_REJECTED.before}
+        {rejected.before}
         <Link to="/account/api-keys" data-testid="lookup-api-keys" className={textLink}>
-          {KEY_REJECTED.link}
+          {rejected.link}
         </Link>
-        {KEY_REJECTED.after}
+        {rejected.after}
       </Notice>
     )
-  return <Shown notice={translateNotice(problem, retryAt)} onRetry={onRetry} />
+  return <Shown notice={translateNotice(problem, retryAt, provider)} onRetry={onRetry} />
 }
 
-function Translation({ text, model, lang }: { text: string; model: string; lang: TranslateLanguage }) {
+function Translation({
+  text,
+  model,
+  lang,
+  provider,
+}: {
+  text: string
+  model: string
+  lang: TranslateLanguage
+  provider: AiProvider
+}) {
   const toast = useToast()
   const copy = async () => {
     try {
@@ -294,8 +313,8 @@ function Translation({ text, model, lang }: { text: string; model: string; lang:
         ))}
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-r-line pt-3 text-[13px]">
-        <span className="text-r-muted">
-          Translated by {isAiModel(model) ? aiModelName(model) : model} with your Anthropic key.
+        <span className="text-r-muted" data-testid="lookup-translated-by">
+          {translatedByText(isAiModel(model) ? aiModelName(model) : model, provider)}
         </span>
         <button type="button" data-testid="lookup-copy" className={secondary} onClick={copy}>
           <Copy className="size-4" aria-hidden />
@@ -312,6 +331,7 @@ function TranslatePro() {
 
 function TranslateBody({ lookup, currentHref }: { lookup: LookupState; currentHref: string }) {
   const { setup, to } = lookup
+  const provider = providerFor(setup)
   const translating = (
     <p data-testid="lookup-loading" className="py-2 text-r-muted">
       Translating…
@@ -320,7 +340,7 @@ function TranslateBody({ lookup, currentHref }: { lookup: LookupState; currentHr
   if (setup === null) return translating
   if (!setup.signedIn) return <SignedOut currentHref={currentHref} />
   if (!setup.pro) return <TranslatePro />
-  if (!setup.hasKey) return <NoKey />
+  if (!setup.hasKey) return <NoKey provider={provider} />
   if (!to)
     return (
       <p data-testid="lookup-choose-language" className="py-2">
@@ -336,9 +356,12 @@ function TranslateBody({ lookup, currentHref }: { lookup: LookupState; currentHr
         retryAt={translation.retryAt}
         onRetry={() => lookup.store.retry()}
         currentHref={currentHref}
+        provider={provider}
       />
     )
-  return <Translation text={translation.value.translation} model={translation.value.model} lang={to} />
+  return (
+    <Translation text={translation.value.translation} model={translation.value.model} lang={to} provider={provider} />
+  )
 }
 
 function TranslatePanel({ lookup, currentHref }: { lookup: LookupState; currentHref: string }) {
@@ -367,8 +390,8 @@ function TranslatePanel({ lookup, currentHref }: { lookup: LookupState; currentH
           ))}
         </select>
       </label>
-      <p className="text-[13px] text-r-muted">
-        The text and the sentence around it go to Anthropic with your key. The book doesn’t.
+      <p className="text-[13px] text-r-muted" data-testid="lookup-privacy">
+        {translatePrivacyText(providerFor(lookup.setup))}
       </p>
       <TranslateBody lookup={lookup} currentHref={currentHref} />
     </div>
@@ -510,7 +533,7 @@ function CardBody({
           <Lightbulb className="size-4 text-r-accent" aria-hidden />
           Explain in context
         </button>
-        <p className="mt-1.5 text-[13px] text-r-muted">Uses Ask with your Anthropic key.</p>
+        <p className="mt-1.5 text-[13px] text-r-muted">{explainUsesText(providerFor(lookup.setup))}</p>
       </div>
     </>
   )

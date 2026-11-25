@@ -14,6 +14,7 @@ import { articlesStub } from './articles-stub.ts'
 import { elevenLabsStub } from './elevenlabs-stub.ts'
 import { githubStub } from './github-stub.ts'
 import { openLibraryStub } from './open-library-stub.ts'
+import { openAiStub } from './openai-stub.ts'
 import { paddleStub } from './paddle-stub.ts'
 import { SEEDED } from './seed.ts'
 import { wikimediaStub } from './wikimedia-stub.ts'
@@ -150,6 +151,7 @@ await startServer([
     if (path.startsWith('/test-audio/')) return audioResponse(request)
     if (path.startsWith('/test-anthropic/')) return anthropicStub(request)
     if (path.startsWith('/test-elevenlabs/')) return elevenLabsStub(request)
+    if (path.startsWith('/test-openai/')) return openAiStub(request)
     if (path.startsWith('/test-open-library/')) return openLibraryStub(request)
     if (path.startsWith('/test-wikimedia/')) return wikimediaStub(request)
     if (path.startsWith('/test-github/')) return githubStub(request)

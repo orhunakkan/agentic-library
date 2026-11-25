@@ -3,8 +3,8 @@ import { getConfig, type Kek } from './config.ts'
 import { type Db, getDb } from './db.ts'
 import { associatedData, open, seal } from './key-crypto.ts'
 
-export type Provider = 'anthropic' | 'elevenlabs'
-export const PROVIDERS: readonly Provider[] = ['anthropic', 'elevenlabs']
+export type Provider = 'anthropic' | 'elevenlabs' | 'openai'
+export const PROVIDERS: readonly Provider[] = ['anthropic', 'openai', 'elevenlabs']
 
 export interface ApiKeyStatus {
   provider: Provider

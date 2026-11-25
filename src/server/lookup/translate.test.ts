@@ -1,5 +1,13 @@
+import type OpenAI from 'openai'
 import { describe, expect, it } from 'vitest'
-import { systemPrompt, TRANSLATION_MAX, translateRequest, translationOf } from './translate'
+import {
+  openAiTranslateRequest,
+  openAiTranslationOf,
+  systemPrompt,
+  TRANSLATION_MAX,
+  translateRequest,
+  translationOf,
+} from './translate'
 
 const JOB = {
   text: 'entailed',
@@ -71,5 +79,47 @@ describe('translationOf', () => {
     const cut = translationOf({ content: [text('é'.repeat(TRANSLATION_MAX + 10))] } as never)
     expect([...cut]).toHaveLength(TRANSLATION_MAX)
     expect(cut.endsWith('…')).toBe(true)
+  })
+})
+
+describe('openAiTranslateRequest', () => {
+  it('sends Claude’s prompt and text to the Responses API, at low effort, not stored', () => {
+    const job = { ...JOB, model: 'gpt-6-luna' }
+    const params = openAiTranslateRequest(job)
+    const claude = translateRequest(job)
+    expect(params).toEqual({
+      model: 'gpt-6-luna',
+      max_output_tokens: 4000,
+      instructions: systemPrompt('tr'),
+      reasoning: { effort: 'low' },
+      store: false,
+      input: [{ role: 'user', content: claude.messages[0]?.content }],
+    })
+    expect(params.instructions).toBe(claude.system)
+  })
+})
+
+describe('openAiTranslationOf', () => {
+  const output = (...content: object[]) =>
+    ({
+      output: [
+        { type: 'reasoning', id: 'rs', summary: [] },
+        { type: 'message', content },
+      ],
+    }) as unknown as Pick<OpenAI.Responses.Response, 'output'>
+
+  it('joins the message’s text, trimmed, and caps it as Claude’s is', () => {
+    expect(openAiTranslationOf(output({ type: 'output_text', text: '  vakfedilmiş\n' }))).toEqual({
+      text: 'vakfedilmiş',
+      refused: false,
+    })
+    const long = openAiTranslationOf(output({ type: 'output_text', text: 'ç'.repeat(TRANSLATION_MAX + 10) }))
+    expect([...long.text]).toHaveLength(TRANSLATION_MAX)
+    expect(long.text.endsWith('…')).toBe(true)
+  })
+
+  it('reads a refusal with no text as refused, and no output as empty', () => {
+    expect(openAiTranslationOf(output({ type: 'refusal', refusal: 'No.' }))).toEqual({ text: '', refused: true })
+    expect(openAiTranslationOf({ output: [] })).toEqual({ text: '', refused: false })
   })
 })

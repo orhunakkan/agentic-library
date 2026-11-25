@@ -52,6 +52,8 @@ const SERVER_ONLY = [
   'rest_v1/page/definition',
   'You translate text from a book',
   'x-stainless-lang',
+  'OpenAI response failed',
+  'context_length_exceeded',
   'insert into email_tokens',
   'insert into subscriptions',
   'portal-sessions',

@@ -63,7 +63,7 @@ describe('migrations', () => {
     ])
   })
 
-  it('take ElevenLabs keys beside Anthropic ones, and no other provider', async () => {
+  it('take ElevenLabs and OpenAI keys beside Anthropic ones, and no other provider', async () => {
     await migrate({ url: databaseUrl })
     const [user] = await sql<{ id: string }[]>`
       insert into users (username, password_hash, role) values ('reader', 'x', 'member') returning id`
@@ -72,7 +72,8 @@ describe('migrations', () => {
       values (${user?.id ?? 0}, ${provider}, ${Buffer.alloc(1)}, ${Buffer.alloc(12)}, ${Buffer.alloc(16)}, 1, 'abcd')`
     await key('anthropic')
     await key('elevenlabs')
-    await expect(key('openai')).rejects.toThrow(/api_keys_provider_check/)
+    await key('openai')
+    await expect(key('gemini')).rejects.toThrow(/api_keys_provider_check/)
   })
 
   it('let an episode bookmark and place belong to a private audiobook, once each', async () => {

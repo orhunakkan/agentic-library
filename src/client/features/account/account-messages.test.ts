@@ -66,6 +66,7 @@ describe('/account/api-keys messages', () => {
     const anthropic = {
       shape: 'That doesn’t look like an Anthropic API key. Keys start with sk-ant- and have no spaces.',
       anthropic: 'That doesn’t look like an Anthropic API key. Keys start with sk-ant- and have no spaces.',
+      openai: 'That’s an OpenAI key. Paste it in the OpenAI section below.',
       rejected: 'This key was rejected.',
       permission: 'This key was rejected.',
       unavailable: 'Couldn’t check the key, try again.',
@@ -82,6 +83,7 @@ describe('/account/api-keys messages', () => {
     expect(Object.fromEntries(API_KEY_ERRORS.map((e) => [e, apiKeyErrorText(e, 'elevenlabs')]))).toEqual({
       shape: 'That doesn’t look like an ElevenLabs API key.',
       anthropic: 'That’s an Anthropic key. Paste it in the Anthropic section above.',
+      openai: 'That doesn’t look like an ElevenLabs API key.',
       rejected: 'This key was rejected.',
       permission: 'This key can’t read your voices. In ElevenLabs, allow it Voices (read) and Text to Speech.',
       unavailable: 'Couldn’t check the key, try again.',
@@ -89,6 +91,21 @@ describe('/account/api-keys messages', () => {
       invalid: 'That request wasn’t understood. Try again.',
       failed: 'Something went wrong. Try again in a few minutes.',
       pro: 'ElevenLabs voices are part of Pro.',
+    })
+  })
+
+  it('has a sentence for every error in the OpenAI section, pointing an Anthropic key to its own section', () => {
+    expect(Object.fromEntries(API_KEY_ERRORS.map((e) => [e, apiKeyErrorText(e, 'openai')]))).toEqual({
+      shape: 'That doesn’t look like an OpenAI API key. Keys start with sk- and have no spaces.',
+      anthropic: 'That’s an Anthropic key. Paste it in the Anthropic section above.',
+      openai: 'That doesn’t look like an OpenAI API key. Keys start with sk- and have no spaces.',
+      rejected: 'This key was rejected.',
+      permission: 'This key was rejected.',
+      unavailable: 'Couldn’t check the key, try again.',
+      limit: 'Too many key changes in the last hour. Try again later.',
+      invalid: 'That request wasn’t understood. Try again.',
+      failed: 'Something went wrong. Try again in a few minutes.',
+      pro: 'OpenAI keys are part of Pro, for Ask the book and Translate.',
     })
   })
 })

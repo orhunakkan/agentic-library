@@ -1,7 +1,8 @@
 import type { Page } from '@playwright/test'
 import { press } from '../pages'
-import { createUser, saveKey, validKey } from '../support/accounts'
+import { chooseModel, createUser, saveKey, validKey } from '../support/accounts'
 import { expect, expectAccessible, expectNoSideways, hydrated, test } from '../support/fixtures'
+import { openAiKey } from '../support/openai-stub'
 import { STUB_TERMS } from '../support/wikimedia-stub'
 
 const PAGE = '/read/pride-and-prejudice/chapter-1'
@@ -111,6 +112,35 @@ test.describe('Translate', () => {
     await lookup.getByLabel('Translate to').selectOption('de')
     await expect(lookup.getByText(/^\[de\] It is a truth universally acknowledged/)).toBeVisible()
     await expectAccessible(page)
+  })
+})
+
+test.describe('Translate on a GPT model', () => {
+  test('translates through OpenAI and credits the GPT model and the OpenAI key', async ({ page, readerPage }) => {
+    await createUser(page.request, { signedIn: true })
+    await saveKey(page, openAiKey(), 'openai')
+    await chooseModel(page, 'gpt-6.1-terra')
+    await page.goto(PAGE)
+    const lookup = await readerPage.lookUp('chaise')
+    await press(page, lookup.getByRole('tab', { name: 'Translate' }))
+    await expect(
+      lookup.getByText('The text and the sentence around it go to OpenAI with your key. The book doesn’t.'),
+    ).toBeVisible()
+    await lookup.getByLabel('Translate to').selectOption({ label: 'Turkish · Türkçe' })
+    await expect(lookup.getByText('[tr] chaise')).toBeVisible()
+    await expect(lookup.getByText('Translated by GPT-6.1 Terra with your OpenAI key.')).toBeVisible()
+    await expect(lookup.getByText('Uses Ask with your OpenAI key.')).toBeVisible()
+    await expectAccessible(page)
+  })
+
+  test('without an OpenAI key it asks for one', async ({ page, readerPage }) => {
+    await reader(page)
+    await chooseModel(page, 'gpt-6-luna')
+    await page.goto(PAGE)
+    const lookup = await readerPage.lookUp('chaise')
+    await press(page, lookup.getByRole('tab', { name: 'Translate' }))
+    await expect(lookup.getByText('Translating uses your own OpenAI key.')).toBeVisible()
+    await expect(lookup.getByRole('link', { name: 'Add a key' })).toHaveAttribute('href', '/account/api-keys')
   })
 })
 

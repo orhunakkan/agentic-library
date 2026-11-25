@@ -23,6 +23,7 @@ describe('parseConfig', () => {
     expect(config.appOrigin).toBe('https://agenticlibrary.app')
     expect(config.cookieSecure).toBe(true)
     expect(config.anthropicApiBase).toBe('https://api.anthropic.com')
+    expect(config.openAiApiBase).toBe('https://api.openai.com')
     expect(config.elevenLabsApiBase).toBe('https://api.elevenlabs.io')
   })
 
@@ -68,12 +69,15 @@ describe('parseConfig', () => {
         APP_ORIGIN: 'http://127.0.0.1:3100',
         ANTHROPIC_API_BASE: 'http://127.0.0.1:3100/test-anthropic/',
         ELEVENLABS_API_BASE: 'http://127.0.0.1:3100/test-elevenlabs//',
+        OPENAI_API_BASE: 'http://127.0.0.1:3100/test-openai/',
       },
       noFiles,
     )
     expect(config.cookieSecure).toBe(false)
     expect(config.anthropicApiBase).toBe('http://127.0.0.1:3100/test-anthropic')
     expect(config.elevenLabsApiBase).toBe('http://127.0.0.1:3100/test-elevenlabs')
+    expect(config.openAiApiBase).toBe('http://127.0.0.1:3100/test-openai')
+    expect(() => parseConfig({ OPENAI_API_BASE: 'ftp://openai.example' }, noFiles)).toThrow(/OPENAI_API_BASE/)
     expect(() => parseConfig({ ELEVENLABS_API_BASE: 'ftp://elevenlabs.example' }, noFiles)).toThrow(
       /ELEVENLABS_API_BASE/,
     )

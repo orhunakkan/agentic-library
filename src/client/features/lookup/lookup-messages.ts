@@ -1,10 +1,21 @@
+import { AI_PROVIDERS, type AiProvider } from '~/shared/lib/ai-models'
 import type { WordSource } from '~/shared/lookup/contract'
 import type { TranslateProblem, WordProblem } from './lookup-client'
 
 export const SOURCE_NAME: Record<WordSource, string> = { dictionary: 'Wiktionary', wikipedia: 'Wikipedia' }
 
 export const SIGNED_OUT_TEXT = 'Sign in to look up words and translate passages.'
-export const NO_KEY_TEXT = 'Translating uses your own Anthropic key.'
+const named = (provider: AiProvider) => AI_PROVIDERS[provider].name
+
+export const noKeyText = (provider: AiProvider = 'anthropic') => `Translating uses your own ${named(provider)} key.`
+
+export const translatedByText = (model: string, provider: AiProvider) =>
+  `Translated by ${model} with your ${named(provider)} key.`
+
+export const translatePrivacyText = (provider: AiProvider) =>
+  `The text and the sentence around it go to ${named(provider)} with your key. The book doesn’t.`
+
+export const explainUsesText = (provider: AiProvider) => `Uses Ask with your ${named(provider)} key.`
 
 export const noEntryText = (term: string) => `Wiktionary has no entry for “${term}”.`
 export const NO_ENTRY_HINT = 'Try the Wikipedia tab or Explain in context.'
@@ -14,11 +25,11 @@ export const ambiguousText = (title: string) => `“${title}” can mean several
 export const otherLanguageText = (bookLanguage: string, entryLanguage: string) =>
   `No ${bookLanguage} entry. From the ${entryLanguage} entries:`
 
-export const KEY_REJECTED = {
-  before: 'Anthropic rejected your key. Check it on the ',
+export const keyRejected = (provider: AiProvider = 'anthropic') => ({
+  before: `${named(provider)} rejected your key. Check it on the `,
   link: 'API keys page',
   after: '.',
-}
+})
 
 export interface Notice {
   text: string
@@ -47,16 +58,17 @@ export function wordNotice(source: WordSource, problem: Exclude<WordProblem, 'si
 export function translateNotice(
   problem: Exclude<TranslateProblem, 'signed_out' | 'pro' | 'no_key' | 'key_rejected'>,
   retryAt?: Date,
+  provider: AiProvider = 'anthropic',
 ): Notice {
   const common = shared(problem, retryAt, 'You’ve translated 120 times this hour.')
   if (common) return common
   switch (problem) {
     case 'billing':
-      return { text: 'Your Anthropic account needs credit.', retry: false }
+      return { text: `Your ${named(provider)} account needs credit.`, retry: false }
     case 'busy':
-      return { text: 'Anthropic is busy. Try again in a moment.', retry: true }
+      return { text: `${named(provider)} is busy. Try again in a moment.`, retry: true }
     case 'refused':
-      return { text: 'Claude didn’t translate this.', retry: false }
+      return { text: `${AI_PROVIDERS[provider].family} didn’t translate this.`, retry: false }
     default:
       return { text: 'Couldn’t translate that.', retry: true }
   }

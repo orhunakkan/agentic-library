@@ -1,10 +1,11 @@
 import type { Page } from '@playwright/test'
 import { isWide, press, ReaderPage } from '../pages'
-import { createUser, saveKey, signedInAt, validKey } from '../support/accounts'
+import { chooseModel, createUser, saveKey, signedInAt, validKey } from '../support/accounts'
 import { STUB_KEYS } from '../support/anthropic-stub'
 import { fakeSpeech } from '../support/fake-speech'
 import { expect, expectAccessible, expectNoSideways, test } from '../support/fixtures'
 import { importViaApi } from '../support/imports'
+import { openAiKey, STUB_OPENAI_KEYS } from '../support/openai-stub'
 
 const PAGE = '/read/pride-and-prejudice/chapter-6/3'
 const QUESTION = 'Why is Mr. Darcy so proud at the assembly?'
@@ -346,5 +347,60 @@ test.describe('Ask about a selection', () => {
       .getByRole('navigation', { name: 'Page navigation' })
       .evaluate((nav) => document.getSelection()?.selectAllChildren(nav))
     await expect(chip(page)).toHaveCount(0)
+  })
+})
+
+async function readerOnGpt(page: Page, { key = openAiKey() as string | null, anthropic = false } = {}) {
+  const user = await createUser(page.request, { signedIn: true })
+  if (anthropic) await saveKey(page, validKey('0000'))
+  if (key) await saveKey(page, key, 'openai')
+  await chooseModel(page, 'gpt-6-luna')
+  await page.goto(PAGE)
+  return user
+}
+
+test.describe('Ask the book on a GPT model', () => {
+  test('streams an answer with no page links, names OpenAI, and turns Quiz and Flashcards off', async ({
+    page,
+    readerPage,
+  }) => {
+    await readerOnGpt(page, { anthropic: true })
+    const ask = await readerPage.ask.open()
+    await expect(ask.getByRole('link', { name: 'GPT-6 Luna' })).toHaveAttribute('href', '/account/api-keys#model')
+    await expect(ask.getByText('Your question and the book’s text are sent to OpenAI with your API key.')).toBeVisible()
+    await expect(ask.getByTestId('ask-intro')).toHaveText('Ask about what you’ve read.')
+    for (const name of ['Quiz me on this chapter so far', 'Make flashcards from this chapter so far']) {
+      const button = ask.getByRole('button', { name })
+      await expect(button).toBeDisabled()
+      await expect(button).toContainText('Quizzes and flashcards need a Claude model')
+    }
+    await expectAccessible(page)
+
+    await readerPage.ask.ask(QUESTION)
+    await expect(ask.getByText(/GPT can see \d+ pages of the book\./)).toBeVisible()
+    await expect(ask.locator('pre', { hasText: 'const answer = 42' })).toBeVisible()
+    await expect(ask.getByRole('button', { name: 'Copy' })).toBeVisible()
+    await expect(ask.getByRole('link', { name: /^Source:/ })).toHaveCount(0)
+    const quick = ask.getByRole('group', { name: 'Quick questions' })
+    await expect(quick.getByRole('button', { name: 'Quiz me' })).toBeDisabled()
+    await expect(quick.getByRole('button', { name: 'Flashcards' })).toBeDisabled()
+    await expect(quick.getByRole('button', { name: 'Summarise chapter' })).toBeEnabled()
+    await expectAccessible(page)
+  })
+
+  test('without an OpenAI key it asks for one, even with an Anthropic key saved', async ({ page, readerPage }) => {
+    await readerOnGpt(page, { key: null, anthropic: true })
+    const ask = await readerPage.ask.open()
+    await expect(ask.getByText('Add an OpenAI API key to ask questions with a GPT model.')).toBeVisible()
+    await expect(ask.getByRole('link', { name: 'Add an API key' })).toHaveAttribute('href', '/account/api-keys')
+  })
+
+  test('failures name OpenAI', async ({ page, readerPage }) => {
+    await readerOnGpt(page, { key: openAiKey(STUB_OPENAI_KEYS.rejected) })
+    const ask = await readerPage.ask.open()
+    await readerPage.ask.ask(QUESTION)
+    const alert = ask.getByRole('alert')
+    await expect(alert).toContainText('OpenAI rejected your API key. Update it on the API keys page.')
+    await expect(alert.getByRole('link', { name: 'API keys' })).toHaveAttribute('href', '/account/api-keys')
   })
 })

@@ -30,6 +30,7 @@ export type AskProblem =
   | 'busy'
   | 'bad_format'
   | 'refusal'
+  | 'needs_claude'
   | 'failed'
 
 const length = (text: string) => [...text].length
@@ -101,6 +102,7 @@ const KNOWN: readonly AskProblem[] = [
   'too_little',
   'limit',
   'too_long',
+  'needs_claude',
   'failed',
 ]
 

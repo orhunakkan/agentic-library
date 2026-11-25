@@ -42,7 +42,7 @@ test.describe('Free and Pro', () => {
     await expect(plan).toContainText('Your books: 0 of 2')
     await expect(plan).toContainText('Highlights and notes: 0 of 50')
     await expect(plan).not.toContainText('Pride and Prejudice')
-    await expect(plan.getByRole('listitem')).toContainText(['Ask the book, with your own Anthropic key'])
+    await expect(plan.getByRole('listitem')).toContainText(['Ask the book, with your own Anthropic or OpenAI key'])
     await expectAccessible(page)
 
     for (const title of ['First', 'Second']) {

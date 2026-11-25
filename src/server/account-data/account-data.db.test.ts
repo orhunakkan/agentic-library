@@ -49,6 +49,23 @@ describe('GET /account/export', () => {
     expect(response.headers.get('cache-control')).toBe('private, no-store')
   })
 
+  it('lists an OpenAI key’s status beside the Anthropic one, and not the key', async () => {
+    const ada = await signedIn('ada')
+    await raw`
+      insert into api_keys (user_id, provider, ciphertext, iv, auth_tag, kek_id, last4)
+      values (${ada.userId}, 'openai', ${Buffer.from('openai-ciphertext-must-not-leak')}, ${Buffer.alloc(12, 1)},
+        ${Buffer.alloc(16, 2)}, 1, 'cd34')`
+    const text = await (await download(ada.cookie)).text()
+    const data = JSON.parse(text)
+    expect(data.apiKeys.map((k: { provider: string; last4: string }) => [k.provider, k.last4])).toEqual([
+      ['anthropic', 'ab12'],
+      ['openai', 'cd34'],
+    ])
+    expect(Object.keys(data.apiKeys[1]).sort()).toEqual(Object.keys(data.apiKeys[0]).sort())
+    expect(text).not.toContain(Buffer.from('openai-ciphertext-must-not-leak').toString('base64'))
+    expect(text).not.toContain('openai-ciphertext')
+  })
+
   it('downloads every section of the account, none of another user’s rows, and no secret', async () => {
     const ada = await signedIn('ada')
     await userWithEveryRow(raw, 'bob')

@@ -2,11 +2,12 @@ import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import type { Page } from '@playwright/test'
 import { bookPages } from '../../../src/shared/highlights/page-text.ts'
-import { createUser, signedInAt, signInOverHttp, validKey } from '../support/accounts'
+import { createUser, saveKey, signedInAt, signInOverHttp, validKey } from '../support/accounts'
 import { downloadText } from '../support/downloads'
 import { elevenLabsKey } from '../support/elevenlabs-stub'
 import { expect, expectAccessible, settleNavigations, test } from '../support/fixtures'
 import { postJson } from '../support/imports'
+import { openAiKey } from '../support/openai-stub'
 
 test.describe('Account', () => {
   test('lists the sessions; changing the password signs out every other one', async ({
@@ -126,7 +127,7 @@ test.describe('API keys', () => {
     const anthropic = accountPage.anthropic
     const model = accountPage.model
     await expect(model.getByRole('radio', { name: /Claude Opus 5\.5/ })).toBeChecked()
-    await expect(model.getByRole('radio')).toHaveCount(3)
+    await expect(model.getByRole('radio')).toHaveCount(6)
     await expectAccessible(page)
 
     await accountPage.saveAnthropicKey('sk-ant-api03-this-is-a-fake-key-0000')
@@ -181,6 +182,78 @@ test.describe('API keys', () => {
     await expect(section.getByRole('status')).toHaveText('Voice model saved.')
     await expect(section.getByRole('radio', { name: /^Eleven v4 The most natural/ })).toBeChecked()
     await expect(section.getByText('The most natural, about $4.30 an hour of listening')).toBeVisible()
+    await expectAccessible(page)
+  })
+})
+
+test.describe('An OpenAI key', () => {
+  test('save, replace and delete it; wrong keys are refused with their own words', async ({ page }) => {
+    await signedInAt(page, '/account/api-keys')
+    const openai = page.getByRole('region', { name: 'OpenAI' })
+    const anthropic = page.getByRole('region', { name: 'Anthropic' })
+    await expect(openai.getByText(/An OpenAI key runs Ask the book and Translate/)).toBeVisible()
+    const fill = async (section: typeof openai, label: string, key: string) => {
+      await section.getByLabel(label, { exact: true }).fill(key)
+      await section.getByRole('button', { name: 'Save', exact: true }).click()
+    }
+
+    await fill(openai, 'OpenAI API key', 'sk-ant-api03-pasted-in-the-wrong-place')
+    await expect(openai.getByRole('alert')).toHaveText(
+      'That’s an Anthropic key. Paste it in the Anthropic section above.',
+    )
+    await fill(anthropic, 'Anthropic API key', openAiKey())
+    await expect(anthropic.getByRole('alert')).toHaveText('That’s an OpenAI key. Paste it in the OpenAI section below.')
+    await fill(openai, 'OpenAI API key', 'not an openai key')
+    await expect(openai.getByRole('alert')).toHaveText(
+      'That doesn’t look like an OpenAI API key. Keys start with sk- and have no spaces.',
+    )
+    await fill(openai, 'OpenAI API key', 'sk-proj-this-is-a-fake-key-0000')
+    await expect(openai.getByRole('alert')).toHaveText('This key was rejected.')
+    await expect(openai.getByTestId('saved-key')).toHaveCount(0)
+
+    const first = openAiKey('1111')
+    const second = openAiKey('2222')
+    await fill(openai, 'OpenAI API key', first)
+    await expect(openai.getByRole('status')).toHaveText('Key saved.')
+    await expect(openai.getByTestId('saved-key')).toHaveText('sk-…1111')
+    await expect(openai.getByText('not used yet')).toBeVisible()
+    await openai.getByText('Replace').click()
+    await fill(openai, 'New OpenAI API key', second)
+    await expect(openai.getByTestId('saved-key')).toHaveText('sk-…2222')
+    expect(await page.content()).not.toContain(second)
+    await expectAccessible(page)
+
+    await openai.getByRole('button', { name: 'Delete' }).click()
+    await expect(openai.getByRole('status')).toHaveText('Key deleted.')
+    await expect(openai.getByTestId('saved-key')).toHaveCount(0)
+  })
+
+  test('the one model list labels each model with its provider and says which keys are missing', async ({
+    page,
+    accountPage,
+  }) => {
+    await signedInAt(page, '/account/api-keys')
+    const model = accountPage.model
+    await expect(model.getByRole('radio', { name: /Claude Opus 5\.5 \(default\) · Anthropic/ })).toBeChecked()
+    await expect(model.getByRole('radio', { name: /GPT-6\.2 Astra · OpenAI/ })).toBeVisible()
+    await expect(model.getByTestId('api-keys-model-no-key')).toHaveCount(6)
+    await saveKey(page, openAiKey('3333'), 'openai')
+    await accountPage.gotoApiKeys()
+    await expect(model.getByTestId('api-keys-model-no-key')).toHaveCount(3)
+    await expect(model.getByTestId('api-keys-model-no-key').first()).toHaveText('No Anthropic key saved yet.')
+
+    await model.getByRole('radio', { name: /GPT-6 Luna/ }).check()
+    await model.getByRole('button', { name: 'Save model' }).click()
+    await expect(accountPage.status).toHaveText('Model saved.')
+    await expect(model.getByRole('radio', { name: /GPT-6 Luna/ })).toBeChecked()
+  })
+
+  test('on Free the section is locked behind Pro, with no form to save a key', async ({ page }) => {
+    await createUser(page.request, { signedIn: true, plan: 'free' })
+    await page.goto('/account/api-keys')
+    const openai = page.getByRole('region', { name: 'OpenAI' })
+    await expect(openai.getByText('Ask the book is part of Pro.')).toBeVisible()
+    await expect(openai.getByLabel('OpenAI API key', { exact: true })).toHaveCount(0)
     await expectAccessible(page)
   })
 })

@@ -8,7 +8,7 @@ import { getAskSetup } from '~/server/account-functions'
 import type { AskPromptChoice } from '~/shared/ask-prompts/prompts'
 import { pageOf } from '~/shared/content/position'
 import { labelOf, positionOf, type ReaderView } from '~/shared/content/reader-view'
-import { aiModelName } from '~/shared/lib/ai-models'
+import { type AiProvider, aiModelName, canStudyWith, providerName } from '~/shared/lib/ai-models'
 import { MicButton } from '../ask-voice/MicButton'
 import type { AskVoice } from '../ask-voice/use-ask-voice'
 import { VoiceNotices } from '../ask-voice/VoiceNotices'
@@ -16,7 +16,7 @@ import { ProNotice } from '../plans/ProNotice'
 import { AnswerText } from './AnswerText'
 import { plainAnswer } from './answer-format'
 import { type AskAction, QUESTION_MAX } from './ask-client'
-import { canRetry, failureText, PROBLEM_TEXT } from './ask-problems'
+import { canRetry, failureText, NEEDS_CLAUDE_TEXT, problemText } from './ask-problems'
 import { CardsTurn } from './CardsTurn'
 import { PromptsMenu } from './PromptsMenu'
 import { PROMPTS_HINT, promptsFor } from './prompts'
@@ -64,10 +64,19 @@ function waitingText(action: AskAction | null): string {
   return 'Reading the book…'
 }
 
-function statusText(pending: AskState['pending'], failure: AskFailure | null): string {
+function statusText(pending: AskState['pending'], failure: AskFailure | null, provider: AiProvider): string {
   if (pending) return pending.text ? '' : waitingText(pending.action)
-  return failure ? failureText(failure.problem, undefined, failure.action) : ''
+  return failure ? failureText(failure.problem, undefined, failure.action, provider) : ''
 }
+
+/** Who gets the question: the chosen model's provider, or Anthropic until the setup says. */
+const providerFor = (setup: Setup | null): AiProvider => (setup?.signedIn ? setup.provider : 'anthropic')
+
+/** Why quizzes and flashcards are off for this setup, or null when they can be made. */
+const studyOffFor = (setup: Setup | null): string | null =>
+  setup?.signedIn && !canStudyWith(setup.model) ? NEEDS_CLAUDE_TEXT : null
+
+const isStudy = (id: string) => id === 'quiz' || id === 'flashcards'
 
 export interface AskPanelProps {
   view: ReaderView
@@ -107,6 +116,8 @@ export function AskPanel({
   }, [problem, refreshSetup])
 
   const blocked = blockedBy(setup)
+  const provider = providerFor(setup)
+  const studyOff = studyOffFor(setup)
   const ready = setup?.signedIn === true && setup.pro && setup.hasKey
   const prompts: readonly AskPromptChoice[] | null = setup?.signedIn ? setup.prompts : null
   const [question, setQuestion] = useState('')
@@ -162,7 +173,7 @@ export function AskPanel({
       </div>
 
       {blocked ? (
-        <Blocked kind={blocked} currentHref={currentHref} />
+        <Blocked kind={blocked} currentHref={currentHref} provider={provider} />
       ) : (
         <>
           <ScopeLine view={view} ask={ask} />
@@ -174,6 +185,8 @@ export function AskPanel({
             onStart={startQuestion}
             highlightPages={highlightPages}
             noPrompts={prompts?.length === 0}
+            provider={provider}
+            studyOff={studyOff}
           />
           <QuestionBox
             view={view}
@@ -185,6 +198,8 @@ export function AskPanel({
             quote={quote}
             onClearQuote={onClearQuote}
             prompts={prompts ?? []}
+            provider={provider}
+            studyOff={studyOff}
           />
         </>
       )}
@@ -195,7 +210,7 @@ export function AskPanel({
 const blockedLink =
   'inline-flex h-11 items-center rounded-xl bg-r-accent px-5 text-[14.5px] font-semibold text-r-paper transition hover:brightness-105'
 
-function Blocked({ kind, currentHref }: { kind: Blocker; currentHref: string }) {
+function Blocked({ kind, currentHref, provider }: { kind: Blocker; currentHref: string; provider: AiProvider }) {
   if (kind === 'pro')
     return (
       <ProNotice
@@ -206,7 +221,7 @@ function Blocked({ kind, currentHref }: { kind: Blocker; currentHref: string }) 
     )
   return (
     <div className="space-y-4 px-5 py-6 text-[14.5px] leading-relaxed">
-      <p data-testid="ask-blocked">{PROBLEM_TEXT[kind]}</p>
+      <p data-testid="ask-blocked">{problemText(kind, provider)}</p>
       {kind === 'signed_out' ? (
         <Link to="/login" search={{ next: currentHref }} className={blockedLink} data-testid="ask-sign-in">
           Sign in
@@ -252,6 +267,8 @@ function Thread({
   onStart,
   highlightPages,
   noPrompts,
+  provider,
+  studyOff,
 }: {
   view: ReaderView
   ask: AskState
@@ -260,6 +277,8 @@ function Thread({
   onStart: (text: string) => void
   highlightPages: readonly number[]
   noPrompts: boolean
+  provider: AiProvider
+  studyOff: string | null
 }) {
   const scroller = useRef<HTMLDivElement>(null)
   const { thread, pending, failure } = ask
@@ -273,7 +292,14 @@ function Thread({
   return (
     <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
       {empty ? (
-        <Suggestions view={view} ask={ask} onStart={onStart} highlightPages={highlightPages} noPrompts={noPrompts} />
+        <Suggestions
+          view={view}
+          ask={ask}
+          onStart={onStart}
+          highlightPages={highlightPages}
+          noPrompts={noPrompts}
+          studyOff={studyOff}
+        />
       ) : (
         <ol className="space-y-4" aria-label="Questions and answers">
           {thread.turns.map((turn, i) => (
@@ -285,6 +311,7 @@ function Thread({
               voice={voice}
               bookSlug={view.book.slug}
               onNavigate={onNavigate}
+              studyOff={studyOff}
             />
           ))}
           {pending && (
@@ -299,11 +326,11 @@ function Thread({
               </li>
             </>
           )}
-          {failure && <Failure failure={failure} ask={ask} />}
+          {failure && <Failure failure={failure} ask={ask} provider={provider} />}
         </ol>
       )}
       <p className="sr-only" role="status" data-testid="ask-status">
-        {statusText(pending, failure)}
+        {statusText(pending, failure, provider)}
       </p>
     </div>
   )
@@ -327,6 +354,7 @@ function Turn({
   voice,
   bookSlug,
   onNavigate,
+  studyOff,
 }: {
   turn: ThreadTurn
   index: number
@@ -334,6 +362,7 @@ function Turn({
   voice?: AskVoice
   bookSlug: string
   onNavigate?: () => void
+  studyOff: string | null
 }) {
   const toast = useToast()
   if (turn.role === 'user') return <Question text={turn.text} />
@@ -343,6 +372,7 @@ function Turn({
         study={turn.study}
         bookSlug={bookSlug}
         busy={ask.busy}
+        newQuizOff={studyOff}
         onPick={(question, choice) => ask.pick(index, question, choice)}
         onNewQuiz={() => void ask.ask(QUIZ_QUESTION, null, { action: 'quiz' })}
         onNavigate={onNavigate}
@@ -409,15 +439,15 @@ function ListenButton({ voice, index, text }: { voice: AskVoice; index: number; 
   )
 }
 
-function Failure({ failure, ask }: { failure: AskFailure; ask: AskState }) {
+function Failure({ failure, ask, provider }: { failure: AskFailure; ask: AskState; provider: AiProvider }) {
   return (
     <li
       role="alert"
       data-testid="ask-error"
       className="rounded-xl border border-r-line bg-r-page px-3.5 py-3 text-[14px] leading-relaxed"
     >
-      <p>{failureText(failure.problem, failure.retryAt, failure.action)}</p>
-      {failure.problem === 'key_rejected' && (
+      <p>{failureText(failure.problem, failure.retryAt, failure.action, provider)}</p>
+      {(failure.problem === 'key_rejected' || failure.problem === 'needs_claude') && (
         <Link
           to="/account/api-keys"
           data-testid="ask-error-api-keys"
@@ -451,12 +481,14 @@ function Suggestions({
   onStart,
   highlightPages,
   noPrompts,
+  studyOff,
 }: {
   view: ReaderView
   ask: AskState
   onStart: (text: string) => void
   highlightPages: readonly number[]
   noPrompts: boolean
+  studyOff: string | null
 }) {
   const hasCode = view.page.kind === 'chapter' && view.page.html.includes('<pre>')
   const page = pageOf(positionOf(view))
@@ -466,22 +498,34 @@ function Suggestions({
   const list = suggestions({ chapterIndex: view.chapterIndex, hasCode, highlights, wholeBook: ask.thread.wholeBook })
   return (
     <div className="space-y-2">
-      <p className="mb-3 text-[13.5px] text-r-muted">Ask about what you’ve read. Answers link to the pages they use.</p>
-      {list.map((s) => (
-        <button
-          key={s.id}
-          type="button"
-          className={chip}
-          onClick={() => choose(s, ask, onStart)}
-          data-testid="ask-suggestion"
-          data-key={s.id}
-        >
-          {s.id === 'quiz' && <ListChecks className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />}
-          {s.id === 'flashcards' && <Layers className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />}
-          {s.label}
-          {s.kind === 'ask' && s.hint && <span className="mt-0.5 block text-[12.5px] text-r-muted">{s.hint}</span>}
-        </button>
-      ))}
+      <p className="mb-3 text-[13.5px] text-r-muted" data-testid="ask-intro">
+        {studyOff ? 'Ask about what you’ve read.' : 'Ask about what you’ve read. Answers link to the pages they use.'}
+      </p>
+      {list.map((s) => {
+        const off = studyOff !== null && isStudy(s.id)
+        return (
+          <button
+            key={s.id}
+            type="button"
+            className={cn(chip, off && 'cursor-not-allowed')}
+            onClick={() => choose(s, ask, onStart)}
+            disabled={off}
+            data-testid="ask-suggestion"
+            data-key={s.id}
+          >
+            {s.id === 'quiz' && <ListChecks className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />}
+            {s.id === 'flashcards' && <Layers className="mr-2 -mt-0.5 inline size-4 text-r-muted" aria-hidden />}
+            {s.label}
+            {off ? (
+              <span className="mt-0.5 block text-[12.5px] text-r-muted" data-testid="ask-study-off">
+                {studyOff}
+              </span>
+            ) : (
+              s.kind === 'ask' && s.hint && <span className="mt-0.5 block text-[12.5px] text-r-muted">{s.hint}</span>
+            )}
+          </button>
+        )
+      })}
       {noPrompts && (
         <p className="pt-2 text-[13px] text-r-muted" data-testid="ask-prompts-hint">
           {PROMPTS_HINT}{' '}
@@ -498,22 +542,33 @@ function Suggestions({
   )
 }
 
-function QuickQuestions({ view, ask }: { view: ReaderView; ask: AskState }) {
+function QuickQuestions({ view, ask, studyOff }: { view: ReaderView; ask: AskState; studyOff: string | null }) {
+  const id = useId()
   const list = quickQuestions({ chapterIndex: view.chapterIndex, wholeBook: ask.thread.wholeBook })
   return (
     <fieldset aria-label="Quick questions" className="flex min-w-0 flex-wrap gap-2">
-      {list.map((s) => (
-        <button
-          key={s.id}
-          type="button"
-          onClick={() => choose(s, ask, () => {})}
-          data-testid="ask-quick-question"
-          data-key={s.id}
-          className="inline-flex min-h-9 items-center rounded-full border border-r-line px-3.5 text-[13px] transition hover:border-r-accent/60"
-        >
-          {s.label}
-        </button>
-      ))}
+      {list.map((s) => {
+        const off = studyOff !== null && isStudy(s.id)
+        return (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => choose(s, ask, () => {})}
+            disabled={off}
+            aria-describedby={off ? id : undefined}
+            data-testid="ask-quick-question"
+            data-key={s.id}
+            className="inline-flex min-h-9 items-center rounded-full border border-r-line px-3.5 text-[13px] transition hover:border-r-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {s.label}
+          </button>
+        )
+      })}
+      {studyOff && (
+        <p id={id} className="basis-full text-[12px] text-r-muted" data-testid="ask-study-off">
+          {studyOff}
+        </p>
+      )}
     </fieldset>
   )
 }
@@ -528,6 +583,8 @@ function QuestionBox({
   quote,
   onClearQuote,
   prompts,
+  provider,
+  studyOff,
 }: {
   view: ReaderView
   ask: AskState
@@ -538,6 +595,8 @@ function QuestionBox({
   quote: string | null
   onClearQuote?: () => void
   prompts: readonly AskPromptChoice[]
+  provider: AiProvider
+  studyOff: string | null
 }) {
   const id = useId()
   const fitting = promptsFor(prompts, quote !== null)
@@ -573,7 +632,7 @@ function QuestionBox({
       {!ask.busy && (quick || fitting.length > 0) && (
         <div className="mb-2 flex min-w-0 flex-wrap gap-2">
           {fitting.length > 0 && <PromptsMenu prompts={fitting} hasQuote={quote !== null} onRun={run} />}
-          {quick && <QuickQuestions view={view} ask={ask} />}
+          {quick && <QuickQuestions view={view} ask={ask} studyOff={studyOff} />}
         </div>
       )}
       {quote && (
@@ -649,7 +708,9 @@ function QuestionBox({
         )}
       </div>
       <div className="mt-1.5 flex items-start justify-between gap-3 text-[12px] text-r-muted">
-        <p id={`${id}-note`}>Your question and the book’s text are sent to Anthropic with your API key.</p>
+        <p id={`${id}-note`} data-testid="ask-privacy">
+          Your question and the book’s text are sent to {providerName(provider)} with your API key.
+        </p>
         {count >= COUNT_FROM && (
           <p
             aria-live="polite"

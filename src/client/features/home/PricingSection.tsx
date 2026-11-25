@@ -129,8 +129,8 @@ export function PricingSection({ viewer, offer }: { viewer: Viewer | null; offer
         />
       </div>
       <p className="mt-6 max-w-[720px] text-[14px] text-muted">
-        Ask the book sends your question and the pages you’ve read to Anthropic with your own key. Anthropic bills you
-        for it; Folio adds no markup.
+        Ask the book sends your question and the pages you’ve read to Anthropic or OpenAI, whichever your chosen model
+        is from, with your own key. They bill you for it; Folio adds no markup.
       </p>
     </section>
   )

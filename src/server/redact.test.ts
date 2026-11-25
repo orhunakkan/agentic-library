@@ -33,6 +33,23 @@ describe('redact', () => {
   })
 })
 
+describe('OpenAI keys', () => {
+  it('are masked wherever they appear, project, service-account and legacy keys alike', () => {
+    const project = `sk-proj-AbC_dEf-${'x'.repeat(40)}`
+    const service = `sk-svcacct-${'y'.repeat(40)}`
+    const legacy = `sk-${'Z9'.repeat(24)}`
+    expect(redact(`key ${project} here`)).toBe('key sk-[redacted] here')
+    expect(redact(`{"key":"${service}"}`)).toBe('{"key":"sk-[redacted]"}')
+    expect(redact(`failed with ${legacy}.`)).toBe('failed with sk-[redacted].')
+    expect(redact(`authorization: Bearer ${project}`)).toBe('authorization: Bearer [redacted]')
+  })
+
+  it('leave Anthropic’s mask, ElevenLabs’ sk_ keys and ordinary words alone', () => {
+    expect(redact(`key ${KEY}`)).toBe('key sk-ant-[redacted]')
+    expect(redact('task-0123456789abcdefghij and sk-short')).toBe('task-0123456789abcdefghij and sk-short')
+  })
+})
+
 describe('Paddle’s secrets', () => {
   it('are masked wherever they appear', () => {
     const key = 'pdl_sdbx_apikey_01abcdefghijklmnopqrstuv_WxYz0123456789abcdefgh_AbC'

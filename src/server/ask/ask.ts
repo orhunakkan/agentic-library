@@ -1,14 +1,17 @@
 import '@tanstack/react-start/server-only'
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
+import type OpenAI from 'openai'
 import type { BookContent } from '~/shared/content/schema'
-import { ANTHROPIC_VERSION } from '../anthropic.ts'
+import { type AiModelId, type AiProvider, canStudyWith, providerOf } from '~/shared/lib/ai-models'
+import { anthropicClient } from '../anthropic.ts'
 import { hasKey, withApiKey } from '../api-keys.ts'
 import { findPrompt } from '../ask-prompts/store.ts'
 import { NO_STORE, requestIp } from '../auth.ts'
-import { openBook, type TextBook } from '../books/book.ts'
+import { openTextBook, type TextBook } from '../books/book.ts'
 import { getConfig } from '../config.ts'
 import type { Db } from '../db.ts'
 import { resolvedHighlights } from '../highlights/resolve.ts'
+import { OpenAiResponseError, openAiClient, openAiErrorCode } from '../openai.ts'
 import { requirePro } from '../plans/plan.ts'
 import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
@@ -22,6 +25,7 @@ import {
   buildContext,
   describePosition,
   highlightsForAsk,
+  OPENAI_SYSTEM_PROMPT,
   pageIndexAt,
   positionAt,
   STUDY_MIN_CHARS,
@@ -30,11 +34,14 @@ import {
   studyScope,
 } from './context.ts'
 import { type AskAction, isStudyAction, parseAskInput } from './input.ts'
+import { openAiEventMapper, openAiInput, openAiUsage } from './openai-stream.ts'
 import { type AskErrorCode, type AskEvent, askErrorCode, encodeEvent, eventMapper, studyEvent } from './stream.ts'
+import type { StudyBlock } from './study-format.ts'
 
 const MAX_BODY_BYTES = 128 * 1024
 const MAX_TOKENS = 16_000
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01'
+const OPENAI_TIMEOUT_MS = 10 * 60_000
 
 export type AskRefusal =
   | 'signed_out'
@@ -43,6 +50,7 @@ export type AskRefusal =
   | 'invalid'
   | 'too_little'
   | 'no_key'
+  | 'needs_claude'
   | 'limit'
   | 'too_long'
   | 'failed'
@@ -51,6 +59,39 @@ const asks = signedInEndpoints<AskRefusal>({ maxBytes: MAX_BODY_BYTES })
 const { fail: refuse } = asks
 
 type AskParams = Omit<Anthropic.Beta.Messages.MessageCreateParamsStreaming, 'stream'>
+type OpenAiAskParams = Omit<OpenAI.Responses.ResponseCreateParamsStreaming, 'stream'>
+
+type AskRequest = { provider: 'anthropic'; params: AskParams } | { provider: 'openai'; params: OpenAiAskParams }
+
+/** Each provider's request for the same messages: Claude reads the book as cited documents, GPT as plain text. */
+const ASK_REQUESTS: { [P in AiProvider]: (model: AiModelId, messages: AskMessages) => AskRequest & { provider: P } } = {
+  anthropic: (model, messages) => ({
+    provider: 'anthropic',
+    params: {
+      model,
+      max_tokens: MAX_TOKENS,
+      system: SYSTEM_PROMPT,
+      thinking: { type: 'adaptive' },
+      output_config: { effort: 'medium' },
+      betas: [FALLBACK_BETA],
+      fallbacks: 'default',
+      messages,
+    },
+  }),
+  openai: (model, messages) => ({
+    provider: 'openai',
+    params: {
+      model,
+      max_output_tokens: MAX_TOKENS,
+      instructions: OPENAI_SYSTEM_PROMPT,
+      reasoning: { effort: 'medium' },
+      store: false,
+      input: openAiInput(messages),
+    },
+  }),
+}
+
+type AskMessages = ReturnType<typeof askMessages>
 
 const texts = new WeakMap<BookContent, BookText>()
 
@@ -83,7 +124,7 @@ export interface AskOptions {
 async function askedBook({ session, db }: Gate, slug: string) {
   const notPro = requirePro(session, 'ask')
   if (notPro) return notPro
-  const found = await openBook(db, session.userId, slug).then((b) => (b?.format === 'text' ? b : null))
+  const found = await openTextBook(db, session.userId, slug)
   if (!found) return refuse(404, 'not_found')
   return { found, text: textOf(await found.content()) }
 }
@@ -100,34 +141,29 @@ export const handleAsk = (request: Request, slug: string, options: AskOptions = 
     { log: 'ask', before: (gate) => askedBook(gate, slug), parse: parseQuestion },
     async ({ session, db, pre: { found, text }, input: { input, pageIndex } }) => {
       const { userId } = session
-      const book = { title: found.title, text }
       const prompt = input.prompt ? await findPrompt(db, userId, input.prompt) : null
       if (input.prompt && !prompt) return refuse(404, 'no_prompt')
       if (prompt && (prompt.appliesTo === 'passage') !== (input.quote !== null)) return refuse(400, 'invalid')
-      const scope = isStudyAction(input.action) ? studyScope(book.text, pageIndex) : null
+      const model = await getAiModel(db, userId)
+      const provider = providerOf(model)
+      if (isStudyAction(input.action) && !canStudyWith(model)) return refuse(409, 'needs_claude')
+      const scope = isStudyAction(input.action) ? studyScope(text, pageIndex) : null
       if (scope && scope.chars < STUDY_MIN_CHARS) return refuse(422, 'too_little')
 
-      if (!(await hasKey(db, userId, 'anthropic'))) return refuse(409, 'no_key')
+      if (!(await hasKey(db, userId, provider))) return refuse(409, 'no_key')
 
-      const built = buildContext(book.text, pageIndex, { bookTitle: book.title, wholeBook: input.wholeBook })
+      const built = buildContext(text, pageIndex, { bookTitle: found.title, wholeBook: input.wholeBook })
       if (!built.ok) return refuse(413, 'too_long')
-      const model = await getAiModel(db, userId)
       const highlights = input.highlights
-        ? await readerHighlights(db, userId, found, book.text, pageIndex, input.wholeBook)
+        ? await readerHighlights(db, userId, found, text, pageIndex, input.wholeBook)
         : []
 
-      const params: AskParams = {
+      const ask = ASK_REQUESTS[provider](
         model,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        thinking: { type: 'adaptive' },
-        output_config: { effort: 'medium' },
-        betas: [FALLBACK_BETA],
-        fallbacks: 'default',
-        messages: askMessages({
+        askMessages({
           context: built.context,
           wholeBook: input.wholeBook,
-          where: describePosition(book.text, pageIndex),
+          where: describePosition(text, pageIndex),
           question: prompt ? prompt.name : input.question,
           quote: input.quote,
           history: input.history,
@@ -136,7 +172,7 @@ export const handleAsk = (request: Request, slug: string, options: AskOptions = 
           scope,
           prompt: prompt && { instruction: prompt.instruction },
         }),
-      }
+      )
 
       const action = prompt ? 'prompt' : input.action
       const taken = await take(db, userId, 'ask', {
@@ -144,6 +180,7 @@ export const handleAsk = (request: Request, slug: string, options: AskOptions = 
         detail: {
           book: slug,
           model,
+          provider,
           wholeBook: input.wholeBook,
           highlights: highlights.length,
           action,
@@ -161,10 +198,10 @@ export const handleAsk = (request: Request, slug: string, options: AskOptions = 
           scope,
           sourceOf: (index: number | null) => {
             const at = index ?? pageIndex
-            return { position: positionAt(book.text, at), label: book.text.pages[at]?.label ?? '' }
+            return { position: positionAt(text, at), label: text.pages[at]?.label ?? '' }
           },
         },
-        params,
+        request: ask,
         context: built.context,
         fetch: options.fetch,
       })
@@ -178,7 +215,7 @@ interface AnswerJob {
   settle: (detail: object) => Promise<void>
   action: AskAction | 'prompt' | null
   study: { scope: StudyScope; sourceOf: Parameters<typeof studyEvent>[3] } | null
-  params: AskParams
+  request: AskRequest
   context: BookContext
   signal: AbortSignal
   fetch: typeof fetch | undefined
@@ -220,61 +257,110 @@ function answerResponse(request: Request, job: Omit<AnswerJob, 'signal' | 'send'
   })
 }
 
+interface Meter {
+  servedBy?: string
+  inputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  outputTokens: number
+}
+
+interface Answered {
+  stop: string
+  blocks: readonly StudyBlock[]
+}
+
+interface Runner<R extends AskRequest> {
+  run: (job: AnswerJob, request: R, apiKey: string, meter: Meter) => Promise<Answered>
+  errorCode: (error: unknown) => Exclude<AskErrorCode, 'bad_format'> | null
+}
+
+function meterClaude(meter: Meter, message: Anthropic.Beta.BetaMessage | undefined) {
+  if (!message) return
+  meter.servedBy = message.model
+  meter.inputTokens = message.usage.input_tokens ?? 0
+  meter.cacheReadTokens = message.usage.cache_read_input_tokens ?? 0
+  meter.cacheWriteTokens = message.usage.cache_creation_input_tokens ?? 0
+  meter.outputTokens = message.usage.output_tokens ?? 0
+}
+
+const claude: Runner<AskRequest & { provider: 'anthropic' }> = {
+  async run(job, { params }, apiKey, meter) {
+    const mapper = eventMapper(job.context, { collect: job.study !== null })
+    const client = anthropicClient({ apiKey, apiBase: getConfig().anthropicApiBase, fetch: job.fetch })
+    const stream = client.beta.messages.stream(params, { signal: job.signal })
+    let message: Anthropic.Beta.BetaMessage
+    try {
+      for await (const event of stream) for (const out of mapper.map(event)) job.send(out)
+      message = await stream.finalMessage()
+    } finally {
+      meterClaude(meter, stream.currentMessage)
+    }
+    meterClaude(meter, message)
+    return { stop: message.stop_reason ?? mapper.stop ?? 'end_turn', blocks: mapper.blocks }
+  },
+  errorCode: askErrorCode,
+}
+
+const gpt: Runner<AskRequest & { provider: 'openai' }> = {
+  async run(job, { params }, apiKey, meter) {
+    const mapper = openAiEventMapper()
+    const client = openAiClient({
+      apiKey,
+      apiBase: getConfig().openAiApiBase,
+      timeoutMs: OPENAI_TIMEOUT_MS,
+      fetch: job.fetch,
+    })
+    try {
+      const stream = await client.responses.create({ ...params, stream: true }, { signal: job.signal })
+      for await (const event of stream) for (const out of mapper.map(event)) job.send(out)
+    } finally {
+      const response = mapper.response
+      if (response) Object.assign(meter, { servedBy: response.model }, openAiUsage(response.usage))
+    }
+    const stop = mapper.stop()
+    if (stop === null) throw new OpenAiResponseError(null)
+    return { stop, blocks: [] }
+  },
+  errorCode: openAiErrorCode,
+}
+
+const RUNNERS: { [P in AiProvider]: Runner<AskRequest & { provider: P }> } = { anthropic: claude, openai: gpt }
+
 async function answer(job: AnswerJob): Promise<void> {
-  const mapper = eventMapper(job.context, { collect: job.study !== null })
-  let usage: Anthropic.Beta.BetaUsage | undefined
-  let servedBy: string | undefined
+  const runner = RUNNERS[job.request.provider] as Runner<AskRequest>
+  const meter: Meter = { inputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 }
   let items: number | null = null
   let outcome: { stop: string } | { error: AskErrorCode | 'stopped' } | { stop: string; error: 'bad_format' }
   try {
-    const message = await withApiKey(
+    const { stop, blocks } = await withApiKey(
       job.userId,
-      'anthropic',
-      async (apiKey) => {
-        const client = new Anthropic({
-          apiKey,
-          baseURL: getConfig().anthropicApiBase,
-          defaultHeaders: { 'anthropic-version': ANTHROPIC_VERSION },
-          logLevel: 'off',
-          openTelemetry: false,
-          ...(job.fetch ? { fetch: job.fetch } : {}),
-        })
-        const stream = client.beta.messages.stream(job.params, { signal: job.signal })
-        try {
-          for await (const event of stream) for (const out of mapper.map(event)) job.send(out)
-          return await stream.finalMessage()
-        } finally {
-          usage = stream.currentMessage?.usage
-          servedBy = stream.currentMessage?.model
-        }
-      },
+      job.request.provider,
+      (apiKey) => runner.run(job, job.request, apiKey, meter),
       job.db,
     )
-    usage = message.usage
-    servedBy = message.model
-    const stop = message.stop_reason ?? mapper.stop ?? 'end_turn'
     outcome = { stop }
     if (job.study && stop !== 'refusal') {
       const kind = job.action === 'quiz' ? 'quiz' : 'cards'
-      const read = studyEvent(mapper.blocks, kind, job.study.scope.span, job.study.sourceOf)
+      const read = studyEvent(blocks, kind, job.study.scope.span, job.study.sourceOf)
       items = read.items
       job.send(read.event)
       if (read.items === null) outcome = { stop, error: 'bad_format' }
     }
     if (!('error' in outcome)) job.send({ type: 'done', stop })
   } catch (error) {
-    const code = job.signal.aborted ? null : askErrorCode(error)
+    const code = job.signal.aborted ? null : runner.errorCode(error)
     if (code === 'failed') logError('ask', error)
     if (code) job.send({ type: 'error', code })
     outcome = { error: code ?? 'stopped' }
   }
   try {
     await job.settle({
-      servedBy: servedBy ?? null,
-      inputTokens: usage?.input_tokens ?? 0,
-      cacheReadTokens: usage?.cache_read_input_tokens ?? 0,
-      cacheWriteTokens: usage?.cache_creation_input_tokens ?? 0,
-      outputTokens: usage?.output_tokens ?? 0,
+      servedBy: meter.servedBy ?? null,
+      inputTokens: meter.inputTokens,
+      cacheReadTokens: meter.cacheReadTokens,
+      cacheWriteTokens: meter.cacheWriteTokens,
+      outputTokens: meter.outputTokens,
       items,
       ...outcome,
     })

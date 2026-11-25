@@ -7,7 +7,7 @@ import {
 import { proNotice } from '~/shared/plans/copy'
 
 export const PROMPTS_INTRO =
-  'Your own requests for Ask the book, run from the Your prompts menu in the Ask panel. Each one is sent to Anthropic with the book’s text on your own key, as a question you type is.'
+  'Your own requests for Ask the book, run from the Your prompts menu in the Ask panel. Each one is sent to Anthropic or OpenAI with the book’s text on your own key, as a question you type is.'
 
 export const EMPTY_TEXT = 'You haven’t saved a prompt yet. Start from one of these, or write your own.'
 

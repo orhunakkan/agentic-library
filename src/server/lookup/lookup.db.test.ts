@@ -20,6 +20,7 @@ import { finishImport, startImport, storeChapter } from '~/server/user-books'
 import { setAiModel } from '~/server/users'
 import { NO_DETAILS } from '~/shared/import/details'
 import { anthropicStub, STUB_KEYS } from '../../../tests/e2e/support/anthropic-stub'
+import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/e2e/support/openai-stub'
 import { STUB_TERMS, wikimediaStub } from '../../../tests/e2e/support/wikimedia-stub'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
@@ -80,8 +81,10 @@ const wikimediaFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     .replace(/^https:\/\/([a-z]{2,3})\.wikipedia\.org\//, 'http://stub/wikipedia/$1/')
   return wikimediaStub(new Request(stubUrl, init))
 }) as typeof fetch
-const anthropicFetch = ((input: RequestInfo | URL, init?: RequestInit) =>
-  anthropicStub(new Request(input, init))) as typeof fetch
+const anthropicFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  const request = new Request(input, init)
+  return request.url.startsWith(getConfig().openAiApiBase) ? openAiStub(request) : anthropicStub(request)
+}) as typeof fetch
 
 function post(path: string, cookie: string | null, payload: unknown, headers: Record<string, string> = {}) {
   return new Request(`${origin}${path}`, {
@@ -318,6 +321,7 @@ describe('POST /account/lookup/translate', () => {
         kind: 'term',
         to: 'tr',
         model: 'claude-sonnet-5-5',
+        provider: 'anthropic',
         servedBy: 'claude-sonnet-5-5',
         inputTokens: 90,
         outputTokens: 12,
@@ -389,6 +393,77 @@ describe('POST /account/lookup/translate', () => {
   it('refuses a target outside the list', async () => {
     const { cookie } = await reader()
     expect((await translate(cookie, { book: BOOK, text: 'chaise', to: 'tlh' })).status).toBe(400)
+  })
+})
+
+describe('POST /account/lookup/translate on a GPT model', () => {
+  async function gptReader({ openai = openAiKey() as string | null, anthropic = false } = {}) {
+    const found = await reader({ withKey: anthropic ? key() : null })
+    if (openai) await saveKey(db(), found.user.id, 'openai', openai)
+    await setAiModel(db(), found.user.id, 'gpt-6.1-terra')
+    return found
+  }
+
+  it('translates through OpenAI on the reader’s key, credits the chosen GPT model, and audits no text', async () => {
+    const { user, cookie } = await gptReader({ anthropic: true })
+    const res = await translate(cookie, {
+      book: BOOK,
+      text: 'chaise',
+      context: 'He came down on Monday in a chaise and four.',
+      to: 'tr',
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ translation: '[tr] chaise\nSense: He', model: 'gpt-6.1-terra' })
+    expect(await details('word.translated', user.id)).toEqual([
+      {
+        book: BOOK,
+        kind: 'term',
+        to: 'tr',
+        model: 'gpt-6.1-terra',
+        provider: 'openai',
+        servedBy: 'gpt-6.1-terra-2026-10-01',
+        inputTokens: 90,
+        outputTokens: 12,
+        error: null,
+      },
+    ])
+    const audit = JSON.stringify(await raw`select * from audit_events`)
+    expect(audit).not.toContain('chaise')
+    const used = await raw<{ provider: string; used: boolean }[]>`
+      select provider, last_used_at is not null as used from api_keys order by provider`
+    expect(used).toEqual([
+      { provider: 'anthropic', used: false },
+      { provider: 'openai', used: true },
+    ])
+  })
+
+  it('is 409 no_key with only an Anthropic key, and doesn’t fall back to Claude', async () => {
+    const { user, cookie } = await gptReader({ openai: null, anthropic: true })
+    const res = await translate(cookie, { book: BOOK, text: 'chaise', to: 'tr' })
+    expect([res.status, await res.json()]).toEqual([409, { error: 'no_key' }])
+    expect(await details('word.translated', user.id)).toEqual([])
+  })
+
+  it('maps OpenAI’s errors, and logs a failure without the text or the key', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const cases = [
+      [STUB_OPENAI_KEYS.rejected, 502, 'key_rejected'],
+      [STUB_OPENAI_KEYS.billing, 502, 'billing'],
+      [STUB_OPENAI_KEYS.rateLimited, 503, 'busy'],
+      [STUB_OPENAI_KEYS.down, 503, 'busy'],
+      [STUB_OPENAI_KEYS.refusal, 502, 'refused'],
+      [STUB_OPENAI_KEYS.tooLong, 502, 'failed'],
+    ] as const
+    for (const [ending, status, error] of cases) {
+      const { user, cookie } = await gptReader({ openai: openAiKey(ending) })
+      const res = await translate(cookie, { book: BOOK, text: 'Netherfield is let at last', to: 'de' })
+      expect([res.status, await res.json()], ending).toEqual([status, { error }])
+      expect((await details('word.translated', user.id))[0]).toMatchObject({ error, provider: 'openai' })
+    }
+    const logged = errors.mock.calls.flat().join(' ')
+    expect(logged).toContain('[translate]')
+    expect(logged).not.toContain('Netherfield')
+    expect(logged).not.toContain('sk-test-openai')
   })
 })
 

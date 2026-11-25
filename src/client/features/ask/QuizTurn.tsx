@@ -10,6 +10,7 @@ export function QuizTurn({
   study,
   bookSlug,
   busy,
+  newQuizOff = null,
   onPick,
   onNewQuiz,
   onNavigate,
@@ -17,6 +18,8 @@ export function QuizTurn({
   study: Extract<ThreadStudy, { kind: 'quiz' }>
   bookSlug: string
   busy: boolean
+  /** Why a new quiz can't be made now, as with a GPT model; null when it can. */
+  newQuizOff?: string | null
   onPick: (question: number, choice: number) => void
   onNewQuiz: () => void
   onNavigate?: () => void
@@ -60,12 +63,17 @@ export function QuizTurn({
           <button
             type="button"
             onClick={onNewQuiz}
-            disabled={busy}
+            disabled={busy || newQuizOff !== null}
             data-testid="quiz-new"
             className="inline-flex h-10 items-center rounded-full border border-r-line px-4 text-[13.5px] font-medium transition hover:border-r-accent/60 disabled:opacity-50"
           >
             New quiz
           </button>
+          {newQuizOff && (
+            <p className="basis-full text-[12.5px] text-r-muted" data-testid="quiz-new-off">
+              {newQuizOff}
+            </p>
+          )}
         </div>
       )}
       <p className="sr-only" aria-live="polite" data-testid="quiz-status">
