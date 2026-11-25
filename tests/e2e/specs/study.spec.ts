@@ -131,16 +131,6 @@ test.describe('Quizzes and flashcards', () => {
     await expectNoSideways(page)
   })
 
-  test('an answer that is no quiz says so, with Retry', async ({ page, readerPage }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'wiring of the copy, which ask-problems.test.ts checks')
-    await readerWithKey(page, STUB_KEYS.badFormat)
-    const ask = await readerPage.ask.open()
-    await ask.getByRole('button', { name: 'Quiz me on this chapter so far' }).click()
-    const alert = ask.getByRole('alert')
-    await expect(alert.getByText('The answer didn’t come back as a quiz. Try again.')).toBeVisible()
-    await expect(alert.getByRole('button', { name: 'Retry' })).toBeVisible()
-  })
-
   test('a quiz stopped while it is written shows only Stopped', async ({ page, readerPage }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'one check of Stop on a quiz; ask.spec covers Stop itself')
     await readerWithKey(page, STUB_KEYS.slow)

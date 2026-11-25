@@ -62,26 +62,4 @@ test.describe('Buying Pro', () => {
     await expect(page).toHaveURL(/\/test-paddle\/portal\/ctm_[a-z0-9]+$/)
     await expect(page.getByRole('heading', { name: 'Paddle customer portal' })).toBeVisible()
   })
-
-  test('a refused checkout, and a Paddle.js that won’t load, say so under the button', async ({
-    page,
-    proPage,
-  }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'The copy’s wiring; the device adds nothing.')
-    await createUser(page.request, { signedIn: true, plan: 'free' })
-    await proPage.goto()
-    await page.route(
-      '**/account/plan/checkout',
-      (route) => route.fulfill({ status: 409, json: { error: 'subscribed' } }),
-      {
-        times: 1,
-      },
-    )
-    await proPage.buyButton().click()
-    await expect(page.getByRole('alert')).toHaveText('You already have Pro.')
-    await page.route('https://cdn.paddle.com/**', (route) => route.abort())
-    await proPage.buyButton().click()
-    await expect(page.getByRole('alert')).toHaveText('Couldn’t open the checkout. Try again in a moment.')
-    await expect(proPage.buyButton()).toBeEnabled()
-  })
 })

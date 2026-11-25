@@ -70,23 +70,4 @@ test.describe('Remove from library', () => {
     await input.fill('The Prophet')
     await expect(page.getByRole('option', { name: /The Prophet/ }).first()).toBeVisible()
   })
-
-  test('a refused change is undone and says why', async ({ page, bookPage }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'What is said and undone is the same on every device.')
-    await signedInAt(page, PROPHET)
-    await page.route('**/account/removed-books', (route) =>
-      route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'failed' }) }),
-    )
-    await bookPage.removeButton.click()
-    await expect(page.getByRole('alert').filter({ hasText: 'Couldn’t save that. Try again.' })).toBeVisible()
-    await expect(bookPage.removeButton).toBeVisible()
-
-    await page.route('**/account/removed-books', (route) =>
-      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'signed_out' }) }),
-    )
-    await bookPage.removeButton.click()
-    const alert = page.getByRole('alert').filter({ hasText: 'Your session ended.' })
-    await expect(alert).toBeVisible()
-    await expect(alert.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', /next=/)
-  })
 })

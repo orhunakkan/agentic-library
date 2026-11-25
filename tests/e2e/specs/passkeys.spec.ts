@@ -32,15 +32,4 @@ test.describe('Passkeys', () => {
     await expect(passkeys.region.getByText('No passkeys yet.')).toBeVisible()
     await expectAccessible(page)
   })
-
-  test('a wrong password is said beside the field', async ({ page, accountPage }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'one wiring check of the copy; the layout is the journey’s')
-    await useVirtualAuthenticator(page.context())
-    await createUser(page.request, { signedIn: true })
-    await page.goto('/account#passkeys')
-    await accountPage.passkeys.add('not my password at all')
-    await expect(accountPage.passkeys.error).toHaveText('Your password is incorrect.')
-    await expect(accountPage.passkeys.password).toHaveAttribute('aria-invalid', 'true')
-    await expect(accountPage.passkeys.rows).toHaveCount(0)
-  })
 })

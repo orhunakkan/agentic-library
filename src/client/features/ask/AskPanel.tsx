@@ -14,9 +14,10 @@ import type { AskVoice } from '../ask-voice/use-ask-voice'
 import { VoiceNotices } from '../ask-voice/VoiceNotices'
 import { ProNotice } from '../plans/ProNotice'
 import { AnswerText } from './AnswerText'
+import { AskFailureNotice } from './AskFailureNotice'
 import { plainAnswer } from './answer-format'
 import { type AskAction, QUESTION_MAX } from './ask-client'
-import { canRetry, failureText, NEEDS_CLAUDE_TEXT, problemText } from './ask-problems'
+import { failureText, NEEDS_CLAUDE_TEXT, problemText } from './ask-problems'
 import { CardsTurn } from './CardsTurn'
 import { PromptsMenu } from './PromptsMenu'
 import { PROMPTS_HINT, promptsFor } from './prompts'
@@ -326,7 +327,7 @@ function Thread({
               </li>
             </>
           )}
-          {failure && <Failure failure={failure} ask={ask} provider={provider} />}
+          {failure && <AskFailureNotice failure={failure} onRetry={ask.retry} provider={provider} />}
         </ol>
       )}
       <p className="sr-only" role="status" data-testid="ask-status">
@@ -436,37 +437,6 @@ function ListenButton({ voice, index, text }: { voice: AskVoice; index: number; 
       {playing ? <Square className="size-3 fill-current" aria-hidden /> : <Volume2 className="size-3.5" aria-hidden />}
       {playing ? 'Stop' : 'Listen'}
     </button>
-  )
-}
-
-function Failure({ failure, ask, provider }: { failure: AskFailure; ask: AskState; provider: AiProvider }) {
-  return (
-    <li
-      role="alert"
-      data-testid="ask-error"
-      className="rounded-xl border border-r-line bg-r-page px-3.5 py-3 text-[14px] leading-relaxed"
-    >
-      <p>{failureText(failure.problem, failure.retryAt, failure.action, provider)}</p>
-      {(failure.problem === 'key_rejected' || failure.problem === 'needs_claude') && (
-        <Link
-          to="/account/api-keys"
-          data-testid="ask-error-api-keys"
-          className="mt-1 inline-block text-r-accent underline underline-offset-2"
-        >
-          API keys
-        </Link>
-      )}
-      {canRetry(failure.problem) && (
-        <button
-          type="button"
-          onClick={ask.retry}
-          data-testid="ask-retry"
-          className="mt-2 inline-flex h-10 items-center rounded-full border border-r-line px-4 text-[13.5px] font-medium transition hover:border-r-accent/60"
-        >
-          Retry
-        </button>
-      )}
-    </li>
   )
 }
 

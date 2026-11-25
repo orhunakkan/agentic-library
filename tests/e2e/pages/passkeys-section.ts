@@ -7,7 +7,6 @@ export class PasskeysSection {
   readonly continueButton: Locator
   readonly rows: Locator
   readonly status: Locator
-  readonly error: Locator
 
   constructor(readonly page: Page) {
     this.region = page.getByRole('region', { name: 'Passkeys' })
@@ -16,7 +15,6 @@ export class PasskeysSection {
     this.continueButton = this.region.getByRole('button', { name: 'Continue' })
     this.rows = this.region.getByRole('list', { name: 'Your passkeys' }).getByRole('listitem')
     this.status = this.region.getByRole('status')
-    this.error = this.region.getByRole('alert')
   }
 
   async add(password: string) {

@@ -38,11 +38,6 @@ export class AskPanel {
     return menu
   }
 
-  async runPrompt(name: string) {
-    const menu = await this.openPrompts()
-    await menu.getByRole('menuitem', { name, exact: true }).click()
-  }
-
   get microphone() {
     return this.panel.getByRole('button', { name: /^(Ask by voice|Stop and send)$/ })
   }
