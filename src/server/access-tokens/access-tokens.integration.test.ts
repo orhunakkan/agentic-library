@@ -53,7 +53,7 @@ interface Options {
 }
 
 function req(path: string, o: Options = {}): Request {
-  const headers: Record<string, string> = { 'x-real-ip': o.ip ?? IP, 'user-agent': 'access-tokens.db.test' }
+  const headers: Record<string, string> = { 'x-real-ip': o.ip ?? IP, 'user-agent': 'access-tokens.integration.test' }
   if (o.from !== null && o.from !== undefined) headers.origin = o.from
   if (o.bearer) headers.authorization = `Bearer ${o.bearer}`
   if (o.authorization !== undefined) headers.authorization = o.authorization
@@ -148,7 +148,7 @@ describe('making a token', () => {
     expect(row?.token_hash.equals(hashToken(body.token))).toBe(true)
     expect(Number(row?.user_id)).toBe(ann.id)
     expect(row?.ip).toBe(IP)
-    expect(row?.user_agent).toBe('access-tokens.db.test')
+    expect(row?.user_agent).toBe('access-tokens.integration.test')
     const dump = JSON.stringify(await raw`select * from access_tokens`)
     expect(dump).not.toContain(body.token.slice(9))
 
@@ -681,7 +681,7 @@ describe('your data', () => {
         lastUsedAt: null,
         expiresAt: new Date(token.expiresAt),
         ip: IP,
-        userAgent: 'access-tokens.db.test',
+        userAgent: 'access-tokens.integration.test',
       },
     ])
   })

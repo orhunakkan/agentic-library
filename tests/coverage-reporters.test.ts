@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import browserConfig from '../vitest.browser.config.ts'
 import unitConfig from '../vitest.config.ts'
-import dbConfig from '../vitest.db.config.ts'
+import integrationConfig from '../vitest.integration.config.ts'
 
 type Reporter = string | [string, Record<string, unknown>?]
 
@@ -25,7 +25,7 @@ describe('terminalReporters', () => {
 
 describe.each([
   ['vitest.config.ts', unitConfig],
-  ['vitest.db.config.ts', dbConfig],
+  ['vitest.integration.config.ts', integrationConfig],
   ['vitest.browser.config.ts', browserConfig],
 ])('%s', (_path, config) => {
   const reporters = config.test?.coverage?.reporter as Reporter[]

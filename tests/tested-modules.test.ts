@@ -6,9 +6,10 @@ const ALLOWLIST: Record<string, string> = {
   'src/server/functions.ts': 'server functions: TanStack Start turns them into RPC calls; no test runs it',
   'src/server/account-functions.ts': 'server functions for the account pages, called over RPC; no test runs it',
   'src/shared/content/schema.ts': 'types only; nothing to run',
-  'src/server/books/catalogue.ts': 'inside the books module: tested through openBook in books.db.test.ts (#88)',
-  'src/server/books/private.ts': 'inside the books module: tested through openBook in books.db.test.ts (#88)',
-  'src/server/books/views.ts': 'inside the books module: tested through openBook in books.db.test.ts (#88)',
+  'src/server/books/catalogue.ts':
+    'inside the books module: tested through openBook in books.integration.test.ts (#88)',
+  'src/server/books/private.ts': 'inside the books module: tested through openBook in books.integration.test.ts (#88)',
+  'src/server/books/views.ts': 'inside the books module: tested through openBook in books.integration.test.ts (#88)',
   'src/shared/lookup/contract.ts': 'types only: the bodies and answers of the lookup routes; nothing to run',
   'src/client/lib/hue-classes.ts': 'a constant class map, there so Tailwind sees each class; nothing to run',
   'src/shared/flashcards/contract.ts': 'types only: the answers of the flashcards routes and reads; nothing to run',

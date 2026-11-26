@@ -187,7 +187,7 @@ const SEAMS: Seam[] = [
       /(recordEvent\([^,]+, |insert into audit_events[^`]*)'(book\.asked|word\.(looked_up|translated)|book\.looked_up|repo\.(added|refreshed)|account\.exported|api_key\.(saved|deleted|rejected))'/,
     under: ['src/server'],
     tests: true,
-    allowed: { 'src/server/quota.db.test.ts': "take's own test: a kind counts every event it names" },
+    allowed: { 'src/server/quota.integration.test.ts': "take's own test: a kind counts every event it names" },
   },
   {
     name: 'only the player module creates the arbiter, the audiobook transport and read aloud (#90)',
@@ -239,12 +239,12 @@ const SEAMS: Seam[] = [
     allowed: {},
   },
   {
-    name: 'a database test gets its schema and empty tables from the shared fixture, never by migrating or truncating itself',
+    name: 'an integration test gets its schema and empty tables from the shared fixture, never by migrating or truncating itself',
     pattern: /\bfreshDatabase\b|['"`]\s*truncate\s/i,
     under: ['src/server'],
     onlyTests: true,
     allowed: {
-      'src/server/migrations.db.test.ts': 'tests the migrations themselves, and leaves a fresh schema behind',
+      'src/server/migrations.integration.test.ts': 'tests the migrations themselves, and leaves a fresh schema behind',
     },
   },
 ]

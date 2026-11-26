@@ -39,18 +39,18 @@ and merged.
 FOLIO_DB_PORT=55432 docker compose up -d --wait
 ```
 
-Then change the port in `DATABASE_URL` in your `.env` to `55432`. The database tests default to port 5432, so give
+Then change the port in `DATABASE_URL` in your `.env` to `55432`. The integration tests default to port 5432, so give
 them the test database’s address on the same line:
 
 ```sh
-DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/agentic_test pnpm test:db
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/agentic_test pnpm test:integration
 ```
 
-Don’t `export` it: `pnpm dev` would then use `agentic_test`, which the database tests wipe, because a variable already
-set wins over `.env`.
+Don’t `export` it: `pnpm dev` would then use `agentic_test`, which the integration tests wipe, because a variable
+already set wins over `.env`.
 
-Compose is optional: your own Postgres 18 with an `agentic_dev` and an `agentic_test` database works too. The database
-tests run eight files at once, each against its own `agentic_w<n>_test` database, which they create through
+Compose is optional: your own Postgres 18 with an `agentic_dev` and an `agentic_test` database works too. The
+integration tests run eight files at once, each against its own `agentic_w<n>_test` database, which they create through
 `agentic_test` the first time, so the user in `DATABASE_URL` needs to be allowed to create databases.
 
 ## Commands
@@ -60,7 +60,7 @@ tests run eight files at once, each against its own `agentic_w<n>_test` database
 | `pnpm dev` | The dev server, at http://localhost:3000 |
 | `pnpm check` | Lint, typecheck and unit tests. Run it before you push |
 | `pnpm test:browser` | Component tests, in headless Chromium |
-| `pnpm test:db` | Database tests, against `agentic_test` |
+| `pnpm test:integration` | Integration tests, against `agentic_test` |
 | `pnpm lint:fix` | Apply Biome’s fixes and formatting |
 | `pnpm db:migrate` | Apply the migrations in `db/migrations/` |
 | `docker compose down -v` | Stop the local Postgres and delete both databases, to start again from nothing |
@@ -81,16 +81,16 @@ Coding agents read [AGENTS.md](AGENTS.md), which points them to the same rules.
 Vitest runs all three kinds of test, and there’s no other test tool:
 
 - **Unit tests** sit next to their module, as `*.test.ts`. `pnpm check` runs them.
-- **Database tests** are `*.db.test.ts`, run by `pnpm test:db`. Files run in parallel, each worker against a database
-  of its own whose schema the run drops and re-creates once. Write them with `it` and `raw` from
-  `src/server/testing/db-test.ts`, which starts every test with every table empty, so don’t truncate tables or migrate
-  in a test file.
+- **Integration tests** are `*.integration.test.ts`, run by `pnpm test:integration` against a real Postgres. Files run
+  in parallel, each worker against a database of its own whose schema the run drops and re-creates once. Write them
+  with `it` and `raw` from `src/server/testing/db-test.ts`, which starts every test with every table empty, so don’t
+  truncate tables or migrate in a test file.
 - **Component tests** are `*.browser.test.tsx`, run by `pnpm test:browser` in headless Chromium. Render with `mount`
   from `src/client/testing/mount.ts`, or `mountAt` from `src/client/testing/router.tsx` inside a router; test a React
   hook with `mountHook` (or `mountHookAt`), which hands back its latest result.
 
-`.only` fails the run, so to focus a test, use a file path or `-t "<name>"`. Unit and database tests run in a shuffled
-order; when one fails only sometimes, replay the order with the seed the run printed: `--sequence.seed=<seed>`.
+`.only` fails the run, so to focus a test, use a file path or `-t "<name>"`. Unit and integration tests run in a
+shuffled order; when one fails only sometimes, replay the order with the seed the run printed: `--sequence.seed=<seed>`.
 
 A test that checks a whole generated document, such as a Markdown export, compares it with a snapshot: inline
 (`toMatchInlineSnapshot`) when it reads well in the test, or a file in `__snapshots__/` (`toMatchFileSnapshot`) when
@@ -112,9 +112,10 @@ under `.vitest/traces/`. Open it with `pnpm exec playwright show-trace <path>`. 
 clears the traces of runs that have ended, and git ignores `.vitest/`.
 
 Each command measures coverage on its own side: `pnpm check` the shared and client modules (`coverage/unit`),
-`pnpm test:db` the server (`coverage/server`), and `pnpm test:browser` the components and React hooks
+`pnpm test:integration` the server (`coverage/server`), and `pnpm test:browser` the components and React hooks
 (`coverage/browser`). Coverage floors only go up (`pnpm coverage:ratchet` raises all three). Run `pnpm check` before
-you push, and also `pnpm test:db` when your change touches the server, or `pnpm test:browser` when it touches the UI.
+you push, and also `pnpm test:integration` when your change touches the server, or `pnpm test:browser` when it
+touches the UI.
 
 ## Migrations
 
@@ -132,7 +133,7 @@ one release, then drop it in a later one.
 
 ## How your pull request is tested and merged
 
-- There’s no CI. The maintainer checks out your pull request and runs `pnpm check`, `pnpm test:db` and
+- There’s no CI. The maintainer checks out your pull request and runs `pnpm check`, `pnpm test:integration` and
   `pnpm test:browser` before merging, so run them yourself first.
 - Only the maintainer merges, as a squash.
 

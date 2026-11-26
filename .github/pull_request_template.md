@@ -8,7 +8,7 @@
 
 - [ ] `pnpm check` passes
 - [ ] Tests added or updated
-- [ ] `pnpm test:db` or `pnpm test:browser` run, if the server or the UI changed
+- [ ] `pnpm test:integration` or `pnpm test:browser` run, if the server or the UI changed
 - [ ] Docs and `.env.example` updated, if behaviour or settings changed
 - [ ] Migrations only added, never edited
 - [ ] No secrets or personal data

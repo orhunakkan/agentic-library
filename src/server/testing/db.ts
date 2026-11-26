@@ -2,12 +2,12 @@ import { randomBytes } from 'node:crypto'
 import postgres from 'postgres'
 import { migrate } from '../../../scripts/db/migrate'
 
-/** `url`, if it names a PostgreSQL database whose name ends in `_test`; the database tests refuse any other. */
+/** `url`, if it names a PostgreSQL database whose name ends in `_test`; the integration tests refuse any other. */
 export function checkedTestDatabaseUrl(url: string | undefined): string {
-  if (!url) throw new Error('DATABASE_URL is not set; the database tests need a PostgreSQL database named *_test')
+  if (!url) throw new Error('DATABASE_URL is not set; the integration tests need a PostgreSQL database named *_test')
   const name = new URL(url.replace(/^postgres(ql)?:/, 'http:')).pathname.slice(1)
   if (!name.endsWith('_test'))
-    throw new Error(`Refusing to run database tests against "${name}": its name must end in _test`)
+    throw new Error(`Refusing to run integration tests against "${name}": its name must end in _test`)
   return url
 }
 

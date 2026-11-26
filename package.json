@@ -13,7 +13,7 @@
     "build": "vite build && node scripts/offline/app-files.ts && node scripts/run-code/engine-files.ts",
     "start": "node --env-file-if-exists=.env scripts/serve.ts",
     "test": "vitest run --coverage",
-    "test:db": "vitest run --config vitest.db.config.ts --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts --coverage",
     "test:browser": "vitest run --config vitest.browser.config.ts --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",

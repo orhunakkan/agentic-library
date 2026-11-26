@@ -11,8 +11,8 @@ interface ImportRef {
 
 const SERVER_FUNCTION_MODULES = ['src/server/functions', 'src/server/account-functions']
 
-/** Db tests that drive a client module against the real handlers in-process, to check both sides agree (#92). */
-const AGREEMENT_TESTS = ['src/server/shelves/shelves-client.db.test.ts']
+/** Integration tests that drive a client module against the real handlers in-process, to check both sides agree (#92). */
+const AGREEMENT_TESTS = ['src/server/shelves/shelves-client.integration.test.ts']
 
 const STATIC_IMPORT = /^[ \t]*(?:import|export)\s+(type\s+)?(?:[\w$*{}\s,]+?\s+from\s+)?['"]([^'"]+)['"]/gm
 const DYNAMIC_IMPORT = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g
@@ -137,9 +137,9 @@ describe('violation', () => {
 
   it('lets a named agreement test drive a client module against its handlers, and nothing else', () => {
     const client = value('~/client/features/shelves/shelves-client')
-    expect(violation('src/server/shelves/shelves-client.db.test.ts', client)).toBeNull()
-    expect(violation('src/server/shelves/shelves.db.test.ts', client)).toMatch(/server code imports client/)
-    expect(violation('src/server/shelves/shelves-client.db.test.ts', value('~/routes/og'))).toMatch(
+    expect(violation('src/server/shelves/shelves-client.integration.test.ts', client)).toBeNull()
+    expect(violation('src/server/shelves/shelves.integration.test.ts', client)).toMatch(/server code imports client/)
+    expect(violation('src/server/shelves/shelves-client.integration.test.ts', value('~/routes/og'))).toMatch(
       /server code imports routes/,
     )
   })

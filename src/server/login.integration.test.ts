@@ -38,7 +38,7 @@ function formPost(
       origin: from,
       'content-type': 'application/x-www-form-urlencoded',
       'x-real-ip': ip,
-      'user-agent': 'login.db.test',
+      'user-agent': 'login.integration.test',
       ...(cookie ? { cookie } : {}),
     },
     body: new URLSearchParams(body),
@@ -82,7 +82,7 @@ describe('handleLogin', () => {
     expect(token).toBeDefined()
     expect(await findSession(db(), hashToken(token ?? ''))).toMatchObject({ userId: user.id, username: 'reader' })
     const [row] = await raw<{ ip: string; ua: string }[]>`select host(ip) as ip, user_agent as ua from sessions`
-    expect(row).toEqual({ ip: IP, ua: 'login.db.test' })
+    expect(row).toEqual({ ip: IP, ua: 'login.integration.test' })
     const events = await raw<{ event: string }[]>`select event from audit_events`
     expect(events.map((e) => e.event)).toEqual(['login.succeeded'])
   })

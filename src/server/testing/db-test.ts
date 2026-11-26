@@ -3,7 +3,7 @@ import { test as base } from 'vitest'
 import { databaseUrl } from './db'
 
 /**
- * The database tests' shared setup. Each Vitest worker has a database of its own, migrated fresh once a run
+ * The integration tests' shared setup. Each Vitest worker has a database of its own, migrated fresh once a run
  * (`db-global-setup.ts`, `db-worker.ts`); use this file's `it` (or `test`) in place of Vitest's, and every test starts
  * with every table empty. No test file names its own tables to truncate, so a new table can't be left off a list and
  * leak rows into the next test.

@@ -6,5 +6,5 @@ import { workerDatabaseUrl } from '../../../tests/test-databases.ts'
  */
 const poolId = process.env.VITEST_POOL_ID
 const url = process.env.DATABASE_URL
-if (!poolId || !url) throw new Error('A database test worker needs VITEST_POOL_ID and DATABASE_URL')
+if (!poolId || !url) throw new Error('An integration test worker needs VITEST_POOL_ID and DATABASE_URL')
 process.env.DATABASE_URL = workerDatabaseUrl(url, poolId)

@@ -11,18 +11,18 @@ Follow every rule in [CODE_STANDARDS.md](CODE_STANDARDS.md) in all code you writ
 ## Commands
 
 ```
-pnpm dev            Dev server
-pnpm check          Lint, typecheck and unit tests (run before calling a change done)
-pnpm test:db        Database tests (*.db.test.ts)
-pnpm test:browser   Component tests (*.browser.test.tsx) in headless Chromium
-pnpm lint:fix       Apply Biome fixes and formatting
+pnpm dev                Dev server
+pnpm check              Lint, typecheck and unit tests (run before calling a change done)
+pnpm test:integration   Integration tests (*.integration.test.ts), against Postgres
+pnpm test:browser       Component tests (*.browser.test.tsx) in headless Chromium
+pnpm lint:fix           Apply Biome fixes and formatting
 docker compose up -d --wait   Local Postgres for dev and tests
 ```
 
 The pre-commit hook in `.githooks/pre-commit` runs Biome on staged files, the typecheck, the tests in `tests/`, and the
 unit tests related to the staged `.ts` and `.tsx` files (`vitest related`, which needs no Postgres or Chromium).
 
-There's no CI, so these local gates are the only checks. Before a push, run `pnpm check`, `pnpm test:db` and
+There's no CI, so these local gates are the only checks. Before a push, run `pnpm check`, `pnpm test:integration` and
 `pnpm test:browser`.
 
 Deploys run by hand on the server: `sudo /usr/local/bin/agentic-library-deploy dev [<sha>]` builds and deploys to dev

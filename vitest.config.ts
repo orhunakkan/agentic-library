@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.ts', 'scripts/**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/*.db.test.ts', '**/*.browser.test.tsx'],
+    exclude: ['**/node_modules/**', '**/*.integration.test.ts', '**/*.browser.test.tsx'],
     environment: 'node',
     env: { CONTENT_DIR },
     /** A stray `.only` fails the run instead of quietly skipping every other test; Vitest allows it unless CI is set. */
