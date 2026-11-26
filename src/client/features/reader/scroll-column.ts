@@ -55,9 +55,6 @@ export function onRouteChange(
 export function pageAtLine(tops: readonly number[], line: number, atBottom: boolean): number {
   if (tops.length === 0) return 0
   if (atBottom) return tops.length - 1
-  let at = 0
-  tops.forEach((top, i) => {
-    if (top <= line) at = i
-  })
-  return at
+  const lastAbove = tops.findLastIndex((top) => top <= line)
+  return Math.max(0, lastAbove)
 }

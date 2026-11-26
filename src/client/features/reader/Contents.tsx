@@ -27,7 +27,7 @@ export function ContentsDrawer({
           <Drawer.Popup
             data-tone={view.book.tone}
             data-testid="contents-drawer"
-            initialFocus={() => (document.querySelector('[data-note-editor] textarea') as HTMLElement | null) ?? true}
+            initialFocus={() => document.querySelector<HTMLElement>('[data-note-editor] textarea') ?? true}
             className="pointer-events-auto flex h-full w-[86%] max-w-[330px] flex-col bg-r-page text-r-ink shadow-2xl outline-none [transform:translateX(var(--drawer-swipe-movement-x))] transition-transform duration-300 ease-[cubic-bezier(.32,.72,0,1)] data-ending-style:[transform:translateX(-100%)] data-starting-style:[transform:translateX(-100%)]"
           >
             <Drawer.Title className="sr-only">Contents</Drawer.Title>

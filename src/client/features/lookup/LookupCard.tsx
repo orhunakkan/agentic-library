@@ -266,10 +266,10 @@ function TranslateFailure({
   currentHref: string
   provider: AiProvider
 }) {
-  const rejected = keyRejected(provider)
   if (problem === 'signed_out') return <SignedOut currentHref={currentHref} />
   if (problem === 'no_key') return <NoKey provider={provider} />
-  if (problem === 'key_rejected')
+  if (problem === 'key_rejected') {
+    const rejected = keyRejected(provider)
     return (
       <Notice>
         {rejected.before}
@@ -279,6 +279,7 @@ function TranslateFailure({
         {rejected.after}
       </Notice>
     )
+  }
   return <Shown notice={translateNotice(problem, retryAt, provider)} onRetry={onRetry} />
 }
 

@@ -21,21 +21,8 @@ export interface ReaderOverlays {
 
 /** The page an arrow key turns to, or `null` when a modifier, an open overlay or a focused field keeps it. */
 export function keyTurn(press: PageKey, overlays: ReaderOverlays): Direction | null {
-  if (
-    press.altKey ||
-    press.ctrlKey ||
-    press.metaKey ||
-    press.shiftKey ||
-    overlays.settings ||
-    overlays.contents ||
-    overlays.footnote ||
-    overlays.askSheet ||
-    overlays.popover ||
-    overlays.lookup ||
-    overlays.picture ||
-    overlays.runCode
-  )
-    return null
+  const modified = press.altKey || press.ctrlKey || press.metaKey || press.shiftKey
+  if (modified || Object.values(overlays).some(Boolean)) return null
   if ((press.target as HTMLElement | null)?.closest(TYPING_OR_DIALOG)) return null
   if (press.key === 'ArrowRight') return 'next'
   if (press.key === 'ArrowLeft') return 'prev'

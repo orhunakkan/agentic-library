@@ -19,7 +19,7 @@ import { HighlightPopover } from '~/client/features/highlights/HighlightPopover'
 import { type Editing, HighlightsTab } from '~/client/features/highlights/HighlightsTab'
 import { clearPaint, hitTest, paintPages, paintSpeaking, paintWord } from '~/client/features/highlights/paint'
 import { type Selected, SelectionToolbar } from '~/client/features/highlights/SelectionToolbar'
-import { type NewHighlight, useHighlights } from '~/client/features/highlights/use-highlights'
+import { type HighlightItem, type NewHighlight, useHighlights } from '~/client/features/highlights/use-highlights'
 import { LookupCard } from '~/client/features/lookup/LookupCard'
 import { useLookup } from '~/client/features/lookup/use-lookup'
 import { usePlayer } from '~/client/features/player/PlayerProvider'
@@ -53,9 +53,6 @@ function useEmbedded(): boolean {
   useEffect(() => setEmbedded(document.documentElement.getAttribute('data-embed') === 'on'), [])
   return embedded
 }
-
-const FLASH_MS = 2000
-const FLASH_PULSES = [0, 400, 700, 1100, 1400]
 
 export function Reader({
   view,
@@ -196,6 +193,7 @@ export function Reader({
     void ask.ask(question, quote, { action })
   }
   const explain = (quote: string) => askAction('explain', quote, EXPLAIN_QUESTION)
+  const popoverItem = (popover && highlights.items.find((h) => h.key === popover.key)) || null
   const popoverQuote = () =>
     popoverItem ? [...popoverItem.text.replace(/\s+/g, ' ')].slice(0, QUOTE_MAX).join('') : null
   const showTocTab = (tab: TocTab) => {
@@ -221,11 +219,9 @@ export function Reader({
     setTocOpen(true)
   }
   const openPopover = (key: string) => {
-    const range = ranges.current.find((r) => r.key === key)?.range
-    const rect = range?.getClientRects()[0] ?? range?.getBoundingClientRect()
+    const rect = paintedRect(ranges.current, key)
     if (rect) setPopover({ key, rect })
   }
-  const popoverItem = (popover && highlights.items.find((h) => h.key === popover.key)) || null
 
   const highlightSelection = (passage: Selected, withNote: boolean, path: string) => {
     document.getSelection()?.removeAllRanges()
@@ -257,34 +253,14 @@ export function Reader({
       if ((e.target as HTMLElement).closest?.('a, button, input, textarea, [data-run-layer]')) return
       const key = hitTest(ranges.current, e.clientX, e.clientY)
       if (!key) return
-      const range = ranges.current.find((r) => r.key === key)?.range
-      const rect = range?.getClientRects()[0]
+      const rect = paintedRect(ranges.current, key)
       if (rect) setPopover({ key, rect })
     }
     area.addEventListener('click', onClick)
     return () => area.removeEventListener('click', onClick)
   }, [])
 
-  const hash = useRouterState({ select: (s) => s.location.hash })
-  const arrived = useRef<string | null>(null)
-  useEffect(() => {
-    const id = /^#?highlight-([0-9a-f-]{36})$/.exec(hash)?.[1]
-    const item = id ? pageItems.find((h) => h.id === id) : undefined
-    if (!item?.place || !pageRoot || arrived.current === `${view.canonicalPath}#${item.id}`) return
-    const range = rangeFor(readPage(pageRoot), item.place.start, item.place.end)
-    if (!range) return
-    arrived.current = `${view.canonicalPath}#${item.id}`
-    const rect = range.getBoundingClientRect()
-    window.scrollBy({ top: rect.top - window.innerHeight / 3, behavior: reduce ? 'auto' : 'smooth' })
-    const timers = (reduce ? [0] : FLASH_PULSES).map((at, i) =>
-      window.setTimeout(() => setFlash(i % 2 === 0 ? item.key : null), at),
-    )
-    timers.push(window.setTimeout(() => setFlash(null), FLASH_MS))
-    return () => {
-      for (const t of timers) window.clearTimeout(t)
-      setFlash(null)
-    }
-  }, [hash, pageItems, pageRoot, view.canonicalPath, reduce])
+  useHighlightArrival(view.canonicalPath, pageItems, pageRoot, reduce, setFlash)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the panel opens or closes
   useEffect(() => {
@@ -736,6 +712,12 @@ function OfflineChip() {
   )
 }
 
+/** Where the painted highlight with this key starts on screen: its first line box, or its whole box. */
+function paintedRect(ranges: readonly { key: string; range: Range }[], key: string): DOMRect | undefined {
+  const range = ranges.find((r) => r.key === key)?.range
+  return range?.getClientRects()[0] ?? range?.getBoundingClientRect()
+}
+
 function newHighlight(view: ReaderView, passage: Selected): NewHighlight {
   const position = positionOf(view)
   return {
@@ -754,6 +736,39 @@ function newHighlight(view: ReaderView, passage: Selected): NewHighlight {
       end: passage.end,
     },
   }
+}
+
+const FLASH_MS = 2000
+const FLASH_PULSES = [0, 400, 700, 1100, 1400]
+
+/** Scrolls to the highlight a `#highlight-<id>` hash names on this page and flashes it, once per page and highlight. */
+function useHighlightArrival(
+  path: string,
+  pageItems: readonly HighlightItem[],
+  pageRoot: HTMLElement | null,
+  reduce: boolean | null,
+  setFlash: (key: string | null) => void,
+) {
+  const hash = useRouterState({ select: (s) => s.location.hash })
+  const arrived = useRef<string | null>(null)
+  useEffect(() => {
+    const id = /^#?highlight-([0-9a-f-]{36})$/.exec(hash)?.[1]
+    const item = id ? pageItems.find((h) => h.id === id) : undefined
+    if (!item?.place || !pageRoot || arrived.current === `${path}#${item.id}`) return
+    const range = rangeFor(readPage(pageRoot), item.place.start, item.place.end)
+    if (!range) return
+    arrived.current = `${path}#${item.id}`
+    const rect = range.getBoundingClientRect()
+    window.scrollBy({ top: rect.top - window.innerHeight / 3, behavior: reduce ? 'auto' : 'smooth' })
+    const timers = (reduce ? [0] : FLASH_PULSES).map((at, i) =>
+      window.setTimeout(() => setFlash(i % 2 === 0 ? item.key : null), at),
+    )
+    timers.push(window.setTimeout(() => setFlash(null), FLASH_MS))
+    return () => {
+      for (const t of timers) window.clearTimeout(t)
+      setFlash(null)
+    }
+  }, [hash, pageItems, pageRoot, path, reduce, setFlash])
 }
 
 const SCROLL_KEYS = new Set(['PageUp', 'PageDown', ' ', 'Home', 'End', 'ArrowUp', 'ArrowDown'])

@@ -1,3 +1,4 @@
+import { post } from '~/client/lib/post'
 import { isObject } from '~/shared/lib/json-shape'
 import type {
   Definition,
@@ -7,7 +8,6 @@ import type {
   WordAnswer,
   WordRequest,
 } from '~/shared/lookup/contract'
-import { post } from '../../lib/post'
 
 export type WordProblem = 'signed_out' | 'not_found' | 'rate' | 'busy' | 'unavailable' | 'network' | 'failed'
 export type TranslateProblem =
