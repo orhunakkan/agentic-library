@@ -183,6 +183,6 @@ self.onmessage = (event: MessageEvent<ToWorker>) => {
     void pump()
   } else if (message.type === 'cancel') {
     const drop = new Set(message.ids)
-    for (let i = queue.length - 1; i >= 0; i--) if (drop.has((queue[i] as { id: string }).id)) queue.splice(i, 1)
+    queue.splice(0, queue.length, ...queue.filter((job) => !drop.has(job.id)))
   }
 }

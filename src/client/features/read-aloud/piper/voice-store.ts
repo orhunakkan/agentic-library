@@ -46,11 +46,11 @@ export function createVoiceStore(deps: VoiceStoreDeps): VoiceStore {
 
   const has = async (cache: Cache, url: string) => (await cache.match(url)) !== undefined
 
-  const status = async (voice: FolioVoice) => {
+  const status = async (voice: FolioVoice): Promise<'ready' | 'absent'> => {
     const cache = await existing()
-    if (!cache) return 'absent' as const
-    for (const { url } of voiceFiles(voice)) if (!(await has(cache, url))) return 'absent' as const
-    return 'ready' as const
+    if (!cache) return 'absent'
+    for (const { url } of voiceFiles(voice)) if (!(await has(cache, url))) return 'absent'
+    return 'ready'
   }
 
   const downloaded = async () => {

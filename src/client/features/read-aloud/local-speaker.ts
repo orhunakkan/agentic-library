@@ -29,13 +29,12 @@ export interface LocalSpeakerDeps {
 
 export function workerVoice(voiceURI: string | undefined): WorkerVoice | null {
   const voice = voiceURI?.startsWith(LOCAL_VOICE_PREFIX) ? folioVoice(voiceURI.slice(LOCAL_VOICE_PREFIX.length)) : null
-  return (
-    voice && {
-      id: voice.id,
-      model: voiceUrl(voice.files.onnx, voice.id),
-      config: voiceUrl(voice.files.config, voice.id),
-    }
-  )
+  if (!voice) return null
+  return {
+    id: voice.id,
+    model: voiceUrl(voice.files.onnx, voice.id),
+    config: voiceUrl(voice.files.config, voice.id),
+  }
 }
 
 export function wavDurationMs(wav: ArrayBuffer): number {

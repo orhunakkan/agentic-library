@@ -26,7 +26,7 @@ export interface LockScreen {
 
 function metadataOf(title: string, { author, title: album, image, coverUrl: src }: PlayerBook): MediaMetadataInit {
   const ext = image && /\.(jpg|png|webp)$/.exec(image.src)?.[1]
-  const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
+  const type = ext === 'png' || ext === 'webp' ? `image/${ext}` : 'image/jpeg'
   const artwork = [
     image ? { src, sizes: `${image.width}x${image.height}`, type } : { src, sizes: '600x900', type: 'image/svg+xml' },
   ]
@@ -52,6 +52,11 @@ function screenOf(now: NowPlaying): Screen | null {
   if (now.source === 'read-aloud' && now.engine !== 'device')
     return { source: 'read-aloud', metadata: metadataOf(now.chapter?.title ?? now.book.title, now.book) }
   return null
+}
+
+function playbackStateOf(now: NowPlaying): MediaSessionPlaybackState {
+  if (now.source !== 'read-aloud') return 'none'
+  return now.playing ? 'playing' : 'paused'
 }
 
 export function createLockScreen(nav: { mediaSession?: MediaSessionLike }, actions: LockScreenActions): LockScreen {
@@ -116,7 +121,7 @@ export function createLockScreen(nav: { mediaSession?: MediaSessionLike }, actio
         handlersFor = screen.source
       }
       readAloudPlaying = now.source === 'read-aloud' && now.playing
-      ms.playbackState = now.source === 'read-aloud' ? (readAloudPlaying ? 'playing' : 'paused') : 'none'
+      ms.playbackState = playbackStateOf(now)
     },
     dispose: reset,
   }

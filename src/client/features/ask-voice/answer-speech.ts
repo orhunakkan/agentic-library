@@ -14,12 +14,11 @@ function plainWords(inlines: readonly Inline[]): string {
 function sentencesOf(text: string, lang: string, open: boolean): string[] {
   const spans = sentenceSpans(text, lang)
   const out: string[] = []
-  for (let i = 0; i < spans.length; i++) {
+  for (const [i, [start, end]] of spans.entries()) {
     if (open) {
       const after = spans[i + 1]
       if (!after || !HAS_LETTER.test(text.slice(after[0], after[1]))) break
     }
-    const [start, end] = spans[i] as [number, number]
     for (const [s, e] of cutLong(text, start, end)) {
       const say = collapse(text.slice(s, e))
       if (HAS_WORD.test(say)) out.push(say)

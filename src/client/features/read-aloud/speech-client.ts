@@ -53,7 +53,8 @@ export async function speak(
       body: JSON.stringify(request),
       signal,
     })
-    const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
+    const json: unknown = await response.json().catch(() => ({}))
+    const body: Record<string, unknown> = isObject(json) ? json : {}
     if (!response.ok) {
       const code = CODES.find((c) => c === body.error) ?? 'failed'
       const retryAt = typeof body.retryAt === 'string' ? new Date(body.retryAt) : undefined

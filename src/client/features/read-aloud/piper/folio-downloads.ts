@@ -64,12 +64,16 @@ export function createFolioDownloads(deps: FolioDownloadsDeps): FolioDownloads {
 
   const local = (lang: string): LocalState => {
     const ready = new Set(downloaded.map((v) => v.id))
+    const stateOf = (id: string): LocalVoiceState['state'] => {
+      if (ready.has(id)) return 'ready'
+      return inFlight?.id === id ? 'downloading' : 'absent'
+    }
     const folioVoices = folioVoicesFor(lang, deps.locale)
     const voices = folioVoices.map(
       (folioVoice): LocalVoiceState => ({
         id: folioVoice.id,
         voice: folioVoiceLike(folioVoice),
-        state: ready.has(folioVoice.id) ? 'ready' : inFlight?.id === folioVoice.id ? 'downloading' : 'absent',
+        state: stateOf(folioVoice.id),
         percent: inFlight?.id === folioVoice.id ? inFlight.percent : 0,
         bytes: folioVoice.bytes + (downloaded.length > 0 ? 0 : ENGINE_BYTES),
       }),

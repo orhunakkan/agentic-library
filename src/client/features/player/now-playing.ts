@@ -93,8 +93,11 @@ export function partsOf(now: NowPlaying): { items: { value: string; label: strin
 }
 
 /** The kind an audio bookmark is stored under, which keeps its older names. */
-export const bookmarkKind = (now: NowPlaying): 'voice' | 'episode' | null =>
-  now.source === 'read-aloud' ? 'voice' : now.source === 'audiobook' ? 'episode' : null
+export function bookmarkKind(now: NowPlaying): 'voice' | 'episode' | null {
+  if (now.source === 'read-aloud') return 'voice'
+  if (now.source === 'audiobook') return 'episode'
+  return null
+}
 
 export function bookmarkPlay(
   now: NowPlaying,

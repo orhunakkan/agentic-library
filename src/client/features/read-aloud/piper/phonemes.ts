@@ -11,9 +11,10 @@ const TERMINATORS = new Set(['.', '!', '?'])
 
 export function splitPhonemes(raw: string, config: PiperPhonemeConfig): string[] {
   const points = [...raw.replace(/\([^)]+\)/g, '').normalize('NFD')]
-  const clusters = new Set((config.vowel_clusters ?? []).map((c) => c.join('')))
+  const vowelClusters = config.vowel_clusters ?? []
+  const clusters = new Set(vowelClusters.map((c) => c.join('')))
   if (clusters.size === 0) return points
-  const longest = Math.max(...(config.vowel_clusters ?? []).map((c) => c.length))
+  const longest = Math.max(...vowelClusters.map((c) => c.length))
   const out: string[] = []
   for (let i = 0; i < points.length; ) {
     let taken = 1
@@ -32,10 +33,14 @@ export function splitPhonemes(raw: string, config: PiperPhonemeConfig): string[]
 export const textPhonemes = (text: string): string[] => [...text.toLowerCase().normalize('NFD')]
 
 export function sentences(phonemes: string[]): string[][] {
-  const out: string[][] = [[]]
+  let sentence: string[] = []
+  const out = [sentence]
   for (const p of phonemes) {
-    ;(out.at(-1) as string[]).push(p)
-    if (TERMINATORS.has(p)) out.push([])
+    sentence.push(p)
+    if (TERMINATORS.has(p)) {
+      sentence = []
+      out.push(sentence)
+    }
   }
   return out.map((s) => (s[0] === ' ' ? s.slice(1) : s)).filter((s) => s.some((p) => p.trim() !== ''))
 }

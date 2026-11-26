@@ -468,24 +468,25 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
       emit({ status: 'error', problem: { kind: 'load-failed' } })
       return
     }
-    const plan = planChapter(result.data.chapter, result.data.book.language)
+    const { book, chapter } = result.data
+    const plan = planChapter(chapter, book.language)
     current = { data: result.data, plan }
     const start = first(plan)
     cursor = to.at === 'start' ? start : (atOffset(plan, to.at.pageIndex, to.at.offset) ?? start)
     if (!cursor) {
-      if (index + 1 < result.data.chapter.chapterCount) return goToChapter(index + 1, to)
+      if (index + 1 < chapter.chapterCount) return goToChapter(index + 1, to)
       emit({ status: 'ended', problem: { kind: 'end-of-book' } })
       return
     }
     intro = !to.noIntro && sameCursor(cursor, start)
     emit({
-      book: result.data.book,
+      book,
       chapter: {
-        index: result.data.chapter.index,
-        slug: result.data.chapter.slug,
-        title: result.data.chapter.title,
-        number: result.data.chapter.number,
-        chapterCount: result.data.chapter.chapterCount,
+        index: chapter.index,
+        slug: chapter.slug,
+        title: chapter.title,
+        number: chapter.number,
+        chapterCount: chapter.chapterCount,
       },
     })
     if (to.play) speakNow()
@@ -753,7 +754,10 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         const local = lang ? localFor(lang) : null
         if (local?.voices.some((v) => v.id === voice.id)) {
           const patch: Partial<ReadAloudState> = { local }
-          if (outcome === 'ok' && deps.localSpeaker) Object.assign(patch, { voice: like, engine: 'local' as const })
+          if (outcome === 'ok' && deps.localSpeaker) {
+            patch.voice = like
+            patch.engine = 'local'
+          }
           if (outcome === 'ok' && state.problem?.kind === 'local') patch.problem = null
           emit(patch)
         }
