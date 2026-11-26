@@ -465,7 +465,7 @@ Choices made during the build (2026-11-26), each with the alternative and the re
 **After the build:**
 - [x] Push `main` and let CI deploy to dev. Done by the build, as the owner's build instruction asked (see Build
       notes, note 1).
-- [ ] Review the commit, then deploy to production with `deploy-prod.yml`.
+- [x] Review the commit, then deploy to production with `deploy-prod.yml`.
 - [ ] Add the hosted values to the server's env files, for dev and for production (spec Cut-over step 2):
       ```
       LIMIT_USER_AUDIO=1GB
@@ -480,6 +480,6 @@ Choices made during the build (2026-11-26), each with the alternative and the re
       with pictures is refused (one without pictures still imports). Raise `LIMIT_USER_PICTURES` if you want room.
 - [ ] Articles over 1 MB of text that are already saved stay as they are. Only new saves are checked.
 - [ ] Before `go-public` sets `SIGNUP=open`, the hosted values must be live on production.
-- [ ] Sign off. Claude fills in the line below, marks the Progress row done, and commits and pushes.
+- [x] Sign off. Claude fills in the line below, marks the Progress row done, and commits and pushes.
 
-Signed off: ____ (date)
+Signed off: Orhun Akkan (2026-11-26)

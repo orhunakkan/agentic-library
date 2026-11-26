@@ -288,21 +288,21 @@ When a function's names are touched and some are unclear, rename them in a separ
 
 ## Success criteria
 
-- [ ] With no `LIMIT_*` set, `getConfig().limits` equals 8 GB, 2 GB, 250 MB, 25, 500 and 1 MB.
-- [ ] Each of the six variables changes the limit that the server enforces and that the browser shows, shown by a
+- [x] With no `LIMIT_*` set, `getConfig().limits` equals 8 GB, 2 GB, 250 MB, 25, 500 and 1 MB.
+- [x] Each of the six variables changes the limit that the server enforces and that the browser shows, shown by a
       test for each.
-- [ ] A malformed, zero or inconsistent value stops the server at start, with a message naming the variable.
-- [ ] With the hosted values set, an audiobook over 1 GB, audio past 1 GB in total, and pictures past 100 MB are
+- [x] A malformed, zero or inconsistent value stops the server at start, with a message naming the variable.
+- [x] With the hosted values set, an audiobook over 1 GB, audio past 1 GB in total, and pictures past 100 MB are
       refused in the browser before any upload, and by the server if the browser is bypassed.
-- [ ] Every quota message names the configured value. The leftover `git grep` prints nothing.
-- [ ] An article over 1 MB of stored text gets `413 { error: 'article-too-large', max }`. Its row and pictures are
+- [x] Every quota message names the configured value. The leftover `git grep` prints nothing.
+- [x] An article over 1 MB of stored text gets `413 { error: 'article-too-large', max }`. Its row and pictures are
       deleted, and the reader sees the article message.
-- [ ] A reader over a lowered limit keeps all their content, can delete it, and is refused only on new uploads.
-- [ ] The account page has a Storage section showing books, articles, audio and pictures against the configured
+- [x] A reader over a lowered limit keeps all their content, can delete it, and is refused only on new uploads.
+- [x] The account page has a Storage section showing books, articles, audio and pictures against the configured
       limits, with the audio line hidden when audiobooks are off.
 - [x] The capability map's Hosted limits table lists the variable names (done 2026-11-25, with the spec's approval).
 - [ ] After the owner's step, dev and production show "of 1 GB" and "of 100 MB" on the account page.
-- [ ] `pnpm check`, `pnpm test:db` and `pnpm e2e:local` pass, with no coverage floor lowered.
+- [x] `pnpm check`, `pnpm test:db` and `pnpm e2e:local` pass, with no coverage floor lowered.
 
 ## Risks
 
