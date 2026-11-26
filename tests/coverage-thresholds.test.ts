@@ -22,7 +22,7 @@ describe('thresholdFiles', () => {
   })
 })
 
-describe.each(['vitest.config.ts', 'vitest.db.config.ts'])('%s', (path) => {
+describe.each(['vitest.config.ts', 'vitest.db.config.ts', 'vitest.browser.config.ts'])('%s', (path) => {
   it('gives a coverage threshold only to files that exist, so a renamed or deleted file keeps none', () => {
     const files = thresholdFiles(readFileSync(path, 'utf8'))
     expect(files.filter((file) => !existsSync(file))).toEqual([])

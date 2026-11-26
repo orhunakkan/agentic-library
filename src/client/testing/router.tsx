@@ -8,7 +8,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { mount } from './mount'
+import { hookElement, type Mounted, type MountedHook, mount } from './mount'
 
 /** What the app's root route puts in its context, as far as the components under test read it. */
 export interface TestRouteContext {
@@ -21,6 +21,14 @@ export interface TestRouteContext {
  * as they do in the app. Resolves once the router has loaded and the component is on the page.
  */
 export async function mountAt(url: string, ui: ReactNode, context: TestRouteContext = {}): Promise<AnyRouter> {
+  return (await mountRouterAt(url, ui, context)).router
+}
+
+async function mountRouterAt(
+  url: string,
+  ui: ReactNode,
+  context: TestRouteContext,
+): Promise<{ router: AnyRouter; mounted: Mounted }> {
   const root = createRootRouteWithContext<TestRouteContext>()()
   const anyPath = createRoute({ getParentRoute: () => root, path: '$', component: () => ui })
   const router = createRouter({
@@ -29,8 +37,25 @@ export async function mountAt(url: string, ui: ReactNode, context: TestRouteCont
     context,
   })
   await router.load()
-  mount(<RouterProvider router={router} />)
-  return router
+  return { router, mounted: mount(<RouterProvider router={router} />) }
+}
+
+/**
+ * Renders a React hook inside the same router as `mountAt`, for hooks that read it (`useRouter`, `useRouteContext`),
+ * and returns its latest result. `wrap` puts providers around it, such as `ToastProvider`.
+ */
+export async function mountHookAt<P, R>(
+  url: string,
+  useHook: (props: P) => R,
+  props: NoInfer<P>,
+  {
+    context = {},
+    wrap = (children) => children,
+  }: { context?: TestRouteContext; wrap?: (children: ReactNode) => ReactNode } = {},
+): Promise<MountedHook<P, R> & { router: AnyRouter }> {
+  const { element, handle } = hookElement(useHook, props)
+  const { router, mounted } = await mountRouterAt(url, wrap(element), context)
+  return Object.assign(handle(mounted), { router })
 }
 
 /** What the app's root loader returns, as far as the pages under test read it. */

@@ -1,7 +1,7 @@
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, isDatabaseConfigured } from '~/server/db'
+import { it } from './testing/db-test'
 import { testUser } from './testing/users'
 
 vi.mock('./db.ts', async (importOriginal) => {
@@ -14,22 +14,12 @@ import { noStoreJson, seeOther, sessionForRequest as sessionLookup } from './aut
 import { hashToken, newAccessToken, newSessionToken } from './security.ts'
 import { createSession } from './sessions.ts'
 import { MAX_FORM_BYTES, signedInEndpoints, signedInForm, signedInRead } from './signed-in.ts'
-import { databaseUrl, freshDatabase } from './testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, access_tokens restart identity cascade`
-})
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 let users = 0

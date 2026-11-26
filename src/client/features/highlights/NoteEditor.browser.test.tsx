@@ -27,6 +27,8 @@ function renderEditor({
 describe('NoteEditor', () => {
   it('saves the note as typed when Save is pressed', async () => {
     const { box, save, onSave } = renderEditor()
+    await expect.element(box).toHaveRole('textbox')
+    await expect.element(box).toHaveAccessibleName('Note')
     await box.fill('A line worth keeping')
     await save.click()
     expect(onSave).toHaveBeenCalledExactlyOnceWith('A line worth keeping')
@@ -87,13 +89,16 @@ describe('NoteEditor', () => {
   it('shows no character count below the count threshold', async () => {
     const { box } = renderEditor()
     await box.fill('x'.repeat(NOTE_COUNT_FROM - 1))
+    /** No count is shown, so the note box has no description either. */
     await expect.element(page.getByText(`/ ${MAX_NOTE.toLocaleString('en-US')}`)).not.toBeInTheDocument()
+    await expect.element(box).not.toHaveAccessibleDescription()
   })
 
   it('shows the character count, tied to the note box, from the count threshold', async () => {
     const { box } = renderEditor()
     await box.fill('x'.repeat(NOTE_COUNT_FROM))
     const text = `${NOTE_COUNT_FROM.toLocaleString('en-US')} / ${MAX_NOTE.toLocaleString('en-US')}`
+    /** The count is plain text; what matters is that it describes the note box, checked next. */
     await expect.element(page.getByText(text)).toBeVisible()
     await expect.element(box).toHaveAccessibleDescription(text)
   })

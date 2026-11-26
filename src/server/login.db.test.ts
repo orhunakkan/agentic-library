@@ -1,5 +1,4 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { handleAccount, handleLogin, handleLogout } from '~/server/account-actions'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
@@ -10,9 +9,8 @@ import { hashToken, newSessionToken } from '~/server/security'
 import { createSession, findSession } from '~/server/sessions'
 import { createUser, findUserByUsername } from '~/server/users'
 import { DEFAULT_AFTER_SIGN_IN } from '~/shared/lib/safe-next'
-import { databaseUrl, freshDatabase } from './testing/db'
+import { it, raw } from './testing/db-test'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const origin = getConfig().appOrigin
 const secure = getConfig().cookieSecure
@@ -21,13 +19,8 @@ const PASSWORD = 'a long enough passphrase for tests'
 const IP = '198.51.100.7'
 const CHEAP = { memory: 1024, passes: 1, parallelism: 1 }
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events restart identity cascade`
 })
 
 async function newUser(username = 'reader', password = PASSWORD) {

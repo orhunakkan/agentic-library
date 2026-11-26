@@ -15,7 +15,6 @@ function answer(status: number, body: unknown) {
 }
 
 afterEach(() => {
-  vi.unstubAllGlobals()
   calls.length = 0
 })
 

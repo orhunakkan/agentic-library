@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { newCover, setCover } from '~/server/book-details/store'
 import {
   insertCapped,
@@ -28,7 +27,7 @@ import { MAX_CHAPTERS } from '~/shared/import/limits'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { speechChapter } from '~/shared/read-aloud/speech-text'
 import { readyAudiobook } from '../testing/audiobooks'
-import { databaseUrl, freshDatabase } from '../testing/db'
+import { it, raw } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
 const missing = vi.hoisted(() => ({ content: new Set<string>() }))
@@ -40,16 +39,10 @@ vi.mock('~/server/repository', async (importOriginal) => {
   }
 })
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, user_books, highlights, finished_books, flashcards, book_ratings, listening_places restart identity cascade`
 })
 
 let users = 0

@@ -1,32 +1,25 @@
 import postgres, { type Sql } from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, vi } from 'vitest'
 import { readerOf, sessionCookie, sessionCookieName, sessionForRequest, viewerForRequest } from '~/server/auth'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, isDatabaseConfigured } from '~/server/db'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { createUser } from '~/server/users'
-import { databaseUrl, freshDatabase } from './testing/db'
+import { it, raw } from './testing/db-test'
 
 vi.mock('./db.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./db.ts')>()
   return { ...actual, getDb: vi.fn(actual.getDb), isDatabaseConfigured: vi.fn(actual.isDatabaseConfigured) }
 })
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events restart identity cascade`
   vi.mocked(getDb).mockClear()
-})
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 const request = (cookie?: string) =>

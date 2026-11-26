@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { checkOpenAiKey, isOpenAiKeyShape, OpenAiResponseError, openAiClient, openAiErrorCode } from './openai'
 
 const KEY = 'sk-proj-example-key-0123456789abcdef'
@@ -50,21 +50,16 @@ describe('checkOpenAiKey', () => {
 
 describe('openAiClient', () => {
   it('sends requests to the configured base with the key, and no organization or project from the environment', async () => {
-    const env = { ...process.env }
-    process.env.OPENAI_ORG_ID = 'org-from-env'
-    process.env.OPENAI_PROJECT_ID = 'proj-from-env'
-    process.env.OPENAI_BASE_URL = 'https://elsewhere.example/v1'
+    vi.stubEnv('OPENAI_ORG_ID', 'org-from-env')
+    vi.stubEnv('OPENAI_PROJECT_ID', 'proj-from-env')
+    vi.stubEnv('OPENAI_BASE_URL', 'https://elsewhere.example/v1')
     let seen: { url: string; headers: Headers } | undefined
     const fetchFn = (async (url: string, init: RequestInit) => {
       seen = { url: String(url), headers: new Headers(init.headers) }
       return Response.json({ object: 'list', data: [] })
     }) as unknown as typeof fetch
-    try {
-      const client = openAiClient({ apiKey: KEY, apiBase: 'https://api.example', timeoutMs: 1_000, fetch: fetchFn })
-      await client.models.list()
-    } finally {
-      process.env = env
-    }
+    const client = openAiClient({ apiKey: KEY, apiBase: 'https://api.example', timeoutMs: 1_000, fetch: fetchFn })
+    await client.models.list()
     expect(seen?.url).toBe('https://api.example/v1/models')
     expect(seen?.headers.get('authorization')).toBe(`Bearer ${KEY}`)
     expect(seen?.headers.has('openai-organization')).toBe(false)

@@ -1,11 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { post, readAnswer } from './post'
 
 const reply = (status: number, body: unknown) =>
   new Response(typeof body === 'string' ? body : JSON.stringify(body), { status })
 const pick = (b: Record<string, unknown>) => (b.highlight ? b.highlight : undefined)
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('post', () => {
   it('sends the body as JSON to the path', async () => {

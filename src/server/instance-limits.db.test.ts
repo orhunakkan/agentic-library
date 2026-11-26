@@ -1,8 +1,8 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, vi } from 'vitest'
+import { it, raw } from './testing/db-test'
 
 /** What getConfig answers with, which each test sets: every cap's value travels from here to a refusal. */
 const configured = vi.hoisted(() => ({
@@ -39,23 +39,18 @@ import { GB } from '~/shared/audiobooks/limits'
 import { NO_DETAILS } from '~/shared/import/details'
 import { MAX_BOOK_HTML_BYTES } from '~/shared/import/limits'
 import { DEFAULT_LIMITS, type InstanceLimits } from '~/shared/limits/limits'
-import { databaseUrl, freshDatabase } from './testing/db'
 import { testUser } from './testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const META = { title: 'Limits', author: 'Ada', language: 'en', details: NO_DETAILS, chapterCount: 1 }
 const BODY = { title: 'Limits', author: 'Ada', language: 'en', chapterCount: 1 }
 const audioRoot = mkdtempSync(join(tmpdir(), 'instance-limits-'))
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
   rmSync(audioRoot, { recursive: true, force: true })
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, user_books restart identity cascade`
   configured.limits = { ...DEFAULT_LIMITS }
   configured.audiobooksDir = audioRoot
 })

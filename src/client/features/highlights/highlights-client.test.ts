@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createHighlight, deleteHighlight, updateHighlight } from './highlights-client'
 
 const HIGHLIGHT = { id: 'a', color: 'yellow' }
@@ -13,8 +13,6 @@ const sent = (fetch: ReturnType<typeof answer>) => {
   const [path, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
   return [path, JSON.parse(String(init.body))]
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('the highlight requests', () => {
   it('post each change to its route and read the highlight, or ok for a delete', async () => {

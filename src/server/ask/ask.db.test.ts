@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { saveKey } from '~/server/api-keys'
 import { handleAsk } from '~/server/ask/ask'
 import { askSetup } from '~/server/ask/setup'
@@ -20,20 +19,14 @@ import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { anthropicStub, STUB_KEYS, STUB_RIGHT_ANSWER } from '../../../tests/stubs/anthropic-stub'
 import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/stubs/openai-stub'
 import { NO_DETAILS } from '../../shared/import/details.ts'
-import { databaseUrl, freshDatabase } from '../testing/db'
+import { it, raw } from '../testing/db-test'
 import { spend } from '../testing/quota'
 import { testUser } from '../testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, ask_prompts restart identity cascade`
 })
 
 const origin = getConfig().appOrigin

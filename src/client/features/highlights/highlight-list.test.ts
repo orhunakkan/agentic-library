@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { HighlightView } from '~/shared/highlights/group'
 import {
   type HighlightDeps,
@@ -9,8 +9,6 @@ import {
 } from './highlight-list'
 import type { HighlightProblem } from './highlights-client'
 import * as client from './highlights-client'
-
-afterEach(() => vi.unstubAllGlobals())
 
 const ID = (n: number) => `6f1c0000-0000-4000-8000-00000000000${n}`
 

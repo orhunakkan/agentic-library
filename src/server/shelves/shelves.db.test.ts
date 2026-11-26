@@ -1,8 +1,8 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { it, raw } from '../testing/db-test'
 import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
@@ -29,18 +29,11 @@ import { deleteBook, finishImport, startImport, storeChapter } from '~/server/us
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import type { ShelfView } from '~/shared/shelves/contract'
 import { MAX_SHELF_BOOKS_PER_USER, MAX_SHELVES_PER_USER, shelfNameKey } from '~/shared/shelves/shelves'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, shelves, shelf_books restart identity cascade`
 })
 
 let users = 0

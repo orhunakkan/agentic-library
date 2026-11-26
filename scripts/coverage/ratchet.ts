@@ -127,6 +127,13 @@ const SIDES = [
     summary: 'coverage/server/summary.txt',
     perFile: 'coverage/server/coverage-summary.json',
   },
+  {
+    label: 'browser',
+    run: 'pnpm test:browser',
+    config: 'vitest.browser.config.ts',
+    summary: 'coverage/browser/summary.txt',
+    perFile: 'coverage/browser/coverage-summary.json',
+  },
 ]
 
 function main(): void {

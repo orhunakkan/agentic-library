@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createBookmark, deleteBookmark } from './bookmarks-client'
 
 const BOOKMARK = { id: 'b1', status: 'ok', opening: 'It is a truth', place: null, createdAt: '2026-11-05T10:00:00Z' }
@@ -9,8 +9,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('createBookmark', () => {
   it('posts only the book and the position', async () => {

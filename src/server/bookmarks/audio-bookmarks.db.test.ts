@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import {
   audioBookmarksState,
   handleAudioBookmarkChange,
@@ -18,6 +17,7 @@ import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { it, raw } from '../testing/db-test'
 import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
@@ -41,18 +41,11 @@ import type { ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { readyAudiobook } from '../testing/audiobooks'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, highlights, bookmarks, audio_bookmarks restart identity cascade`
 })
 
 let users = 0

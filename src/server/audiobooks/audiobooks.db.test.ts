@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, truncateSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, vi } from 'vitest'
 import { privateBookSlug } from '~/shared/content/book-slug'
+import { it, raw } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -33,7 +33,6 @@ import type { AudiobookStart } from '~/shared/audiobooks/input'
 import { GB } from '~/shared/audiobooks/limits'
 import { NO_DETAILS } from '~/shared/import/details'
 import { DEFAULT_LIMITS, type InstanceLimits } from '~/shared/limits/limits'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { type AudiobookOptions, handleAudioChunk, handleAudioFinish, handleNewAudiobook } from './actions'
 import { audiobooksDir, audioPath, bookDir, forgetBookAudio, forgetUserAudio, freeBytes, sweep } from './files'
 import { serveAudio } from './serve'
@@ -47,7 +46,6 @@ import {
   uploadingFile,
 } from './store'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const config = getConfig() as { audiobooksDir: string | null; limits: InstanceLimits }
 const root = mkdtempSync(join(tmpdir(), 'audiobooks-'))
@@ -59,14 +57,11 @@ const MP3S = [fixture('chapter-1.mp3'), fixture('chapter-2.mp3'), fixture('chapt
 
 const roomy: AudiobookOptions = { freeBytes: async () => 100 * GB }
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
   rmSync(root, { recursive: true, force: true })
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, login_attempts, user_books restart identity cascade`
   config.audiobooksDir = root
   config.limits = { ...DEFAULT_LIMITS }
 })

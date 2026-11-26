@@ -1,6 +1,6 @@
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, vi } from 'vitest'
 import { privateBookSlug } from '~/shared/content/book-slug'
+import { it, raw } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/repository', async (importOriginal) => {
@@ -30,21 +30,15 @@ import {
   STUB_ELEVENLABS_KEYS,
   stubSpeechRequests,
 } from '../../../tests/stubs/elevenlabs-stub'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, api_keys, audit_events, user_books, speech_usage restart identity cascade`
   resetElevenLabsStub()
 })
-afterEach(() => vi.restoreAllMocks())
 
 const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'

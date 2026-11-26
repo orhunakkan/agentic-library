@@ -31,7 +31,6 @@ function table(answers: Record<string, () => Response>) {
 const redirect = (location: string) => () => new Response(null, { status: 302, headers: { location } })
 
 afterEach(() => {
-  vi.restoreAllMocks()
   vi.useRealTimers()
 })
 

@@ -65,6 +65,8 @@ describe('SettingsPopover', () => {
   it('opens the reading settings when Settings is pressed', async () => {
     await openSettings()
     await expect.element(trigger).toHaveAttribute('aria-expanded', 'true')
+    await expect.element(dialog).toHaveRole('dialog')
+    await expect.element(dialog).toHaveAccessibleName('Reading settings')
   })
 
   it('opens with Enter on the focused Settings button', async () => {
@@ -140,7 +142,10 @@ describe('SettingsPopover', () => {
     const update = await openSettings({ prefs: { fontSize: 19 } })
     await dialog.getByRole('button', { name: 'Increase font size' }).click()
     expect(update).toHaveBeenLastCalledWith({ fontSize: 21 })
-    await expect.element(dialog.getByText('Font size 21 pixels')).toBeInTheDocument()
+    /** Text a screen reader reads out as the size changes, so check it's in a polite live region. */
+    const size = dialog.getByText('Font size 21 pixels')
+    await expect.element(size).toBeInTheDocument()
+    await expect.element(size).toHaveAttribute('aria-live', 'polite')
     await dialog.getByRole('button', { name: 'Decrease font size' }).click()
     expect(update).toHaveBeenLastCalledWith({ fontSize: 19 })
   })
@@ -160,6 +165,8 @@ describe('SettingsPopover', () => {
   it('turns the contents panel off, and back on, with the Contents panel toggle', async () => {
     const update = await openSettings()
     const panel = dialog.getByRole('button', { name: /Contents panel/ })
+    /** The On/Off badge runs into the name with no space ("Contents panelOn"), so only the start is pinned here. */
+    await expect.element(panel).toHaveAccessibleName(/^Contents panel/)
     await expect.element(panel).toHaveAttribute('aria-pressed', 'true')
     await panel.click()
     expect(update).toHaveBeenLastCalledWith({ sidebarHidden: true })
@@ -175,11 +182,63 @@ describe('SettingsPopover', () => {
 
   it('says which settings sync only when they sync', async () => {
     await openSettings({ syncs: true })
+    /** Plain text in the dialog, with no role or name of its own to check. */
     await expect.element(dialog.getByText(/follow you to your other devices/)).toBeVisible()
   })
 
   it('says nothing about syncing when settings stay on this device', async () => {
     await openSettings({ syncs: false })
     await expect.element(dialog.getByText(/follow you to your other devices/)).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The gap the popover keeps from the screen's edges, its `collisionPadding`, less the pixel it may lose when its place
+ * is rounded to whole pixels.
+ */
+const SCREEN_EDGE = 12 - 1
+
+const rectOf = (element: Element) => element.getBoundingClientRect()
+const overlap = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+
+/** Opens the settings from a Settings button where the Reader puts it: at the right end of the bar across the top. */
+async function openFromTopRight() {
+  mount(
+    <div style={{ position: 'fixed', top: 8, right: 8 }}>
+      <Harness initial={DEFAULT_PREFS} update={vi.fn()} showPanel syncs={false} />
+    </div>,
+  )
+  await trigger.click()
+  await expect.element(dialog).toBeVisible()
+}
+
+describe('SettingsPopover at phone and desktop widths', () => {
+  it('opens below the Settings button at phone width, inside the left, top and bottom of the screen', async () => {
+    await page.viewport(390, 844)
+    await openFromTopRight()
+    await expect.element(dialog).toHaveAttribute('data-side', 'bottom')
+    const button = rectOf(trigger.element())
+    await expect.poll(() => rectOf(dialog.element()).top).toBeGreaterThanOrEqual(button.bottom)
+    const popup = rectOf(dialog.element())
+    expect(popup.left).toBeGreaterThanOrEqual(SCREEN_EDGE)
+    expect(popup.bottom).toBeLessThanOrEqual(window.innerHeight - SCREEN_EDGE)
+    /**
+     * The right edge isn't checked: the popover's width is its Tailwind class `w-[min(328px,calc(100vw-24px))]`, and
+     * browser tests don't load Tailwind, so here it's as wide as its unstyled contents.
+     */
+    await expect.element(dialog.getByRole('button', { name: 'Increase font size' })).toBeVisible()
+    await expect.element(dialog.getByRole('button', { name: /Contents panel/ })).toBeVisible()
+  })
+
+  it('stays inside the screen at desktop width, clear of the Settings button', async () => {
+    await page.viewport(1280, 800)
+    await openFromTopRight()
+    const button = rectOf(trigger.element())
+    await expect.poll(() => overlap(rectOf(dialog.element()), button)).toBe(false)
+    const popup = rectOf(dialog.element())
+    expect(popup.left).toBeGreaterThanOrEqual(SCREEN_EDGE)
+    expect(popup.right).toBeLessThanOrEqual(window.innerWidth - SCREEN_EDGE)
+    expect(popup.top).toBeGreaterThanOrEqual(SCREEN_EDGE)
+    expect(popup.bottom).toBeLessThanOrEqual(window.innerHeight - SCREEN_EDGE)
   })
 })

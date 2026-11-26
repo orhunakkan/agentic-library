@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ADMIN_PROBLEMS, type AdminUserView, type InviteView } from '~/shared/admin/users'
 import {
   ACTION_LABELS,
@@ -35,8 +35,6 @@ const sent = (fetch: ReturnType<typeof answer>) => {
   const [path, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
   return [path, init.method, (init.headers as Record<string, string>)['content-type'], JSON.parse(String(init.body))]
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('the requests', () => {
   it('post each change to its route', async () => {

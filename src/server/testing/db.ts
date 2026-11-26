@@ -2,8 +2,8 @@ import { randomBytes } from 'node:crypto'
 import postgres from 'postgres'
 import { migrate } from '../../../scripts/db/migrate'
 
-function testDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL
+/** `url`, if it names a PostgreSQL database whose name ends in `_test`; the database tests refuse any other. */
+export function checkedTestDatabaseUrl(url: string | undefined): string {
   if (!url) throw new Error('DATABASE_URL is not set; the database tests need a PostgreSQL database named *_test')
   const name = new URL(url.replace(/^postgres(ql)?:/, 'http:')).pathname.slice(1)
   if (!name.endsWith('_test'))
@@ -11,17 +11,18 @@ function testDatabaseUrl(): string {
   return url
 }
 
-const url = testDatabaseUrl()
+const url = checkedTestDatabaseUrl(process.env.DATABASE_URL)
 process.env.KEK ??= randomBytes(32).toString('base64')
 
-export async function freshDatabase(): Promise<void> {
-  const sql = postgres(url, { max: 1, onnotice: () => {} })
+/** Drops the database's `public` schema and migrates a new one: this worker's own database, unless told another. */
+export async function freshDatabase(target = url): Promise<void> {
+  const sql = postgres(checkedTestDatabaseUrl(target), { max: 1, onnotice: () => {} })
   try {
     await sql.unsafe('drop schema public cascade; create schema public').simple()
   } finally {
     await sql.end()
   }
-  await migrate({ url })
+  await migrate({ url: target })
 }
 
 export { url as databaseUrl }

@@ -8,12 +8,15 @@ import { SiteFooter } from './SiteFooter'
 vi.mock('~/server/functions', () => ({ getSearchIndex: vi.fn() }))
 
 const SOURCE = 'https://github.com/example/folio'
-const footerLink = (name: string) => page.getByRole('link', { name, exact: true })
+/** The page's footer landmark, which every footer link sits in. */
+const footer = page.getByRole('contentinfo')
+const footerLink = (name: string) => footer.getByRole('link', { name, exact: true })
 
 describe('SiteFooter', () => {
   it('says uploads stay private, and links Privacy, Terms, Copyright and Credits', async () => {
     await mountAt('/library', <SiteFooter sourceUrl={null} />)
-    await expect.element(page.getByText(SITE_CREDIT)).toBeVisible()
+    /** The credit is plain text in the footer landmark, with no role or name of its own to check. */
+    await expect.element(footer.getByText(SITE_CREDIT)).toBeVisible()
     expect(SITE_CREDIT).not.toMatch(/public domain/)
     for (const [name, path] of [
       ['Privacy', '/privacy'],

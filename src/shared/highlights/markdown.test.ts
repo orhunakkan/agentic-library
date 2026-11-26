@@ -46,7 +46,7 @@ function h(
 const book = { slug: 'pride-and-prejudice', title: 'Pride and Prejudice', author: 'Jane Austen' }
 
 describe('toMarkdown', () => {
-  it('writes the documented file: chapters, quoted passages, notes, links and the missing ones last', () => {
+  it('writes the documented file: chapters, quoted passages, notes, links and the missing ones last', async () => {
     const md = toMarkdown(
       book,
       [
@@ -60,36 +60,7 @@ describe('toMarkdown', () => {
       ],
       { origin, now },
     )
-    expect(md).toBe(`---
-title: "Pride and Prejudice"
-author: "Jane Austen"
-source: "https://agenticlibrary.app/account/highlights?book=pride-and-prejudice"
-exported: 2026-11-04
-highlights: 2
-notes: 1
-tags:
-  - "folio"
-  - "highlights"
----
-
-# Pride and Prejudice
-
-Jane Austen · 2 highlights · exported from Folio on 2026-11-04
-
-## 3. Chapter 3
-
-> Mr. Bingley was good looking and gentlemanlike; he had a pleasant countenance, and easy, unaffected manners.
-
-The first impression everyone shares.
-
-[Ch. 3 · p. 2](https://agenticlibrary.app/read/pride-and-prejudice/chapter-3/2#highlight-6f1c)
-
----
-
-## Passages no longer found
-
-> A passage the book no longer has.
-`)
+    await expect(md).toMatchFileSnapshot('./__snapshots__/one-book.md')
   })
 
   it('quotes every line, blank ones too, and escapes lines that start with a Markdown marker', () => {
@@ -233,7 +204,7 @@ describe('toMarkdownAll', () => {
     ])
   })
 
-  it('writes the documented file: properties, counts, a section per book, ### chapters, no rule between books', () => {
+  it('writes the documented file: properties, counts, a section per book, ### chapters, no rule between books', async () => {
     const md = toMarkdownAll(
       [
         all({
@@ -251,52 +222,7 @@ describe('toMarkdownAll', () => {
       ],
       { origin, now },
     )
-    expect(md).toBe(`---
-title: "Folio highlights"
-source: "https://agenticlibrary.app/account/highlights"
-exported: 2026-11-04
-books: 2
-highlights: 3
-notes: 2
-tags:
-  - "folio"
-  - "highlights"
----
-
-# Folio highlights
-
-2 books · 3 highlights · 2 notes · exported from Folio on 2026-11-04
-
-## Pride and Prejudice
-
-Jane Austen · 2 highlights · 1 note · [Open in Folio](https://agenticlibrary.app/account/highlights?book=pride-and-prejudice)
-
-### 6. Chapter 6
-
-> First.
-
-A note.
-
-[p](https://agenticlibrary.app/read/pride-and-prejudice/chapter-3/2#highlight-p1)
-
----
-
-### 7. Chapter 7
-
-> Second.
-
-[p](https://agenticlibrary.app/read/pride-and-prejudice/chapter-3/2#highlight-p2)
-
-## A book no longer in the library
-
-\`old-book-slug\` · 1 highlight · 1 note
-
-### Passages no longer found
-
-> Gone.
-
-Kept.
-`)
+    await expect(md).toMatchFileSnapshot('./__snapshots__/all-books.md')
   })
 
   it('says "No highlights yet." once when there are no books', () => {

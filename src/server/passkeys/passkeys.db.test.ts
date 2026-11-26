@@ -1,14 +1,15 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, vi } from 'vitest'
 import { handleAccount } from '~/server/account-actions'
 import { readAccount } from '~/server/account-data/store'
 import { handleUserChange } from '~/server/admin/actions'
 import { type Config, getConfig } from '~/server/config'
 import { checkCurrentPassword } from '~/server/current-password'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { databaseUrl } from '../testing/db'
+import { it, raw } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -42,10 +43,8 @@ import {
   type RequestOptionsJSON,
 } from '~/shared/passkeys/passkeys'
 import { SoftAuthenticator, strayKey } from '../testing/authenticator'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { toPasskeyView } from './view'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const config = getConfig() as { -readonly [K in keyof Config]: Config[K] }
 const origin = config.appOrigin
 const cookieName = config.cookieSecure ? '__Host-session' : 'session'
@@ -56,22 +55,18 @@ let dir = ''
 let hash = ''
 
 beforeAll(async () => {
-  await freshDatabase()
   hash = await hashPassword(PASSWORD)
 })
 afterAll(async () => {
   config.mail = null
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, audit_events, passkeys, passkey_challenges restart identity cascade`
   dir = mkdtempSync(join(tmpdir(), 'folio-mail-'))
   config.mail = { transport: 'capture', from: 'Folio <no-reply@folio.test>', dir }
 })
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
-  vi.restoreAllMocks()
 })
 
 function mailTo(to: string): CapturedMail[] {

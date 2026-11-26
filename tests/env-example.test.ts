@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest'
  * empty, and no line holds a value shaped like a real key.
  */
 
-/** Where the server and its operator scripts read settings. Tests and stubs read others, which don't belong here. */
+/**
+ * Where the server and its operator scripts read settings. Tests, their helpers in `src/server/testing/` and stubs read
+ * others, such as Vitest's `VITEST_POOL_ID`, which don't belong here.
+ */
 const SETTING_SOURCES = ['src/server/**/*.ts', 'scripts/serve.ts', 'scripts/db/*.ts']
 /** `env.NAME` and `env['NAME']`, which is how the server reads settings, from process.env or the env it's given. */
 const READ = /\benv(?:\.([A-Z][A-Z0-9_]*)\b|\[\s*['"]([A-Z][A-Z0-9_]*)['"]\s*\])/g
@@ -21,7 +24,9 @@ const SECRETS = ['KEK', 'KEK_PREVIOUS', 'RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET
 const KEY_SHAPED = /\b(re_[A-Za-z0-9]{6,}|github_pat_\w{10,}|gh[pousr]_\w{20,}|whsec_[A-Za-z0-9+/]{8,}|sk-[\w-]{10,})/
 
 function settingsReadByCode(): Set<string> {
-  const sources = SETTING_SOURCES.flatMap((pattern) => globSync(pattern)).filter((file) => !file.endsWith('.test.ts'))
+  const sources = SETTING_SOURCES.flatMap((pattern) => globSync(pattern)).filter(
+    (file) => !file.endsWith('.test.ts') && !file.replaceAll('\\', '/').startsWith('src/server/testing/'),
+  )
   const names = sources.flatMap((file) =>
     [...readFileSync(file, 'utf8').matchAll(READ)].map(([, dotted, indexed]) => dotted ?? indexed),
   )

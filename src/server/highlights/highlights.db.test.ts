@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { it, raw } from '../testing/db-test'
 import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
@@ -36,18 +36,11 @@ import type { HighlightView } from '~/shared/highlights/group'
 import { MAX_HIGHLIGHTS_PER_BOOK, MAX_HIGHLIGHTS_PER_USER } from '~/shared/highlights/limits'
 import { bookPages } from '~/shared/highlights/page-text'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, highlights restart identity cascade`
 })
 
 let users = 0
@@ -503,15 +496,37 @@ describe('the endpoints', () => {
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     const markdown = await response.text()
     const today = new Date().toISOString().slice(0, 10)
-    expect(markdown).toMatch(
-      new RegExp(
-        `^---\\ntitle: "Pride and Prejudice"\\nauthor: "Jane Austen"\\nsource: "${origin}/account/highlights\\?book=pride-and-prejudice"\\nexported: ${today}\\nhighlights: 1\\nnotes: 1\\ntags:\\n  - "folio"\\n  - "highlights"\\n---\\n\\n`,
-      ),
-    )
-    expect(markdown).toContain('\n# Pride and Prejudice\n\nJane Austen · 1 highlight · exported from Folio on ')
-    expect(markdown).toContain('## 6. Chapter 6')
-    expect(markdown).toContain('A note.')
-    expect(markdown).toContain(`(${origin}/read/pride-and-prejudice/chapter-6/2#highlight-`)
+    /** The export day, the origin and the highlight's id change from run to run, so they're named in the snapshot. */
+    const stable = markdown
+      .replaceAll(today, '<today>')
+      .replaceAll(origin, '<origin>')
+      .replace(/#highlight-[0-9a-f-]+/g, '#highlight-<id>')
+    expect(stable).toMatchInlineSnapshot(`
+      "---
+      title: "Pride and Prejudice"
+      author: "Jane Austen"
+      source: "<origin>/account/highlights?book=pride-and-prejudice"
+      exported: <today>
+      highlights: 1
+      notes: 1
+      tags:
+        - "folio"
+        - "highlights"
+      ---
+
+      # Pride and Prejudice
+
+      Jane Austen · 1 highlight · exported from Folio on <today>
+
+      ## 6. Chapter 6
+
+      > ad a good appetite; but you must remember that four evenings
+
+      A note.
+
+      [Ch. 6 · p. 2](<origin>/read/pride-and-prejudice/chapter-6/2#highlight-<id>)
+      "
+    `)
 
     const out = await exportAs(null, 'pride-and-prejudice')
     expect(out.status).toBe(302)

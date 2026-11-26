@@ -83,6 +83,10 @@ describe('RunDialog', () => {
   it('opens as a modal dialog titled with the language', async () => {
     await openDialog()
     expect(dialog.element().matches(':modal')).toBe(true)
+    await expect.element(dialog).toHaveAccessibleName(titleText('javascript'))
+    await expect.element(dialog.getByRole('button', { name: 'Close' })).toHaveAccessibleName('Close')
+    await expect.element(editor).toHaveAccessibleName('Code')
+    await expect.element(output).toHaveRole('region')
   })
 
   it('focuses the code editor when it opens', async () => {
@@ -164,6 +168,7 @@ describe('RunDialog', () => {
       },
     })
     await openDialog()
+    /** Output lines are plain text in the Output region, with no role or name of their own to check. */
     await expect.element(output.getByText('hello')).toBeVisible()
     await expect.element(output.getByText('Error: boom')).toBeVisible()
     await expect.element(output.getByText(OUTPUT_EMPTY)).not.toBeInTheDocument()
@@ -174,7 +179,11 @@ describe('RunDialog', () => {
     const stub = stubRunner()
     await openDialog()
     await editor.fill('console.log(2)')
-    await dialog.getByRole('button', { name: /Run/ }).click()
+    const run = dialog.getByRole('button', { name: /Run/ })
+    /** The shortcut's <kbd> runs into the name with no space ("RunCtrl+Enter"), so only the start is pinned here. */
+    await expect.element(run).toHaveAccessibleName(/^Run/)
+    expect(run.element().getAttribute('aria-keyshortcuts')).toMatch(/^(Control|Meta)\+Enter$/)
+    await run.click()
     expect(stub.run).toHaveBeenCalledExactlyOnceWith('console.log(2)')
   })
 

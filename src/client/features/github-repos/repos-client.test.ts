@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { addRepo, readRepoAnswer, refreshRepo, removeRepo, repoHref, repoRawHref } from './repos-client'
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status })
@@ -12,8 +12,6 @@ function answering(response: Response | Error) {
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('the requests', () => {
   it('adds a repository by its address', async () => {

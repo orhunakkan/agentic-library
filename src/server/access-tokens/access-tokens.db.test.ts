@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
-import postgres, { type Sql } from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Sql } from 'postgres'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { handleAccount, handleApiKeys, handleLogin } from '~/server/account-actions'
 import { readAccount } from '~/server/account-data/store'
 import { handleNewUser, handleUserChange } from '~/server/admin/actions'
@@ -19,7 +19,8 @@ import { createSession } from '~/server/sessions'
 import { handleShelfBook, handleShelfChange, handleShelfCreate } from '~/server/shelves/actions'
 import { checkSignIn, finishSignIn } from '~/server/sign-in'
 import { createUser, type Role } from '~/server/users'
-import { databaseUrl, freshDatabase } from '../testing/db'
+import { databaseUrl } from '../testing/db'
+import { it, raw } from '../testing/db-test'
 import { handleTokenCreate, handleTokenList, handleTokenRevoke } from './actions'
 import { endUserAccess, findAccessToken, MAX_ACCESS_TOKENS } from './store'
 
@@ -28,7 +29,6 @@ vi.mock('../db.ts', async (importOriginal) => {
   return { ...actual, getDb: vi.fn(actual.getDb), isDatabaseConfigured: vi.fn(actual.isDatabaseConfigured) }
 })
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 const PASSWORD = 'a long enough passphrase for tests'
@@ -36,16 +36,8 @@ const IP = '198.51.100.9'
 const CHEAP = { memory: 1024, passes: 1, parallelism: 1 }
 const UNKNOWN_ID = '0b6d5c3e-9f1a-4c2b-8d7e-6a5b4c3d2e1f'
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, audit_events, access_tokens, email_tokens restart identity cascade`
-})
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 interface Options {

@@ -20,6 +20,7 @@ describe('AskFailureNotice', () => {
     const onRetry = vi.fn()
     await mountAt(READER, <AskFailureNotice failure={QUIZ} onRetry={onRetry} provider="anthropic" />)
     const alert = page.getByRole('alert')
+    /** The message is plain text, found inside the alert that a screen reader announces. */
     await expect.element(alert.getByText('The answer didn’t come back as a quiz. Try again.')).toBeVisible()
     const retry = alert.getByRole('button', { name: 'Retry' })
     await expect.element(retry).toBeVisible()

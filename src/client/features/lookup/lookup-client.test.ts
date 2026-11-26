@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { lookUpWord, translate, wordAnswerOf } from './lookup-client'
 
 const WORD = { book: 'pride-and-prejudice', term: 'chaise', source: 'dictionary' } as const
@@ -28,8 +28,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('lookUpWord', () => {
   it('posts the book, the term and the source as JSON', async () => {

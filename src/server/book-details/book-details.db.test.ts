@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, vi } from 'vitest'
+import { it, raw } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -26,11 +26,9 @@ import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { openLibraryStub, STUB_COVERS, STUB_TITLES } from '../../../tests/stubs/open-library-stub'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
 import { testUser } from '../testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
 const image = (name: string) =>
@@ -43,13 +41,8 @@ const coverOf = (name: string, source: 'epub' | 'upload' | 'open-library' = 'upl
 const DETAILS = { description: 'About it.', isbn: '9780141439518', publisher: 'Penguin', publishedYear: 2003 }
 const META = { title: 'Field Notes', author: 'Ada', language: 'en', details: NO_DETAILS, chapterCount: 1 }
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books restart identity cascade`
 })
 
 const newUser = (username: string) => testUser(db(), username, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')

@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { handleBookmarkChange, handleBookmarkCreate } from '~/server/bookmarks/actions'
 import { bookBookmarksState } from '~/server/bookmarks/read'
 import { createBookmark, deleteBookmark, listForBook, type NewBookmark } from '~/server/bookmarks/store'
@@ -8,6 +7,7 @@ import { toBookmarkViews } from '~/server/bookmarks/view'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { NO_DETAILS } from '../../shared/import/details.ts'
+import { it, raw } from '../testing/db-test'
 import { privateRef } from '../testing/refs'
 import { testUser } from '../testing/users'
 
@@ -30,18 +30,11 @@ import {
 import type { ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, highlights, bookmarks restart identity cascade`
 })
 
 let users = 0

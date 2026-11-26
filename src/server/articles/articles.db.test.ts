@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, vi } from 'vitest'
 import { privateBookSlug } from '~/shared/content/book-slug'
+import { it, raw } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -28,7 +28,6 @@ import {
 import { NO_DETAILS } from '~/shared/import/details'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { ARTICLE_FETCH_LIMIT, ARTICLE_PICTURE_LIMIT, ARTICLE_SAVE_LIMIT, IMPORT_LIMIT } from '../rate-limit'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { testUser } from '../testing/users'
 import { articlesState, handleArticleFetch, handleArticlePicture, handleArticlesForm, myArticlesState } from './actions'
 import type { ResolvedAddress } from './address-guard'
@@ -49,11 +48,9 @@ const ARTICLE_HTML = `<!doctype html><html lang="en"><head><title>A long read</t
   <nav>menu</nav><article><h1>A long read</h1><p>${'Words of the article. '.repeat(40)}</p>
   <img src="/p.png" srcset="/p-800.png 800w"><img data-src="lazy.png"></article></body></html>`
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
 beforeAll(async () => {
-  await freshDatabase()
   server = createServer((req, res) => {
     const handler =
       routes.get(new URL(req.url ?? '/', 'http://x').pathname) ??
@@ -65,18 +62,15 @@ beforeAll(async () => {
 })
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()))
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, user_books restart identity cascade`
   resetPacing()
   resetPending()
   routes.clear()
   routes.set('/article', (_req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(ARTICLE_HTML))
   routes.set('/p.png', (_req, res) => res.writeHead(200, { 'content-type': 'image/png' }).end(PNG))
 })
-afterEach(() => vi.restoreAllMocks())
 
 const WEB: WebFetchOptions = {
   resolve: async (): Promise<ResolvedAddress[]> => [{ address: '93.184.216.34', family: 4 }],

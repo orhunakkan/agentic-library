@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReadAloudState } from '~/client/features/read-aloud/controller'
 import type { PlayerBook, PlayerEpisode } from '~/shared/content/book-page'
 import type { SpeechBook } from '~/shared/read-aloud/speech-text'
@@ -65,7 +65,6 @@ beforeEach(() => {
     },
   )
 })
-afterEach(() => vi.unstubAllGlobals())
 
 function fakeSession() {
   const handlers = new Map<MediaSessionAction, MediaSessionActionHandler | null>()

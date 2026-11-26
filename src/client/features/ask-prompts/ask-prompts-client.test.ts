@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createPrompt, deletePrompt, editPrompt, movePrompt, readPromptAnswer } from './ask-prompts-client'
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status })
@@ -18,8 +18,6 @@ const sentTo = (fetchMock: ReturnType<typeof answering>) => {
   const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
   return [path, JSON.parse(String(init.body))]
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('the requests', () => {
   it('creates a prompt', async () => {

@@ -1,5 +1,4 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { handleAccount, handleApiKeys } from '~/server/account-actions'
 import { deleteKey, getKeyStatuses, rotateKeys, saveKey, withApiKey } from '~/server/api-keys'
 import { recordEvent } from '~/server/audit'
@@ -38,21 +37,15 @@ import {
 import { anthropicStub } from '../../tests/stubs/anthropic-stub'
 import { elevenLabsKey, elevenLabsStub, STUB_ELEVENLABS_KEYS } from '../../tests/stubs/elevenlabs-stub'
 import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../tests/stubs/openai-stub'
-import { databaseUrl, freshDatabase } from './testing/db'
+import { it, raw } from './testing/db-test'
 import { spend } from './testing/quota'
 import { testUser } from './testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const KEY = 'sk-ant-api03-a-test-key-that-is-long-enough-0001'
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events restart identity cascade`
 })
 
 const newUser = (username = 'reader', role: 'admin' | 'member' = 'member') =>

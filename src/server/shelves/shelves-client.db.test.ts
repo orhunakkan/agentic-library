@@ -1,5 +1,4 @@
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { createShelf, deleteShelf, renameShelf, setShelfBook } from '~/client/features/shelves/shelves-client'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
@@ -9,24 +8,17 @@ import { handleShelfBook, handleShelfChange, handleShelfCreate, shelvesState } f
 import type { signedInEndpoints } from '~/server/signed-in'
 import type { ShelfErrorAnswer, ShelfErrorCode } from '~/shared/shelves/contract'
 import { MAX_SHELF_BOOKS_PER_USER, MAX_SHELVES_PER_USER } from '~/shared/shelves/shelves'
-import { databaseUrl, freshDatabase } from '../testing/db'
+import { it, raw } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 const NOWHERE = '6f1c0000-0000-4000-8000-000000000000'
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
 })
-beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, user_books, shelves, shelf_books restart identity cascade`
-})
-afterEach(() => vi.unstubAllGlobals())
 
 let users = 0
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { forgetFinished, noteFinished } from './finish'
 
 let embed: string | undefined
@@ -28,7 +28,6 @@ beforeEach(() => {
     },
   })
 })
-afterEach(() => vi.unstubAllGlobals())
 
 describe('noteFinished', () => {
   it('toasts a newly finished book, once per page load', async () => {

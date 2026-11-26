@@ -5,13 +5,17 @@ import { SITE_CREDIT } from '~/shared/lib/site'
 import { HomeFooter } from './HomeFooter'
 
 const SOURCE = 'https://github.com/example/folio'
-const footerLink = (name: string) => page.getByRole('link', { name, exact: true })
+/** The page's footer landmark, which every footer link sits in. */
+const footer = page.getByRole('contentinfo')
+const footerLink = (name: string) => footer.getByRole('link', { name, exact: true })
 
 describe('HomeFooter', () => {
   it('says uploads stay private, and links Privacy, Terms, Copyright and Credits', async () => {
     await mountAt('/', <HomeFooter viewer={null} sourceUrl={null} />)
-    await expect.element(page.getByText(SITE_CREDIT)).toBeVisible()
-    await expect.element(page.getByText('© 2026 Orhun Akkan')).toBeVisible()
+    /** The credit and the copyright line are plain text in the footer landmark, with no role or name to check. */
+    await expect.element(footer.getByText(SITE_CREDIT)).toBeVisible()
+    await expect.element(footer.getByText('© 2026 Orhun Akkan')).toBeVisible()
+    await expect.element(footer.getByRole('navigation', { name: 'Footer' })).toBeVisible()
     for (const [name, path] of [
       ['Privacy', '/privacy'],
       ['Terms', '/terms'],

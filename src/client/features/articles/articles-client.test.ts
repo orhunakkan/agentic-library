@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { fetchArticle, fetchArticlePicture, readArticleAnswer, startArticle } from './articles-client'
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status })
@@ -11,8 +11,6 @@ function answering(response: Response | Error) {
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 const START = {
   title: 'T',

@@ -1,23 +1,17 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 
 const scratch = mkdtempSync(join(tmpdir(), 'repository-test-'))
-const saved = process.env.CONTENT_DIR
 
 async function storeOver(dir: string) {
-  process.env.CONTENT_DIR = dir
+  vi.stubEnv('CONTENT_DIR', dir)
   vi.resetModules()
   return import('./repository')
 }
 
-beforeEach(() => {
-  process.env.CONTENT_DIR = saved
-})
-
 afterAll(() => {
-  process.env.CONTENT_DIR = saved
   vi.resetModules()
   rmSync(scratch, { recursive: true, force: true })
 })

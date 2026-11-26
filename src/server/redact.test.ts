@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { describeError, logError, redact } from './redact'
 
 const KEY = 'sk-ant-api03-AbC_dEf-1234567890abcdefghijklmnopQRSTUV'
@@ -85,8 +85,6 @@ describe('describeError', () => {
 })
 
 describe('logging a thrown fetch error', () => {
-  afterEach(() => vi.restoreAllMocks())
-
   it('never writes the key, whether it is in the message, a cause or the headers', async () => {
     const lines: string[] = []
     vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => void lines.push(args.join(' ')))

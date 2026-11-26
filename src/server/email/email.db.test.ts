@@ -1,8 +1,7 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, vi } from 'vitest'
 import { handleAccount } from '~/server/account-actions'
 import { type Config, getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
@@ -15,9 +14,8 @@ import { EMAIL_VERIFY_LIMIT } from '~/server/rate-limit'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { createUser, findUserById } from '~/server/users'
-import { databaseUrl, freshDatabase } from '../testing/db'
+import { it, raw } from '../testing/db-test'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const config = getConfig() as { -readonly [K in keyof Config]: Config[K] }
 const origin = config.appOrigin
 const cookieName = config.cookieSecure ? '__Host-session' : 'session'
@@ -25,21 +23,16 @@ const PASSWORD = 'the reader’s own long password'
 const FROM = 'Folio <no-reply@folio.test>'
 let dir = ''
 
-beforeAll(freshDatabase)
 afterAll(async () => {
   config.mail = null
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, audit_events, email_tokens restart identity cascade`
   dir = mkdtempSync(join(tmpdir(), 'folio-mail-'))
   config.mail = { transport: 'capture', from: FROM, dir }
 })
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
-  vi.unstubAllGlobals()
-  vi.restoreAllMocks()
 })
 
 function mailTo(to: string): CapturedMail[] {
@@ -306,6 +299,35 @@ describe('confirming', () => {
     await add(cookie, 'ann@example.com')
     const token = tokenIn(mailTo('ann@example.com')[0]?.text ?? '')
     const answers = await Promise.all([confirm(cookie, token), confirm(cookie, token)])
+    expect(answers.map(where).sort()).toEqual([
+      [303, '/account?status=email-confirmed#email'],
+      [303, `/confirm-email?token=${token}`],
+    ])
+    expect(await events('email.verified')).toEqual([{ replaced: false }])
+  })
+
+  it('refuses the second of two posts that both found the link live, once the first has used it', async () => {
+    const { user, cookie } = await signedIn()
+    await add(cookie, 'ann@example.com')
+    const token = tokenIn(mailTo('ann@example.com')[0]?.text ?? '')
+    /**
+     * Holding the reader's row makes both posts find the link live and then queue for the row, so the second always
+     * takes the path a race takes only sometimes. `for no key update` still lets the session lookup's checks through.
+     */
+    const posts = await raw.begin(async (tx) => {
+      await tx`select id from users where id = ${user.id} for no key update`
+      const both = Promise.all([confirm(cookie, token), confirm(cookie, token)])
+      await vi.waitFor(async () => {
+        const [row] = await getDb()<{ waiting: number }[]>`
+          select count(*)::int as waiting from pg_stat_activity
+          where datname = current_database() and wait_event_type = 'Lock'
+            and query like '%from users where id%for update%'`
+        expect(row?.waiting).toBe(2)
+      })
+      /** In an object, as `begin` would wait, still holding the row, on a returned array of promises. */
+      return { both }
+    })
+    const answers = await posts.both
     expect(answers.map(where).sort()).toEqual([
       [303, '/account?status=email-confirmed#email'],
       [303, `/confirm-email?token=${token}`],

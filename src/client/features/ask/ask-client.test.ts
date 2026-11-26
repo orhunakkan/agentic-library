@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { citationMarker } from './answer-format'
 import { historyFor, isStudyAction, readEvents, sendQuestion } from './ask-client'
 import type { ThreadTurn } from './thread-store'
@@ -70,7 +70,6 @@ describe('historyFor', () => {
 })
 
 describe('sendQuestion', () => {
-  afterEach(() => vi.unstubAllGlobals())
   const request = {
     position: { chapter: 'chapter-1', page: 1 },
     wholeBook: false,

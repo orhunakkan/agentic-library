@@ -1,10 +1,10 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, vi } from 'vitest'
 import { type Config, getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
+import { it, raw, resetTables } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -21,9 +21,7 @@ import { RESET_ACCOUNT_LIMIT } from '~/server/rate-limit'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession, findSession } from '~/server/sessions'
 import { createUser, findUserById, type User } from '~/server/users'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const config = getConfig() as { -readonly [K in keyof Config]: Config[K] }
 const origin = config.appOrigin
 const PASSWORD = 'the reader’s own long password'
@@ -33,22 +31,17 @@ const IP = '203.0.113.7'
 const SENT = '/forgot-password?status=sent'
 let dir = ''
 
-beforeAll(freshDatabase)
 afterAll(async () => {
   config.mail = null
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, audit_events, email_tokens restart identity cascade`
   dir = mkdtempSync(join(tmpdir(), 'folio-reset-'))
   config.mail = { transport: 'capture', from: FROM, dir }
 })
 afterEach(async () => {
   await resetWorkSettled()
   rmSync(dir, { recursive: true, force: true })
-  vi.unstubAllGlobals()
-  vi.restoreAllMocks()
 })
 
 function mailTo(to: string): CapturedMail[] {
@@ -315,7 +308,7 @@ describe('the reset link', () => {
       ['bounced', (u) => raw`update users set email_bounced_at = now() where id = ${u.id}`],
     ]
     for (const [name, change] of cases) {
-      await raw`truncate users, audit_events, email_tokens restart identity cascade`
+      await resetTables()
       const user = await reader('ann')
       const token = await resetToken('ann')
       await change(user)

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { deleteCard, reviewCard, saveCard } from './flashcards-client'
 
 const CARD = {
@@ -23,8 +23,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('saveCard', () => {
   it('posts the card and says whether the book had it already', async () => {

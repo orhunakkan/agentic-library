@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, vi } from 'vitest'
 import { newCover, saveDetails, setCover } from '~/server/book-details/store'
 import { newImage, storeImage } from '~/server/book-images/store'
 import { openBook } from '~/server/books/book'
@@ -19,7 +18,7 @@ import { sniffImage } from '~/shared/import/image'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { type OfflineBook, parseOfflineBook } from '~/shared/offline/book'
 import { pictureUrls } from '~/shared/offline/pictures'
-import { databaseUrl, freshDatabase } from '../testing/db'
+import { it } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
 const failing = vi.hoisted(() => ({ owner: false }))
@@ -32,7 +31,6 @@ vi.mock('~/server/books/book', async (importOriginal) => {
   }
 })
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 const META = { title: 'Field Notes', author: 'Ada', language: 'en', details: NO_DETAILS, chapterCount: 2 }
@@ -41,13 +39,10 @@ const fixture = (name: string) =>
   new Uint8Array(readFileSync(new URL(`../../../tests/fixtures/images/${name}`, import.meta.url)))
 const info = (bytes: Uint8Array) => sniffImage(bytes) as NonNullable<ReturnType<typeof sniffImage>>
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books restart identity cascade`
   failing.owner = false
 })
 

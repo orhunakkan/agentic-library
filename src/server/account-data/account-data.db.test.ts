@@ -1,8 +1,8 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { privateBookSlug } from '~/shared/content/book-slug'
+import { it, raw } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -14,19 +14,11 @@ import { readAccount } from '~/server/account-data/store'
 import { EXPORT_LIMIT } from '~/server/rate-limit'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
 import { KEY_CIPHERTEXT, PASSWORD_HASH, userWithEveryRow } from '../testing/user-rows'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
-
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, user_book_covers, user_book_images, highlights, bookmarks, flashcards, audio_bookmarks, reading_places, listening_places, reader_settings, shelves, shelf_books, email_tokens restart identity cascade`
 })
 
 const origin = getConfig().appOrigin

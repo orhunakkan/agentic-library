@@ -503,3 +503,46 @@ describe('the rest of the walker', () => {
     ])
   })
 })
+
+describe('a whole README', () => {
+  /** A README that uses most of what the renderer handles, so a change to any of it shows in one reviewable diff. */
+  const README = [
+    '---',
+    'name: sample',
+    'description: A repository Folio renders.',
+    '---',
+    '',
+    '# Sample :rocket:',
+    '',
+    '![logo](docs/img/logo.png) ![badge](https://img.shields.io/badge/ok-green)',
+    '',
+    'Read the [guide](docs/guide.md#install), the [code](./src/index.ts) or [the web](https://example.com).',
+    '',
+    '> [!NOTE]',
+    '> Useful information.',
+    '',
+    '## Steps',
+    '',
+    '1. First',
+    '2. Second',
+    '',
+    '- [x] done',
+    '- [ ] todo',
+    '',
+    '| Left | Centre |',
+    '| :--- | :----: |',
+    '| a    | ~~b~~  |',
+    '',
+    '```ts',
+    'const answer: number = 42',
+    '```',
+    '',
+    '<details><summary>More</summary>Hidden <script>alert(1)</script>text.</details>',
+    '',
+  ].join('\n')
+
+  it('renders the same tree as the snapshot; review its diff when the renderer changes on purpose', async () => {
+    const rendered = await renderMarkdown(README, context())
+    await expect(`${JSON.stringify(rendered, null, 2)}\n`).toMatchFileSnapshot('./__snapshots__/readme.json')
+  })
+})

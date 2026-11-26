@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { problemText, readRemovedAnswer, setRemoved } from './removed-books-client'
 
 function answer(status: number, body: unknown) {
@@ -6,8 +6,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('setRemoved', () => {
   it('posts the book and whether it is removed, and answers its state afterwards', async () => {

@@ -7,6 +7,8 @@ interface Seam {
   under: string[]
   /** Scan test files too; by default a seam guards only shipped source. */
   tests?: boolean
+  /** Scan only test files, for a rule about how tests are written. */
+  onlyTests?: boolean
   allowed: Record<string, string>
 }
 
@@ -229,14 +231,30 @@ const SEAMS: Seam[] = [
     tests: true,
     allowed: { 'src/shared/lib/json-shape.ts': 'the one definition' },
   },
+  {
+    name: 'a test changes an env var with vi.stubEnv, which the config undoes, never by writing process.env',
+    pattern: /\bprocess\.env(\.\w+|\[[^\]]+\])?\s*=(?!=)|\bdelete\s+process\.env\b/,
+    under: ['src', 'tests', 'scripts'],
+    onlyTests: true,
+    allowed: {},
+  },
+  {
+    name: 'a database test gets its schema and empty tables from the shared fixture, never by migrating or truncating itself',
+    pattern: /\bfreshDatabase\b|['"`]\s*truncate\s/i,
+    under: ['src/server'],
+    onlyTests: true,
+    allowed: {
+      'src/server/migrations.db.test.ts': 'tests the migrations themselves, and leaves a fresh schema behind',
+    },
+  },
 ]
 
 function withoutComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1')
 }
 
-function sourcesUnder(path: string, tests = false): string[] {
-  const kept = (file: string) => tests || !/\.test\.tsx?$/.test(file)
+function sourcesUnder(path: string, tests = false, onlyTests = false): string[] {
+  const kept = (file: string) => (/\.test\.tsx?$/.test(file) ? tests || onlyTests : !onlyTests)
   if (/\.tsx?$/.test(path)) return kept(path) ? [path] : []
   return readdirSync(path, { recursive: true, encoding: 'utf8' })
     .map((name) => `${path}/${name.replaceAll('\\', '/')}`)
@@ -285,7 +303,7 @@ describe('the source tree', () => {
   const read = (path: string) => readFileSync(path, 'utf8')
 
   it.each(SEAMS.map((seam) => [seam.name, seam] as const))('%s', (_name, seam) => {
-    const files = seam.under.flatMap((path) => sourcesUnder(path, seam.tests))
+    const files = seam.under.flatMap((path) => sourcesUnder(path, seam.tests, seam.onlyTests))
     expect(files.length).toBeGreaterThan(0)
     expect(seamProblems(seam, read, files)).toEqual([])
   })

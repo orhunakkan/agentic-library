@@ -25,8 +25,9 @@ and merged.
 
    `--with-deps` installs the system libraries Chromium needs, which may ask for your password. Leave it out if they’re
    already there.
-3. Optionally, turn on the pre-commit hook. It scans the staged changes for secrets, then runs Biome, the typecheck and
-   the tests in `tests/`:
+3. Optionally, turn on the pre-commit hook. It scans the staged changes for secrets, then runs Biome, the typecheck,
+   the tests in `tests/`, and the unit tests related to the staged `.ts` and `.tsx` files (a second or two; a commit of
+   docs alone runs none):
 
    ```sh
    git config core.hooksPath .githooks
@@ -48,7 +49,9 @@ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/agentic_test pnpm test
 Don’t `export` it: `pnpm dev` would then use `agentic_test`, which the database tests wipe, because a variable already
 set wins over `.env`.
 
-Compose is optional: your own Postgres 18 with an `agentic_dev` and an `agentic_test` database works too.
+Compose is optional: your own Postgres 18 with an `agentic_dev` and an `agentic_test` database works too. The database
+tests run eight files at once, each against its own `agentic_w<n>_test` database, which they create through
+`agentic_test` the first time, so the user in `DATABASE_URL` needs to be allowed to create databases.
 
 ## Commands
 
@@ -78,11 +81,40 @@ Coding agents read [AGENTS.md](AGENTS.md), which points them to the same rules.
 Vitest runs all three kinds of test, and there’s no other test tool:
 
 - **Unit tests** sit next to their module, as `*.test.ts`. `pnpm check` runs them.
-- **Database tests** are `*.db.test.ts`, run by `pnpm test:db`. They drop and re-create the test database’s schema.
-- **Component tests** are `*.browser.test.tsx`, run by `pnpm test:browser` in headless Chromium.
+- **Database tests** are `*.db.test.ts`, run by `pnpm test:db`. Files run in parallel, each worker against a database
+  of its own whose schema the run drops and re-creates once. Write them with `it` and `raw` from
+  `src/server/testing/db-test.ts`, which starts every test with every table empty, so don’t truncate tables or migrate
+  in a test file.
+- **Component tests** are `*.browser.test.tsx`, run by `pnpm test:browser` in headless Chromium. Render with `mount`
+  from `src/client/testing/mount.ts`, or `mountAt` from `src/client/testing/router.tsx` inside a router; test a React
+  hook with `mountHook` (or `mountHookAt`), which hands back its latest result.
 
-Coverage floors only go up (`pnpm coverage:ratchet`). Run `pnpm check` before you push, and also `pnpm test:db` when
-your change touches the server, or `pnpm test:browser` when it touches the UI.
+`.only` fails the run, so to focus a test, use a file path or `-t "<name>"`. Unit and database tests run in a shuffled
+order; when one fails only sometimes, replay the order with the seed the run printed: `--sequence.seed=<seed>`.
+
+A test that checks a whole generated document, such as a Markdown export, compares it with a snapshot: inline
+(`toMatchInlineSnapshot`) when it reads well in the test, or a file in `__snapshots__/` (`toMatchFileSnapshot`) when
+it's long. When you change the output on purpose, run the test with `-u` and review every snapshot change in the diff.
+Never run `-u` just to make a failure go away, and keep the focused checks (escaping, ordering, edge cases) as plain
+assertions.
+
+In a component test, find elements by role and accessible name first (`getByRole('button', { name: 'Save' })`), which
+checks what a screen reader gets as well. When you find one any other way, by test id, label or text, assert its role
+and name explicitly with `toHaveRole` and `toHaveAccessibleName`, or say in a `/** … */` note why it has none, as for
+plain text.
+
+Vitest undoes every `vi.spyOn`, `vi.stubGlobal` and `vi.stubEnv` before each test, so don't clean them up by hand.
+Change an env var with `vi.stubEnv`, never by writing to `process.env`. Make stubs in the test or a `beforeEach`: one
+made in `beforeAll` or at module level is undone before the first test runs.
+
+When a component test fails, Vitest prints the path of the Playwright trace it kept, in a folder of that run's own
+under `.vitest/traces/`. Open it with `pnpm exec playwright show-trace <path>`. A passing test keeps no trace, a new run
+clears the traces of runs that have ended, and git ignores `.vitest/`.
+
+Each command measures coverage on its own side: `pnpm check` the shared and client modules (`coverage/unit`),
+`pnpm test:db` the server (`coverage/server`), and `pnpm test:browser` the components and React hooks
+(`coverage/browser`). Coverage floors only go up (`pnpm coverage:ratchet` raises all three). Run `pnpm check` before
+you push, and also `pnpm test:db` when your change touches the server, or `pnpm test:browser` when it touches the UI.
 
 ## Migrations
 

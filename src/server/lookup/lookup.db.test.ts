@@ -1,6 +1,6 @@
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, vi } from 'vitest'
 import { privateBookSlug } from '~/shared/content/book-slug'
+import { it, raw } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -23,24 +23,16 @@ import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { anthropicStub, STUB_KEYS } from '../../../tests/stubs/anthropic-stub'
 import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/stubs/openai-stub'
 import { STUB_TERMS, wikimediaStub } from '../../../tests/stubs/wikimedia-stub'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books restart identity cascade`
   resetWikimedia()
   sent.length = 0
-})
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 const origin = getConfig().appOrigin

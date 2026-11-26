@@ -1,0 +1,464 @@
+{
+  "frontMatter": [
+    {
+      "key": "name",
+      "value": "sample",
+      "yaml": false
+    },
+    {
+      "key": "description",
+      "value": "A repository Folio renders.",
+      "yaml": false
+    }
+  ],
+  "nodes": [
+    {
+      "t": "el",
+      "tag": "h1",
+      "c": [
+        {
+          "t": "text",
+          "v": "Sample 🚀"
+        }
+      ],
+      "attrs": {
+        "id": "user-content-sample-rocket"
+      }
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "el",
+      "tag": "p",
+      "c": [
+        {
+          "t": "img",
+          "source": {
+            "kind": "repo",
+            "path": "docs/img/logo.png"
+          },
+          "alt": "logo"
+        },
+        {
+          "t": "text",
+          "v": " "
+        },
+        {
+          "t": "img",
+          "source": {
+            "kind": "external",
+            "src": "https://img.shields.io/badge/ok-green",
+            "host": "img.shields.io"
+          },
+          "alt": "badge"
+        }
+      ]
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "el",
+      "tag": "p",
+      "c": [
+        {
+          "t": "text",
+          "v": "Read the "
+        },
+        {
+          "t": "link",
+          "to": {
+            "kind": "repo",
+            "path": "docs/guide.md",
+            "anchor": "user-content-install"
+          },
+          "c": [
+            {
+              "t": "text",
+              "v": "guide"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": ", the "
+        },
+        {
+          "t": "link",
+          "to": {
+            "kind": "repo",
+            "path": "src/index.ts",
+            "anchor": null
+          },
+          "c": [
+            {
+              "t": "text",
+              "v": "code"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": " or "
+        },
+        {
+          "t": "link",
+          "to": {
+            "kind": "external",
+            "href": "https://example.com/"
+          },
+          "c": [
+            {
+              "t": "text",
+              "v": "the web"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": "."
+        }
+      ]
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "alert",
+      "kind": "note",
+      "c": [
+        {
+          "t": "el",
+          "tag": "p",
+          "c": [
+            {
+              "t": "text",
+              "v": "Useful information."
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": "\n"
+        }
+      ]
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "el",
+      "tag": "h2",
+      "c": [
+        {
+          "t": "text",
+          "v": "Steps"
+        }
+      ],
+      "attrs": {
+        "id": "user-content-steps"
+      }
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "el",
+      "tag": "ol",
+      "c": [
+        {
+          "t": "text",
+          "v": "\n"
+        },
+        {
+          "t": "el",
+          "tag": "li",
+          "c": [
+            {
+              "t": "text",
+              "v": "First"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": "\n"
+        },
+        {
+          "t": "el",
+          "tag": "li",
+          "c": [
+            {
+              "t": "text",
+              "v": "Second"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": "\n"
+        }
+      ]
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "el",
+      "tag": "ul",
+      "c": [
+        {
+          "t": "text",
+          "v": "\n"
+        },
+        {
+          "t": "el",
+          "tag": "li",
+          "c": [
+            {
+              "t": "task",
+              "checked": true
+            },
+            {
+              "t": "text",
+              "v": " done"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": "\n"
+        },
+        {
+          "t": "el",
+          "tag": "li",
+          "c": [
+            {
+              "t": "task",
+              "checked": false
+            },
+            {
+              "t": "text",
+              "v": " todo"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": "\n"
+        }
+      ]
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "el",
+      "tag": "table",
+      "c": [
+        {
+          "t": "el",
+          "tag": "thead",
+          "c": [
+            {
+              "t": "el",
+              "tag": "tr",
+              "c": [
+                {
+                  "t": "el",
+                  "tag": "th",
+                  "c": [
+                    {
+                      "t": "text",
+                      "v": "Left"
+                    }
+                  ],
+                  "attrs": {
+                    "align": "left"
+                  }
+                },
+                {
+                  "t": "el",
+                  "tag": "th",
+                  "c": [
+                    {
+                      "t": "text",
+                      "v": "Centre"
+                    }
+                  ],
+                  "attrs": {
+                    "align": "center"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "t": "el",
+          "tag": "tbody",
+          "c": [
+            {
+              "t": "el",
+              "tag": "tr",
+              "c": [
+                {
+                  "t": "el",
+                  "tag": "td",
+                  "c": [
+                    {
+                      "t": "text",
+                      "v": "a"
+                    }
+                  ],
+                  "attrs": {
+                    "align": "left"
+                  }
+                },
+                {
+                  "t": "el",
+                  "tag": "td",
+                  "c": [
+                    {
+                      "t": "el",
+                      "tag": "del",
+                      "c": [
+                        {
+                          "t": "text",
+                          "v": "b"
+                        }
+                      ]
+                    }
+                  ],
+                  "attrs": {
+                    "align": "center"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "code",
+      "lang": "ts",
+      "code": {
+        "palette": [
+          [
+            "#CF222E",
+            "#FF7B72"
+          ],
+          [
+            "#1F2328",
+            "#E6EDF3"
+          ],
+          [
+            "#0550AE",
+            "#79C0FF"
+          ]
+        ],
+        "lines": [
+          [
+            [
+              "const",
+              0,
+              0
+            ],
+            [
+              " ",
+              1,
+              0
+            ],
+            [
+              "answer",
+              2,
+              0
+            ],
+            [
+              ":",
+              0,
+              0
+            ],
+            [
+              " ",
+              1,
+              0
+            ],
+            [
+              "number",
+              2,
+              0
+            ],
+            [
+              " ",
+              1,
+              0
+            ],
+            [
+              "=",
+              0,
+              0
+            ],
+            [
+              " ",
+              1,
+              0
+            ],
+            [
+              "42",
+              2,
+              0
+            ]
+          ]
+        ],
+        "highlighted": true
+      }
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    },
+    {
+      "t": "el",
+      "tag": "details",
+      "c": [
+        {
+          "t": "el",
+          "tag": "summary",
+          "c": [
+            {
+              "t": "text",
+              "v": "More"
+            }
+          ]
+        },
+        {
+          "t": "text",
+          "v": "Hidden "
+        },
+        {
+          "t": "text",
+          "v": "text."
+        }
+      ]
+    },
+    {
+      "t": "text",
+      "v": "\n"
+    }
+  ],
+  "externalImages": 1
+}

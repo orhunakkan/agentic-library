@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { type AudioBookmarkRequest, createAudioBookmark, deleteAudioBookmark } from './audio-bookmarks-client'
 
 const BOOKMARK = {
@@ -22,8 +22,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('createAudioBookmark', () => {
   it('posts only the place: the page and offset, or the episode and time', async () => {

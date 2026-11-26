@@ -94,7 +94,6 @@ beforeEach(() => {
   encodings.length = 0
 })
 afterEach(() => {
-  vi.unstubAllGlobals()
   getDocument.mockReset()
 })
 

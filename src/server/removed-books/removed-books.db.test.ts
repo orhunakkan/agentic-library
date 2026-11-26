@@ -1,8 +1,8 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 import { privateBookSlug } from '~/shared/content/book-slug'
+import { it, raw } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -14,18 +14,11 @@ import { handleRemovedBook, libraryExclusionsFor, removedBooksState } from '~/se
 import { listRemoved, setRemoved } from '~/server/removed-books/store'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, audit_events, removed_books restart identity cascade`
 })
 
 let users = 0

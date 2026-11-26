@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createShelf, deleteShelf, renameShelf, setShelfBook } from './shelves-client'
 
 const SHELF = { id: '6f1c0000-0000-4000-8000-000000000000', name: 'To read', books: ['pride-and-prejudice'] }
@@ -13,8 +13,6 @@ const sent = (fetch: ReturnType<typeof answer>) => {
   const [path, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
   return [path, init.method, JSON.parse(String(init.body))]
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('the requests', () => {
   it('post each change to its route', async () => {

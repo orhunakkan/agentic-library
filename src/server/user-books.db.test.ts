@@ -1,5 +1,5 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
+import { it, raw } from './testing/db-test'
 
 vi.mock('../shared/import/blocks.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../shared/import/blocks.ts')>()
@@ -29,21 +29,14 @@ import { checkChapterUpload } from '~/shared/import/blocks'
 import { MAX_BOOK_HTML_BYTES } from '~/shared/import/limits'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { NO_DETAILS } from '../shared/import/details.ts'
-import { databaseUrl, freshDatabase } from './testing/db'
 import { testUser } from './testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const META = { title: 'My Notes', author: 'Ada', language: 'en', details: NO_DETAILS, chapterCount: 2 }
 const BODY = { title: 'My Notes', author: 'Ada', language: 'en', chapterCount: 2 }
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books restart identity cascade`
 })
 
 /** A plain member: no grant and no subscription, so the limits here are every account's. */

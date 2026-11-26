@@ -1,7 +1,7 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, vi } from 'vitest'
 import { type Config, getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
+import { it, raw } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -15,25 +15,19 @@ import { hashToken, newSessionToken } from '~/server/security'
 import { createSession, type SessionUser } from '~/server/sessions'
 import { signupPage } from '~/server/signup/actions'
 import { createUser, type Role } from '~/server/users'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const config = getConfig() as { -readonly [K in keyof Config]: Config[K] }
 const origin = config.appOrigin
 const cookieName = config.cookieSecure ? '__Host-session' : 'session'
 const HASH = '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA'
 const IP = '198.51.100.20'
 
-beforeAll(freshDatabase)
 afterAll(async () => {
   config.signup = 'invite'
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, signup_tokens restart identity cascade`
   config.signup = 'invite'
-  vi.restoreAllMocks()
 })
 
 async function signedIn(username: string, role: Role = 'admin') {

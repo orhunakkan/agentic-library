@@ -1,10 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { finishAudiobook, problemOf, sendChunk, startAudiobook } from './audiobook-client'
 
 const reply = (status: number, body: unknown) =>
   vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }))
-
-afterEach(() => vi.unstubAllGlobals())
 
 const START = {
   title: 'T',

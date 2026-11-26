@@ -110,7 +110,6 @@ beforeEach(() => {
   encoder = ({ type }) => ({ type, size: 1000 })
 })
 afterEach(() => {
-  vi.unstubAllGlobals()
   encodings.length = 0
   closed.length = 0
   fills.length = 0

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, vi } from 'vitest'
+import { it, raw } from '../testing/db-test'
 import { testUser } from '../testing/users'
 
 vi.mock('~/server/db', async (importOriginal) => {
@@ -28,9 +28,7 @@ import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
 import { MAX_IMAGE_BYTES } from '~/shared/import/limits'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
 const fixture = (name: string) =>
@@ -45,13 +43,8 @@ const sized = (size: number): NewImage => newImage(new Uint8Array(size), { type:
 
 const META = { title: 'Figures', author: 'Ada', language: 'en', details: NO_DETAILS, chapterCount: 1 }
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, login_attempts, user_books restart identity cascade`
 })
 
 const newUser = (username: string) => testUser(db(), username, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')

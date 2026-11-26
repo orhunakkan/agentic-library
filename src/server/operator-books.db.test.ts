@@ -1,22 +1,15 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect } from 'vitest'
 import { closeDb, getDb } from '~/server/db'
 import { findBooks, OperatorInputError, removeBook } from '~/server/operator-books'
-import { databaseUrl, freshDatabase } from './testing/db'
+import { it, raw } from './testing/db-test'
 import { testUser } from './testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const HASH = '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA'
 const REASON = 'notice 2026-12-01 from Example Press'
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, user_books restart identity cascade`
 })
 
 /** A ready book with one page and one picture, inserted directly: the import flow is tested elsewhere. */

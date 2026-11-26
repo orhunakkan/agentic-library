@@ -1,5 +1,5 @@
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, vi } from 'vitest'
+import { it, raw } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -16,7 +16,6 @@ import { MAX_REPOS } from '~/shared/github-repos/contract'
 import { MOVING_FIRST, MOVING_SECOND, SAMPLE_COMMIT } from '../../../tests/stubs/github/fixture'
 import { githubStubFetch, githubStubState, resetGitHubStub } from '../../../tests/stubs/github-stub'
 import { REPO_ADD_LIMIT, REPO_REFRESH_LIMIT, REPO_VIEW_LIMIT } from '../rate-limit'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
 import { testUser } from '../testing/users'
 import {
@@ -36,24 +35,19 @@ import { addRepo, findRepo, listRepos, markOpened, removeRepo } from './store'
 import { resetTrees } from './trees'
 import { EMPTY_COMMIT } from './view'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 const options = { fetch: githubStubFetch }
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, github_repos restart identity cascade`
   resetGitHub()
   resetGitHubStub()
   resetTrees()
   resetRendered()
   resetPacing()
 })
-afterEach(() => vi.restoreAllMocks())
 
 const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'

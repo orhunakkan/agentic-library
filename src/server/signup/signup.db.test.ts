@@ -1,10 +1,10 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, vi } from 'vitest'
 import { type Config, getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
+import { it, raw } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -22,9 +22,7 @@ import { createSession, findSession } from '~/server/sessions'
 import { handleSignup, signupPage, signupWorkSettled } from '~/server/signup/actions'
 import { createAccountFromToken, createInvite, createSignupToken } from '~/server/signup/store'
 import { createUser, findUserByUsername, type User } from '~/server/users'
-import { databaseUrl, freshDatabase } from '../testing/db'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const config = getConfig() as { -readonly [K in keyof Config]: Config[K] }
 const origin = config.appOrigin
 const cookieName = config.cookieSecure ? '__Host-session' : 'session'
@@ -34,16 +32,13 @@ const IP = '203.0.113.9'
 const SENT = '/signup?status=sent'
 let dir = ''
 
-beforeAll(freshDatabase)
 afterAll(async () => {
   config.mail = null
   config.signup = 'invite'
   config.mailWebhookKey = null
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, audit_events, email_tokens, signup_tokens restart identity cascade`
   dir = mkdtempSync(join(tmpdir(), 'folio-signup-'))
   config.mail = { transport: 'capture', from: FROM, dir }
   config.signup = 'open'
@@ -51,8 +46,6 @@ beforeEach(async () => {
 afterEach(async () => {
   await signupWorkSettled()
   rmSync(dir, { recursive: true, force: true })
-  vi.unstubAllGlobals()
-  vi.restoreAllMocks()
 })
 
 function mailTo(to: string): CapturedMail[] {

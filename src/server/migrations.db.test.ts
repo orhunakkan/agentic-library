@@ -269,5 +269,5 @@ describe('migrations', () => {
     }
   })
 
-  afterAll(freshDatabase)
+  afterAll(() => freshDatabase())
 })

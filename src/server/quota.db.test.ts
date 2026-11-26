@@ -1,21 +1,14 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect } from 'vitest'
 import { closeDb, getDb } from '~/server/db'
 import { take } from '~/server/quota'
 import { ASK_LIMIT, SPEECH_LIMIT } from '~/server/rate-limit'
-import { databaseUrl, freshDatabase } from './testing/db'
+import { it, raw } from './testing/db-test'
 import { testUser } from './testing/users'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, audit_events, speech_usage restart identity cascade`
 })
 
 const T0 = new Date('2026-11-23T12:00:00Z')

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const TOKEN = `github_pat_${'A1_'.repeat(10)}`
 vi.mock('../config.ts', async (importOriginal) => {
@@ -43,7 +43,6 @@ const json =
     Response.json(body, { status, headers })
 
 beforeEach(resetGitHub)
-afterEach(() => vi.restoreAllMocks())
 
 describe('requests', () => {
   it('send the token, the API version and Folio’s User-Agent', async () => {

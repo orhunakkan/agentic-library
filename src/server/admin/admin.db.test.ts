@@ -1,7 +1,7 @@
-import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
+import { afterAll, describe, expect, expectTypeOf, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
+import { it, raw, resetTables } from '../testing/db-test'
 
 vi.mock('~/server/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/server/db')>()
@@ -19,19 +19,12 @@ import { hashToken, newSessionToken } from '~/server/security'
 import { createSession, findSession } from '~/server/sessions'
 import { createUser, findUserByUsername, type Role } from '~/server/users'
 import type { AdminUserView } from '~/shared/admin/users'
-import { databaseUrl, freshDatabase } from '../testing/db'
 import { ROWS_PER_USER, userWithEveryRow } from '../testing/user-rows'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
 
-beforeAll(freshDatabase)
 afterAll(async () => {
-  await raw.end()
   await closeDb()
-})
-beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, user_book_covers, user_book_images, highlights, bookmarks, flashcards, audio_bookmarks, reading_places, listening_places, reader_settings, shelves, shelf_books, email_tokens restart identity cascade`
 })
 
 const HASH = '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA'
@@ -159,7 +152,7 @@ describe('at least one enabled admin', () => {
 
   it('lets only one of two admins demoting each other at once succeed', async () => {
     for (let round = 0; round < 5; round++) {
-      await raw`truncate users restart identity cascade`
+      await resetTables()
       const a = await newUser('alpha', 'admin')
       const b = await newUser('beta', 'admin')
       const results = await Promise.all([setRole(getDb(), a.id, 'member'), setRole(getDb(), b.id, 'member')])

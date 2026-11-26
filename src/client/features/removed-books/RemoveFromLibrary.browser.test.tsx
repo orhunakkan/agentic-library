@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { mountAt } from '~/client/testing/router'
 import { RemoveFromLibrary } from './RemoveFromLibrary'
@@ -18,10 +18,6 @@ let fetchSpy: MockInstance<typeof fetch>
 
 beforeEach(() => {
   fetchSpy = vi.spyOn(globalThis, 'fetch')
-})
-
-afterEach(() => {
-  vi.restoreAllMocks()
 })
 
 const mountSignedIn = () =>

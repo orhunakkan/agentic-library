@@ -1,8 +1,7 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import postgres from 'postgres'
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, vi } from 'vitest'
 import { type Config, getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
 import { createToken, pendingAddress } from '~/server/email/store'
@@ -12,9 +11,8 @@ import { svixSignature } from '~/server/mail/signature'
 import { handleMailEvent, MAX_EVENT_BYTES } from '~/server/mail/webhook'
 import { EMAIL_VERIFY_LIMIT } from '~/server/rate-limit'
 import { createUser, findUserById } from '~/server/users'
-import { databaseUrl, freshDatabase } from '../testing/db'
+import { it, raw } from '../testing/db-test'
 
-const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const config = getConfig() as { -readonly [K in keyof Config]: Config[K] }
 const KEY = Buffer.alloc(24, 5)
 const NOW = new Date('2026-11-06T12:00:00Z')
@@ -47,22 +45,18 @@ function post(body: string, { key = KEY, timestamp = SECONDS, headers = {} as Re
 
 const status = async (request: Request) => (await handleMailEvent(request, NOW)).status
 
-beforeAll(freshDatabase)
 afterAll(async () => {
   config.mail = null
   config.mailWebhookKey = null
-  await raw.end()
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, audit_events, email_tokens restart identity cascade`
   dir = mkdtempSync(join(tmpdir(), 'folio-mail-'))
   config.mail = { transport: 'capture', from: 'Folio <no-reply@folio.test>', dir }
   config.mailWebhookKey = KEY
 })
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
-  vi.restoreAllMocks()
 })
 
 const withAddress = async (username: string, email: string | null) => {

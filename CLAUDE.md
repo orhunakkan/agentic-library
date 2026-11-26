@@ -19,7 +19,8 @@ pnpm lint:fix       Apply Biome fixes and formatting
 docker compose up -d --wait   Local Postgres for dev and tests
 ```
 
-The pre-commit hook in `.githooks/pre-commit` runs Biome on staged files, the typecheck, and the tests in `tests/`.
+The pre-commit hook in `.githooks/pre-commit` runs Biome on staged files, the typecheck, the tests in `tests/`, and the
+unit tests related to the staged `.ts` and `.tsx` files (`vitest related`, which needs no Postgres or Chromium).
 
 There's no CI, so these local gates are the only checks. Before a push, run `pnpm check`, `pnpm test:db` and
 `pnpm test:browser`.

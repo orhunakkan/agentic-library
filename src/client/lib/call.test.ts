@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { endpoint } from '~/shared/lib/endpoint'
 import { call } from './call'
 
@@ -14,8 +14,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('call', () => {
   it('posts the body as JSON to the endpoint’s path and gives back its answer', async () => {

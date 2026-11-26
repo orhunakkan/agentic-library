@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { CreationOptionsJSON, RequestOptionsJSON } from '~/shared/passkeys/passkeys'
 import {
   addPasskey,
@@ -57,8 +57,6 @@ const sent = (fetch: ReturnType<typeof answers>, call: number) => {
   const [path, init] = fetch.mock.calls[call] as unknown as [string, RequestInit]
   return { path, body: init.body ? JSON.parse(String(init.body)) : undefined, method: init.method }
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('adding', () => {
   it('asks for options with the password', async () => {

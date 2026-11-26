@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { readRatingAnswer, setRating } from './ratings-client'
 
 function answer(status: number, body: unknown) {
@@ -6,8 +6,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('setRating', () => {
   it('posts the book and its stars, and answers the rating afterwards', async () => {

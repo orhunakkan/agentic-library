@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { saveGoal, setFinished } from './stats-client'
 
 function answer(status: number, body: unknown) {
@@ -6,8 +6,6 @@ function answer(status: number, body: unknown) {
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
-
-afterEach(() => vi.unstubAllGlobals())
 
 describe('saveGoal', () => {
   it('posts the minutes and the zone, and gives the saved goal', async () => {

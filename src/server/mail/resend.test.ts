@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { type OutgoingMail, sendWithResend } from './resend'
 
 const settings = {
@@ -21,7 +21,6 @@ const answer = (status: number, body: unknown, headers: Record<string, string> =
   })
 
 const logged = () => vi.spyOn(console, 'error').mockImplementation(() => {})
-afterEach(() => vi.restoreAllMocks())
 
 describe('sendWithResend', () => {
   it('posts the message as plain text with the kind tag', async () => {
