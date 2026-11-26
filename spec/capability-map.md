@@ -76,6 +76,10 @@ These rules apply to every module, decided 2026-11-25:
 - **Anything only the owner can do goes in a "Needs owner action" list** in the module's deliverable, and the build
   carries on. That covers rotating secrets, sudo installs, and any action the spec marks as ask-first. The
   build never does these on the owner's behalf.
+- **Decide, don't ask.** When a build hits a choice, such as a spec gap, a plan step that doesn't fit the code or two
+  reasonable options, it takes its own recommendation and carries on. It records each choice, the alternative and
+  the reason in the todo's "Build notes", and the owner adjusts them when reviewing the finished work. Ask-first
+  items aren't decided this way: they go in "Needs owner action". *(2026-11-26)*
 - **A stop that can't be avoided goes in a preflight task** (Task 0), before any work starts. A missing tool is an
   example.
 - **The build ends with one local commit on `main`**, unless its spec says otherwise. The owner pushes after
