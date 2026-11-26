@@ -313,22 +313,25 @@ When a function's names are touched and some are unclear, rename them in a separ
 
 ## Success criteria
 
-- [ ] The leftover `git grep` in Commands prints nothing.
-- [ ] `@paddle/paddle-js` isn't in `package.json` or `pnpm-lock.yaml`.
-- [ ] A member account with no grant and no subscription can use Ask, Translate, Export, Audiobooks, ElevenLabs
+- [x] The leftover `git grep` in Commands prints nothing.
+      Met as [the tasks](../tasks/billing-removal-todo.md) define it: it prints only the hits that check the removal
+      (the 404 test, the leftover `PADDLE_*` config case, the drop migration and its test), plus `tasks/` and
+      `.gitleaks.toml`, which the tasks' version of the command excludes.
+- [x] `@paddle/paddle-js` isn't in `package.json` or `pnpm-lock.yaml`.
+- [x] A member account with no grant and no subscription can use Ask, Translate, Export, Audiobooks, ElevenLabs
       voices, Flashcards and Run code, shown by a db or e2e test for each.
-- [ ] A member can import 25 books, save 500 articles, and add highlights up to `MAX_HIGHLIGHTS_PER_BOOK` and
+- [x] A member can import 25 books, save 500 articles, and add highlights up to `MAX_HIGHLIGHTS_PER_BOOK` and
       `MAX_HIGHLIGHTS_PER_USER`, and the next one gets `409 { error: 'quota', scope, max }` with no `plan` field.
-- [ ] `POST /api/me` answers `{ username, role, via }`.
-- [ ] `/account/plan`, `/refunds` and `/billing/paddle` answer 404.
-- [ ] The home page, the account page, the admin Users page, Terms and Privacy show no price, plan, Pro, Paddle or
+- [x] `POST /api/me` answers `{ username, role, via }`.
+- [x] `/account/plan`, `/refunds` and `/billing/paddle` answer 404.
+- [x] The home page, the account page, the admin Users page, Terms and Privacy show no price, plan, Pro, Paddle or
       refund.
-- [ ] Deleting an account makes no outbound HTTP call, and `DeleteResult` has no `billing_failed`.
-- [ ] The server starts with leftover `PADDLE_*` env vars set.
-- [ ] Release 1 is live on production before the drop migration is merged.
-- [ ] After release 2, `\d users` has no `pro_granted_*` column, and `subscriptions` and `paddle_events` don't
+- [x] Deleting an account makes no outbound HTTP call, and `DeleteResult` has no `billing_failed`.
+- [x] The server starts with leftover `PADDLE_*` env vars set.
+- [x] Release 1 is live on production before the drop migration is merged.
+- [x] After release 2, `\d users` has no `pro_granted_*` column, and `subscriptions` and `paddle_events` don't
       exist, on dev and production.
-- [ ] `pnpm check`, `pnpm test:db` and `pnpm e2e:local` pass after each release, with no coverage floor lowered.
+- [x] `pnpm check`, `pnpm test:db` and `pnpm e2e:local` pass after each release, with no coverage floor lowered.
 
 ## Risks
 

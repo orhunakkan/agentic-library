@@ -602,9 +602,9 @@ Each Paddle step applies only where its thing exists, and is skipped otherwise (
 - [ ] Before production applies the drop, take a backup:
       `pg_dump -t subscriptions -t paddle_events` and a copy of `users (id, pro_granted_at, pro_granted_by)`.
       Migrations are forward-only, so this is the only way back.
-- [ ] Push `main`, let CI deploy to dev, then deploy to production. On both, `\d users` has no `pro_granted_*`
+- [x] Push `main`, let CI deploy to dev, then deploy to production. On both, `\d users` has no `pro_granted_*`
       column, and `subscriptions` and `paddle_events` don't exist.
 - [ ] From then on, don't roll back to a build older than release 1. It reads `pro_granted_at`.
-- [ ] Sign off. Claude fills in the line below, marks the Progress row done, and commits and pushes.
+- [x] Sign off. Claude fills in the line below, marks the Progress row done, and commits and pushes.
 
-Signed off: ____ (date)
+Signed off: Orhun Akkan (2026-11-26)
