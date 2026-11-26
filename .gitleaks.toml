@@ -1,0 +1,34 @@
+# gitleaks config for Folio.
+#
+# The default rules stay on. The allowlist only lists fake values that tests use on purpose. Each entry is
+# matched against the extracted secret and anchored at both ends, so it lets through that exact value and
+# nothing else. There is no path or directory allowlist, so a real key pasted into a test file is still caught.
+#
+# To add an entry: confirm that the value is fake, add it as an exact, anchored value, and say why in a comment.
+# Remove an entry once no commit or tracked file contains it.
+# See spec/SPEC-publish-audit.md and spec/publish-audit-report.md.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake keys used by tests; each is shaped like a real key on purpose"
+regexTarget = "secret"
+regexes = [
+  # Paddle client tokens in billing and config tests (test and live shapes): a counting sequence.
+  '''^(test|live)_0123456789(abcdef)?$''',
+  # Paddle API keys in config tests (sandbox and live shapes): a counting sequence.
+  '''^pdl_(sdbx|live)_apikey_0123456789abcdefghij$''',
+  # Paddle sandbox key in the log-redaction test, shaped like a real one: a counting sequence.
+  '''^pdl_sdbx_apikey_01abcdefghijklmnopqrstuv_WxYz0123456789abcdefgh_AbC$''',
+  # ElevenLabs-shaped keys in the speech and log-redaction tests: repeated 0-9a-f.
+  '''^sk_0123456789abcdef0123456789abcdef(0123456789abcdef)?$''',
+  # Resend test key in the config tests: a counting sequence.
+  '''^re_test_0123456789abcdef$''',
+  # Svix webhook secret from Svix's public "verifying payloads" docs example, reused with its published signature.
+  '''^whsec_plJ3nmyCDGBKInavdOK15jsl$''',
+  # Mailed-link token in the log-redaction test: base64 of "Book-book-book-...".
+  '''^Qm9vay1ib29rLWJvb2stYm9vay1ib29rLWJvb2stYm9v$''',
+  # GitHub classic token shape in the log-redaction test: a counting sequence.
+  '''^ghp_0123456789abcdefghijABCDEFGHIJ012345$''',
+]

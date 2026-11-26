@@ -21,8 +21,8 @@ done on the owner's behalf.
 either check fails, stop now and say what's missing. This is the only stop, and it comes before any work is done.
 
 **Acceptance criteria:**
-- [ ] `docker info` and `git filter-repo --version` both succeed
-- [ ] `git status` is clean on `main`
+- [x] `docker info` and `git filter-repo --version` both succeed
+- [x] `git status` is clean on `main`
 
 **Dependencies:** None
 
@@ -37,12 +37,12 @@ read-only. Run gitleaks with the default rules and no config over `main`'s histo
 redacted findings to `$SCRATCH/baseline-*.json`. This is the input for the allowlist.
 
 **Acceptance criteria:**
-- [ ] Both images are pinned by `@sha256:` digest, and the exact `docker run` lines are written down for the report
-- [ ] The baseline history and tree scans finish, and every finding is sorted as either a fake test key or needing a look
+- [x] Both images are pinned by `@sha256:` digest, and the exact `docker run` lines are written down for the report
+- [x] The baseline history and tree scans finish, and every finding is sorted as either a fake test key or needing a look
 
 **Verification:**
-- [ ] `docker run … gitleaks version` and `… exiftool -ver` print versions
-- [ ] Manual check: the baseline JSON has `"Secret": "REDACTED"` everywhere
+- [x] `docker run … gitleaks version` and `… exiftool -ver` print versions
+- [x] Manual check: the baseline JSON has `"Secret": "REDACTED"` everywhere
 
 **Dependencies:** Task 0
 
@@ -58,14 +58,14 @@ redacted findings to `$SCRATCH/baseline-*.json`. This is the input for the allow
 patterns for the fake keys found in Task 1, and a comment on each entry saying why. Never allow by path.
 
 **Acceptance criteria:**
-- [ ] Every allowlist entry matches at least one fake key found in history or the tree, and unused entries are removed
-- [ ] There are no `paths` and no directory allowlists. Each regex is anchored to a fake-looking stem, not to a bare
+- [x] Every allowlist entry matches at least one fake key found in history or the tree, and unused entries are removed
+- [x] There are no `paths` and no directory allowlists. Each regex is anchored to a fake-looking stem, not to a bare
       prefix like `sk-ant-api03-`
-- [ ] With the config, both scans report 0 findings for the fakes sorted in Task 1
+- [x] With the config, both scans report 0 findings for the fakes sorted in Task 1
 
 **Verification:**
-- [ ] Re-run both scans with `--config /repo/.gitleaks.toml`, and only the "needs a look" findings remain
-- [ ] Self-check: each entry has a comment saying why, and none would match a key without a fake-looking stem
+- [x] Re-run both scans with `--config /repo/.gitleaks.toml`, and only the "needs a look" findings remain
+- [x] Self-check: each entry has a comment saying why, and none would match a key without a fake-looking stem
 
 **Dependencies:** Task 1
 
@@ -83,13 +83,13 @@ gitleaks with the real config and confirm both are caught. Then create `spec/pub
 (path A, the `main` SHA and commit count), the tools and digests, the exact commands, and the canary result.
 
 **Acceptance criteria:**
-- [ ] Both canaries are reported, by rule ID, with the real `.gitleaks.toml`
-- [ ] The report skeleton has a section for each of the spec's 9 checks, plus "Accepted as public" and "Sign-off"
-- [ ] The scratch clone is deleted afterwards. The working repo's `git status` shows only the two new files
+- [x] Both canaries are reported, by rule ID, with the real `.gitleaks.toml`
+- [x] The report skeleton has a section for each of the spec's 9 checks, plus "Accepted as public" and "Sign-off"
+- [x] The scratch clone is deleted afterwards. The working repo's `git status` shows only the two new files
 
 **Verification:**
-- [ ] The scan's JSON output lists both canary findings
-- [ ] Manual check: the report contains no canary values
+- [x] The scan's JSON output lists both canary findings
+- [x] Manual check: the report contains no canary values
 
 **Dependencies:** Task 2
 
@@ -100,7 +100,7 @@ gitleaks with the real config and confirm both are caught. Then create `spec/pub
 ---
 
 ## Checkpoint: Scanner (after Tasks 1–3, self-check)
-- [ ] Canary caught, allowlist narrow and fully used. If not, tighten `.gitleaks.toml` and re-run Task 3 before going on
+- [x] Canary caught, allowlist narrow and fully used. If not, tighten `.gitleaks.toml` and re-run Task 3 before going on
 
 ---
 
@@ -113,12 +113,12 @@ example `scripts/db/rotate-kek.ts` for the KEK), and mark it as blocking `go-pub
 Then carry on with the rest of the audit.
 
 **Acceptance criteria:**
-- [ ] History scan: 0 unallowed findings, or each one is listed under "Needs owner action" by file, commit and kind, with no value
-- [ ] Tree scan: 0 unallowed findings
-- [ ] The report records the commit count, the SHA and the exit codes
+- [x] History scan: 0 unallowed findings, or each one is listed under "Needs owner action" by file, commit and kind, with no value
+- [x] Tree scan: 0 unallowed findings
+- [x] The report records the commit count, the SHA and the exit codes
 
 **Verification:**
-- [ ] Both commands exit 0 (or every non-zero finding is listed), and the output is saved to `$SCRATCH`
+- [x] Both commands exit 0 (or every non-zero finding is listed), and the output is saved to `$SCRATCH`
 
 **Dependencies:** Checkpoint: Scanner
 
@@ -136,12 +136,12 @@ leaves out. Unzip each EPUB and ZIP into `$SCRATCH` and check its inner images a
 `/home/…`. Pay most attention to the 4 files in `public/`.
 
 **Acceptance criteria:**
-- [ ] The report has a table of all 27 files, each marked "no personal metadata" or with what was found
-- [ ] Nothing is stripped. Anything found goes under "Needs owner action" with the exact command that would strip
+- [x] The report has a table of all 27 files, each marked "no personal metadata" or with what was found
+- [x] Nothing is stripped. Anything found goes under "Needs owner action" with the exact command that would strip
       it (one commit per file type if the owner approves it later)
 
 **Verification:**
-- [ ] `git ls-files` count of those extensions matches the table's row count (27)
+- [x] `git ls-files` count of those extensions matches the table's row count (27)
 
 **Dependencies:** Task 1
 
@@ -158,15 +158,15 @@ phone numbers, postal addresses, hostnames, server paths, runner names and sudo 
 fine (test domains), accepted as public, or needing action. Draft the "Accepted as public" list.
 
 **Acceptance criteria:**
-- [ ] Every email hit outside `example.com`, `example.org`, `folio.test` and `resend.dev` is sorted
-- [ ] "Accepted as public" covers at least: the owner's name, `agenticlibrary.app` and `dev.agenticlibrary.app`,
+- [x] Every email hit outside `example.com`, `example.org`, `folio.test` and `resend.dev` is sorted
+- [x] "Accepted as public" covers at least: the owner's name, `agenticlibrary.app` and `dev.agenticlibrary.app`,
       `/usr/local/bin/agentic-library-deploy` with `sudo -n`, the deploy poller's install path and systemd units (or a
       note that `repo-security` adds them later), `LINUX-LAPTOP`, the no-reply author address, the
       `GitHub <noreply@github.com>` committer on one commit, and the `#N` references
-- [ ] The personal address is mentioned only as "the personal address" and never written out
+- [x] The personal address is mentioned only as "the personal address" and never written out
 
 **Verification:**
-- [ ] Grepping the report for the personal address (and its domain) finds nothing
+- [x] Grepping the report for the personal address (and its domain) finds nothing
 
 **Dependencies:** Task 3
 
@@ -183,11 +183,11 @@ history, focusing on `scripts/issue-loop/*-settings.json` and `docs/agents/*`. R
 `main`. Record anything private, embarrassing or revealing.
 
 **Acceptance criteria:**
-- [ ] All 21 deleted paths are listed in the report, each marked "nothing notable" or with a note
-- [ ] All commit messages have been read, and anything notable is listed with its short SHA
+- [x] All 21 deleted paths are listed in the report, each marked "nothing notable" or with a note
+- [x] All commit messages have been read, and anything notable is listed with its short SHA
 
 **Verification:**
-- [ ] `git log main --diff-filter=D --name-only --format= | sort -u | wc -l` matches the report's list (21)
+- [x] `git log main --diff-filter=D --name-only --format= | sort -u | wc -l` matches the report's list (21)
 
 **Dependencies:** Task 3
 
@@ -198,8 +198,8 @@ history, focusing on `scripts/issue-loop/*-settings.json` and `docs/agents/*`. R
 ---
 
 ## Checkpoint: Audit (after Tasks 4–7, self-check)
-- [ ] Secrets, metadata, personal data, deleted files and messages all reviewed, and each has its report section
-- [ ] Every flagged item is either in "Accepted as public" with a reason, or in "Needs owner action"
+- [x] Secrets, metadata, personal data, deleted files and messages all reviewed, and each has its report section
+- [x] Every flagged item is either in "Accepted as public" with a reason, or in "Needs owner action"
 
 ---
 
@@ -212,15 +212,15 @@ listings (`%T %an %ad %cn %cd %B`) with `cmp`. The one commit with committer `Gi
 it is (decided 2026-11-25), so it doesn't get a mailmap line.
 
 **Acceptance criteria:**
-- [ ] `cmp before after` reports no difference
-- [ ] `log --format='%ae%n%ce' | sort -u` shows exactly two addresses: the no-reply address and `noreply@github.com`,
+- [x] `cmp before after` reports no difference
+- [x] `log --format='%ae%n%ce' | sort -u` shows exactly two addresses: the no-reply address and `noreply@github.com`,
       which the report lists under "Accepted as public"
-- [ ] `git -C $SCRATCH/rewrite log --all -p` and `git cat-file -p` on every commit contain no trace of the personal
+- [x] `git -C $SCRATCH/rewrite log --all -p` and `git cat-file -p` on every commit contain no trace of the personal
       address
-- [ ] The report records the exact rewrite command for `go-public`, with the personal address shown as a placeholder
+- [x] The report records the exact rewrite command for `go-public`, with the personal address shown as a placeholder
 
 **Verification:**
-- [ ] Run the commands above. Delete the scratch clone and the mailmap afterwards
+- [x] Run the commands above. Delete the scratch clone and the mailmap afterwards
 
 **Dependencies:** Checkpoint: Audit
 
@@ -240,14 +240,14 @@ email", and sign off), plus anything flagged in Tasks 4–7. Run `pnpm check`. C
 spec forbids pushing in this module. The owner pushes after reviewing.
 
 **Acceptance criteria:**
-- [ ] Every success criterion in the spec maps to a section of the report that has evidence
-- [ ] `pnpm check` passes
-- [ ] The staged diff contains no personal address and no secret values
-- [ ] One local commit on `main`, not pushed
+- [x] Every success criterion in the spec maps to a section of the report that has evidence
+- [x] `pnpm check` passes
+- [x] The staged diff contains no personal address and no secret values
+- [x] One local commit on `main`, not pushed
 
 **Verification:**
-- [ ] `pnpm check`
-- [ ] Grepping `git diff --cached` for the personal address (and its domain) finds nothing
+- [x] `pnpm check`
+- [x] Grepping `git diff --cached` for the personal address (and its domain) finds nothing
 
 **Dependencies:** Task 8
 
@@ -264,7 +264,7 @@ spec forbids pushing in this module. The owner pushes after reviewing.
 After that, the owner reads the report, handles "Needs owner action", fills in the sign-off line, and pushes.
 
 **Acceptance criteria:**
-- [ ] The report ends with the empty sign-off line, and the Progress row says "awaiting sign-off" (both by the build)
+- [x] The report ends with the empty sign-off line, and the Progress row says "awaiting sign-off" (both by the build)
 - [ ] The owner has filled in the sign-off line (after the build)
 
 **Dependencies:** Task 9
@@ -276,5 +276,5 @@ After that, the owner reads the report, handles "Needs owner action", fills in t
 ---
 
 ## Checkpoint: Complete
-- [ ] Every success criterion in the spec is met except the owner's sign-off, which is left for the review
-- [ ] The final message to the owner lists the "Needs owner action" items first, then the summary
+- [x] Every success criterion in the spec is met except the owner's sign-off, which is left for the review
+- [x] The final message to the owner lists the "Needs owner action" items first, then the summary

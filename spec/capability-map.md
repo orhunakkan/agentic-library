@@ -53,7 +53,7 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 
 | Module | Spec | Plan and tasks | Built |
 |---|---|---|---|
-| `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | [plan](../tasks/publish-audit-plan.md), [tasks](../tasks/publish-audit-todo.md) | — |
+| `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | [plan](../tasks/publish-audit-plan.md), [tasks](../tasks/publish-audit-todo.md) | built 2026-11-25, awaiting sign-off ([report](publish-audit-report.md)) |
 | `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | — | — |
 | `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | — | — |
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | — | — |
