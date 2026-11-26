@@ -3,7 +3,7 @@
 Spec: [SPEC-publish-audit.md](SPEC-publish-audit.md) · Plan: [publish-audit-plan.md](../tasks/publish-audit-plan.md) ·
 Tasks: [publish-audit-todo.md](../tasks/publish-audit-todo.md)
 
-Status: built 2026-11-25, awaiting owner sign-off.
+Status: built and signed off 2026-11-25.
 
 This report never contains a secret value or the owner's personal email address. The personal address is called
 "the personal address" throughout.
@@ -37,7 +37,7 @@ piece of personal data that must go, the personal address on every commit, comes
 
 Nothing here blocks `go-public`, because no real secret was found, so nothing needs rotating.
 
-1. **Read this report and sign it off** with a dated line under "Sign-off" (Task 10).
+1. ~~**Read this report and sign it off**~~ **Done 2026-11-25:** see "Sign-off".
 2. ~~**Set your git email to the no-reply address**~~ **Done 2026-11-25:** the global `user.email` is now
    `70279053+orhunakkan@users.noreply.github.com`. The commit that adds this report was amended to that address
    before it was pushed, so it carries no personal address. The 77 audited commits still do, and `go-public`'s
@@ -440,8 +440,8 @@ The spec's criteria, each with where its evidence is.
 | An "Accepted as public" list covering the owner's name, the domains, the deploy script path, the poller's install path and units, the no-reply address and the `#N` references | met. The poller items are accepted ahead of time, because `repo-security` hasn't built them yet | "Accepted as public" |
 | Email rewrite dry run: `cmp` is identical, only the no-reply address and `noreply@github.com` are left, and the personal address is in no log, metadata or object | met | "Email rewrite dry run" |
 | The report records path A, the no-reply address and the exact rewrite command | met | "Scope", "Summary", "Email rewrite dry run" |
-| The owner has read the report and signed it off | **open: owner** | "Sign-off" |
+| The owner has read the report and signed it off | met, 2026-11-25 | "Sign-off" |
 
 ## Sign-off
 
-Signed off: ____ (date)
+Signed off: Orhun Akkan (2026-11-25)

@@ -261,11 +261,12 @@ spec forbids pushing in this module. The owner pushes after reviewing.
 
 **Description:** Done as part of Task 9's commit, before the owner's review: the report ends with an empty sign-off line
 (`Signed off: ____ (date)`), and the capability map's `publish-audit` row says "built 2026-MM-DD, awaiting sign-off".
-After that, the owner reads the report, handles "Needs owner action", fills in the sign-off line, and pushes.
+After that, the owner reads the report and handles "Needs owner action". When the owner says it's signed off,
+Claude fills in the sign-off line, marks the Progress row done, commits and pushes.
 
 **Acceptance criteria:**
 - [x] The report ends with the empty sign-off line, and the Progress row says "awaiting sign-off" (both by the build)
-- [ ] The owner has filled in the sign-off line (after the build)
+- [x] The owner has signed off, and the sign-off line is filled in (2026-11-25)
 
 **Dependencies:** Task 9
 

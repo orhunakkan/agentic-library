@@ -53,7 +53,7 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 
 | Module | Spec | Plan and tasks | Built |
 |---|---|---|---|
-| `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | [plan](../tasks/publish-audit-plan.md), [tasks](../tasks/publish-audit-todo.md) | built 2026-11-25, awaiting sign-off ([report](publish-audit-report.md)) |
+| `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | [plan](../tasks/publish-audit-plan.md), [tasks](../tasks/publish-audit-todo.md) | done, signed off 2026-11-25 ([report](publish-audit-report.md)) |
 | `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | — | — |
 | `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | — | — |
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | — | — |
@@ -74,14 +74,17 @@ These rules apply to every module, decided 2026-11-25:
 - **Each build runs in one go**, from the first task to the last. The owner reviews the finished work once, at the
   end, and doesn't approve checkpoints along the way. Checkpoints are self-checks: if one fails, fix it and re-run it.
 - **Anything only the owner can do goes in a "Needs owner action" list** in the module's deliverable, and the build
-  carries on. That covers rotating secrets, sudo installs, sign-offs, and any action the spec marks as ask-first. The
+  carries on. That covers rotating secrets, sudo installs, and any action the spec marks as ask-first. The
   build never does these on the owner's behalf.
 - **A stop that can't be avoided goes in a preflight task** (Task 0), before any work starts. A missing tool is an
   example.
 - **The build ends with one local commit on `main`**, unless its spec says otherwise. The owner pushes after
   reviewing.
-- **When a build is done**, the module's Progress row says "built, awaiting sign-off". The owner's review changes it
-  to done.
+- **When a build is done**, the module's Progress row says "built, awaiting sign-off", and the deliverable ends with an
+  empty `Signed off: ____ (date)` line.
+- **Sign-off is the owner's decision, and Claude records it.** When the owner says a module is signed off, Claude
+  fills in the line (`Signed off: Orhun Akkan (<date>)`), marks the Progress row done, and commits and pushes. The
+  owner doesn't edit the file by hand. A build never signs off on its own.
 
 Facts for the `repo-security` spec, gathered 2026-11-25:
 - **CI layout.** [ci.yml](../.github/workflows/ci.yml) runs checks, component, db, e2e and deploy-dev, all on
