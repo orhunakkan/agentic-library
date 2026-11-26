@@ -42,17 +42,21 @@ These differ from the spec's numbers, or the spec didn't state them:
 - **Scratch work lives in the session scratchpad.** That covers clones, the canary, the mailmap, raw scan output and the
   before/after listings. None of it is committed. The personal address is typed only into the mailmap on disk.
 - **Images are pinned by digest**, not by tag, and the exact `docker run` lines go into the report.
-- **Commit only when the owner asks**, straight to `main` as the project's memory says. Nothing is pushed.
+- **Built in one go, reviewed once at the end.** There are no owner checkpoints. The checkpoints are self-checks,
+  and anything that needs the owner goes into the report's "Needs owner action" section while the build carries on.
+- **One local commit on `main` at the end, not pushed.** The spec forbids pushing in this module. The owner pushes
+  after reviewing.
 
 ## Task List
 
 ### Phase 1: A scanner you can trust
+- [ ] Task 0: Preflight (Docker and git-filter-repo are available)
 - [ ] Task 1: Pin the scanner images and take a baseline gitleaks run
 - [ ] Task 2: Write `.gitleaks.toml` with a narrow allowlist
 - [ ] Task 3: Canary check and report skeleton
 
 ### Checkpoint: Scanner
-- [ ] Canary caught with the real config; every allowlist entry matches a known fake key; owner reviews the allowlist
+- [ ] Self-check: canary caught with the real config, and every allowlist entry matches a known fake key
 
 ### Phase 2: The audit
 - [ ] Task 4: Secrets scan of history and tree
@@ -61,24 +65,24 @@ These differ from the spec's numbers, or the spec didn't state them:
 - [ ] Task 7: Read deleted files and commit messages
 
 ### Checkpoint: Audit
-- [ ] 0 unallowed findings, or every finding rotated and recorded; owner decides on any stripping or removal
+- [ ] Self-check: every flagged item is either accepted as public or listed under "Needs owner action"
 
 ### Phase 3: Email rewrite and sign-off
 - [ ] Task 8: Email rewrite dry run
-- [ ] Task 9: Finish the report and run `pnpm check`
-- [ ] Task 10: Owner sign-off and progress update
+- [ ] Task 9: Finish the report, run `pnpm check` and commit locally
+- [ ] Task 10: Owner sign-off (by the owner, after the build)
 
 ### Checkpoint: Complete
-- [ ] Every success criterion in the spec is ticked, and the owner has signed the report
+- [ ] Every success criterion in the spec is met except the sign-off, which the owner does at review
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| A real secret is in history | High | Stop. Rotate at the provider first, then ask whether to remove it from history. The report names the file, commit and kind, never the value. |
+| A real secret is in history | High | Don't stop or rotate it. List it under "Needs owner action" as blocking `go-public`, with the file, commit, kind and rotation step, never the value. The owner rotates at review. |
 | gitleaks in a container refuses the `:ro` repo ("dubious ownership") | Med | Pass `-e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=*`, or run as `--user $(id -u)`. Record the working command. |
 | The allowlist is too broad and hides a real key | High | Canary check, plus a second canary: a real-shaped key in a test file named like the existing fakes must still be caught. |
-| git-filter-repo isn't installed when Task 8 starts | Low | Check `git filter-repo --version` first. If it's missing, stop and ask the owner to run `sudo pacman -S git-filter-repo`. |
+| git-filter-repo isn't installed | Low | The owner installs it before the build. Task 0 checks it and stops before any work if it's missing. |
 | There's no official exiftool image | Low | Pick a widely used image, pin it by digest and record it. Or run `perl-image-exiftool` in a pinned Perl container. |
 | Metadata hides inside EPUBs and ZIPs | Med | Unzip each into the scratchpad and run exiftool and an OPF read on the inner files. |
 | The personal address shows up in scratch output that's pasted into the report | High | Before every commit, grep the staged files for the personal address and its domain. |
@@ -91,7 +95,9 @@ These differ from the spec's numbers, or the spec didn't state them:
   committer name. After the rewrite, the only emails left are the no-reply address and `noreply@github.com`.
   *(2026-11-25)*
 - **git-filter-repo is installed with pacman** (`sudo pacman -S git-filter-repo`), because `go-public` needs it again
-  for the real rewrite. The owner runs the install, since it needs sudo. *(2026-11-25)*
+  for the real rewrite. The owner runs the install before the build, since it needs sudo. *(2026-11-25)*
+- **Built in one go, with no owner checkpoints.** The owner reviews the finished work once. Metadata is never
+  stripped and secrets are never rotated by the build; both are listed for the owner. *(2026-11-25)*
 - **Plan files are named per module**, `tasks/<module>-plan.md` and `tasks/<module>-todo.md`. *(2026-11-25)*
 
 ## Open Questions
