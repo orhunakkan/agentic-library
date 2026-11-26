@@ -39,6 +39,7 @@ import {
 } from '~/shared/bookmarks/audio'
 import type { ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { readyAudiobook } from '../testing/audiobooks'
 import { databaseUrl, freshDatabase } from '../testing/db'
 
@@ -86,15 +87,28 @@ async function created(userId: number, book: BookRef, moment: NewAudioBookmark) 
 }
 
 async function privateBook(userId: number): Promise<BookRef> {
-  const start = await startImport(db(), userId, {
-    title: 'Notes',
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title: 'Notes',
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
-  await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>One sentence. Another one.</p>'] })
+  await storeChapter(
+    db(),
+    userId,
+    start.id,
+    0,
+    { title: 'Only', pages: ['<p>One sentence. Another one.</p>'] },
+    DEFAULT_LIMITS,
+  )
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return privateRef(start.id)
 }
@@ -207,13 +221,19 @@ describe('the store', () => {
 
   it('refuses one on a private book that is still uploading', async () => {
     const user = await newUser()
-    const start = await startImport(db(), user.id, {
-      title: 'N',
-      author: 'A',
-      language: 'en',
-      details: NO_DETAILS,
-      chapterCount: 1,
-    })
+    const start = await startImport(
+      db(),
+      user.id,
+      {
+        title: 'N',
+        author: 'A',
+        language: 'en',
+        details: NO_DETAILS,
+        chapterCount: 1,
+      },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
     if (!start.ok) throw new Error('could not start')
     expect(await createAudioBookmark(db(), user.id, privateRef(start.id), voice())).toBe('missing')
   })

@@ -104,6 +104,10 @@ process.env.MAIL_FROM = 'Folio <no-reply@folio.test>'
 process.env.MAIL_CAPTURE_DIR = mailDir
 process.env.SIGNUP = 'open'
 process.env.SITE_CONTACT = 'privacy@folio.test'
+/** agenticlibrary.app's limits, so the e2e specs run with what the hosted site sets. The other three are defaults. */
+process.env.LIMIT_USER_AUDIO = '1GB'
+process.env.LIMIT_AUDIOBOOK_SIZE = '1GB'
+process.env.LIMIT_USER_PICTURES = '100MB'
 
 function voicesForTests(): string {
   const real = voicesDirOf(process.env)

@@ -3,8 +3,8 @@ import { ArrowDownToLine, CircleCheck } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useToast } from '~/client/components/Toast'
 import { useInstall } from '~/client/features/install/use-install'
-import { formatBytes } from '~/client/lib/format'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
+import { formatBytes } from '~/shared/lib/format-bytes'
 import { useDownload } from './use-download'
 
 const SECONDARY =

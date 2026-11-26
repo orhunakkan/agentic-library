@@ -25,7 +25,8 @@ import {
   startImport,
   storeChapter,
 } from '~/server/user-books'
-import { MAX_ARTICLES } from '~/shared/articles/contract'
+import { NO_DETAILS } from '~/shared/import/details'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { ARTICLE_FETCH_LIMIT, ARTICLE_PICTURE_LIMIT, ARTICLE_SAVE_LIMIT, IMPORT_LIMIT } from '../rate-limit'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { testUser } from '../testing/users'
@@ -378,18 +379,20 @@ describe('saving an article', () => {
     expect(await answer(await start(cookie, { ...META, article: 1 }))).toEqual([400, 'invalid'])
   })
 
-  it('lets a plain member save 500 articles, refuses the 501st with no plan, and counts them apart from the books', async () => {
-    const member = await signedIn()
-    await fillArticles(member.user.id, MAX_ARTICLES - 1)
-    expect((await start(member.cookie, { ...META, article: (await fetched(member.cookie)).fetch })).status).toBe(201)
-    expect(await countedArticles(db(), member.user.id)).toBe(MAX_ARTICLES)
-    const refused = await start(member.cookie, {
-      ...META,
-      article: (await fetched(member.cookie, 'http://news.test/article?2')).fetch,
+  it('holds a plain member to the articles limit it is given, and counts articles apart from the books', async () => {
+    const limits = { ...DEFAULT_LIMITS, articles: 3 }
+    const { user } = await signedIn()
+    const book = { ...META, details: NO_DETAILS }
+    await fillArticles(user.id, 2)
+    expect((await startImport(db(), user.id, book, new Date(), limits, { url: 'https://a.test/third' })).ok).toBe(true)
+    expect(await countedArticles(db(), user.id)).toBe(3)
+    expect(await startImport(db(), user.id, book, new Date(), limits, { url: 'https://a.test/fourth' })).toEqual({
+      ok: false,
+      reason: 'quota',
+      max: 3,
     })
-    expect([refused.status, await refused.json()]).toEqual([409, { error: 'quota', scope: 'articles', max: 500 }])
-    expect(await countedBooks(db(), member.user.id)).toBe(0)
-    expect((await start(member.cookie, META)).status).toBe(201)
+    expect(await countedBooks(db(), user.id)).toBe(0)
+    expect((await startImport(db(), user.id, book, new Date(), limits)).ok).toBe(true)
   })
 
   it('says the article is saved already at the start too', async () => {
@@ -428,9 +431,16 @@ describe('saving an article', () => {
   it('works on the store directly, with and without an article', async () => {
     const { user } = await signedIn()
     const book = { ...META, details: { description: null, isbn: null, publisher: null, publishedYear: null } }
-    const article = await startImport(db(), user.id, book, new Date(), 25, { url: 'https://a.test/x', max: 20 })
+    const article = await startImport(db(), user.id, book, new Date(), DEFAULT_LIMITS, { url: 'https://a.test/x' })
     if (!article.ok) throw new Error('refused')
-    await storeChapter(db(), user.id, article.id, 0, { title: 'x', pages: ['<p>one <em>two</em></p>', '<p></p>'] })
+    await storeChapter(
+      db(),
+      user.id,
+      article.id,
+      0,
+      { title: 'x', pages: ['<p>one <em>two</em></p>', '<p></p>'] },
+      DEFAULT_LIMITS,
+    )
     expect(await finishImport(db(), user.id, article.id, null)).toBe('ok')
     expect(await listArticles(db(), user.id)).toMatchObject([{ id: article.id, words: 2, url: 'https://a.test/x' }])
   })
@@ -446,7 +456,8 @@ describe('reads and bookkeeping', () => {
     const state = await articlesState(get(cookie))
     expect(state).toMatchObject({
       state: 'ready',
-      max: MAX_ARTICLES,
+      max: DEFAULT_LIMITS.articles,
+      limits: DEFAULT_LIMITS,
       testHosts: [],
       imageBytesUsed: 0,
       articles: [
@@ -511,10 +522,16 @@ describe('POST /account/articles (Delete)', () => {
 
   it('deletes no book, and no other reader’s article', async () => {
     const { user, cookie } = await signedIn()
-    const book = await startImport(db(), user.id, {
-      ...META,
-      details: { description: null, isbn: null, publisher: null, publishedYear: null },
-    })
+    const book = await startImport(
+      db(),
+      user.id,
+      {
+        ...META,
+        details: { description: null, isbn: null, publisher: null, publishedYear: null },
+      },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
     if (!book.ok) throw new Error('refused')
     expect(where(await form(cookie, { intent: 'delete', id: book.id }))).toEqual([
       303,

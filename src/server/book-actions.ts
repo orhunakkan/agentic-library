@@ -1,7 +1,6 @@
 import '@tanstack/react-start/server-only'
-import { MAX_ARTICLES } from '../shared/articles/contract.ts'
 import { checkBookUpload, checkChapterUpload, UploadError } from '../shared/import/blocks.ts'
-import { MAX_BOOKS, MAX_CHAPTER_REQUEST_BYTES, MAX_CHAPTERS, MAX_META_REQUEST_BYTES } from '../shared/import/limits.ts'
+import { MAX_CHAPTER_REQUEST_BYTES, MAX_CHAPTERS, MAX_META_REQUEST_BYTES } from '../shared/import/limits.ts'
 import { paginate } from '../shared/import/paginate.ts'
 import { type RenderContext, renderBlocks } from '../shared/import/render.ts'
 import { isObject } from '../shared/lib/json-shape.ts'
@@ -11,6 +10,7 @@ import { forgetBookAudio } from './audiobooks/files.ts'
 import { recordEvent } from './audit.ts'
 import { noStoreJson, requestIp, seeOther } from './auth.ts'
 import { imageSizes } from './book-images/store.ts'
+import { getConfig } from './config.ts'
 import { type Codes, signedInEndpoints, signedInForm } from './signed-in.ts'
 import { deleteBook, finishImport, startImport, storeChapter } from './user-books.ts'
 
@@ -22,6 +22,7 @@ export type ImportErrorCode =
   | 'empty'
   | 'request-too-large'
   | 'book-too-large'
+  | 'article-too-large'
   | 'quota'
   | 'rate'
   | 'incomplete'
@@ -67,8 +68,8 @@ export const handleNewBook = (request: Request) =>
     const { userId } = session
     const pending = article ? take(userId, article) : null
     if (article && !pending) return noStoreJson(409, { error: 'expired' })
-    const start = pending ? { url: pending.url, max: MAX_ARTICLES } : undefined
-    const result = await startImport(db, userId, book, new Date(), MAX_BOOKS, start)
+    const start = pending ? { url: pending.url } : undefined
+    const result = await startImport(db, userId, book, new Date(), getConfig().limits, start)
     if (!result.ok) {
       if (result.reason === 'room') return noStoreJson(409, { error: 'quota', scope: 'user', max: result.max })
       if (result.reason === 'exists') return noStoreJson(409, { error: 'exists', id: result.id })
@@ -100,13 +101,20 @@ export const handleChapter = (request: Request, id: string, position: string) =>
       }
       const pages = paginate(renderBlocks(chapter.blocks, context))
       if (!pages.length) return fail(400, 'empty')
-      const result = await storeChapter(db, session.userId, id, Number(position), {
-        title: chapter.title,
-        pages,
-      })
+      const { limits } = getConfig()
+      const result = await storeChapter(
+        db,
+        session.userId,
+        id,
+        Number(position),
+        { title: chapter.title, pages },
+        limits,
+      )
       if (result === 'missing') return notFound()
       if (result === 'position') return fail(400, 'invalid')
       if (result === 'too-big') return fail(413, 'book-too-large')
+      if (result === 'article-too-big')
+        return noStoreJson(413, { error: 'article-too-large', max: limits.articleTextBytes })
       return noStoreJson(200, { ok: true })
     },
   )

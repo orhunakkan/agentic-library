@@ -36,12 +36,12 @@ describe('isAudioName and pickerAccept', () => {
 })
 
 describe('pickRefusal', () => {
-  it('refuses a book or an audiobook at the book limit', () => {
-    expect(pickRefusal('audio', 0)).toBeNull()
-    expect(pickRefusal('book', 24)).toBeNull()
-    expect(pickRefusal('book', 25)).toBe('You have 25 of your own books. Delete one to import another.')
-    expect(pickRefusal('audio', 25)).toBe('You have 25 of your own books. Delete one to import another.')
-    expect(pickRefusal('book', 30)).toBe('You have 25 of your own books. Delete one to import another.')
-    expect(pickRefusal('mixed', 30)).toBeNull()
+  it('refuses a book or an audiobook at the book limit it is given, and names it', () => {
+    expect(pickRefusal('audio', 0, 2)).toBeNull()
+    expect(pickRefusal('book', 1, 2)).toBeNull()
+    expect(pickRefusal('book', 2, 2)).toBe('Your library holds up to 2 books. Delete one to import another.')
+    expect(pickRefusal('audio', 2, 2)).toBe('Your library holds up to 2 books. Delete one to import another.')
+    expect(pickRefusal('book', 30, 25)).toBe('Your library holds up to 25 books. Delete one to import another.')
+    expect(pickRefusal('mixed', 30, 2)).toBeNull()
   })
 })

@@ -1,4 +1,4 @@
-export const MAX_ARTICLES = 500
+import type { InstanceLimits } from '../limits/limits.ts'
 
 export const MAX_ARTICLE_URL_LENGTH = 2000
 export const MAX_PAGE_BYTES = 5 * 1024 * 1024
@@ -62,6 +62,7 @@ export type ArticlesState =
       state: 'ready'
       articles: ArticleView[]
       max: number
+      limits: InstanceLimits
       testHosts: string[]
       imageBytesUsed: number
     }

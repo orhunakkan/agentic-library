@@ -20,6 +20,7 @@ import { newPlaceCache, placeForRead, resolveEpisode, resolvePlace } from '~/ser
 import { readingPlaceState, syncState } from '~/server/sync/read'
 import { getSettings, listListening, listReading, readingFor, type SyncItems, saveBatch } from '~/server/sync/store'
 import { deleteBook, finishImport, loadOutlines, startImport, storeChapter } from '~/server/user-books'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { addDays, dayIn } from '~/shared/reading-stats/days'
 import type { SyncState } from '~/shared/sync/sync'
 import { readyAudiobook } from '../testing/audiobooks'
@@ -44,16 +45,29 @@ const PRIDE: BookRef = refFor('pride-and-prejudice')
 const PROPHET: BookRef = refFor('the-prophet')
 
 async function privateBook(userId: number, title = 'Notes'): Promise<BookRef & { userBookId: string }> {
-  const start = await startImport(db(), userId, {
-    title,
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: 2,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title,
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: 2,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
-  await storeChapter(db(), userId, start.id, 0, { title: 'Opening', pages: ['<p>one</p>', '<p>two</p>'] })
-  await storeChapter(db(), userId, start.id, 1, { title: 'Second', pages: ['<p>three</p>'] })
+  await storeChapter(
+    db(),
+    userId,
+    start.id,
+    0,
+    { title: 'Opening', pages: ['<p>one</p>', '<p>two</p>'] },
+    DEFAULT_LIMITS,
+  )
+  await storeChapter(db(), userId, start.id, 1, { title: 'Second', pages: ['<p>three</p>'] }, DEFAULT_LIMITS)
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return privateRef(start.id)
 }

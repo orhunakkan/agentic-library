@@ -8,11 +8,13 @@ vi.mock('../shared/import/blocks.ts', async (importOriginal) => {
 
 import { recordEvent } from '~/server/audit'
 import { handleBooksForm, handleChapter, handleFinish, handleNewBook } from '~/server/book-actions'
+import { imageBytesUsed, newImage, storeImage } from '~/server/book-images/store'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb } from '~/server/db'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import {
+  countedArticles,
   countedBooks,
   deleteBook,
   finishImport,
@@ -24,7 +26,8 @@ import {
   sweepStaleUploads,
 } from '~/server/user-books'
 import { checkChapterUpload } from '~/shared/import/blocks'
-import { MAX_BOOK_HTML_BYTES, MAX_BOOKS } from '~/shared/import/limits'
+import { MAX_BOOK_HTML_BYTES } from '~/shared/import/limits'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { NO_DETAILS } from '../shared/import/details.ts'
 import { databaseUrl, freshDatabase } from './testing/db'
 import { testUser } from './testing/users'
@@ -52,10 +55,17 @@ const formerStarterCopy = (userId: number) => raw`
 
 async function userWithBook(username: string) {
   const user = await newUser(username)
-  const start = await startImport(db(), user.id, META)
+  const start = await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)
   if (!start.ok) throw new Error('could not start')
-  await storeChapter(db(), user.id, start.id, 0, { title: 'Getting Started', pages: ['<p>one</p>', '<p>two</p>'] })
-  await storeChapter(db(), user.id, start.id, 1, { title: 'Getting started', pages: ['<p>three</p>'] })
+  await storeChapter(
+    db(),
+    user.id,
+    start.id,
+    0,
+    { title: 'Getting Started', pages: ['<p>one</p>', '<p>two</p>'] },
+    DEFAULT_LIMITS,
+  )
+  await storeChapter(db(), user.id, start.id, 1, { title: 'Getting started', pages: ['<p>three</p>'] }, DEFAULT_LIMITS)
   expect(await finishImport(db(), user.id, start.id, null)).toBe('ok')
   return { user, bookId: start.id }
 }
@@ -73,14 +83,14 @@ describe('importing', () => {
 
   it('stores chapters with unique slugs, then lists the book once it is ready', async () => {
     const user = await newUser('reader')
-    const start = await startImport(db(), user.id, META)
+    const start = await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)
     if (!start.ok) throw new Error('could not start')
-    await storeChapter(db(), user.id, start.id, 0, { title: 'Intro', pages: ['<p>a</p>'] })
+    await storeChapter(db(), user.id, start.id, 0, { title: 'Intro', pages: ['<p>a</p>'] }, DEFAULT_LIMITS)
     expect(await listBooks(db(), user.id)).toEqual([])
     expect(await loadReaderBook(db(), user.id, start.id, 'intro', 0)).toBeNull()
     expect(await finishImport(db(), user.id, start.id, null)).toBe('incomplete')
 
-    await storeChapter(db(), user.id, start.id, 1, { title: 'Intro', pages: ['<p>b</p>', '<p>c</p>'] })
+    await storeChapter(db(), user.id, start.id, 1, { title: 'Intro', pages: ['<p>b</p>', '<p>c</p>'] }, DEFAULT_LIMITS)
     expect(await finishImport(db(), user.id, start.id, '203.0.113.5')).toBe('ok')
     expect(await finishImport(db(), user.id, start.id, null)).toBe('missing')
 
@@ -101,11 +111,13 @@ describe('importing', () => {
 
   it('replaces a chapter sent again and refuses positions past the count', async () => {
     const user = await newUser('reader')
-    const start = await startImport(db(), user.id, { ...META, chapterCount: 1 })
+    const start = await startImport(db(), user.id, { ...META, chapterCount: 1 }, new Date(), DEFAULT_LIMITS)
     if (!start.ok) throw new Error('could not start')
-    await storeChapter(db(), user.id, start.id, 0, { title: 'Old', pages: ['<p>old old old</p>'] })
-    await storeChapter(db(), user.id, start.id, 0, { title: 'New', pages: ['<p>new</p>'] })
-    expect(await storeChapter(db(), user.id, start.id, 1, { title: 'Extra', pages: ['<p>x</p>'] })).toBe('position')
+    await storeChapter(db(), user.id, start.id, 0, { title: 'Old', pages: ['<p>old old old</p>'] }, DEFAULT_LIMITS)
+    await storeChapter(db(), user.id, start.id, 0, { title: 'New', pages: ['<p>new</p>'] }, DEFAULT_LIMITS)
+    expect(
+      await storeChapter(db(), user.id, start.id, 1, { title: 'Extra', pages: ['<p>x</p>'] }, DEFAULT_LIMITS),
+    ).toBe('position')
     const [row] = await raw`select html_bytes from user_books`
     expect(Number(row?.html_bytes)).toBe('<p>new</p>'.length)
     expect(await raw`select slug, title from user_book_chapters`).toEqual([{ slug: 'new', title: 'New' }])
@@ -113,52 +125,128 @@ describe('importing', () => {
 
   it('counts rendered HTML against the 8 MB book limit', async () => {
     const user = await newUser('reader')
-    const start = await startImport(db(), user.id, { ...META, chapterCount: 3 })
+    const start = await startImport(db(), user.id, { ...META, chapterCount: 3 }, new Date(), DEFAULT_LIMITS)
     if (!start.ok) throw new Error('could not start')
     const half = 'x'.repeat(MAX_BOOK_HTML_BYTES / 2)
-    expect(await storeChapter(db(), user.id, start.id, 0, { title: 'A', pages: [half] })).toBe('ok')
-    expect(await storeChapter(db(), user.id, start.id, 1, { title: 'B', pages: [half] })).toBe('ok')
-    expect(await storeChapter(db(), user.id, start.id, 2, { title: 'C', pages: ['x'] })).toBe('too-big')
-    expect(await storeChapter(db(), user.id, start.id, 1, { title: 'B', pages: ['small'] })).toBe('ok')
-    expect(await storeChapter(db(), user.id, start.id, 2, { title: 'C', pages: ['x'] })).toBe('ok')
+    expect(await storeChapter(db(), user.id, start.id, 0, { title: 'A', pages: [half] }, DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeChapter(db(), user.id, start.id, 1, { title: 'B', pages: [half] }, DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeChapter(db(), user.id, start.id, 2, { title: 'C', pages: ['x'] }, DEFAULT_LIMITS)).toBe('too-big')
+    expect(await storeChapter(db(), user.id, start.id, 1, { title: 'B', pages: ['small'] }, DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeChapter(db(), user.id, start.id, 2, { title: 'C', pages: ['x'] }, DEFAULT_LIMITS)).toBe('ok')
   })
 
-  it('allows 25 books per user, counting unfinished ones', async () => {
+  it('holds an article to the article text cap, and deletes one that goes over with its chapters and pictures', async () => {
+    const limits = { ...DEFAULT_LIMITS, articleTextBytes: 100 }
+    const user = await newUser('reader')
+    const startArticle = async (url: string, chapterCount: number, images = { count: 0, bytes: 0 }) => {
+      const start = await startImport(db(), user.id, { ...META, chapterCount, images }, new Date(), DEFAULT_LIMITS, {
+        url,
+      })
+      if (!start.ok) throw new Error('could not start')
+      return start.id
+    }
+
+    const fits = await startArticle('https://a.test/fits', 1)
+    expect(await storeChapter(db(), user.id, fits, 0, { title: 'A', pages: ['x'.repeat(100)] }, limits)).toBe('ok')
+    expect(await finishImport(db(), user.id, fits, null)).toBe('ok')
+    const kept = { pictures: await imageBytesUsed(db(), user.id), articles: await countedArticles(db(), user.id) }
+
+    const over = await startArticle('https://a.test/over', 2, { count: 1, bytes: 500 })
+    const picture = newImage(new Uint8Array(500), { type: 'image/png', width: 10, height: 10 })
+    expect(await storeImage(db(), user.id, over, 1, picture, DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeChapter(db(), user.id, over, 0, { title: 'A', pages: ['x'.repeat(60)] }, limits)).toBe('ok')
+    expect(await imageBytesUsed(db(), user.id)).toBe(kept.pictures + 500)
+    expect(await storeChapter(db(), user.id, over, 1, { title: 'B', pages: ['x'.repeat(41)] }, limits)).toBe(
+      'article-too-big',
+    )
+    expect(await raw`select 1 from user_books where id = ${over}`).toHaveLength(0)
+    expect(await raw`select 1 from user_book_chapters where book_id = ${over}`).toHaveLength(0)
+    expect(await raw`select 1 from user_book_images where book_id = ${over}`).toHaveLength(0)
+    expect(await imageBytesUsed(db(), user.id)).toBe(kept.pictures)
+    expect(await countedArticles(db(), user.id)).toBe(kept.articles)
+
+    const book = await startImport(db(), user.id, { ...META, chapterCount: 1 }, new Date(), DEFAULT_LIMITS)
+    if (!book.ok) throw new Error('could not start')
+    expect(await storeChapter(db(), user.id, book.id, 0, { title: 'A', pages: ['x'.repeat(101)] }, limits)).toBe('ok')
+  })
+
+  it('lets a reader over a lowered picture limit import a book with no pictures, refuses one with any, and delete', async () => {
+    const user = await newUser('reader')
+    const pictured = await startImport(
+      db(),
+      user.id,
+      { ...META, images: { count: 1, bytes: 1000 } },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
+    if (!pictured.ok) throw new Error('could not start')
+    const picture = newImage(new Uint8Array(1000), { type: 'image/png', width: 10, height: 10 })
+    expect(await storeImage(db(), user.id, pictured.id, 1, picture, DEFAULT_LIMITS)).toBe('ok')
+    const lowered = { ...DEFAULT_LIMITS, userPictureBytes: 500 }
+    expect(await startImport(db(), user.id, META, new Date(), lowered)).toMatchObject({ ok: true, imageBytesLeft: 0 })
+    expect(await startImport(db(), user.id, { ...META, images: { count: 1, bytes: 1 } }, new Date(), lowered)).toEqual({
+      ok: false,
+      reason: 'room',
+      max: 500,
+    })
+    expect(await deleteBook(db(), user.id, pictured.id)).toBe(true)
+    expect(await imageBytesUsed(db(), user.id)).toBe(0)
+  })
+
+  it('allows as many books per user as the limit, counting unfinished ones', async () => {
+    const limits = { ...DEFAULT_LIMITS, books: 2 }
     const user = await newUser('reader')
     const other = await newUser('other')
-    for (let i = 0; i < MAX_BOOKS; i++) expect((await startImport(db(), user.id, META)).ok).toBe(true)
-    expect(await startImport(db(), user.id, META)).toEqual({ ok: false, reason: 'quota', max: MAX_BOOKS })
-    expect((await startImport(db(), other.id, META)).ok).toBe(true)
+    for (let i = 0; i < 2; i++) expect((await startImport(db(), user.id, META, new Date(), limits)).ok).toBe(true)
+    expect(await startImport(db(), user.id, META, new Date(), limits)).toEqual({ ok: false, reason: 'quota', max: 2 })
+    expect((await startImport(db(), other.id, META, new Date(), limits)).ok).toBe(true)
   })
 
   it('counts a former starter copy toward the limit like any book', async () => {
+    const limits = { ...DEFAULT_LIMITS, books: 2 }
     const user = await newUser('reader')
     await formerStarterCopy(user.id)
     expect(await countedBooks(db(), user.id)).toBe(1)
-    for (let i = 1; i < MAX_BOOKS; i++) expect((await startImport(db(), user.id, META)).ok).toBe(true)
-    expect(await startImport(db(), user.id, META)).toEqual({ ok: false, reason: 'quota', max: MAX_BOOKS })
+    expect((await startImport(db(), user.id, META, new Date(), limits)).ok).toBe(true)
+    expect(await startImport(db(), user.id, META, new Date(), limits)).toEqual({ ok: false, reason: 'quota', max: 2 })
+  })
+
+  it('keeps every book of a reader over a lowered limit, lets them delete one, and refuses only new imports', async () => {
+    const user = await newUser('reader')
+    const ids: string[] = []
+    for (let i = 0; i < 3; i++) {
+      const start = await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)
+      if (!start.ok) throw new Error('could not start')
+      ids.push(start.id)
+    }
+    const lowered = { ...DEFAULT_LIMITS, books: 2 }
+    expect(await countedBooks(db(), user.id)).toBe(3)
+    expect(await startImport(db(), user.id, META, new Date(), lowered)).toEqual({ ok: false, reason: 'quota', max: 2 })
+    expect(await deleteBook(db(), user.id, ids[0] ?? '')).toBe(true)
+    expect(await countedBooks(db(), user.id)).toBe(2)
+    expect(await startImport(db(), user.id, META, new Date(), lowered)).toEqual({ ok: false, reason: 'quota', max: 2 })
   })
 
   it('allows 10 finished imports an hour', async () => {
     const user = await newUser('reader')
     for (let i = 0; i < 10; i++) await recordEvent(db(), 'book.imported', { userId: user.id })
-    expect(await startImport(db(), user.id, META)).toEqual({ ok: false, reason: 'rate' })
+    expect(await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)).toEqual({ ok: false, reason: 'rate' })
     await raw`update audit_events set at = now() - interval '61 minutes'`
-    expect((await startImport(db(), user.id, META)).ok).toBe(true)
+    expect((await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)).ok).toBe(true)
   })
 
   it('sweeps uploads still unfinished after 24 hours on the next import, and only that user’s', async () => {
     const user = await newUser('reader')
     const other = await newUser('other')
-    const stale = await startImport(db(), user.id, META)
-    const fresh = await startImport(db(), user.id, META)
-    const othersStale = await startImport(db(), other.id, META)
+    const stale = await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)
+    const fresh = await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)
+    const othersStale = await startImport(db(), other.id, META, new Date(), DEFAULT_LIMITS)
     if (!stale.ok || !fresh.ok || !othersStale.ok) throw new Error('could not start')
     await raw`update user_books set created_at = now() - interval '25 hours' where id in ${raw([stale.id, othersStale.id])}`
     const { bookId: ready } = await userWithBook('third')
     await raw`update user_books set created_at = now() - interval '30 days' where id = ${ready}`
 
-    await startImport(db(), user.id, META)
+    await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)
     const ids = (await raw<{ id: string }[]>`select id from user_books`).map((r) => r.id)
     expect(ids).not.toContain(stale.id)
     expect(ids).toContain(fresh.id)
@@ -177,11 +265,11 @@ describe('owner isolation', () => {
     expect(await loadBookText(db(), bob.id, bookId)).toBeNull()
     expect(await deleteBook(db(), bob.id, bookId)).toBe(false)
 
-    const upload = await startImport(db(), alice.id, META)
+    const upload = await startImport(db(), alice.id, META, new Date(), DEFAULT_LIMITS)
     if (!upload.ok) throw new Error('could not start')
-    expect(await storeChapter(db(), bob.id, upload.id, 0, { title: 'Bob was here', pages: ['<p>x</p>'] })).toBe(
-      'missing',
-    )
+    expect(
+      await storeChapter(db(), bob.id, upload.id, 0, { title: 'Bob was here', pages: ['<p>x</p>'] }, DEFAULT_LIMITS),
+    ).toBe('missing')
     expect(await finishImport(db(), bob.id, upload.id, null)).toBe('missing')
     expect(await raw`select 1 from user_book_chapters where title = 'Bob was here'`).toHaveLength(0)
 
@@ -318,7 +406,8 @@ describe('the upload endpoints', () => {
 
   it('lets a plain member import 25 books, and answers the 26th with the limit and no plan', async () => {
     const { cookie } = await signedIn('member')
-    for (let i = 0; i < MAX_BOOKS; i++) expect((await handleNewBook(post(cookie, BODY))).status).toBe(201)
+    for (let i = 0; i < getConfig().limits.books; i++)
+      expect((await handleNewBook(post(cookie, BODY))).status).toBe(201)
     const next = await handleNewBook(post(cookie, BODY))
     expect([next.status, await next.json()]).toEqual([409, { error: 'quota', scope: 'books', max: 25 }])
   })
@@ -326,11 +415,11 @@ describe('the upload endpoints', () => {
   it('lets a reader at the limit import again once they delete a book, and keep and read the rest', async () => {
     const { user, cookie } = await signedIn('full')
     const ids: string[] = []
-    for (let i = 0; i < MAX_BOOKS; i++) {
-      const start = await startImport(db(), user.id, { ...META, chapterCount: 1 })
+    for (let i = 0; i < getConfig().limits.books; i++) {
+      const start = await startImport(db(), user.id, { ...META, chapterCount: 1 }, new Date(), DEFAULT_LIMITS)
       if (!start.ok) throw new Error('could not start')
       if (i < 2) {
-        await storeChapter(db(), user.id, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
+        await storeChapter(db(), user.id, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)
         await finishImport(db(), user.id, start.id, null)
       }
       ids.push(start.id)
@@ -339,7 +428,7 @@ describe('the upload endpoints', () => {
     expect(await loadReaderBook(db(), user.id, ids[1] ?? '', 'only', 0)).not.toBeNull()
     expect(await deleteBook(db(), user.id, ids[0] ?? '')).toBe(true)
     expect((await handleNewBook(post(cookie, BODY))).status).toBe(201)
-    expect(await countedBooks(db(), user.id)).toBe(MAX_BOOKS)
+    expect(await countedBooks(db(), user.id)).toBe(getConfig().limits.books)
   })
 
   it('counts a former starter copy, so 24 imports beside it are 25, and refuses only the next', async () => {
@@ -347,12 +436,15 @@ describe('the upload endpoints', () => {
     await formerStarterCopy(user.id)
     await raw`
       insert into user_books (user_id, title, author, language, status, chapter_count, ready_at)
-      select ${user.id}, 'Mine', 'Ada', 'en', 'ready', 1, now() from generate_series(1, ${MAX_BOOKS - 2})`
-    expect(await countedBooks(db(), user.id)).toBe(MAX_BOOKS - 1)
+      select ${user.id}, 'Mine', 'Ada', 'en', 'ready', 1, now() from generate_series(1, ${getConfig().limits.books - 2})`
+    expect(await countedBooks(db(), user.id)).toBe(getConfig().limits.books - 1)
     expect((await handleNewBook(post(cookie, BODY))).status).toBe(201)
-    expect(await countedBooks(db(), user.id)).toBe(MAX_BOOKS)
+    expect(await countedBooks(db(), user.id)).toBe(getConfig().limits.books)
     const next = await handleNewBook(post(cookie, BODY))
-    expect([next.status, await next.json()]).toEqual([409, { error: 'quota', scope: 'books', max: MAX_BOOKS }])
+    expect([next.status, await next.json()]).toEqual([
+      409,
+      { error: 'quota', scope: 'books', max: getConfig().limits.books },
+    ])
     expect((await listBooks(db(), user.id)).filter((b) => b.title === 'Pride and Prejudice')).toHaveLength(1)
   })
 
@@ -362,8 +454,12 @@ describe('the upload endpoints', () => {
     const rate = await handleNewBook(post(cookie, BODY))
     expect([rate.status, await rate.json()]).toEqual([429, { error: 'rate' }])
     await raw`delete from audit_events`
-    for (let i = 0; i < MAX_BOOKS; i++) await startImport(db(), user.id, META)
+    for (let i = 0; i < getConfig().limits.books; i++)
+      await startImport(db(), user.id, META, new Date(), DEFAULT_LIMITS)
     const quota = await handleNewBook(post(cookie, BODY))
-    expect([quota.status, await quota.json()]).toEqual([409, { error: 'quota', scope: 'books', max: MAX_BOOKS }])
+    expect([quota.status, await quota.json()]).toEqual([
+      409,
+      { error: 'quota', scope: 'books', max: getConfig().limits.books },
+    ])
   })
 })

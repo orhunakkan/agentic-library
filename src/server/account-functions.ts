@@ -27,6 +27,7 @@ import { isBookSlug } from '../shared/content/book-slug.ts'
 import { isUuid } from '../shared/uuid.ts'
 import { listAccessTokens } from './access-tokens/store.ts'
 import { toAccessTokenView } from './access-tokens/view.ts'
+import { accountStorage } from './account-storage.ts'
 import { usersForAdmin } from './admin/actions.ts'
 import { invitesForAdmin } from './admin/invites.ts'
 import { getKeyStatuses, PROVIDERS } from './api-keys.ts'
@@ -109,6 +110,7 @@ export const getAccountPage = createServerFn({ method: 'GET' }).handler(async ()
       lastSeenAt: sessionInfo.lastSeenAt.toISOString(),
     })),
     accessTokens: accessTokens.map((t) => toAccessTokenView(t)),
+    storage: await accountStorage(getDb(), session.userId),
   }
 })
 
@@ -173,6 +175,7 @@ export const getMyBooksPage = createServerFn({ method: 'GET' }).handler(async ()
     audiobooks: await audiobooksOn(),
     audioBytesUsed: await audioBytesUsed(getDb(), session.userId),
     bookCount: await countedBooks(getDb(), session.userId),
+    limits: getConfig().limits,
     articleIds: (await listArticles(getDb(), session.userId)).map((a) => a.id),
     books: books.map((book) => ({
       id: book.id,

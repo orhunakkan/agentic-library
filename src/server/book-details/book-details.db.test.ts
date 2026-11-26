@@ -24,6 +24,7 @@ import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, listBooks, loadBookPage, startImport, storeChapter } from '~/server/user-books'
 import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { openLibraryStub, STUB_COVERS, STUB_TITLES } from '../../../tests/e2e/support/open-library-stub'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
@@ -55,10 +56,10 @@ const newUser = (username: string) => testUser(db(), username, '$argon2id$v=19$m
 
 async function uploading(username: string, details = NO_DETAILS) {
   const user = await newUser(username)
-  const start = await startImport(db(), user.id, { ...META, details })
+  const start = await startImport(db(), user.id, { ...META, details }, new Date(), DEFAULT_LIMITS)
   if (!start.ok) throw new Error('could not start')
   const finish = async () => {
-    await storeChapter(db(), user.id, start.id, 0, { title: 'Morning', pages: ['<p>one</p>'] })
+    await storeChapter(db(), user.id, start.id, 0, { title: 'Morning', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)
     expect(await finishImport(db(), user.id, start.id, null)).toBe('ok')
   }
   return { user, bookId: start.id, finish }

@@ -26,7 +26,8 @@ import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, loadBookPage, startImport, storeChapter } from '~/server/user-books'
 import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
-import { MAX_IMAGE_BYTES, MAX_USER_IMAGE_BYTES } from '~/shared/import/limits'
+import { MAX_IMAGE_BYTES } from '~/shared/import/limits'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { databaseUrl, freshDatabase } from '../testing/db'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -56,13 +57,15 @@ beforeEach(async () => {
 const newUser = (username: string) => testUser(db(), username, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
 async function uploading(userId: number, count = 3, bytes = 3 * MAX_IMAGE_BYTES) {
-  const start = await startImport(db(), userId, { ...META, images: { count, bytes } })
+  const start = await startImport(db(), userId, { ...META, images: { count, bytes } }, new Date(), DEFAULT_LIMITS)
   if (!start.ok) throw new Error(`could not start: ${start.reason}`)
   return start.id
 }
 
 async function finish(userId: number, bookId: string) {
-  expect(await storeChapter(db(), userId, bookId, 0, { title: 'Morning', pages: ['<p>one</p>'] })).toBe('ok')
+  expect(await storeChapter(db(), userId, bookId, 0, { title: 'Morning', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)).toBe(
+    'ok',
+  )
   return finishImport(db(), userId, bookId, null)
 }
 
@@ -70,8 +73,8 @@ describe('the store', () => {
   it('stores a picture, replaces it when sent again, and serves it once the book is ready', async () => {
     const user = await newUser('reader')
     const bookId = await uploading(user.id, 1)
-    expect(await storeImage(db(), user.id, bookId, 1, picture('cover.jpg'))).toBe('ok')
-    expect(await storeImage(db(), user.id, bookId, 1, picture('wide.png'))).toBe('ok')
+    expect(await storeImage(db(), user.id, bookId, 1, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeImage(db(), user.id, bookId, 1, picture('wide.png'), DEFAULT_LIMITS)).toBe('ok')
     expect(await storedImageCount(db(), user.id, bookId)).toBe(1)
     expect(await imageSizes(db(), user.id, bookId)).toEqual(new Map([[1, { width: 900, height: 600 }]]))
     expect(await loadImage(db(), user.id, bookId, 1)).toBeNull()
@@ -85,67 +88,60 @@ describe('the store', () => {
     const owner = await newUser('owner')
     const other = await newUser('other')
     const bookId = await uploading(owner.id, 1)
-    expect(await storeImage(db(), other.id, bookId, 1, picture('cover.jpg'))).toBe('missing')
-    expect(await storeImage(db(), owner.id, '00000000-0000-4000-8000-000000000000', 1, picture('cover.jpg'))).toBe(
-      'missing',
-    )
-    expect(await storeImage(db(), owner.id, bookId, 1, picture('cover.jpg'))).toBe('ok')
+    expect(await storeImage(db(), other.id, bookId, 1, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('missing')
+    expect(
+      await storeImage(db(), owner.id, '00000000-0000-4000-8000-000000000000', 1, picture('cover.jpg'), DEFAULT_LIMITS),
+    ).toBe('missing')
+    expect(await storeImage(db(), owner.id, bookId, 1, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('ok')
     expect(await imageSizes(db(), other.id, bookId)).toEqual(new Map())
     expect(await storedImageCount(db(), other.id, bookId)).toBe(0)
     expect(await finish(owner.id, bookId)).toBe('ok')
     expect(await loadImage(db(), other.id, bookId, 1)).toBeNull()
-    expect(await storeImage(db(), owner.id, bookId, 1, picture('wide.png'))).toBe('missing')
+    expect(await storeImage(db(), owner.id, bookId, 1, picture('wide.png'), DEFAULT_LIMITS)).toBe('missing')
   })
 
   it('refuses a number past the declared count', async () => {
     const user = await newUser('reader')
     const bookId = await uploading(user.id, 2)
-    expect(await storeImage(db(), user.id, bookId, 3, picture('cover.jpg'))).toBe('position')
+    expect(await storeImage(db(), user.id, bookId, 3, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('position')
     const none = await uploading(user.id, 0, 0)
-    expect(await storeImage(db(), user.id, none, 1, picture('cover.jpg'))).toBe('position')
+    expect(await storeImage(db(), user.id, none, 1, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('position')
   })
 
   it('keeps a book within the bytes it declared, counting a replaced picture once', async () => {
     const user = await newUser('reader')
     const bookId = await uploading(user.id, 2, 1000)
-    expect(await storeImage(db(), user.id, bookId, 1, sized(600))).toBe('ok')
-    expect(await storeImage(db(), user.id, bookId, 2, sized(401))).toEqual({ quota: 'book', max: 1000 })
-    expect(await storeImage(db(), user.id, bookId, 2, sized(400))).toBe('ok')
-    expect(await storeImage(db(), user.id, bookId, 1, sized(600))).toBe('ok')
+    expect(await storeImage(db(), user.id, bookId, 1, sized(600), DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeImage(db(), user.id, bookId, 2, sized(401), DEFAULT_LIMITS)).toEqual({ quota: 'book', max: 1000 })
+    expect(await storeImage(db(), user.id, bookId, 2, sized(400), DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeImage(db(), user.id, bookId, 1, sized(600), DEFAULT_LIMITS)).toBe('ok')
   })
 
-  it('keeps the account within 250 MB across its books', async () => {
+  it('keeps the account within the picture limit it is given, across its books', async () => {
+    const limits = { ...DEFAULT_LIMITS, userPictureBytes: 5000 }
     const user = await newUser('reader')
-    const full = await uploading(user.id, 500, 30 * 1024 * 1024)
-    await raw`
-      insert into user_book_images (book_id, n, media_type, bytes, width, height, sha256)
-      select ${full}, g, 'image/png', decode(repeat('00', ${MAX_IMAGE_BYTES}), 'hex'), 1, 1, repeat('a', 64)
-      from generate_series(1, 284) g`
-    const left = MAX_USER_IMAGE_BYTES - 284 * MAX_IMAGE_BYTES
-    expect(await imageBytesUsed(db(), user.id)).toBe(284 * MAX_IMAGE_BYTES)
-    expect(await startImport(db(), user.id, { ...META, images: { count: 1, bytes: left + 1 } })).toEqual({
-      ok: false,
-      reason: 'room',
-      max: MAX_USER_IMAGE_BYTES,
-    })
-    const first = await startImport(db(), user.id, { ...META, images: { count: 2, bytes: left } })
-    const second = await startImport(db(), user.id, { ...META, images: { count: 1, bytes: 100 } })
+    const full = await uploading(user.id, 1, 3000)
+    expect(await storeImage(db(), user.id, full, 1, sized(3000), limits)).toBe('ok')
+    const left = 2000
+    expect(await imageBytesUsed(db(), user.id)).toBe(3000)
+    expect(
+      await startImport(db(), user.id, { ...META, images: { count: 1, bytes: left + 1 } }, new Date(), limits),
+    ).toEqual({ ok: false, reason: 'room', max: 5000 })
+    const first = await startImport(db(), user.id, { ...META, images: { count: 2, bytes: left } }, new Date(), limits)
+    const second = await startImport(db(), user.id, { ...META, images: { count: 1, bytes: 100 } }, new Date(), limits)
     expect(first).toMatchObject({ ok: true, imageBytesLeft: 0 })
     if (!first.ok || !second.ok) throw new Error('could not start')
-    expect(await storeImage(db(), user.id, first.id, 1, sized(left - 10))).toBe('ok')
-    expect(await storeImage(db(), user.id, second.id, 1, sized(11))).toEqual({
-      quota: 'user',
-      max: MAX_USER_IMAGE_BYTES,
-    })
-    expect(await storeImage(db(), user.id, first.id, 2, sized(10))).toBe('ok')
+    expect(await storeImage(db(), user.id, first.id, 1, sized(left - 10), limits)).toBe('ok')
+    expect(await storeImage(db(), user.id, second.id, 1, sized(11), limits)).toEqual({ quota: 'user', max: 5000 })
+    expect(await storeImage(db(), user.id, first.id, 2, sized(10), limits)).toBe('ok')
   })
 
   it('needs every declared picture before the book is finished', async () => {
     const user = await newUser('reader')
     const bookId = await uploading(user.id, 2)
-    expect(await storeImage(db(), user.id, bookId, 1, picture('cover.jpg'))).toBe('ok')
+    expect(await storeImage(db(), user.id, bookId, 1, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('ok')
     expect(await finish(user.id, bookId)).toBe('incomplete')
-    expect(await storeImage(db(), user.id, bookId, 2, picture('wide.png'))).toBe('ok')
+    expect(await storeImage(db(), user.id, bookId, 2, picture('wide.png'), DEFAULT_LIMITS)).toBe('ok')
     expect(await finishImport(db(), user.id, bookId, null)).toBe('ok')
   })
 
@@ -153,8 +149,8 @@ describe('the store', () => {
     const user = await newUser('reader')
     const first = await uploading(user.id, 1)
     const second = await uploading(user.id, 1)
-    expect(await storeImage(db(), user.id, first, 1, picture('cover.jpg'))).toBe('ok')
-    expect(await storeImage(db(), user.id, second, 1, picture('cover.jpg'))).toBe('ok')
+    expect(await storeImage(db(), user.id, first, 1, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('ok')
+    expect(await storeImage(db(), user.id, second, 1, picture('cover.jpg'), DEFAULT_LIMITS)).toBe('ok')
     expect(await deleteBook(db(), user.id, first)).toBe(true)
     const count = async () => Number((await raw<{ n: string }[]>`select count(*) as n from user_book_images`)[0]?.n)
     expect(await count()).toBe(1)
@@ -227,12 +223,12 @@ describe('starting an import with pictures', () => {
     const res = await handleNewBook(json(cookie, { ...BOOK, images: { count: 3, bytes: 1000 } }))
     expect(res.status).toBe(201)
     const body = (await res.json()) as { id: string; imageBytesLeft: number }
-    expect(body.imageBytesLeft).toBe(MAX_USER_IMAGE_BYTES - 1000)
+    expect(body.imageBytesLeft).toBe(getConfig().limits.userPictureBytes - 1000)
     const [row] = await raw<{ image_count: number; image_bytes: number }[]>`
       select image_count, image_bytes from user_books where id = ${body.id}`
     expect(row).toEqual({ image_count: 3, image_bytes: 1000 })
     const plain = (await (await handleNewBook(json(cookie, BOOK))).json()) as { id: string; imageBytesLeft: number }
-    expect(plain.imageBytesLeft).toBe(MAX_USER_IMAGE_BYTES)
+    expect(plain.imageBytesLeft).toBe(getConfig().limits.userPictureBytes)
   })
 
   it('refuses more than 500 pictures or 30 MB, and more than the account has left', async () => {
@@ -246,16 +242,22 @@ describe('starting an import with pictures', () => {
       expect(res.status).toBe(400)
       expect(await res.json()).toEqual({ error: 'invalid' })
     }
-    const full = await startImport(db(), user.id, { ...BOOK, details: NO_DETAILS, images: { count: 300, bytes: 1 } })
+    const full = await startImport(
+      db(),
+      user.id,
+      { ...BOOK, details: NO_DETAILS, images: { count: 300, bytes: 1 } },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
     if (!full.ok) throw new Error('could not start')
     await raw`
       insert into user_book_images (book_id, n, media_type, bytes, width, height, sha256)
       select ${full.id}, g, 'image/png', decode(repeat('00', ${MAX_IMAGE_BYTES}), 'hex'), 1, 1, repeat('a', 64)
       from generate_series(1, 284) g`
-    const left = MAX_USER_IMAGE_BYTES - 284 * MAX_IMAGE_BYTES
+    const left = getConfig().limits.userPictureBytes - 284 * MAX_IMAGE_BYTES
     const res = await handleNewBook(json(cookie, { ...BOOK, images: { count: 1, bytes: left + 1 } }))
     expect(res.status).toBe(409)
-    expect(await res.json()).toEqual({ error: 'quota', scope: 'user', max: MAX_USER_IMAGE_BYTES })
+    expect(await res.json()).toEqual({ error: 'quota', scope: 'user', max: getConfig().limits.userPictureBytes })
   })
 })
 
@@ -444,6 +446,6 @@ const broken = (() => {
 }) as unknown as Pool
 
 async function finishWithChapter(userId: number, bookId: string) {
-  await storeChapter(db(), userId, bookId, 0, { title: 'Morning', pages: ['<p>one</p>'] })
+  await storeChapter(db(), userId, bookId, 0, { title: 'Morning', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)
   return finishImport(db(), userId, bookId, null)
 }

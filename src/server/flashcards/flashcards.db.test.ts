@@ -19,6 +19,7 @@ import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
 import type { FlashcardView } from '~/shared/flashcards/contract'
 import { MAX_CARDS_PER_BOOK, MAX_CARDS_PER_USER } from '~/shared/flashcards/limits'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { databaseUrl, freshDatabase } from '../testing/db'
 
@@ -49,15 +50,28 @@ async function signedIn() {
 }
 
 async function privateBook(userId: number, title = 'Notes') {
-  const start = await startImport(db(), userId, {
-    title,
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title,
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
-  await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>One.</p>', '<p>Two.</p>'] })
+  await storeChapter(
+    db(),
+    userId,
+    start.id,
+    0,
+    { title: 'Only', pages: ['<p>One.</p>', '<p>Two.</p>'] },
+    DEFAULT_LIMITS,
+  )
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return { id: start.id, slug: privateBookSlug(start.id) }
 }

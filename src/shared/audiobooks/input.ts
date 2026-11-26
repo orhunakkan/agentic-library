@@ -6,7 +6,6 @@ import {
   type AudioFileType,
   MAX_AUDIO_CHAPTERS,
   MAX_AUDIO_FILES,
-  MAX_AUDIOBOOK_BYTES,
   MAX_CHAPTER_MS,
   MAX_FILE_MS,
   NARRATOR_MAX,
@@ -43,7 +42,8 @@ function parseChapter(value: unknown, fileCount: number): AudioChapter | null {
   return { title, fileN, startMs, durationMs }
 }
 
-export function parseAudiobookStart(value: unknown, now = new Date()): AudiobookStart | null {
+/** A start the browser sent, checked: `maxBytes` caps each file and the audiobook as a whole. */
+export function parseAudiobookStart(value: unknown, maxBytes: number, now = new Date()): AudiobookStart | null {
   if (!isObject(value)) return null
   if (!only(value, ['title', 'author', 'narrator', 'language', 'details', 'files', 'chapters', 'cover'])) return null
   const title = line(value.title, TITLE_MAX)
@@ -75,12 +75,12 @@ export function parseAudiobookStart(value: unknown, now = new Date()): Audiobook
   for (const file of list) {
     if (!isObject(file) || !only(file, ['type', 'bytes'])) return null
     if ((file.type !== 'mp4' && file.type !== 'mp3') || (type && file.type !== type)) return null
-    if (!isInt(file.bytes, 1, MAX_AUDIOBOOK_BYTES)) return null
+    if (!isInt(file.bytes, 1, maxBytes)) return null
     type = file.type
     files.push(file.bytes)
   }
   if (!type || (type === 'mp4' && files.length !== 1)) return null
-  if (files.reduce((n, b) => n + b, 0) > MAX_AUDIOBOOK_BYTES) return null
+  if (files.reduce((n, b) => n + b, 0) > maxBytes) return null
 
   if (!Array.isArray(value.chapters) || value.chapters.length < 1 || value.chapters.length > MAX_AUDIO_CHAPTERS)
     return null

@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { BAD_ISBN, IMPORT_PROBLEM_TEXT, importSaveText, PICTURE_FAILED, SAVE_FAILED } from './import-problems'
+import {
+  BAD_ISBN,
+  bookQuotaText,
+  IMPORT_PROBLEM_TEXT,
+  importSaveText,
+  PICTURE_FAILED,
+  SAVE_FAILED,
+} from './import-problems'
 
 describe('the importer’s save problems', () => {
-  it('says the book limit and the hourly limit with their numbers', () => {
-    expect(IMPORT_PROBLEM_TEXT.quota).toBe('You have 25 of your own books. Delete one to import another.')
+  it('says the book limit it is given, and the hourly limit, with their numbers', () => {
+    expect(bookQuotaText(25)).toBe('Your library holds up to 25 books. Delete one to import another.')
+    expect(bookQuotaText(1)).toBe('Your library holds up to 1 book. Delete one to import another.')
     expect(IMPORT_PROBLEM_TEXT.rate).toBe('You’ve imported 10 books in the last hour. Try again later.')
   })
 
@@ -19,6 +27,7 @@ describe('the importer’s save problems', () => {
       'signed-out': 'You’ve been signed out. Sign in again, then import the book again.',
       'not-found': 'The import was interrupted. Try again.',
       incomplete: 'The import was interrupted. Try again.',
+      'article-too-large': 'Something went wrong while saving. Try again in a few minutes.',
       failed: 'Something went wrong while saving. Try again in a few minutes.',
     })
     expect(Object.keys(IMPORT_PROBLEM_TEXT)).toHaveLength(12)
@@ -45,7 +54,12 @@ describe('the importer’s save problems', () => {
   it('says what stopped a save, by the step', () => {
     const refused = (problem: string) => ({ ok: false as const, problem: problem as 'rate' })
     expect(importSaveText({ ok: false, at: 'start', refused: refused('rate') })).toBe(IMPORT_PROBLEM_TEXT.rate)
-    expect(importSaveText({ ok: false, at: 'start', refused: refused('quota') })).toBe(IMPORT_PROBLEM_TEXT.quota)
+    expect(importSaveText({ ok: false, at: 'start', refused: { ok: false, problem: 'quota', max: 2 } })).toBe(
+      'Your library holds up to 2 books. Delete one to import another.',
+    )
+    expect(importSaveText({ ok: false, at: 'start', refused: refused('quota') })).toBe(
+      'Your library is full. Delete a book to import another.',
+    )
     expect(importSaveText({ ok: false, at: 'picture', problem: 'type' })).toBe(PICTURE_FAILED)
     expect(importSaveText({ ok: false, at: 'picture', problem: 'failed' })).toBe(PICTURE_FAILED)
     expect(importSaveText({ ok: false, at: 'chapter', problem: 'empty' })).toBe(IMPORT_PROBLEM_TEXT.empty)

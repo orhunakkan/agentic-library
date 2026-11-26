@@ -7,6 +7,7 @@ import { drawPicture } from '~/client/features/import/picture-draw'
 import { parseArticleUrl } from '~/shared/articles/article-url'
 import type { ArticleView } from '~/shared/articles/contract'
 import { privateBookHref } from '~/shared/content/private-book'
+import type { InstanceLimits } from '~/shared/limits/limits'
 import { articleProblemText, canRetry, progressText, type SaveStage, savedText } from './article-messages'
 import type { SaveSteps } from './article-save'
 import { type ArticleFailure, fetchArticle, fetchArticlePicture, startArticle } from './articles-client'
@@ -42,12 +43,14 @@ export function SaveArticleForm({
   max,
   testHosts,
   imageBytesUsed,
+  limits,
   articles,
 }: {
   initialUrl?: string
   max: number
   testHosts: readonly string[]
   imageBytesUsed: number
+  limits: InstanceLimits
   articles: readonly ArticleView[]
 }) {
   const router = useRouter()
@@ -66,8 +69,11 @@ export function SaveArticleForm({
     setState({ kind: 'saving', progress: { stage: 'fetching' } })
     try {
       const { saveArticle, steps } = await loadSaver()
-      const outcome = await saveArticle(url, steps, { imageBytesUsed }, (progress) =>
-        setState({ kind: 'saving', progress }),
+      const outcome = await saveArticle(
+        url,
+        steps,
+        { imageBytesUsed, userPictureBytes: limits.userPictureBytes },
+        (progress) => setState({ kind: 'saving', progress }),
       )
       if (!outcome.ok) {
         setState({ kind: 'error', failure: outcome.failure })
@@ -130,7 +136,7 @@ export function SaveArticleForm({
       {failure && (
         <Notice kind="error" id="articles-error" data-testid="articles-error">
           {articleProblemText(failure.problem, {
-            max: failure.max ?? max,
+            max: failure.problem === 'quota' ? (failure.max ?? max) : failure.max,
             retryAt: failure.retryAt,
           })}
           {failure.problem === 'not_html' && (

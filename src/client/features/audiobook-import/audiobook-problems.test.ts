@@ -13,11 +13,13 @@ describe('problemText', () => {
       [{ code: 'type', type: 'M4A' }, 'Folio imports audiobooks as M4B or MP3 files. This one is M4A.'],
       [{ code: 'type', type: 'FLAC' }, 'Folio imports audiobooks as M4B or MP3 files. This one is FLAC.'],
       [{ code: 'type', type: null }, 'Folio imports audiobooks as M4B or MP3 files. This one is not an audio file.'],
-      [problem('large'), 'This audiobook is larger than 2 GB.'],
+      [{ code: 'large', max: 1024 ** 3 }, 'This audiobook is larger than 1 GB.'],
+      [{ code: 'large', max: 1.5 * 1024 ** 3 }, 'This audiobook is larger than 1.5 GB.'],
       [problem('files'), 'An audiobook can have at most 500 MP3 files.'],
       [problem('chapters'), 'This audiobook has more than 1,000 chapters.'],
       [problem('long'), 'One of this audiobook’s chapters is longer than 24 hours.'],
-      [problem('room'), 'Your audiobooks would go over 8 GB. Delete one to make room.'],
+      [{ code: 'room', max: 1024 ** 3 }, 'Your audiobooks would go over 1 GB. Delete one to make room.'],
+      [{ code: 'room', max: 100 * 1024 ** 2 }, 'Your audiobooks would go over 100 MB. Delete one to make room.'],
       [{ code: 'unreadable', reason: 'End-Of-Stream.' }, 'This file couldn’t be read: End-Of-Stream.'],
       [problem('off'), 'Audiobook imports aren’t turned on for this server yet.'],
     ]
@@ -27,7 +29,7 @@ describe('problemText', () => {
   it('says each server answer', () => {
     const cases: [AudiobookProblem, string][] = [
       [problem('server-full'), 'The server is short of space for audiobooks right now. Try again later.'],
-      [problem('books'), 'You have 25 of your own books. Delete one to import another.'],
+      [{ code: 'books', max: 2 }, 'Your library holds up to 2 books. Delete one to import another.'],
       [problem('rate'), 'You’ve imported 10 books in the last hour. Try again later.'],
       [
         { code: 'server-unreadable', reason: 'it isn’t an M4B file' },

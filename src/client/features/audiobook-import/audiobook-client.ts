@@ -33,9 +33,9 @@ async function answerOf(request: Promise<Response>): Promise<{ status: number; b
 export function problemOf(status: number, body: Body): AudiobookProblem {
   if (body.error === 'quota') {
     if (body.scope === 'server') return problem('server-full')
-    if (body.scope === 'audio') return problem('room')
     if (body.scope === 'rate') return problem('rate')
-    return problem('books')
+    if (typeof body.max !== 'number') return problem('failed')
+    return { code: body.scope === 'audio' ? 'room' : 'books', max: body.max }
   }
   if (body.error === 'drm') return problem('drm')
   if (body.error === 'unreadable')

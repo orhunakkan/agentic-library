@@ -25,6 +25,7 @@ import { bookPages } from '~/shared/highlights/page-text'
 import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
 import { MAX_CHAPTERS } from '~/shared/import/limits'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { speechChapter } from '~/shared/read-aloud/speech-text'
 import { readyAudiobook } from '../testing/audiobooks'
 import { databaseUrl, freshDatabase } from '../testing/db'
@@ -62,15 +63,22 @@ async function importBook(
   chapters: { title: string; pages: string[] }[] = [{ title: 'Only', pages: ['<p>one</p>'] }],
   finish = true,
 ): Promise<string> {
-  const start = await startImport(db(), userId, {
-    title: 'Field Notes',
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: chapters.length,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title: 'Field Notes',
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: chapters.length,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
-  for (const [i, c] of chapters.entries()) if (finish || i === 0) await storeChapter(db(), userId, start.id, i, c)
+  for (const [i, c] of chapters.entries())
+    if (finish || i === 0) await storeChapter(db(), userId, start.id, i, c, DEFAULT_LIMITS)
   if (finish) expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return start.id
 }
@@ -214,16 +222,29 @@ describe('a text book', () => {
 
   it('gives a private book to its owner, chapters in position order, built per request', async () => {
     const user = await newUser()
-    const start = await startImport(db(), user.id, {
-      title: 'Field Notes',
-      author: 'Ada',
-      language: 'en',
-      details: NO_DETAILS,
-      chapterCount: 2,
-    })
+    const start = await startImport(
+      db(),
+      user.id,
+      {
+        title: 'Field Notes',
+        author: 'Ada',
+        language: 'en',
+        details: NO_DETAILS,
+        chapterCount: 2,
+      },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
     if (!start.ok) throw new Error('could not start')
-    await storeChapter(db(), user.id, start.id, 1, { title: 'Evening', pages: ['<p>dusk</p>'] })
-    await storeChapter(db(), user.id, start.id, 0, { title: 'Morning', pages: ['<p>dew</p>', '<p>sun</p>'] })
+    await storeChapter(db(), user.id, start.id, 1, { title: 'Evening', pages: ['<p>dusk</p>'] }, DEFAULT_LIMITS)
+    await storeChapter(
+      db(),
+      user.id,
+      start.id,
+      0,
+      { title: 'Morning', pages: ['<p>dew</p>', '<p>sun</p>'] },
+      DEFAULT_LIMITS,
+    )
     expect(await finishImport(db(), user.id, start.id, null)).toBe('ok')
     const slug = privateBookSlug(start.id)
 

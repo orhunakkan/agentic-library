@@ -20,6 +20,7 @@ import { charactersSince, KEEP_DAYS, recordUsage, usageLast30Days, usageSince } 
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
 import { setSpeechModel } from '~/server/users'
 import { NO_DETAILS } from '~/shared/import/details'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { chapterIntro, utterances } from '~/shared/read-aloud/sentences'
 import type { SpeechChapter } from '~/shared/read-aloud/speech-text'
 import {
@@ -71,19 +72,32 @@ async function reader({ key = elevenLabsKey() as string | null } = {}) {
 }
 
 async function privateBook(userId: number, ready = true) {
-  const start = await startImport(db(), userId, {
-    title: 'Carnet',
-    author: 'Ada',
-    language: 'en-GB',
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title: 'Carnet',
+      author: 'Ada',
+      language: 'en-GB',
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
   if (ready) {
-    await storeChapter(db(), userId, start.id, 0, {
-      title: 'One',
-      pages: ['<p>The first page ends here.</p>', '<p>The second page begins. It goes on.</p>'],
-    })
+    await storeChapter(
+      db(),
+      userId,
+      start.id,
+      0,
+      {
+        title: 'One',
+        pages: ['<p>The first page ends here.</p>', '<p>The second page begins. It goes on.</p>'],
+      },
+      DEFAULT_LIMITS,
+    )
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
   return privateBookSlug(start.id)
@@ -405,15 +419,21 @@ describe('speechVoicesState', () => {
 
   it('puts French voices first for the reader’s own French book', async () => {
     const { user, cookie } = await reader()
-    const start = await startImport(db(), user.id, {
-      title: 'Carnet',
-      author: 'Ada',
-      language: 'fr',
-      details: NO_DETAILS,
-      chapterCount: 1,
-    })
+    const start = await startImport(
+      db(),
+      user.id,
+      {
+        title: 'Carnet',
+        author: 'Ada',
+        language: 'fr',
+        details: NO_DETAILS,
+        chapterCount: 1,
+      },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
     if (!start.ok) throw new Error('could not start')
-    await storeChapter(db(), user.id, start.id, 0, { title: 'Un', pages: ['<p>Paris.</p>'] })
+    await storeChapter(db(), user.id, start.id, 0, { title: 'Un', pages: ['<p>Paris.</p>'] }, DEFAULT_LIMITS)
     await finishImport(db(), user.id, start.id, null)
     const state = await voices(cookie, privateBookSlug(start.id))
     expect(state.state === 'ready' && state.voices.map((v) => v.name)).toEqual(['Camille', 'Aria', 'Ben'])

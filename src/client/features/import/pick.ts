@@ -1,5 +1,4 @@
-import { MAX_BOOKS } from '~/shared/import/limits'
-import { BOOK_QUOTA_TEXT } from './import-problems'
+import { bookQuotaText } from './import-problems'
 
 export type PickRoute = { kind: 'book'; file: File } | { kind: 'audio'; files: File[] } | { kind: 'mixed' } | null
 
@@ -19,7 +18,7 @@ export function routePick(files: readonly File[]): PickRoute {
 export const pickerAccept = (audiobooks: boolean) =>
   audiobooks ? '.epub,.pdf,.md,.markdown,.zip,.m4b,.mp3' : '.epub,.pdf,.md,.markdown,.zip'
 
-export function pickRefusal(kind: 'book' | 'audio' | 'mixed', bookCount: number): string | null {
+export function pickRefusal(kind: 'book' | 'audio' | 'mixed', bookCount: number, maxBooks: number): string | null {
   if (kind === 'mixed') return null
-  return bookCount >= MAX_BOOKS ? BOOK_QUOTA_TEXT : null
+  return bookCount >= maxBooks ? bookQuotaText(maxBooks) : null
 }

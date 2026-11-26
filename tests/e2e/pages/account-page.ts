@@ -6,6 +6,7 @@ export class AccountPage {
   readonly status: Locator
   readonly alert: Locator
   readonly changePasswordSection: Locator
+  readonly storage: Locator
   readonly passkeys: PasskeysSection
   readonly sessions: Locator
   readonly accessTokens: Locator
@@ -20,6 +21,7 @@ export class AccountPage {
     this.status = page.getByRole('main').getByRole('status')
     this.alert = page.getByRole('main').getByRole('alert')
     this.changePasswordSection = page.getByRole('region', { name: 'Change password' })
+    this.storage = page.getByRole('region', { name: 'Storage' })
     this.passkeys = new PasskeysSection(page)
     this.sessions = page.getByRole('region', { name: 'Sessions' })
     this.accessTokens = page.getByRole('region', { name: 'Access tokens' })
@@ -32,6 +34,10 @@ export class AccountPage {
 
   goto() {
     return this.page.goto('/account')
+  }
+
+  storageLine(key: 'books' | 'articles' | 'audio' | 'pictures') {
+    return this.storage.getByTestId(`account-storage-${key}`)
   }
 
   gotoApiKeys() {

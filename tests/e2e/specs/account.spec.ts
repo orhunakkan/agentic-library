@@ -6,10 +6,32 @@ import { createUser, saveKey, signedInAt, signInOverHttp, validKey } from '../su
 import { downloadText } from '../support/downloads'
 import { elevenLabsKey } from '../support/elevenlabs-stub'
 import { expect, expectAccessible, settleNavigations, test } from '../support/fixtures'
-import { postJson } from '../support/imports'
+import { importViaApi, postJson } from '../support/imports'
 import { openAiKey } from '../support/openai-stub'
 
 test.describe('Account', () => {
+  test('the Storage section shows usage against the hosted limits, and counts an imported book', async ({
+    page,
+    baseURL,
+    accountPage,
+  }) => {
+    await createUser(page.request, { signedIn: true })
+    await accountPage.goto()
+    await expect(accountPage.storageLine('books')).toHaveText('Books: 0 of 25 books')
+    await expect(accountPage.storageLine('articles')).toHaveText('Saved articles: 0 of 500 saved articles')
+    await expect(accountPage.storageLine('audio')).toHaveText('Audiobooks: 0 KB of 1 GB of audiobooks')
+    await expect(accountPage.storageLine('pictures')).toHaveText('Pictures: 0 KB of 100 MB of pictures')
+    await expect(accountPage.storage.locator('meter')).toHaveCount(4)
+    await expectAccessible(page)
+
+    await importViaApi(page.request, baseURL ?? '', {
+      title: 'Counted',
+      chapters: [{ title: 'One', text: 'A few words to count.' }],
+    })
+    await accountPage.goto()
+    await expect(accountPage.storageLine('books')).toHaveText('Books: 1 of 25 books')
+  })
+
   test('lists the sessions; changing the password signs out every other one', async ({
     page,
     browser,

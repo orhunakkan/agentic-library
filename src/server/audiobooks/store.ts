@@ -1,10 +1,10 @@
 import '@tanstack/react-start/server-only'
 import type { AudioChapter } from '../../shared/audiobooks/chapters.ts'
 import type { AudiobookStart } from '../../shared/audiobooks/input.ts'
-import { AUDIO_MEDIA_TYPE, type AudioFileType, MAX_USER_AUDIO_BYTES } from '../../shared/audiobooks/limits.ts'
+import { AUDIO_MEDIA_TYPE, type AudioFileType } from '../../shared/audiobooks/limits.ts'
 import type { PrivateCoverMeta } from '../../shared/content/private-book.ts'
 import type { BookDetails } from '../../shared/import/details.ts'
-import { MAX_BOOKS } from '../../shared/import/limits.ts'
+import type { InstanceLimits } from '../../shared/limits/limits.ts'
 import { recordEvent } from '../audit.ts'
 import { type CoverColumns, coverMetaOf } from '../book-details/store.ts'
 import type { Db, Pool } from '../db.ts'
@@ -30,17 +30,17 @@ export function startAudiobook(
   pool: Pool,
   userId: number,
   book: AudiobookStart,
-  now = new Date(),
-  maxBooks = MAX_BOOKS,
+  now: Date,
+  limits: InstanceLimits,
 ): Promise<StartResult> {
   const bytes = book.files.reduce((n, b) => n + b, 0)
   return pool.begin(async (tx): Promise<StartResult> => {
     await tx`select id from users where id = ${userId} for update`
     await sweepStaleUploads(tx, userId)
     if (await retryAtLocked(tx, userId, 'import', now)) return { ok: false, quota: 'rate', max: IMPORT_LIMIT.max }
-    if ((await countedBooks(tx, userId)) >= maxBooks) return { ok: false, quota: 'books', max: maxBooks }
-    if ((await audioBytesUsed(tx, userId)) + bytes > MAX_USER_AUDIO_BYTES)
-      return { ok: false, quota: 'audio', max: MAX_USER_AUDIO_BYTES }
+    if ((await countedBooks(tx, userId)) >= limits.books) return { ok: false, quota: 'books', max: limits.books }
+    if ((await audioBytesUsed(tx, userId)) + bytes > limits.userAudioBytes)
+      return { ok: false, quota: 'audio', max: limits.userAudioBytes }
     const { details } = book
     const [row] = await tx<{ id: string }[]>`
       insert into user_books

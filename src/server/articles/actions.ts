@@ -4,7 +4,6 @@ import {
   type ArticleErrorCode,
   type ArticlesState,
   type ArticleView,
-  MAX_ARTICLES,
   siteOf,
   type WebFetchProblem,
 } from '../../shared/articles/contract.ts'
@@ -136,11 +135,13 @@ function toArticleView(article: UserArticle): ArticleView {
 export function articlesState(request: Request): Promise<ArticlesState> {
   return signedInRead(request, 'articles', async ({ session, db }): Promise<ArticlesState> => {
     const [articles, used] = await Promise.all([listArticles(db, session.userId), imageBytesUsed(db, session.userId)])
+    const { limits, articleTestHosts } = getConfig()
     return {
       state: 'ready',
       articles: articles.map(toArticleView),
-      max: MAX_ARTICLES,
-      testHosts: getConfig().articleTestHosts,
+      max: limits.articles,
+      limits,
+      testHosts: articleTestHosts,
       imageBytesUsed: used,
     }
   })

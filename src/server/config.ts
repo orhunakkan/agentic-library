@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
+import { GB } from '../shared/audiobooks/limits.ts'
+import { KB, MAX_BOOK_HTML_BYTES, MB } from '../shared/import/limits.ts'
+import { DEFAULT_LIMITS, type InstanceLimits } from '../shared/limits/limits.ts'
 import { SIGNUP_MODES, type SignupMode } from '../shared/signup/signup.ts'
 import { parseEmail } from './email/input.ts'
 
@@ -35,6 +38,7 @@ export interface Config {
   voicesDir: string
   audiobooksDir: string | null
   articleTestHosts: string[]
+  limits: InstanceLimits
 }
 
 export interface SiteContact {
@@ -199,6 +203,45 @@ function parseSiteContact(value: string | undefined): SiteContact | null {
   throw new ConfigError('SITE_CONTACT must be an email address or an https:// URL of at most 200 characters')
 }
 
+/** Sizes are binary, as in the rest of the code: 1GB is 1024³ bytes. */
+const SIZE_UNITS = { KB, MB, GB } as const
+const SIZE = /^(\d{1,7}) ?(KB|MB|GB)$/i
+
+function parseSize(value: string | undefined, name: string, fallback: number): number {
+  const text = value?.trim()
+  if (!text) return fallback
+  const match = SIZE.exec(text)
+  const unit = match?.[2]?.toUpperCase() as keyof typeof SIZE_UNITS | undefined
+  const bytes = match && unit ? Number(match[1]) * SIZE_UNITS[unit] : 0
+  if (!bytes || !Number.isSafeInteger(bytes))
+    throw new ConfigError(`${name} must be a size such as 500MB or 2GB, got "${value}"`)
+  return bytes
+}
+
+function parseCount(value: string | undefined, name: string, fallback: number): number {
+  const text = value?.trim()
+  if (!text) return fallback
+  const count = /^\d{1,9}$/.test(text) ? Number(text) : 0
+  if (!count) throw new ConfigError(`${name} must be a whole number above 0, got "${value}"`)
+  return count
+}
+
+function parseLimits(env: Env): InstanceLimits {
+  const limits: InstanceLimits = {
+    userAudioBytes: parseSize(env.LIMIT_USER_AUDIO, 'LIMIT_USER_AUDIO', DEFAULT_LIMITS.userAudioBytes),
+    audiobookBytes: parseSize(env.LIMIT_AUDIOBOOK_SIZE, 'LIMIT_AUDIOBOOK_SIZE', DEFAULT_LIMITS.audiobookBytes),
+    userPictureBytes: parseSize(env.LIMIT_USER_PICTURES, 'LIMIT_USER_PICTURES', DEFAULT_LIMITS.userPictureBytes),
+    books: parseCount(env.LIMIT_BOOKS, 'LIMIT_BOOKS', DEFAULT_LIMITS.books),
+    articles: parseCount(env.LIMIT_ARTICLES, 'LIMIT_ARTICLES', DEFAULT_LIMITS.articles),
+    articleTextBytes: parseSize(env.LIMIT_ARTICLE_TEXT, 'LIMIT_ARTICLE_TEXT', DEFAULT_LIMITS.articleTextBytes),
+  }
+  if (limits.audiobookBytes > limits.userAudioBytes)
+    throw new ConfigError('LIMIT_AUDIOBOOK_SIZE must not be larger than LIMIT_USER_AUDIO')
+  if (limits.articleTextBytes > MAX_BOOK_HTML_BYTES)
+    throw new ConfigError('LIMIT_ARTICLE_TEXT must be at most 8MB, the most text a book can hold')
+  return limits
+}
+
 export function parseConfig(env: Env, readFile: ReadFile = readOptionalFile): Config {
   const production = env.NODE_ENV === 'production'
   const credential = (name: string) =>
@@ -260,6 +303,7 @@ export function parseConfig(env: Env, readFile: ReadFile = readOptionalFile): Co
     voicesDir: voicesDirOf(env),
     audiobooksDir: parseAudiobooksDir(env.AUDIOBOOKS_DIR),
     articleTestHosts: parseArticleTestHosts(env.ARTICLE_TEST_HOSTS, appOrigin),
+    limits: parseLimits(env),
   }
 }
 

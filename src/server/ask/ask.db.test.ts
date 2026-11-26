@@ -16,6 +16,7 @@ import { setAiModel } from '~/server/users'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { anthropicStub, STUB_KEYS, STUB_RIGHT_ANSWER } from '../../../tests/e2e/support/anthropic-stub'
 import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/e2e/support/openai-stub'
 import { NO_DETAILS } from '../../shared/import/details.ts'
@@ -249,18 +250,31 @@ describe('POST /read/<book>/ask', () => {
   describe('a private book', () => {
     async function withBook() {
       const owner = await reader()
-      const start = await startImport(db(), owner.user.id, {
-        title: 'My Notes',
-        author: 'Ada',
-        language: 'en',
-        details: NO_DETAILS,
-        chapterCount: 1,
-      })
+      const start = await startImport(
+        db(),
+        owner.user.id,
+        {
+          title: 'My Notes',
+          author: 'Ada',
+          language: 'en',
+          details: NO_DETAILS,
+          chapterCount: 1,
+        },
+        new Date(),
+        DEFAULT_LIMITS,
+      )
       if (!start.ok) throw new Error('could not start')
-      await storeChapter(db(), owner.user.id, start.id, 0, {
-        title: 'Only',
-        pages: ['<p>First page.</p>', '<p>Second page.</p>'],
-      })
+      await storeChapter(
+        db(),
+        owner.user.id,
+        start.id,
+        0,
+        {
+          title: 'Only',
+          pages: ['<p>First page.</p>', '<p>Second page.</p>'],
+        },
+        DEFAULT_LIMITS,
+      )
       expect(await finishImport(db(), owner.user.id, start.id, null)).toBe('ok')
       return { owner, slug: privateBookSlug(start.id) }
     }
@@ -730,18 +744,31 @@ describe('Ask for a quiz or flashcards', () => {
 
   it('refuses with too_little on a first chapter’s short page, before calling Anthropic or auditing (422)', async () => {
     const { user, cookie } = await reader()
-    const start = await startImport(db(), user.id, {
-      title: 'Short',
-      author: 'Ada',
-      language: 'en',
-      details: NO_DETAILS,
-      chapterCount: 1,
-    })
+    const start = await startImport(
+      db(),
+      user.id,
+      {
+        title: 'Short',
+        author: 'Ada',
+        language: 'en',
+        details: NO_DETAILS,
+        chapterCount: 1,
+      },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
     if (!start.ok) throw new Error('could not start')
-    await storeChapter(db(), user.id, start.id, 0, {
-      title: 'Only',
-      pages: ['<p>A title page.</p>', `<p>${'Plenty of text. '.repeat(40)}</p>`],
-    })
+    await storeChapter(
+      db(),
+      user.id,
+      start.id,
+      0,
+      {
+        title: 'Only',
+        pages: ['<p>A title page.</p>', `<p>${'Plenty of text. '.repeat(40)}</p>`],
+      },
+      DEFAULT_LIMITS,
+    )
     expect(await finishImport(db(), user.id, start.id, null)).toBe('ok')
     const slug = privateBookSlug(start.id)
     const { sent, fetch } = capturing()

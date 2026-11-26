@@ -101,4 +101,23 @@ test.describe('Articles', () => {
     await expect(page.getByTestId('articles-deleted')).toHaveText('Article deleted.')
     await expect(articlesPage.empty).toBeVisible()
   })
+
+  test('an article over the text cap is refused with the cap, and isn’t kept', async ({
+    page,
+    baseURL,
+    articlesPage,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'A refusal on the page; one layout is enough.')
+    const url = articleUrl((baseURL ?? '').replace('localhost', '127.0.0.1'), 'long')
+    await createUser(page.request, { signedIn: true })
+    await articlesPage.goto()
+    await hydrated(page)
+    await articlesPage.save(url)
+    await expect(articlesPage.error).toHaveText('This article is over 1 MB of text, the most an article can hold.', {
+      timeout: 30_000,
+    })
+    await articlesPage.goto()
+    await expect(articlesPage.empty).toBeVisible()
+    await expect(articlesPage.count).toHaveText('0 of 500 articles')
+  })
 })

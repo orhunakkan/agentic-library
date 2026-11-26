@@ -35,6 +35,7 @@ import type { ChapterBook } from '~/shared/content/schema'
 import type { HighlightView } from '~/shared/highlights/group'
 import { MAX_HIGHLIGHTS_PER_BOOK, MAX_HIGHLIGHTS_PER_USER } from '~/shared/highlights/limits'
 import { bookPages } from '~/shared/highlights/page-text'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { databaseUrl, freshDatabase } from '../testing/db'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -76,15 +77,21 @@ async function created(userId: number, book: BookRef, over: Partial<NewHighlight
 }
 
 async function privateBook(userId: number): Promise<BookRef> {
-  const start = await startImport(db(), userId, {
-    title: 'Notes',
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title: 'Notes',
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
-  await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
+  await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return privateRef(start.id)
 }
@@ -149,13 +156,19 @@ describe('the store', () => {
 
   it('refuses a highlight on a private book that is still uploading', async () => {
     const user = await newUser()
-    const start = await startImport(db(), user.id, {
-      title: 'N',
-      author: 'A',
-      language: 'en',
-      details: NO_DETAILS,
-      chapterCount: 1,
-    })
+    const start = await startImport(
+      db(),
+      user.id,
+      {
+        title: 'N',
+        author: 'A',
+        language: 'en',
+        details: NO_DETAILS,
+        chapterCount: 1,
+      },
+      new Date(),
+      DEFAULT_LIMITS,
+    )
     if (!start.ok) throw new Error('could not start')
     expect(await createHighlight(db(), user.id, privateRef(start.id), row())).toBe('missing')
   })

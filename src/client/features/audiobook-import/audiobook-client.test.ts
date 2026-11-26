@@ -27,7 +27,7 @@ describe('startAudiobook', () => {
 
   it('names each refusal, and a network failure', async () => {
     vi.stubGlobal('fetch', reply(409, { error: 'quota', scope: 'audio', max: 1 }))
-    expect(await startAudiobook(START)).toEqual({ ok: false, problem: { code: 'room' } })
+    expect(await startAudiobook(START)).toEqual({ ok: false, problem: { code: 'room', max: 1 } })
     vi.stubGlobal('fetch', reply(201, {}))
     expect(await startAudiobook(START)).toEqual({ ok: false, problem: { code: 'failed' } })
     vi.stubGlobal(
@@ -41,9 +41,11 @@ describe('startAudiobook', () => {
 describe('problemOf', () => {
   it('maps every code', () => {
     expect(problemOf(409, { error: 'quota', scope: 'server' })).toEqual({ code: 'server-full' })
-    expect(problemOf(409, { error: 'quota', scope: 'audio' })).toEqual({ code: 'room' })
+    expect(problemOf(409, { error: 'quota', scope: 'audio', max: 1024 })).toEqual({ code: 'room', max: 1024 })
+    expect(problemOf(409, { error: 'quota', scope: 'audio' })).toEqual({ code: 'failed' })
     expect(problemOf(409, { error: 'quota', scope: 'rate' })).toEqual({ code: 'rate' })
-    expect(problemOf(409, { error: 'quota', scope: 'books' })).toEqual({ code: 'books' })
+    expect(problemOf(409, { error: 'quota', scope: 'books', max: 2 })).toEqual({ code: 'books', max: 2 })
+    expect(problemOf(409, { error: 'quota', scope: 'books' })).toEqual({ code: 'failed' })
     expect(problemOf(400, { error: 'drm' })).toEqual({ code: 'drm' })
     expect(problemOf(400, { error: 'unreadable', reason: 'x' })).toEqual({ code: 'server-unreadable', reason: 'x' })
     expect(problemOf(400, { error: 'unreadable' })).toEqual({

@@ -26,6 +26,7 @@ import {
 } from '~/server/shelves/store'
 import { toShelfViews } from '~/server/shelves/view'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import type { ShelfView } from '~/shared/shelves/contract'
 import { MAX_SHELF_BOOKS_PER_USER, MAX_SHELVES_PER_USER, shelfNameKey } from '~/shared/shelves/shelves'
 import { databaseUrl, freshDatabase } from '../testing/db'
@@ -58,16 +59,22 @@ async function shelf(userId: number, name: string, book: BookRef | null = null):
 }
 
 async function privateBook(userId: number, finish = true): Promise<BookRef & { userBookId: string }> {
-  const start = await startImport(db(), userId, {
-    title: 'Notes',
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title: 'Notes',
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
   if (finish) {
-    await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
+    await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
   return privateRef(start.id)

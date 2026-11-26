@@ -43,12 +43,3 @@ export function relativeTime(then: number, now: number): string {
   })
   return `on ${format.format(date)}`
 }
-
-const KB = 1024
-const MB = 1024 * KB
-
-export function formatBytes(bytes: number): string {
-  const kb = Math.max(1, Math.round(bytes / KB))
-  if (kb < 1024) return `${kb} KB`
-  return `${(bytes / MB).toFixed(1)} MB`
-}

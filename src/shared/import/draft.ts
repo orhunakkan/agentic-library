@@ -8,7 +8,6 @@ import {
   MAX_CHAPTER_REQUEST_BYTES,
   MAX_CHAPTERS,
   MAX_SOURCE_BYTES,
-  MAX_USER_IMAGE_BYTES,
   MB,
 } from './limits.ts'
 import { readMarkdownFile, readMarkdownZip } from './markdown.ts'
@@ -143,7 +142,7 @@ export interface PictureRoom {
   userBytesLeft: number
 }
 
-export const BOOK_ROOM = (userBytesLeft = MAX_USER_IMAGE_BYTES): PictureRoom => ({
+export const BOOK_ROOM = (userBytesLeft: number): PictureRoom => ({
   count: MAX_BOOK_IMAGES,
   bytes: MAX_BOOK_IMAGE_BYTES,
   userBytesLeft,

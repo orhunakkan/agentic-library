@@ -173,7 +173,7 @@ describe('planPictures', () => {
   ]
 
   it('numbers the kept pictures by first appearance, the same picture twice as one', () => {
-    const plan = planPictures(book, state, BOOK_ROOM())
+    const plan = planPictures(book, state, BOOK_ROOM(250 * 1024 * 1024))
     expect(plan.uploads).toEqual([2, 1, 5])
     expect(plan.bytes).toBe(300)
     expect(plan.chapters.map((c) => c.blocks)).toEqual([
@@ -193,7 +193,7 @@ describe('planPictures', () => {
 
   it('counts only the chapters kept, dropped or merged', () => {
     const merged = mergeIntoPrevious(dropChapter(book, 0), 1)
-    const plan = planPictures(merged, state, BOOK_ROOM())
+    const plan = planPictures(merged, state, BOOK_ROOM(250 * 1024 * 1024))
     expect(plan.uploads).toEqual([1, 5])
     expect(plan.leftOut).toMatchObject({ remote: 1, unreadable: 1 })
   })
@@ -213,7 +213,10 @@ describe('planPictures', () => {
   })
 
   it('counts a picture the browser never got to as unreadable', () => {
-    expect(planPictures([{ title: 'T', blocks: [pic(9)] }], () => undefined, BOOK_ROOM()).leftOut.unreadable).toBe(1)
+    expect(
+      planPictures([{ title: 'T', blocks: [pic(9)] }], () => undefined, BOOK_ROOM(250 * 1024 * 1024)).leftOut
+        .unreadable,
+    ).toBe(1)
   })
 
   it('renders the preview with the pictures it is given', () => {

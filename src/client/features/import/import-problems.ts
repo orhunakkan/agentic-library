@@ -1,13 +1,18 @@
 import type { ChapterProblem } from '~/shared/import/draft'
-import { MAX_BOOKS, MAX_CHAPTERS } from '~/shared/import/limits'
-import type { ImportProblem } from './import-client'
+import { MAX_CHAPTERS } from '~/shared/import/limits'
+import type { ImportProblem, Refusal } from './import-client'
 import type { PrivateBookResult } from './private-book-save'
 
 /** What a reader at the book limit is told, whether they pick a book or an audiobook. */
-export const BOOK_QUOTA_TEXT = `You have ${MAX_BOOKS} of your own books. Delete one to import another.`
+export const bookQuotaText = (max: number) =>
+  `Your library holds up to ${max} book${max === 1 ? '' : 's'}. Delete one to import another.`
 
-export const IMPORT_PROBLEM_TEXT: Record<ImportProblem, string> = {
-  quota: BOOK_QUOTA_TEXT,
+/** For a quota refusal that doesn't name its limit, which the server always does. */
+const LIBRARY_FULL = 'Your library is full. Delete a book to import another.'
+
+const FAILED_TEXT = 'Something went wrong while saving. Try again in a few minutes.'
+
+export const IMPORT_PROBLEM_TEXT: Record<Exclude<ImportProblem, 'quota'>, string> = {
   'quota-user': 'This book’s pictures no longer fit the room left in your library. Choose the file again to review it.',
   rate: 'You’ve imported 10 books in the last hour. Try again later.',
   'book-too-large': 'This book is over 8 MB of text, the most a book can hold. Drop some chapters and try again.',
@@ -18,7 +23,9 @@ export const IMPORT_PROBLEM_TEXT: Record<ImportProblem, string> = {
   'signed-out': 'You’ve been signed out. Sign in again, then import the book again.',
   'not-found': 'The import was interrupted. Try again.',
   incomplete: 'The import was interrupted. Try again.',
-  failed: 'Something went wrong while saving. Try again in a few minutes.',
+  /** Only an article is held to the article text cap, and the article form says so itself. */
+  'article-too-large': FAILED_TEXT,
+  failed: FAILED_TEXT,
 }
 
 export const SAVE_FAILED = IMPORT_PROBLEM_TEXT.failed
@@ -36,13 +43,16 @@ const CHECK_TEXT: Record<ChapterProblem, string> = {
 
 export type ImportSaveFailure =
   | { ok: false; problem: ChapterProblem }
-  | Exclude<PrivateBookResult<{ ok: false; problem: ImportProblem }>, { ok: true }>
+  | Exclude<PrivateBookResult<Refusal<ImportProblem>>, { ok: true }>
 
-const problemText = (problem: ImportProblem) => IMPORT_PROBLEM_TEXT[problem] ?? SAVE_FAILED
+function problemText(problem: ImportProblem, max?: number): string {
+  if (problem === 'quota') return max === undefined ? LIBRARY_FULL : bookQuotaText(max)
+  return IMPORT_PROBLEM_TEXT[problem] ?? SAVE_FAILED
+}
 
 export function importSaveText(failure: ImportSaveFailure): string {
   if (!('at' in failure)) return CHECK_TEXT[failure.problem]
-  if (failure.at === 'start') return problemText(failure.refused.problem)
+  if (failure.at === 'start') return problemText(failure.refused.problem, failure.refused.max)
   if (failure.at === 'picture') return PICTURE_FAILED
   return problemText(failure.problem)
 }

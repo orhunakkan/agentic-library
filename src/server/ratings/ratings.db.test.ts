@@ -18,6 +18,7 @@ import { clearRating, getRating, setRating } from '~/server/ratings/store'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { databaseUrl, freshDatabase } from '../testing/db'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -39,16 +40,22 @@ const PROPHET: BookRef = refFor('the-prophet')
 const NOWHERE = '6f1c0000-0000-4000-8000-000000000000'
 
 async function privateBook(userId: number, finish = true): Promise<BookRef & { userBookId: string }> {
-  const start = await startImport(db(), userId, {
-    title: 'Notes',
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title: 'Notes',
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
   if (finish) {
-    await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] })
+    await storeChapter(db(), userId, start.id, 0, { title: 'Only', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
   return privateRef(start.id)

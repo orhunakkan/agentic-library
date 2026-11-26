@@ -8,6 +8,7 @@ import { type CoverRefusal, refusalOf } from '~/client/features/import/private-b
 import { formatLength } from '~/shared/audiobooks/chapters'
 import { fileSize } from '~/shared/content/private-book'
 import { isBadIsbn } from '~/shared/import/isbn'
+import type { InstanceLimits } from '~/shared/limits/limits'
 import { finishAudiobook, sendChunk, startAudiobook } from './audiobook-client'
 import { type AudiobookProblem, isResumable, problemText } from './audiobook-problems'
 import { type AudiobookDraft, AudiobookReadError, readAudiobook } from './read-audiobook'
@@ -39,11 +40,13 @@ function summary(draft: AudiobookDraft): string {
 export function AudiobookImporter({
   files,
   audioBytesUsed,
+  limits,
   onImported,
   onCancel,
 }: {
   files: File[]
   audioBytesUsed: number
+  limits: InstanceLimits
   onImported: (id: string, coverRefusal?: CoverRefusal) => Promise<void>
   onCancel: (error?: string) => void
 }) {
@@ -58,6 +61,7 @@ export function AudiobookImporter({
     const reading = new AbortController()
     void readAudiobook(files, {
       audioBytesUsed,
+      limits,
       signal: reading.signal,
       onProgress: (done, total) => !reading.signal.aborted && setStage({ kind: 'reading', done, total }),
     }).then(
@@ -69,7 +73,7 @@ export function AudiobookImporter({
       },
     )
     return () => reading.abort()
-  }, [files, audioBytesUsed])
+  }, [files, audioBytesUsed, limits])
 
   const busy = stage.kind === 'uploading' || stage.kind === 'stopped' || stage.kind === 'checking'
   useEffect(() => {

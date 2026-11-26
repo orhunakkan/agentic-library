@@ -3,8 +3,9 @@ import type { PrivateCoverMeta } from '../shared/content/private-book.ts'
 import type { ChapterBook } from '../shared/content/schema.ts'
 import type { BookUpload } from '../shared/import/blocks.ts'
 import type { BookDetails } from '../shared/import/details.ts'
-import { MAX_BOOK_HTML_BYTES, MAX_BOOKS, MAX_USER_IMAGE_BYTES, STALE_UPLOAD_HOURS } from '../shared/import/limits.ts'
+import { MAX_BOOK_HTML_BYTES, STALE_UPLOAD_HOURS } from '../shared/import/limits.ts'
 import { slugify, uniqueSlug } from '../shared/import/slug.ts'
+import type { InstanceLimits } from '../shared/limits/limits.ts'
 import { isUuid } from '../shared/uuid.ts'
 import { recordEvent } from './audit.ts'
 import { type CoverColumns, coverMetaOf } from './book-details/store.ts'
@@ -92,15 +93,14 @@ export async function findArticle(db: Db, userId: number, url: string): Promise<
 
 export interface ArticleStart {
   url: string
-  max: number
 }
 
 export async function startImport(
   pool: Pool,
   userId: number,
   book: Omit<BookUpload, 'images'> & { images?: BookUpload['images'] },
-  now = new Date(),
-  maxBooks = MAX_BOOKS,
+  now: Date,
+  limits: InstanceLimits,
   article?: ArticleStart,
 ): Promise<StartResult> {
   const images = book.images ?? { count: 0, bytes: 0 }
@@ -112,13 +112,15 @@ export async function startImport(
       if (retryAt) return { ok: false, reason: 'rate', retryAt }
       const existing = await findArticle(tx, userId, article.url)
       if (existing) return { ok: false, reason: 'exists', id: existing }
-      if ((await countedArticles(tx, userId)) >= article.max) return { ok: false, reason: 'quota', max: article.max }
+      if ((await countedArticles(tx, userId)) >= limits.articles)
+        return { ok: false, reason: 'quota', max: limits.articles }
     } else {
       if (await retryAtLocked(tx, userId, 'import', now)) return { ok: false, reason: 'rate' }
-      if ((await countedBooks(tx, userId)) >= maxBooks) return { ok: false, reason: 'quota', max: maxBooks }
+      if ((await countedBooks(tx, userId)) >= limits.books) return { ok: false, reason: 'quota', max: limits.books }
     }
-    const left = MAX_USER_IMAGE_BYTES - (await imageBytesUsed(tx, userId))
-    if (images.bytes > left) return { ok: false, reason: 'room', max: MAX_USER_IMAGE_BYTES }
+    const left = limits.userPictureBytes - (await imageBytesUsed(tx, userId))
+    /** Only pictures need room, so a reader past a lowered limit can still import a book without any. */
+    if (images.bytes > 0 && images.bytes > left) return { ok: false, reason: 'room', max: limits.userPictureBytes }
     const [row] = await tx<{ id: string }[]>`
       insert into user_books
         (user_id, title, author, language, chapter_count, description, isbn, publisher, published_year,
@@ -128,11 +130,11 @@ export async function startImport(
         ${images.count}, ${images.bytes}, ${article?.url ?? null})
       returning id`
     if (!row) throw new Error('insert returned no row')
-    return { ok: true, id: row.id, imageBytesLeft: left - images.bytes }
+    return { ok: true, id: row.id, imageBytesLeft: Math.max(0, left - images.bytes) }
   })
 }
 
-export type ChapterResult = 'ok' | 'missing' | 'position' | 'too-big'
+export type ChapterResult = 'ok' | 'missing' | 'position' | 'too-big' | 'article-too-big'
 
 const byteLength = (pages: readonly string[]) => pages.reduce((n, p) => n + Buffer.byteLength(p, 'utf8'), 0)
 
@@ -142,10 +144,11 @@ export async function storeChapter(
   bookId: string,
   position: number,
   chapter: { title: string; pages: string[] },
+  limits: InstanceLimits,
 ): Promise<ChapterResult> {
   return pool.begin(async (tx): Promise<ChapterResult> => {
-    const [book] = await tx<{ chapter_count: number; html_bytes: string }[]>`
-      select chapter_count, html_bytes from user_books
+    const [book] = await tx<{ chapter_count: number; html_bytes: string; article_url: string | null }[]>`
+      select chapter_count, html_bytes, article_url from user_books
       where id = ${bookId} and user_id = ${userId} and status = 'uploading'
       for update`
     if (!book) return 'missing'
@@ -154,6 +157,11 @@ export async function storeChapter(
       select (select coalesce(sum(octet_length(p)), 0) from jsonb_array_elements_text(pages) p) as bytes
       from user_book_chapters where book_id = ${bookId} and position = ${position}`
     const total = Number(book.html_bytes) - Number(previous?.bytes ?? 0) + byteLength(chapter.pages)
+    if (book.article_url !== null && total > limits.articleTextBytes) {
+      /** A refused article is deleted at once, so it holds no place in the quota and its pictures no room. */
+      await tx`delete from user_books where id = ${bookId} and user_id = ${userId}`
+      return 'article-too-big'
+    }
     if (total > MAX_BOOK_HTML_BYTES) return 'too-big'
 
     const others = await tx<{ slug: string }[]>`

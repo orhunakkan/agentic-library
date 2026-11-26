@@ -1,6 +1,7 @@
 import { timeOfDay } from '~/client/lib/format'
-import { type ArticleUrlProblem, MAX_ARTICLES, type WebFetchProblem } from '~/shared/articles/contract'
+import type { ArticleUrlProblem, WebFetchProblem } from '~/shared/articles/contract'
 import { readTimeText } from '~/shared/articles/read-time'
+import { formatBytes } from '~/shared/lib/format-bytes'
 
 export type ArticleProblem =
   | ArticleUrlProblem
@@ -9,6 +10,7 @@ export type ArticleProblem =
   | 'no_article'
   | 'exists'
   | 'quota'
+  | 'article_too_large'
   | 'expired'
   | 'limited'
   | 'busy'
@@ -20,7 +22,7 @@ export const EMPTY_TEXT = 'You haven’t saved an article yet.'
 export const NEEDS_JAVASCRIPT = 'Saving articles needs JavaScript.'
 export const DELETE_NOTE = 'Deleted articles are removed at once. Nightly backups keep a copy for up to 14 days.'
 
-const SENTENCES: Record<Exclude<ArticleProblem, 'quota' | 'limited'>, string> = {
+const SENTENCES: Record<Exclude<ArticleProblem, 'quota' | 'limited' | 'article_too_large'>, string> = {
   empty: 'Paste an article’s address.',
   too_long: 'That address is too long.',
   not_url: 'That isn’t a web address. Paste one like https://example.com/a-long-read.',
@@ -52,7 +54,13 @@ export interface ProblemContext {
 
 export function articleProblemText(problem: ArticleProblem, context: ProblemContext = {}): string {
   if (problem === 'quota')
-    return `You have ${context.max ?? MAX_ARTICLES} saved articles, the most an account can keep. Delete one to save another.`
+    return context.max === undefined
+      ? 'You have as many saved articles as an account can keep. Delete one to save another.'
+      : `You have ${context.max} saved articles, the most an account can keep. Delete one to save another.`
+  if (problem === 'article_too_large')
+    return context.max
+      ? `This article is over ${formatBytes(context.max)} of text, the most an article can hold.`
+      : 'This article has more text than an article can hold.'
   if (problem === 'limited') {
     const base = 'You’ve saved a lot in the last hour.'
     return context.retryAt

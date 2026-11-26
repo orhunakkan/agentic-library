@@ -19,6 +19,7 @@ import { createSession } from '~/server/sessions'
 import { finishImport, startImport, storeChapter } from '~/server/user-books'
 import { setAiModel } from '~/server/users'
 import { NO_DETAILS } from '~/shared/import/details'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { anthropicStub, STUB_KEYS } from '../../../tests/e2e/support/anthropic-stub'
 import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/e2e/support/openai-stub'
 import { STUB_TERMS, wikimediaStub } from '../../../tests/e2e/support/wikimedia-stub'
@@ -58,16 +59,22 @@ async function reader({ withKey = key() as string | null } = {}) {
 }
 
 async function privateBook(userId: number, language: string, ready = true) {
-  const start = await startImport(db(), userId, {
-    title: 'Carnet',
-    author: 'Ada',
-    language,
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title: 'Carnet',
+      author: 'Ada',
+      language,
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
   if (ready) {
-    await storeChapter(db(), userId, start.id, 0, { title: 'Un', pages: ['<p>Paris.</p>'] })
+    await storeChapter(db(), userId, start.id, 0, { title: 'Un', pages: ['<p>Paris.</p>'] }, DEFAULT_LIMITS)
     expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   }
   return privateBookSlug(start.id)

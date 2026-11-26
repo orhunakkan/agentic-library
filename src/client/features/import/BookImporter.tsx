@@ -37,16 +37,11 @@ import {
   sourceKind,
 } from '~/shared/import/draft'
 import { isBadIsbn } from '~/shared/import/isbn'
-import {
-  DESCRIPTION_MAX,
-  MAX_BOOK_IMAGES,
-  MAX_SOURCE_BYTES,
-  MAX_USER_IMAGE_BYTES,
-  MB,
-  PUBLISHER_MAX,
-} from '~/shared/import/limits'
+import { DESCRIPTION_MAX, MAX_BOOK_IMAGES, MAX_SOURCE_BYTES, MB, PUBLISHER_MAX } from '~/shared/import/limits'
 import type { PdfOverrides } from '~/shared/import/pdf/types'
 import type { RenderContext } from '~/shared/import/render'
+import { formatBytes } from '~/shared/lib/format-bytes'
+import type { InstanceLimits } from '~/shared/limits/limits'
 import { BOOK_STEPS } from './import-client'
 import { BAD_ISBN, importSaveText, PICTURE_FAILED, SAVE_FAILED } from './import-problems'
 import { latestPick, type PickToken } from './latest-pick'
@@ -102,10 +97,12 @@ export function BookImporter({
   audiobooks = false,
   audioBytesUsed = 0,
   bookCount = 0,
+  limits,
   onImported,
 }: {
   imageBytesUsed: number
   bookCount?: number
+  limits: InstanceLimits
   audiobooks?: boolean
   audioBytesUsed?: number
   onImported: (id: string, coverRefusal?: CoverRefusal) => Promise<void>
@@ -229,7 +226,7 @@ export function BookImporter({
   function pick(files: File[]) {
     const route = routePick(files)
     if (!route) return
-    const refused = pickRefusal(route.kind, bookCount)
+    const refused = pickRefusal(route.kind, bookCount, limits.books)
     if (refused) {
       picks.invalidate()
       return setStage({ kind: 'pick', error: refused })
@@ -258,6 +255,7 @@ export function BookImporter({
         <AudiobookImporter
           files={stage.files}
           audioBytesUsed={audioBytesUsed}
+          limits={limits}
           onImported={onImported}
           onCancel={backToPicker}
         />
@@ -270,7 +268,8 @@ export function BookImporter({
       draft={stage.draft}
       error={stage.kind === 'review' ? stage.error : undefined}
       saving={stage.kind === 'saving' ? stage.progress : null}
-      imageBytesLeft={Math.max(0, MAX_USER_IMAGE_BYTES - imageBytesUsed)}
+      imageBytesLeft={Math.max(0, limits.userPictureBytes - imageBytesUsed)}
+      userPictureBytes={limits.userPictureBytes}
       chaptersLocked={pdf?.rereading ?? false}
       howRead={
         pdf && (
@@ -446,6 +445,7 @@ interface ReviewProps {
   error?: string
   saving: SaveProgress | null
   imageBytesLeft: number
+  userPictureBytes: number
   howRead?: ReactNode
   chaptersLocked?: boolean
   onChange: (draft: DraftBook) => void
@@ -510,6 +510,7 @@ function Review({
   error,
   saving,
   imageBytesLeft,
+  userPictureBytes,
   howRead,
   chaptersLocked = false,
   onChange,
@@ -618,7 +619,14 @@ function Review({
             ({draft.chapters.length})
           </span>
         </legend>
-        {hasPictures && <PictureSummary reading={reading} plan={plan} imageBytesLeft={imageBytesLeft} />}
+        {hasPictures && (
+          <PictureSummary
+            reading={reading}
+            plan={plan}
+            imageBytesLeft={imageBytesLeft}
+            userPictureBytes={userPictureBytes}
+          />
+        )}
         <ol className="mt-3 divide-y divide-line rounded-xl border border-line">
           {draft.chapters.map((chapter, i) => (
             <ChapterRow
@@ -682,9 +690,7 @@ function savingText({ stage, done, total }: SaveProgress): string {
   return `Saving chapter ${Math.min(done + 1, total)} of ${total}…`
 }
 
-const megabytes = (bytes: number) => `${(bytes / MB).toFixed(bytes < 10 * MB ? 1 : 0).replace(/\.0$/, '')} MB`
-
-function reasonText(reason: LeftOutReason, n: number, imageBytesLeft: number): string {
+function reasonText(reason: LeftOutReason, n: number, imageBytesLeft: number, userPictureBytes: number): string {
   const count = n.toLocaleString('en-GB')
   switch (reason) {
     case 'remote':
@@ -698,7 +704,7 @@ function reasonText(reason: LeftOutReason, n: number, imageBytesLeft: number): s
     case 'book':
       return `${count} past this book’s limit of ${MAX_BOOK_IMAGES} pictures or 30 MB`
     case 'room':
-      return `${count} past the room left in your library (${megabytes(imageBytesLeft)} of ${megabytes(MAX_USER_IMAGE_BYTES)})`
+      return `${count} past the room left in your library (${formatBytes(imageBytesLeft)} of ${formatBytes(userPictureBytes)})`
   }
 }
 
@@ -706,10 +712,12 @@ function PictureSummary({
   reading,
   plan,
   imageBytesLeft,
+  userPictureBytes,
 }: {
   reading: boolean
   plan: PicturePlan
   imageBytesLeft: number
+  userPictureBytes: number
 }) {
   if (reading)
     return (
@@ -738,7 +746,7 @@ function PictureSummary({
           </summary>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">
             {reasons.map((r) => (
-              <li key={r}>{reasonText(r, plan.leftOut[r], imageBytesLeft)}</li>
+              <li key={r}>{reasonText(r, plan.leftOut[r], imageBytesLeft, userPictureBytes)}</li>
             ))}
           </ul>
         </details>

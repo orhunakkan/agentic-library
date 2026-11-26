@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { parseBlob } from 'music-metadata'
 import { describe, expect, it, vi } from 'vitest'
-import { GB } from '~/shared/audiobooks/limits'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { AudiobookReadError, readAudiobook } from './read-audiobook'
 
 const fixture = (name: string, as = name) =>
   new File([readFileSync(new URL(`../../../../tests/fixtures/audio/${name}`, import.meta.url))], as)
 
 const read = (files: File[], options: Partial<Parameters<typeof readAudiobook>[1]> = {}) =>
-  readAudiobook(files, { audioBytesUsed: 0, ...options })
+  readAudiobook(files, { audioBytesUsed: 0, limits: DEFAULT_LIMITS, ...options })
 
 async function refusal(files: File[], options: Partial<Parameters<typeof readAudiobook>[1]> = {}) {
   try {
@@ -106,8 +106,16 @@ describe('readAudiobook', () => {
     ).toEqual({
       code: 'files',
     })
-    expect(await refusal([sized('a.m4b', 2 * GB + 1)], { parse })).toEqual({ code: 'large' })
-    expect(await refusal([sized('a.m4b', 10)], { parse, audioBytesUsed: 8 * GB - 9 })).toEqual({ code: 'room' })
+    const limits = { ...DEFAULT_LIMITS, userAudioBytes: 5000, audiobookBytes: 1000 }
+    expect(await refusal([sized('a.m4b', 1001)], { parse, limits })).toEqual({ code: 'large', max: 1000 })
+    expect(await refusal([sized('a.mp3', 500), sized('b.mp3', 501)], { parse, limits })).toEqual({
+      code: 'large',
+      max: 1000,
+    })
+    expect(await refusal([sized('a.m4b', 10)], { parse, limits, audioBytesUsed: 4991 })).toEqual({
+      code: 'room',
+      max: 5000,
+    })
     expect(parse).not.toHaveBeenCalled()
   })
 

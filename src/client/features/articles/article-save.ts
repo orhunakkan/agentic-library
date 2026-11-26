@@ -5,7 +5,6 @@ import type { ArticleFetch } from '~/shared/articles/contract'
 import type { PictureType } from '~/shared/import/blocks'
 import { BOOK_ROOM, type PictureState, planPictures, saveableChapters } from '~/shared/import/draft'
 import { sniffImage } from '~/shared/import/image'
-import { MAX_USER_IMAGE_BYTES } from '~/shared/import/limits'
 import type { DraftResult, ReadabilityResult } from './article-draft'
 import type { SaveStage } from './article-messages'
 import type { ArticleFailure, ArticleResult } from './articles-client'
@@ -43,7 +42,7 @@ async function inTwos(total: number, work: (i: number) => Promise<void>): Promis
 export async function saveArticle(
   url: string,
   steps: SaveSteps,
-  { imageBytesUsed = 0 }: { imageBytesUsed?: number },
+  { imageBytesUsed = 0, userPictureBytes }: { imageBytesUsed?: number; userPictureBytes: number },
   onProgress: (progress: SaveStage) => void,
 ): Promise<SaveOutcome> {
   onProgress({ stage: 'fetching' })
@@ -75,7 +74,11 @@ export async function saveArticle(
     } else states.set(pictureNumber, { ok: false, problem: drawn.problem })
     onProgress({ stage: 'pictures', done: ++fetched, total: wanted.length })
   })
-  const plan = planPictures(book.chapters, (n) => states.get(n), BOOK_ROOM(MAX_USER_IMAGE_BYTES - imageBytesUsed))
+  const plan = planPictures(
+    book.chapters,
+    (n) => states.get(n),
+    BOOK_ROOM(Math.max(0, userPictureBytes - imageBytesUsed)),
+  )
   const isSpacer = (state: PictureState | undefined) => state?.ok === false && state.problem === 'small'
   const failed = wanted.filter(([n]) => !plan.numbers.has(n) && !isSpacer(states.get(n))).length
   const saveable = saveableChapters(plan.chapters)
@@ -94,5 +97,7 @@ export async function saveArticle(
   )
   if (saved.ok) return { ok: true, id: saved.id, failed, capped }
   if (saved.at === 'start') return { ok: false, failure: saved.refused.failure ?? { problem: saved.refused.problem } }
+  if (saved.at === 'chapter' && saved.problem === 'article-too-large')
+    return { ok: false, failure: { problem: 'article_too_large', max: saved.max } }
   return failure(saved.at !== 'picture' && saved.problem === 'signed-out' ? 'signed_out' : 'failed')
 }

@@ -36,7 +36,20 @@ const PICTURES: Record<string, Uint8Array<ArrayBuffer>> = {
 
 const PAGES: Record<string, string> = { news: 'news.html', blog: 'blog.html' }
 
-export const articleUrl = (origin: string, name: keyof typeof PAGES & string) => `${origin}/test-articles/${name}`
+const WORDS = ['river', 'lantern', 'harbour', 'meadow', 'signal', 'quarry', 'orchard', 'ember', 'valley', 'compass']
+
+/** An article of about 1.35 MB of text: past the 1 MB an article may hold, and inside the 5 MB a page may be. */
+function longPage(): string {
+  const paragraph = (i: number) =>
+    `<p>${Array.from({ length: 120 }, (_, j) => WORDS[(i * 7 + j * 3) % WORDS.length]).join(' ')} ${i}.</p>`
+  const paragraphs = Array.from({ length: 1500 }, (_, i) => paragraph(i)).join('\n')
+  return `<!doctype html><html lang="en"><head><title>A Very Long Read</title></head><body>
+<article><h1>A Very Long Read</h1>${paragraphs}</article></body></html>`
+}
+
+const BUILT: Record<string, () => string> = { long: longPage }
+
+export const articleUrl = (origin: string, name: 'news' | 'blog' | 'long') => `${origin}/test-articles/${name}`
 
 export function articlesStub(request: Request): Response {
   const path = new URL(request.url).pathname.replace(/^\/test-articles\//, '')
@@ -44,8 +57,9 @@ export function articlesStub(request: Request): Response {
   if (picture && PICTURES[picture])
     return new Response(PICTURES[picture], { headers: { 'content-type': 'image/png', 'cache-control': 'no-store' } })
   const name = PAGES[path]
-  if (name)
-    return new Response(page(name), {
+  const built = BUILT[path]
+  if (name || built)
+    return new Response(name ? page(name) : built?.(), {
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     })
   return new Response('Not found', { status: 404 })

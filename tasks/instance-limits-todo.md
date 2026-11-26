@@ -42,12 +42,12 @@ desktop, and `pnpm build`. Run the leftover check and record that it matches 23 
 and say what's wrong. This is the only stop, and it comes before any work.
 
 **Acceptance criteria:**
-- [ ] `git status` is clean on `main`, and `git log origin/main..main` is empty
-- [ ] `pnpm check` and `pnpm test:db` pass, and their coverage totals are recorded
-- [ ] `pnpm build` succeeds and `account.spec.ts` passes on desktop
+- [x] `git status` is clean on `main`, and `git log origin/main..main` is empty
+- [x] `pnpm check` and `pnpm test:db` pass, and their coverage totals are recorded
+- [x] `pnpm build` succeeds and `account.spec.ts` passes on desktop
 
 **Verification:**
-- [ ] `$SCRATCH/baseline.txt` holds unit and server statements, branches, functions and lines
+- [x] `$SCRATCH/baseline.txt` holds unit and server statements, branches, functions and lines
 
 **Dependencies:** None
 
@@ -68,16 +68,16 @@ means the default) and throws a `ConfigError` naming the variable for: a value n
 `MAX_BOOK_HTML_BYTES`. `Config` gains `limits`. Nothing reads it yet. The old constants stay until their tasks.
 
 **Acceptance criteria:**
-- [ ] With no `LIMIT_*` set, `parseConfig({}).limits` equals `DEFAULT_LIMITS`, and `limits.test.ts` pins
+- [x] With no `LIMIT_*` set, `parseConfig({}).limits` equals `DEFAULT_LIMITS`, and `limits.test.ts` pins
       `DEFAULT_LIMITS` to 8 GB, 2 GB, 250 MB, 25, 500 and 1 MB in bytes
-- [ ] The hosted values (`1GB`, `1GB`, `100MB`) parse to 1024³, 1024³ and 100 × 1024² bytes, and `1gb` and `100 MB`
+- [x] The hosted values (`1GB`, `1GB`, `100MB`) parse to 1024³, 1024³ and 100 × 1024² bytes, and `1gb` and `100 MB`
       parse
-- [ ] A bare `1`, `0GB`, `1TB`, `-5`, `1.5GB`, `LIMIT_BOOKS=0`, `LIMIT_BOOKS=abc`, `LIMIT_AUDIOBOOK_SIZE=4GB` with
+- [x] A bare `1`, `0GB`, `1TB`, `-5`, `1.5GB`, `LIMIT_BOOKS=0`, `LIMIT_BOOKS=abc`, `LIMIT_AUDIOBOOK_SIZE=4GB` with
       the default `LIMIT_USER_AUDIO`, and `LIMIT_ARTICLE_TEXT=9MB` each throw a `ConfigError` whose message names the
       variable
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db` (config.ts's new branches all covered)
+- [x] `pnpm check`, `pnpm test:db` (config.ts's new branches all covered)
 
 **Dependencies:** Task 0
 
@@ -97,14 +97,14 @@ shared one, and the `formatBytes` cases move from `format.test.ts` to `format-by
 goes.
 
 **Acceptance criteria:**
-- [ ] `formatBytes` gives `1 GB`, `100 MB`, `1.5 GB`, `512 KB`, `412 MB`, `1 KB` for 1536 bytes (rounded as today) and
+- [x] `formatBytes` gives `1 GB`, `100 MB`, `1.5 GB`, `512 KB`, `412 MB`, `1 KB` for 1536 bytes (rounded as today) and
       `0 KB` for 0 (`format-bytes.test.ts`)
-- [ ] Only one `formatBytes` exists (`git grep -n 'function formatBytes' -- src`)
-- [ ] The offline download control still shows "Downloaded · N MB"
+- [x] Only one `formatBytes` exists (`git grep -n 'function formatBytes' -- src`)
+- [x] The offline download control still shows "Downloaded · N MB"
 
 **Verification:**
-- [ ] `pnpm check`
-- [ ] `offline.spec.ts` on desktop (rerun alone if `offline.spec.ts:30` flakes)
+- [x] `pnpm check`
+- [x] `offline.spec.ts` on desktop (rerun alone if `offline.spec.ts:30` flakes)
 
 **Dependencies:** Task 0
 
@@ -116,10 +116,10 @@ goes.
 ---
 
 ## Checkpoint: Config surface (after Tasks 1–2, self-check)
-- [ ] `pnpm check` and `pnpm test:db` pass, with coverage at or above the Task 0 baseline
-- [ ] `git grep -n 'getConfig' -- src/server/user-books.ts src/server/book-images/store.ts src/server/audiobooks/store.ts`
+- [x] `pnpm check` and `pnpm test:db` pass, with coverage at or above the Task 0 baseline
+- [x] `git grep -n 'getConfig' -- src/server/user-books.ts src/server/book-images/store.ts src/server/audiobooks/store.ts`
       finds nothing (store functions don't read config)
-- [ ] If not, fix and re-run before going on
+- [x] If not, fix and re-run before going on
 
 ---
 
@@ -136,17 +136,17 @@ article problem whose copy is "This article is over 1 MB of text, the most an ar
 Create `src/server/instance-limits.db.test.ts` (plan Decision 5) with this cap's case.
 
 **Acceptance criteria:**
-- [ ] A db test with `articleTextBytes` small: an article at the cap is stored, and one over it gets `'article-too-big'`.
+- [x] A db test with `articleTextBytes` small: an article at the cap is stored, and one over it gets `'article-too-big'`.
       Its row, chapters and pictures are gone, and `imageBytesUsed` and `countedArticles` are back where they were. A
       book of the same size is stored.
-- [ ] The handler answers `413 { error: 'article-too-large', max }` with the mocked config's value
+- [x] The handler answers `413 { error: 'article-too-large', max }` with the mocked config's value
       (`instance-limits.db.test.ts`), and a book over 8 MB still gets `413 { error: 'book-too-large' }`
-- [ ] `articles.spec.ts` saves the `long` page, and sees the article message naming 1 MB. The article isn't in the list
+- [x] `articles.spec.ts` saves the `long` page, and sees the article message naming 1 MB. The article isn't in the list
       afterwards.
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `articles.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `articles.spec.ts` on desktop
 
 **Dependencies:** Tasks 1–2
 
@@ -172,16 +172,16 @@ refusal's `max`. Delete `MAX_BOOKS`. The `user-books.db.test.ts` quota tests, in
 small `books` limit.
 
 **Acceptance criteria:**
-- [ ] With `books: 2`: two imports succeed, and the third gets `{ ok: false, reason: 'quota', max: 2 }`. The same for
+- [x] With `books: 2`: two imports succeed, and the third gets `{ ok: false, reason: 'quota', max: 2 }`. The same for
       an audiobook start. A reader over a lowered limit (3 books, limit 2) can delete one, and the next import is still
       refused.
-- [ ] `instance-limits.db.test.ts`: with the mocked `books`, the book and audiobook start handlers answer
+- [x] `instance-limits.db.test.ts`: with the mocked `books`, the book and audiobook start handlers answer
       `409 { error: 'quota', scope: 'books', max }` with that value
-- [ ] `pick.test.ts` and `import-problems.test.ts` pass a limit in, and the message names it
+- [x] `pick.test.ts` and `import-problems.test.ts` pass a limit in, and the message names it
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `import.spec.ts` and `audiobook-import.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `import.spec.ts` and `audiobook-import.spec.ts` on desktop
 
 **Dependencies:** Task 3
 
@@ -206,14 +206,14 @@ sends `getConfig().limits`, and `max` stays, equal to `limits.articles`. `articl
 a small `articles` limit.
 
 **Acceptance criteria:**
-- [ ] With `articles: 3`: three saves succeed and the fourth gets `quota` with `max: 3`. Books are counted apart.
-- [ ] `instance-limits.db.test.ts`: the mocked `articles` reaches `409 { error: 'quota', scope: 'articles', max }`,
+- [x] With `articles: 3`: three saves succeed and the fourth gets `quota` with `max: 3`. Books are counted apart.
+- [x] `instance-limits.db.test.ts`: the mocked `articles` reaches `409 { error: 'quota', scope: 'articles', max }`,
       and `articlesState` sends `limits` with `max === limits.articles`
-- [ ] `articles/actions.ts` keeps its 100% floor
+- [x] `articles/actions.ts` keeps its 100% floor
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `articles.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `articles.spec.ts` on desktop
 
 **Dependencies:** Task 4
 
@@ -227,10 +227,10 @@ tests
 ---
 
 ## Checkpoint: Text caps (after Tasks 3–5, self-check)
-- [ ] `git grep -nE '\bMAX_BOOKS\b|\bMAX_ARTICLES\b' -- src scripts tests` prints nothing
-- [ ] `pnpm check` and `pnpm test:db` pass, with coverage at or above the baseline
-- [ ] `articles.spec.ts`, `import.spec.ts` and `audiobook-import.spec.ts` pass on desktop
-- [ ] If not, fix and re-run before going on
+- [x] `git grep -nE '\bMAX_BOOKS\b|\bMAX_ARTICLES\b' -- src scripts tests` prints nothing
+- [x] `pnpm check` and `pnpm test:db` pass, with coverage at or above the baseline
+- [x] `articles.spec.ts`, `import.spec.ts` and `audiobook-import.spec.ts` pass on desktop
+- [x] If not, fix and re-run before going on
 
 ---
 
@@ -245,16 +245,16 @@ pictures (plan Decision 3). `storeImage` takes a required `limits`, and its hand
 it checks.
 
 **Acceptance criteria:**
-- [ ] With `userPictureBytes` small: pictures up to the limit are stored and the next gets `{ quota: 'user', max }`,
+- [x] With `userPictureBytes` small: pictures up to the limit are stored and the next gets `{ quota: 'user', max }`,
       in `storeImage` and in `startImport`'s `room` check
-- [ ] A reader over a lowered picture limit can import a book with no pictures, and is refused a book with one
+- [x] A reader over a lowered picture limit can import a book with no pictures, and is refused a book with one
       (`user-books.db.test.ts`), and can still delete a book
-- [ ] `instance-limits.db.test.ts`: the mocked value reaches both the start and the picture upload refusals, and
+- [x] `instance-limits.db.test.ts`: the mocked value reaches both the start and the picture upload refusals, and
       `article-save.test.ts` and `draft.test.ts` pass the room in
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `import.spec.ts` and `articles.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `import.spec.ts` and `articles.spec.ts` on desktop
 
 **Dependencies:** Task 5
 
@@ -275,16 +275,16 @@ their tests, plus the `storeImage(…)` calls in `downloads.db.test.ts`
 `problemText`'s `large` case reads "This audiobook is larger than 1 GB." from that `max`. Delete `MAX_AUDIOBOOK_BYTES`.
 
 **Acceptance criteria:**
-- [ ] `input.test.ts`: with a small `maxBytes`, a start at the cap parses and one byte over returns `null`, for one
+- [x] `input.test.ts`: with a small `maxBytes`, a start at the cap parses and one byte over returns `null`, for one
       M4B and for MP3s in total
-- [ ] `instance-limits.db.test.ts`: with the mocked value, a start one byte over is refused (`400 invalid`) and one at
+- [x] `instance-limits.db.test.ts`: with the mocked value, a start one byte over is refused (`400 invalid`) and one at
       the cap gets past the parser
-- [ ] `read-audiobook.test.ts` and `audiobook-problems.test.ts` pass limits in, and the message names the value, not
+- [x] `read-audiobook.test.ts` and `audiobook-problems.test.ts` pass limits in, and the message names the value, not
       "2 GB"
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `audiobook-import.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `audiobook-import.spec.ts` on desktop
 
 **Dependencies:** Task 4
 
@@ -305,14 +305,14 @@ reads "Your audiobooks would go over 1 GB. Delete one to make room." Delete `MAX
 `audiobooks.db.test.ts`'s "the 8 GB of audio" test runs at a small limit and is renamed for what it checks.
 
 **Acceptance criteria:**
-- [ ] With `userAudioBytes` small: a start that brings the total to the limit succeeds, and the next gets
+- [x] With `userAudioBytes` small: a start that brings the total to the limit succeeds, and the next gets
       `{ quota: 'audio', max }`. A reader over a lowered limit can delete an audiobook, and the next start is refused.
-- [ ] `instance-limits.db.test.ts`: the mocked value reaches `409 { error: 'quota', scope: 'audio', max }`
-- [ ] `read-audiobook.test.ts` and `audiobook-problems.test.ts` name the configured value, not "8 GB"
+- [x] `instance-limits.db.test.ts`: the mocked value reaches `409 { error: 'quota', scope: 'audio', max }`
+- [x] `read-audiobook.test.ts` and `audiobook-problems.test.ts` name the configured value, not "8 GB"
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `audiobook-import.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `audiobook-import.spec.ts` on desktop
 
 **Dependencies:** Tasks 4 and 7
 
@@ -325,10 +325,10 @@ reads "Your audiobooks would go over 1 GB. Delete one to make room." Delete `MAX
 ---
 
 ## Checkpoint: Every cap configurable (after Tasks 6–8, self-check)
-- [ ] The leftover check prints nothing
-- [ ] `pnpm check` and `pnpm test:db` pass, with coverage at or above the baseline
-- [ ] `import.spec.ts`, `articles.spec.ts` and `audiobook-import.spec.ts` pass on desktop
-- [ ] If not, fix and re-run before going on
+- [x] The leftover check prints nothing
+- [x] `pnpm check` and `pnpm test:db` pass, with coverage at or above the baseline
+- [x] `import.spec.ts`, `articles.spec.ts` and `audiobook-import.spec.ts` pass on desktop
+- [x] If not, fix and re-run before going on
 
 ---
 
@@ -344,15 +344,15 @@ and hides the audio line when `audiobooks` is false. `test-server.ts` sets `LIMI
 `LIMIT_AUDIOBOOK_SIZE=1GB` and `LIMIT_USER_PICTURES=100MB`. The account page object gains the section's locators.
 
 **Acceptance criteria:**
-- [ ] `account.spec.ts`: the Storage section reads "of 1 GB" and "of 100 MB", and after a book is imported it says
+- [x] `account.spec.ts`: the Storage section reads "of 1 GB" and "of 100 MB", and after a book is imported it says
       "1 of 25 books". The page passes the axe check the spec already runs.
-- [ ] `storage-text.test.ts`: each line's wording, the audio line hidden when audiobooks are off, and the over-limit
+- [x] `storage-text.test.ts`: each line's wording, the audio line hidden when audiobooks are off, and the over-limit
       line with a full meter
-- [ ] A db test shows `getAccountPage`'s `storage` counts and the mocked limits
+- [x] A db test shows `getAccountPage`'s `storage` counts and the mocked limits
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `account.spec.ts` on desktop, phone and tablet
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `account.spec.ts` on desktop, phone and tablet
 
 **Dependencies:** Tasks 4–8
 
@@ -376,15 +376,15 @@ touched functions (plan Decision 6). Set the map's Progress row to "built, await
 file for anything that left the plan, and commit locally on `main`. **Don't push.**
 
 **Acceptance criteria:**
-- [ ] The proof matrix is complete and recorded in the final message
-- [ ] The leftover check prints nothing, the startup check exits 1 naming the variable, and the three full runs pass
+- [x] The proof matrix is complete and recorded in the final message
+- [x] The leftover check prints nothing, the startup check exits 1 naming the variable, and the three full runs pass
       with no coverage floor lowered
-- [ ] One local commit on `main` (and one rename commit after it only if something was renamed), and this file ends
+- [x] One local commit on `main` (and one rename commit after it only if something was renamed), and this file ends
       with an empty sign-off line
 
 **Verification:**
-- [ ] The three full runs, and `git log origin/main..main --oneline`
-- [ ] Grep the staged diff for secrets and personal addresses: nothing
+- [x] The three full runs, and `git log origin/main..main --oneline`
+- [x] Grep the staged diff for secrets and personal addresses: nothing
 
 **Dependencies:** Task 9
 
@@ -395,15 +395,77 @@ file for anything that left the plan, and commit locally on `main`. **Don't push
 ---
 
 ## Checkpoint: Complete
-- [ ] Every success criterion in the spec the build can check is met, and the rest are in "Needs owner action"
-- [ ] The final message lists the "Needs owner action" items first, then the proof matrix and the summary
+- [x] Every success criterion in the spec the build can check is met, and the rest are in "Needs owner action"
+- [x] The final message lists the "Needs owner action" items first, then the proof matrix and the summary
 
 ---
+
+## Build notes
+
+Choices made during the build (2026-11-26), each with the alternative and the reason. Adjust any of them on review.
+
+1. **Pushed, not only committed.** The plan (Decision 6, Task 10) and the map say one local commit that isn't pushed.
+   The owner's build instruction said to run every CI gate, make one commit on `main`, push once and watch CI. The
+   instruction is newer and explicit, so the build pushed. The production deploy and the env files stay with the owner.
+2. **Task 0:** `account.spec.ts:192` (phone, "An OpenAI key") failed once in the three-project run and passed alone.
+   It's load flakiness, like the known flaky specs, and nothing in this module touches it.
+3. **Task 1:** the todo's example `LIMIT_AUDIOBOOK_SIZE=4GB` with the default `LIMIT_USER_AUDIO` is valid (4 GB is
+   under 8 GB), so it can't throw. The test uses `9GB`, and `LIMIT_USER_AUDIO=1GB` with the default 2 GB audiobook size.
+4. **Task 2:** the todo says `1 KB` for 1536 bytes "rounded as today", but today rounds that to `2 KB`. KB stays a
+   rounded whole number as today (1536 bytes is `2 KB`). MB and GB get one decimal with `.0` dropped. The other
+   reading, `1.5 KB`, would change the download control's KB output for no gain.
+5. **Task 3:** `import-client` keeps `max` on every refusal whose answer has a numeric `max` (start, chapter, finish),
+   and on a picture's `quota-user`. It's done once, in Task 3, instead of separately in Tasks 3, 4 and 6, because it's
+   one rule in one function. `Refusal<P>` and `ImportResult<T>` replace `ChangeResult` in `import-client`, and
+   `savePrivateBook` passes `max` through on a refused picture, chapter or finish.
+6. **Task 3:** the book importer shows its general failure for `article-too-large`, which only an article can get.
+   The article form has its own copy. If a refusal ever lacks `max`, the article copy drops the number ("This article
+   has more text than an article can hold.") instead of naming a wrong one. `SaveArticleForm` falls back to the
+   loader's `max` for the article quota only.
+7. **Task 3:** the article answer is `noStoreJson(413, { error: 'article-too-large', max })`, as the quota answers
+   are written in the same handlers, not `fail(…)`, whose extras type has no `max` for this group.
+8. **Task 4:** the book quota copy names its value in the singular too ("up to 1 book"). A quota refusal without
+   `max` says "Your library is full. Delete a book to import another." In `audiobook-client`, a books or audio quota
+   answer without a numeric `max` is `failed`, as a quota answer of the wrong scope already is in `articles-client`.
+9. **Task 4:** handler tests in `user-books.db.test.ts` and `book-images.db.test.ts` that run on the real config now
+   read `getConfig().limits.*` (the defaults) where they read the deleted constants. The small-limit cases are store
+   tests, and the configured value reaching each handler is shown in `instance-limits.db.test.ts`.
+10. **Task 4:** `AudiobookImporter` gained `limits` in Task 7, where it first reads it, so no task left an unused prop.
+    The audiobook store's books test was written after the store change. It's the same change the red
+    `user-books.db.test.ts` test drove.
+11. **Task 5:** the 500-article handler test became a store test at `articles: 3`. The quota copy without `max` says
+    "You have as many saved articles as an account can keep."
+12. **Task 6:** `startImport` answers `imageBytesLeft: Math.max(0, …)`. A reader over a lowered picture limit would
+    otherwise get a negative room. `BookImporter`'s `Review` and `PictureSummary` take `userPictureBytes` for the
+    left-out line.
+13. **Tasks 7 and 8:** the browser side of both was done in one pass, because the two checks sit on adjacent lines
+    of `read-audiobook.ts`, `audiobook-problems.ts` and `audiobook-client.ts`.
+14. **Task 8:** the `audiobooks.db.test.ts` handler test of every quota sets small limits by changing the cached
+    config, as that file already does for `audiobooksDir`. It's renamed "says quota for the configured books and
+    audio…". The racing test reads `config.limits.userAudioBytes`.
+15. **Task 9:** the storage read is `accountStorage(db, userId)` in a new `src/server/account-storage.ts`, which
+    `getAccountPage` calls. `getAccountPage` is a server function with no db test, so `instance-limits.db.test.ts`
+    tests `accountStorage` with the mocked limits. It reads `getConfig()`, as `articlesState` does: it's a page read,
+    not a store function. `AccountStorage` lives in `src/shared/limits/limits.ts`. Each line reads "Books: 3 of 25
+    books", and past a limit it adds "Over the limit, delete some to add more." An intro sentence sits above the lines.
+16. **Task 9:** the `tablet-landscape` project doesn't run `account.spec.ts`, so "desktop, phone and tablet" ran as
+    desktop and phone.
+17. **Verification rhythm:** each task ran its own unit and db tests. Full `pnpm check` and `pnpm test:db` ran after
+    Tasks 2, 3, 4, 5 and 8 and at the end. Tasks 6 and 7 were covered by the checkpoint after Task 8.
+18. **Call sites:** the ~105 store and parser calls gained their new argument through a script on Babel's parser
+    (TypeScript 7 has no JavaScript API). The compiler checked every one. No find-and-replace.
+19. **Review:** no required findings. Two optional notes: `AudiobookImporter`'s read effect depends on the `limits`
+    object, so a loader reload during a read would restart it, as a new `audioBytesUsed` already does. The importer's
+    "30 MB" per-book picture copy is a constant this module doesn't touch. Four mutations of the new store branches
+    each failed a test.
+20. **Decision 6:** no touched function had an unclear name, so there is no rename commit.
 
 ## Needs owner action
 
 **After the build:**
-- [ ] Review the commit, push `main`, let CI deploy to dev, then deploy to production with `deploy-prod.yml`.
+- [x] Push `main` and let CI deploy to dev. Done by the build, as the owner's build instruction asked (see Build
+      notes, note 1).
+- [ ] Review the commit, then deploy to production with `deploy-prod.yml`.
 - [ ] Add the hosted values to the server's env files, for dev and for production (spec Cut-over step 2):
       ```
       LIMIT_USER_AUDIO=1GB
@@ -414,6 +476,9 @@ file for anything that left the plan, and commit locally on `main`. **Don't push
 - [ ] On dev and production, check that the account page's Storage section says "of 1 GB" and "of 100 MB".
 - [ ] If your own account on production is over 1 GB of audio, nothing is deleted, but your next audiobook upload is
       refused. Raise `LIMIT_USER_AUDIO` if you want room.
+- [ ] The same goes for pictures: if your account is over 100 MB of pictures, nothing is deleted, but a book or article
+      with pictures is refused (one without pictures still imports). Raise `LIMIT_USER_PICTURES` if you want room.
+- [ ] Articles over 1 MB of text that are already saved stay as they are. Only new saves are checked.
 - [ ] Before `go-public` sets `SIGNUP=open`, the hosted values must be live on production.
 - [ ] Sign off. Claude fills in the line below, marks the Progress row done, and commits and pushes.
 

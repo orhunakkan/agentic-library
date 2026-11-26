@@ -5,6 +5,7 @@ import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson, sessionForRequest } from '../auth.ts'
 import { IMPORT_CODES, type ImportErrorCode } from '../book-actions.ts'
 import { COVER_HEADERS, imageText } from '../book-details/actions.ts'
+import { getConfig } from '../config.ts'
 import { getDb, isDatabaseConfigured } from '../db.ts'
 import { logError } from '../redact.ts'
 import { type RawBody, signedInEndpoints } from '../signed-in.ts'
@@ -34,7 +35,7 @@ export const handleImage = (request: Request, id: string, number: string) =>
       parse: checkPicture,
     },
     async ({ session, db, pre: n, input: { bytes, info } }) => {
-      const result = await storeImage(db, session.userId, id, n, newImage(bytes, info))
+      const result = await storeImage(db, session.userId, id, n, newImage(bytes, info), getConfig().limits)
       if (result === 'missing') return notFound()
       if (result === 'position') return fail(400, 'invalid')
       if (result !== 'ok') return fail(409, 'quota', { scope: result.quota, max: result.max })

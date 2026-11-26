@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { createHash } from 'node:crypto'
 import type { ImageInfo } from '../../shared/import/image.ts'
-import { MAX_USER_IMAGE_BYTES } from '../../shared/import/limits.ts'
+import type { InstanceLimits } from '../../shared/limits/limits.ts'
 import type { Db, Pool } from '../db.ts'
 
 export type StoredImageType = 'image/jpeg' | 'image/png'
@@ -31,6 +31,7 @@ export function storeImage(
   bookId: string,
   imageNumber: number,
   image: NewImage,
+  limits: InstanceLimits,
 ): Promise<StoreImageResult> {
   return pool.begin(async (tx): Promise<StoreImageResult> => {
     await tx`select id from users where id = ${userId} for update`
@@ -48,7 +49,7 @@ export function storeImage(
       where b.user_id = ${userId} and not (i.book_id = ${bookId} and i.n = ${imageNumber})`
     const bookMax = book.image_bytes ?? 0
     if (Number(used?.book ?? 0) + size > bookMax) return { quota: 'book', max: bookMax }
-    if (Number(used?.user ?? 0) + size > MAX_USER_IMAGE_BYTES) return { quota: 'user', max: MAX_USER_IMAGE_BYTES }
+    if (Number(used?.user ?? 0) + size > limits.userPictureBytes) return { quota: 'user', max: limits.userPictureBytes }
     await tx`
       insert into user_book_images (book_id, n, media_type, bytes, width, height, sha256)
       values (${bookId}, ${imageNumber}, ${image.info.type}, ${Buffer.from(image.bytes)}, ${image.info.width},

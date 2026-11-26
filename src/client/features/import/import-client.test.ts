@@ -40,10 +40,17 @@ describe('startBook', () => {
     expect(new Headers(calls[0]?.init.headers).get('content-type')).toBe('application/json')
   })
 
+  it('keeps the limit a quota refusal names, for its message', async () => {
+    answer(409, { error: 'quota', scope: 'books', max: 2 })
+    expect(await startBook(BOOK)).toEqual({ ok: false, problem: 'quota', max: 2 })
+    answer(409, { error: 'quota', scope: 'user', max: 1024 })
+    expect(await startBook(BOOK)).toEqual({ ok: false, problem: 'quota-user', max: 1024 })
+    answer(409, { error: 'quota', scope: 'books', max: '25' })
+    expect(await startBook(BOOK)).toEqual({ ok: false, problem: 'quota' })
+  })
+
   it.each([
     [409, { error: 'quota' }, 'quota'],
-    [409, { error: 'quota', scope: 'books', max: 25 }, 'quota'],
-    [409, { error: 'quota', scope: 'user', max: 1 }, 'quota-user'],
     [429, { error: 'rate' }, 'rate'],
     [401, { error: 'signed-out' }, 'signed-out'],
     [400, { error: 'too-long' }, 'too-long'],
@@ -73,6 +80,7 @@ describe('chapters and finishing', () => {
   it.each([
     [413, { error: 'request-too-large' }, 'request-too-large'],
     [413, { error: 'book-too-large' }, 'book-too-large'],
+    [413, { error: 'article-too-large' }, 'article-too-large'],
     [400, { error: 'empty' }, 'empty'],
     [409, { error: 'incomplete' }, 'incomplete'],
     [404, { error: 'not-found' }, 'not-found'],
@@ -80,6 +88,11 @@ describe('chapters and finishing', () => {
   ])('answers %i %j as %s', async (status, body, problem) => {
     answer(status, body)
     expect(await uploadChapter(ID, 0, '{}')).toEqual({ ok: false, problem })
+  })
+
+  it('keeps the article text cap a refused chapter names', async () => {
+    answer(413, { error: 'article-too-large', max: 1048576 })
+    expect(await uploadChapter(ID, 0, '{}')).toEqual({ ok: false, problem: 'article-too-large', max: 1048576 })
   })
 })
 
@@ -92,9 +105,18 @@ describe('uploadPicture', () => {
     expect(new Headers(calls[0]?.init.headers).get('content-type')).toBe('image/png')
   })
 
+  it('keeps the account’s picture limit a refusal names', async () => {
+    answer(409, { error: 'quota', scope: 'user', max: 4096 })
+    expect(await uploadPicture(ID, 1, new Blob([], { type: 'image/jpeg' }))).toEqual({
+      ok: false,
+      problem: 'quota-user',
+      max: 4096,
+    })
+  })
+
   it.each([
     [409, { error: 'quota', scope: 'book', max: 1 }, 'quota-book'],
-    [409, { error: 'quota', scope: 'user', max: 1 }, 'quota-user'],
+    [409, { error: 'quota', scope: 'user' }, 'quota-user'],
     [413, { error: 'request-too-large' }, 'too-large'],
     [415, { error: 'invalid' }, 'type'],
     [400, { error: 'invalid' }, 'invalid'],

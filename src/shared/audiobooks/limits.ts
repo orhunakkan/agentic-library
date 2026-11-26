@@ -2,10 +2,8 @@ import { KB, MB } from '../import/limits.ts'
 
 export const GB = 1024 * MB
 
-export const MAX_AUDIOBOOK_BYTES = 2 * GB
 export const MAX_AUDIO_FILES = 500
 export const MAX_AUDIO_CHAPTERS = 1000
-export const MAX_USER_AUDIO_BYTES = 8 * GB
 export const MAX_CHAPTER_MS = 24 * 60 * 60 * 1000
 export const MAX_FILE_MS = 48 * 60 * 60 * 1000
 export const MIN_FILE_MS = 1000

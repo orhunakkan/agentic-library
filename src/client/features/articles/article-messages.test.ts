@@ -10,7 +10,7 @@ import {
 } from './article-messages'
 
 describe('articleProblemText', () => {
-  const sentences: Record<Exclude<ArticleProblem, 'quota' | 'limited'>, string> = {
+  const sentences: Record<Exclude<ArticleProblem, 'quota' | 'limited' | 'article_too_large'>, string> = {
     empty: 'Paste an article’s address.',
     too_long: 'That address is too long.',
     not_url: 'That isn’t a web address. Paste one like https://example.com/a-long-read.',
@@ -36,11 +36,25 @@ describe('articleProblemText', () => {
   it.each(Object.entries(sentences))('%s', (code, sentence) =>
     expect(articleProblemText(code as ArticleProblem)).toBe(sentence),
   )
-  it('says the limit', () => {
+  it('says the limit it is given', () => {
     expect(articleProblemText('quota', { max: 500 })).toBe(
       'You have 500 saved articles, the most an account can keep. Delete one to save another.',
     )
-    expect(articleProblemText('quota')).toContain('You have 500')
+    expect(articleProblemText('quota', { max: 3 })).toBe(
+      'You have 3 saved articles, the most an account can keep. Delete one to save another.',
+    )
+    expect(articleProblemText('quota')).toBe(
+      'You have as many saved articles as an account can keep. Delete one to save another.',
+    )
+  })
+  it('names the article text cap the server refused at', () => {
+    expect(articleProblemText('article_too_large', { max: 1024 ** 2 })).toBe(
+      'This article is over 1 MB of text, the most an article can hold.',
+    )
+    expect(articleProblemText('article_too_large', { max: 512 * 1024 })).toBe(
+      'This article is over 512 KB of text, the most an article can hold.',
+    )
+    expect(articleProblemText('article_too_large')).toBe('This article has more text than an article can hold.')
   })
   it('says when to try again', () => {
     expect(articleProblemText('limited', { retryAt: '2026-11-21T14:05:00Z', timeZone: 'UTC' })).toBe(

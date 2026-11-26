@@ -1,7 +1,6 @@
 export const KB = 1024
 export const MB = 1024 * KB
 
-export const MAX_BOOKS = 25
 export const MAX_BOOK_HTML_BYTES = 8 * MB
 export const MAX_CHAPTERS = 1000
 export const MAX_CHAPTER_REQUEST_BYTES = 900 * KB
@@ -23,7 +22,6 @@ export const PUBLISHER_MAX = 200
 export const MAX_IMAGE_BYTES = 900 * KB
 export const MAX_BOOK_IMAGES = 500
 export const MAX_BOOK_IMAGE_BYTES = 30 * MB
-export const MAX_USER_IMAGE_BYTES = 250 * MB
 export const IMAGE_MAX_WIDTH = 1600
 export const IMAGE_MAX_HEIGHT = 4800
 export const IMAGE_MIN_SIDE = 16

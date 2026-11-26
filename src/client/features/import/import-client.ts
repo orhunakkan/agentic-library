@@ -1,5 +1,5 @@
 import { uploadCover } from '~/client/features/book-details/details-client'
-import { type ChangeResult, postBody } from '~/client/lib/post'
+import { postBody } from '~/client/lib/post'
 import type { PrivateBookSteps } from './private-book-save'
 
 export type ImportProblem =
@@ -10,6 +10,7 @@ export type ImportProblem =
   | 'empty'
   | 'request-too-large'
   | 'book-too-large'
+  | 'article-too-large'
   | 'quota'
   | 'quota-user'
   | 'rate'
@@ -24,6 +25,7 @@ const IMPORT_PROBLEMS: readonly ImportProblem[] = [
   'empty',
   'request-too-large',
   'book-too-large',
+  'article-too-large',
   'quota',
   'rate',
   'incomplete',
@@ -31,7 +33,16 @@ const IMPORT_PROBLEMS: readonly ImportProblem[] = [
 
 export type PictureProblem = 'not-found' | 'quota-book' | 'quota-user' | 'too-large' | 'type' | 'invalid' | 'failed'
 
+/** A refused step, with the limit it was refused at when the answer names one, so its message can name it too. */
+export type Refusal<P extends string> = { ok: false; problem: P; max?: number }
+
+/** What an import step came to: its value, or its refusal. */
+export type ImportResult<T, P extends string = ImportProblem> = { ok: true; value: T } | Refusal<P>
+
 const failed = { ok: false, problem: 'failed' } as const
+
+const refused = <P extends string>(problem: P, data: Record<string, unknown>): Refusal<P> =>
+  typeof data.max === 'number' ? { ok: false, problem, max: data.max } : { ok: false, problem }
 
 function importProblem(data: Record<string, unknown>): ImportProblem {
   if (data.error === 'quota' && data.scope === 'user') return 'quota-user'
@@ -42,10 +53,10 @@ async function send<T>(
   url: string,
   body: string,
   pick: (data: Record<string, unknown>) => T | undefined,
-): Promise<ChangeResult<T, ImportProblem>> {
+): Promise<ImportResult<T>> {
   const answer = await postBody(url, body, 'application/json')
   if (!answer) return failed
-  if (!answer.ok) return { ok: false, problem: importProblem(answer.data) }
+  if (!answer.ok) return refused(importProblem(answer.data), answer.data)
   const value = pick(answer.data)
   return value === undefined ? failed : { ok: true, value }
 }
@@ -68,19 +79,17 @@ export const startedOf = (data: Record<string, unknown>) =>
     ? { id: data.id, imageBytesLeft: typeof data.imageBytesLeft === 'number' ? data.imageBytesLeft : 0 }
     : undefined
 
-export function startBook(
-  book: BookStart,
-): Promise<ChangeResult<{ id: string; imageBytesLeft: number }, ImportProblem>> {
+export function startBook(book: BookStart): Promise<ImportResult<{ id: string; imageBytesLeft: number }>> {
   return send('/account/books/new', JSON.stringify(book), startedOf)
 }
 
 const done = (data: Record<string, unknown>) => (data.ok === true ? true : undefined)
 
-export function uploadChapter(id: string, position: number, body: string): Promise<ChangeResult<true, ImportProblem>> {
+export function uploadChapter(id: string, position: number, body: string): Promise<ImportResult<true>> {
   return send(`/account/books/${encodeURIComponent(id)}/chapters/${position}`, body, done)
 }
 
-export function finishBook(id: string): Promise<ChangeResult<true, ImportProblem>> {
+export function finishBook(id: string): Promise<ImportResult<true>> {
   return send(`/account/books/${encodeURIComponent(id)}/finish`, '{}', done)
 }
 
@@ -88,7 +97,7 @@ export async function uploadPicture(
   id: string,
   n: number,
   blob: Blob,
-): Promise<ChangeResult<{ width: number; height: number }, PictureProblem>> {
+): Promise<ImportResult<{ width: number; height: number }, PictureProblem>> {
   const answer = await postBody(`/account/books/${encodeURIComponent(id)}/images/${n}`, blob, blob.type || 'image/png')
   if (!answer) return failed
   if (answer.ok) {
@@ -97,7 +106,7 @@ export async function uploadPicture(
   }
   const { status, data } = answer
   if (status === 409 && data.error === 'quota')
-    return { ok: false, problem: data.scope === 'user' ? 'quota-user' : 'quota-book' }
+    return data.scope === 'user' ? refused('quota-user', data) : { ok: false, problem: 'quota-book' }
   if (status === 413) return { ok: false, problem: 'too-large' }
   if (status === 415) return { ok: false, problem: 'type' }
   if (status === 400) return { ok: false, problem: 'invalid' }
@@ -113,7 +122,7 @@ export function discardUpload(id: string): void {
   }).catch(() => {})
 }
 
-export const BOOK_STEPS: PrivateBookSteps<{ ok: false; problem: ImportProblem }> = {
+export const BOOK_STEPS: PrivateBookSteps<Refusal<ImportProblem>> = {
   start: startBook,
   uploadCover,
   uploadPicture,

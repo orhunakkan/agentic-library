@@ -44,6 +44,7 @@ export function ArticlesPage({
               max={state.max}
               testHosts={state.testHosts}
               imageBytesUsed={state.imageBytesUsed}
+              limits={state.limits}
               articles={state.articles}
             />
           ) : (

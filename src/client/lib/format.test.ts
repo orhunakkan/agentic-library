@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatClock, formatDuration, pad2, relativeTime } from './format'
+import { formatClock, formatDuration, pad2, relativeTime } from './format'
 
 describe('formatDuration', () => {
   it('shows hours and minutes', () => {
@@ -71,16 +71,5 @@ describe('relativeTime', () => {
   it('gives the date from 30 days, with the year when it was another year', () => {
     expect(relativeTime(new Date(2026, 9, 3, 12).getTime(), now)).toBe('on 3 October')
     expect(relativeTime(new Date(2025, 11, 24, 12).getTime(), now)).toBe('on 24 December 2025')
-  })
-})
-
-describe('formatBytes', () => {
-  it('says KB under 1 MB and MB with one decimal from there', () => {
-    expect(formatBytes(0)).toBe('1 KB')
-    expect(formatBytes(1536)).toBe('2 KB')
-    expect(formatBytes(1023 * 1024)).toBe('1023 KB')
-    expect(formatBytes(1024 * 1024 - 1)).toBe('1.0 MB')
-    expect(formatBytes(1024 * 1024)).toBe('1.0 MB')
-    expect(formatBytes(2.4 * 1024 * 1024)).toBe('2.4 MB')
   })
 })

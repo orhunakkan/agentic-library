@@ -122,6 +122,25 @@ describe('savePrivateBook', () => {
     if (never) expect(calls).not.toContain(never)
   })
 
+  it('keeps the limit a refused chapter or picture names, so the message can name it', async () => {
+    const tooLong = {
+      uploadChapter: vi.fn(async () => ({ ok: false as const, problem: 'article-too-large' as const, max: 99 })),
+    }
+    expect((await run(draftOf(), stepsOf(tooLong).steps)).result).toEqual({
+      ok: false,
+      at: 'chapter',
+      problem: 'article-too-large',
+      max: 99,
+    })
+    const full = { uploadPicture: vi.fn(async () => ({ ok: false as const, problem: 'quota-user' as const, max: 7 })) }
+    expect((await run(draftOf(), stepsOf(full).steps)).result).toEqual({
+      ok: false,
+      at: 'picture',
+      problem: 'quota-user',
+      max: 7,
+    })
+  })
+
   it.each([
     ['a picture', { uploadPicture: vi.fn(async () => Promise.reject(new Error('x'))) }, 'picture'],
     ['a chapter', { uploadChapter: vi.fn(async () => Promise.reject(new Error('x'))) }, 'chapter'],

@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_LIMITS } from '../shared/limits/limits.ts'
 import { ConfigError, kekId, parseConfig } from './config'
 
 const KEK = Buffer.alloc(32, 7).toString('base64')
@@ -424,5 +425,80 @@ describe('ARTICLE_TEST_HOSTS', () => {
     ).toThrow(/only runs on localhost/)
     expect(() => parseConfig({ ARTICLE_TEST_HOSTS: '127.0.0.1' }, noFiles)).toThrow(/host:port/)
     expect(() => parseConfig({ ARTICLE_TEST_HOSTS: 'http://a:1' }, noFiles)).toThrow(/host:port/)
+  })
+})
+
+describe('the storage limits', () => {
+  const GiB = 1024 ** 3
+  const MiB = 1024 ** 2
+
+  it('are the defaults when no LIMIT_* is set, or one is empty', () => {
+    expect(parseConfig({}, noFiles).limits).toEqual(DEFAULT_LIMITS)
+    expect(parseConfig({ LIMIT_USER_AUDIO: '', LIMIT_BOOKS: ' ' }, noFiles).limits).toEqual(DEFAULT_LIMITS)
+  })
+
+  it('read the hosted values, in binary units', () => {
+    const { limits } = parseConfig(
+      { LIMIT_USER_AUDIO: '1GB', LIMIT_AUDIOBOOK_SIZE: '1GB', LIMIT_USER_PICTURES: '100MB' },
+      noFiles,
+    )
+    expect(limits).toEqual({ ...DEFAULT_LIMITS, userAudioBytes: GiB, audiobookBytes: GiB, userPictureBytes: 100 * MiB })
+  })
+
+  it('read a unit in any case, with an optional space, and counts as whole numbers', () => {
+    const { limits } = parseConfig(
+      {
+        LIMIT_USER_AUDIO: '1gb',
+        LIMIT_AUDIOBOOK_SIZE: '512 Mb',
+        LIMIT_USER_PICTURES: '100 MB',
+        LIMIT_BOOKS: '1000',
+        LIMIT_ARTICLES: '3',
+        LIMIT_ARTICLE_TEXT: ' 64KB ',
+      },
+      noFiles,
+    )
+    expect(limits).toEqual({
+      userAudioBytes: GiB,
+      audiobookBytes: 512 * MiB,
+      userPictureBytes: 100 * MiB,
+      books: 1000,
+      articles: 3,
+      articleTextBytes: 64 * 1024,
+    })
+  })
+
+  it('stop the server on a value that is not a size or a count, or is zero, naming the variable', () => {
+    const refused: Record<string, string>[] = [
+      { LIMIT_USER_AUDIO: '1' },
+      { LIMIT_USER_AUDIO: '0GB' },
+      { LIMIT_USER_AUDIO: '1TB' },
+      { LIMIT_USER_PICTURES: '-5' },
+      { LIMIT_USER_PICTURES: '1.5GB' },
+      { LIMIT_ARTICLE_TEXT: 'MB' },
+      { LIMIT_BOOKS: '0' },
+      { LIMIT_BOOKS: 'abc' },
+      { LIMIT_ARTICLES: '2.5' },
+      { LIMIT_ARTICLES: '-1' },
+    ]
+    for (const env of refused) {
+      const [name] = Object.keys(env)
+      expect(() => parseConfig(env, noFiles), JSON.stringify(env)).toThrow(ConfigError)
+      expect(() => parseConfig(env, noFiles), JSON.stringify(env)).toThrow(name)
+    }
+  })
+
+  it('stop the server on a size above Number.MAX_SAFE_INTEGER bytes', () => {
+    expect(() => parseConfig({ LIMIT_USER_AUDIO: '9999999GB' }, noFiles)).toThrow(/LIMIT_USER_AUDIO/)
+  })
+
+  it('stop the server when one audiobook may be larger than all of a reader’s audio', () => {
+    expect(() => parseConfig({ LIMIT_AUDIOBOOK_SIZE: '9GB' }, noFiles)).toThrow(/LIMIT_AUDIOBOOK_SIZE/)
+    expect(() => parseConfig({ LIMIT_USER_AUDIO: '1GB' }, noFiles)).toThrow(/LIMIT_AUDIOBOOK_SIZE/)
+    expect(parseConfig({ LIMIT_USER_AUDIO: '2GB' }, noFiles).limits.audiobookBytes).toBe(2 * GiB)
+  })
+
+  it('stop the server when an article may hold more text than the 8 MB a book can', () => {
+    expect(() => parseConfig({ LIMIT_ARTICLE_TEXT: '9MB' }, noFiles)).toThrow(/LIMIT_ARTICLE_TEXT/)
+    expect(parseConfig({ LIMIT_ARTICLE_TEXT: '8MB' }, noFiles).limits.articleTextBytes).toBe(8 * MiB)
   })
 })

@@ -63,9 +63,9 @@ const uploading = (more: Partial<SaveSteps['upload']>) => {
   return { ...s, upload: { ...s.upload, ...more } }
 }
 
-async function run(s: SaveSteps, imageBytesUsed = 0) {
+async function run(s: SaveSteps, imageBytesUsed = 0, userPictureBytes = 250 * 1024 * 1024) {
   const progress: SaveStage[] = []
-  const outcome = await saveArticle('a.test/x', s, { imageBytesUsed }, (p) => progress.push(p))
+  const outcome = await saveArticle('a.test/x', s, { imageBytesUsed, userPictureBytes }, (p) => progress.push(p))
   return { outcome, progress }
 }
 
@@ -115,10 +115,9 @@ describe('saveArticle', () => {
     expect(s.startArticle).toHaveBeenCalledWith(expect.objectContaining({ images: { count: 0, bytes: 0 } }))
   })
 
-  it('leaves out the pictures past the account’s room', async () => {
-    const s = steps()
-    const { outcome } = await run(s, 250 * 1024 * 1024 - 1)
-    expect(outcome).toMatchObject({ ok: true, failed: 1 })
+  it('leaves out the pictures past the room the account’s picture limit leaves', async () => {
+    expect((await run(steps(), 999, 1000)).outcome).toMatchObject({ ok: true, failed: 1 })
+    expect((await run(steps(), 999, 100_000)).outcome).toMatchObject({ ok: true, failed: 0 })
   })
 
   it('stops at a failed fetch with its failure', async () => {
@@ -158,6 +157,13 @@ describe('saveArticle', () => {
   it('deletes what it uploaded when a step after the start fails, and says failed', async () => {
     const s = uploading({ uploadChapter: vi.fn(async () => ({ ok: false as const, problem: 'invalid' as const })) })
     expect((await run(s)).outcome).toEqual({ ok: false, failure: { problem: 'failed' } })
+    expect(s.upload.discard).toHaveBeenCalledWith('b1')
+  })
+
+  it('says the article is over the text cap, with the cap the server named', async () => {
+    const tooLong = { ok: false as const, problem: 'article-too-large' as const, max: 1024 ** 2 }
+    const s = uploading({ uploadChapter: vi.fn(async () => tooLong) })
+    expect((await run(s)).outcome).toEqual({ ok: false, failure: { problem: 'article_too_large', max: 1024 ** 2 } })
     expect(s.upload.discard).toHaveBeenCalledWith('b1')
   })
 

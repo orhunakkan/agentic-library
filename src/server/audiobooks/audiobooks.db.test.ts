@@ -19,6 +19,7 @@ import { closeDb, getDb } from '~/server/db'
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import {
+  deleteBook,
   listBooks,
   loadBookPage,
   loadBookText,
@@ -26,17 +27,29 @@ import {
   loadReaderBook,
   loadSpeechChapter,
   loadWholeBook,
+  startImport,
 } from '~/server/user-books'
+import type { AudiobookStart } from '~/shared/audiobooks/input'
 import { GB } from '~/shared/audiobooks/limits'
+import { NO_DETAILS } from '~/shared/import/details'
+import { DEFAULT_LIMITS, type InstanceLimits } from '~/shared/limits/limits'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { type AudiobookOptions, handleAudioChunk, handleAudioFinish, handleNewAudiobook } from './actions'
 import { audiobooksDir, audioPath, bookDir, forgetBookAudio, forgetUserAudio, freeBytes, sweep } from './files'
 import { serveAudio } from './serve'
-import { audioBytesUsed, audiobookChapters, loadAudiobook, readyAudioFile, recordChunk, uploadingFile } from './store'
+import {
+  audioBytesUsed,
+  audiobookChapters,
+  loadAudiobook,
+  readyAudioFile,
+  recordChunk,
+  startAudiobook,
+  uploadingFile,
+} from './store'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
-const config = getConfig() as { audiobooksDir: string | null }
+const config = getConfig() as { audiobooksDir: string | null; limits: InstanceLimits }
 const root = mkdtempSync(join(tmpdir(), 'audiobooks-'))
 
 const fixture = (name: string) =>
@@ -55,6 +68,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await raw`truncate users, sessions, audit_events, login_attempts, user_books restart identity cascade`
   config.audiobooksDir = root
+  config.limits = { ...DEFAULT_LIMITS }
 })
 
 const origin = getConfig().appOrigin
@@ -250,25 +264,24 @@ describe('POST /account/books/new-audiobook', () => {
     }
   })
 
-  it('says quota for the 25 books, the 8 GB of audio, the hourly limit and the server’s disk', async () => {
+  it('says quota for the configured books and audio, the hourly limit and the server’s disk', async () => {
+    config.limits = { ...DEFAULT_LIMITS, books: 4, userAudioBytes: 3 * M4B.length }
     const { user, cookie } = await signedIn()
     const tight = { freeBytes: async () => 10 * GB + M4B.length - 1 }
     expect(await answer(await start(cookie, m4bStart(), tight))).toEqual([409, { error: 'quota', scope: 'server' }])
     expect((await start(cookie, m4bStart(), { freeBytes: async () => 10 * GB + M4B.length })).status).toBe(201)
 
-    await fillAudio(user.id, 8 * GB - 2 * M4B.length + 1)
-    expect(await audioBytesUsed(db(), user.id)).toBe(8 * GB - M4B.length + 1)
+    await fillAudio(user.id, M4B.length + 1)
+    expect(await audioBytesUsed(db(), user.id)).toBe(2 * M4B.length + 1)
     expect(await answer(await start(cookie, m4bStart()))).toEqual([
       409,
-      { error: 'quota', scope: 'audio', max: 8 * GB },
+      { error: 'quota', scope: 'audio', max: 3 * M4B.length },
     ])
 
     await raw`
       insert into user_books (user_id, title, author, language, chapter_count)
-      select ${user.id}, 'Filler', 'Ada', 'en', 1 from generate_series(1, 23)`
-    await raw`update user_books set audio_bytes = 0 where title = 'Big'`
-    await raw`delete from user_books where title = 'Big' and ctid not in (select ctid from user_books where title = 'Big' limit 1)`
-    expect(await answer(await start(cookie, m4bStart()))).toEqual([409, { error: 'quota', scope: 'books', max: 25 }])
+      select ${user.id}, 'Filler', 'Ada', 'en', 1 from generate_series(1, 2)`
+    expect(await answer(await start(cookie, m4bStart()))).toEqual([409, { error: 'quota', scope: 'books', max: 4 }])
 
     await raw`delete from user_books where title = 'Filler'`
     await raw`
@@ -279,7 +292,7 @@ describe('POST /account/books/new-audiobook', () => {
 
   it('lets only one of two starts racing for the last of the account’s audio through', async () => {
     const { user, cookie } = await signedIn()
-    await fillAudio(user.id, 8 * GB - M4B.length - 10)
+    await fillAudio(user.id, config.limits.userAudioBytes - M4B.length - 10)
     const both = await Promise.all([start(cookie, m4bStart()), start(cookie, m4bStart())])
     expect(both.map((r) => r.status).sort()).toEqual([201, 409])
   })
@@ -296,6 +309,75 @@ describe('POST /account/books/new-audiobook', () => {
     expect(existsSync(bookDir(root, user.id, fresh))).toBe(true)
     expect(await raw`select id from user_books`).toEqual([{ id: fresh }])
     expect(await sweep(root, 999_999, new Set())).toBe(0)
+  })
+})
+
+describe('the start’s limits', () => {
+  /** An audiobook of `bytes`, as the start parser hands it to the store. */
+  const stored = (bytes = 1000): AudiobookStart => ({
+    title: 'Stored',
+    author: 'Ada',
+    narrator: null,
+    language: 'en',
+    details: NO_DETAILS,
+    type: 'mp4',
+    files: [bytes],
+    chapters: [{ title: 'One', fileN: 1, startMs: 0, durationMs: 3000 }],
+    cover: false,
+  })
+  const book = { title: 'Text', author: 'Ada', language: 'en', details: NO_DETAILS, chapterCount: 1 }
+
+  it('holds a start to the books limit it is given, counting books and audiobooks alike', async () => {
+    const limits = { ...DEFAULT_LIMITS, books: 2 }
+    const { user } = await signedIn()
+    expect((await startAudiobook(db(), user.id, stored(), new Date(), limits)).ok).toBe(true)
+    expect((await startImport(db(), user.id, book, new Date(), limits)).ok).toBe(true)
+    expect(await startAudiobook(db(), user.id, stored(), new Date(), limits)).toEqual({
+      ok: false,
+      quota: 'books',
+      max: 2,
+    })
+  })
+
+  it('holds a start to the audio limit it is given: up to it is stored, past it refused with it', async () => {
+    const limits = { ...DEFAULT_LIMITS, userAudioBytes: 3000, audiobookBytes: 2000 }
+    const { user } = await signedIn()
+    expect((await startAudiobook(db(), user.id, stored(2000), new Date(), limits)).ok).toBe(true)
+    expect(await startAudiobook(db(), user.id, stored(1001), new Date(), limits)).toEqual({
+      ok: false,
+      quota: 'audio',
+      max: 3000,
+    })
+    expect((await startAudiobook(db(), user.id, stored(1000), new Date(), limits)).ok).toBe(true)
+    expect(await audioBytesUsed(db(), user.id)).toBe(3000)
+  })
+
+  it('keeps the audio of a listener over a lowered audio limit, lets them delete it, and refuses new starts', async () => {
+    const { user } = await signedIn()
+    const first = await startAudiobook(db(), user.id, stored(3000), new Date(), DEFAULT_LIMITS)
+    const second = await startAudiobook(db(), user.id, stored(3000), new Date(), DEFAULT_LIMITS)
+    if (!first.ok || !second.ok) throw new Error('could not start')
+    const lowered = { ...DEFAULT_LIMITS, userAudioBytes: 2000, audiobookBytes: 2000 }
+    const refused = { ok: false, quota: 'audio', max: 2000 }
+    expect(await startAudiobook(db(), user.id, stored(1), new Date(), lowered)).toEqual(refused)
+    expect(await deleteBook(db(), user.id, first.id)).toBe(true)
+    expect(await audioBytesUsed(db(), user.id)).toBe(3000)
+    expect(await startAudiobook(db(), user.id, stored(1), new Date(), lowered)).toEqual(refused)
+  })
+
+  it('keeps every audiobook of a listener over a lowered books limit, and refuses only new starts', async () => {
+    const { user } = await signedIn()
+    const ids: string[] = []
+    for (let i = 0; i < 3; i++) {
+      const started = await startAudiobook(db(), user.id, stored(), new Date(), DEFAULT_LIMITS)
+      if (!started.ok) throw new Error('could not start')
+      ids.push(started.id)
+    }
+    const lowered = { ...DEFAULT_LIMITS, books: 2 }
+    const refused = { ok: false, quota: 'books', max: 2 }
+    expect(await startAudiobook(db(), user.id, stored(), new Date(), lowered)).toEqual(refused)
+    expect(await deleteBook(db(), user.id, ids[0] ?? '')).toBe(true)
+    expect(await startAudiobook(db(), user.id, stored(), new Date(), lowered)).toEqual(refused)
   })
 })
 

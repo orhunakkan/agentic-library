@@ -2,7 +2,7 @@ import type { UploadProblem } from '~/client/features/book-details/details-clien
 import type { CoverSource } from '~/shared/content/private-book'
 import type { DraftChapter } from '~/shared/import/blocks'
 import { chapterRequest } from '~/shared/import/draft'
-import type { BookStart, ImportProblem, PictureProblem } from './import-client'
+import type { BookStart, ImportProblem, PictureProblem, Refusal } from './import-client'
 
 export type CoverFrom = Exclude<CoverSource, 'open-library'>
 
@@ -20,7 +20,7 @@ export interface PrivateBookDraft {
   cover?: { blob: Blob; from: CoverFrom } | null
 }
 
-type Step<P> = Promise<{ ok: true } | { ok: false; problem: P }>
+type Step<P extends string> = Promise<{ ok: true } | Refusal<P>>
 
 export interface PrivateBookSteps<R extends { ok: false }> {
   start(book: BookStart): Promise<{ ok: true; value: { id: string } } | R>
@@ -40,8 +40,8 @@ export interface SaveProgress {
 export type PrivateBookResult<R> =
   | { ok: true; id: string; coverRefusal?: CoverRefusal }
   | { ok: false; at: 'start'; refused: R }
-  | { ok: false; at: 'picture'; problem: PictureProblem }
-  | { ok: false; at: 'chapter' | 'finish'; problem: ImportProblem }
+  | { ok: false; at: 'picture'; problem: PictureProblem; max?: number }
+  | { ok: false; at: 'chapter' | 'finish'; problem: ImportProblem; max?: number }
 
 export function keptPictures(uploads: readonly number[], blobOf: (n: number) => Blob | undefined): Blob[] | null {
   const blobs = uploads.map(blobOf)
@@ -60,9 +60,10 @@ class Stop extends Error {
   }
 }
 
-async function must<P>(step: Step<P>, failure: (problem: P) => Failure): Promise<void> {
+async function must<P extends string>(step: Step<P>, failure: (problem: P) => Failure): Promise<void> {
   const answer = await step
-  if (!answer.ok) throw new Stop(failure(answer.problem))
+  if (!answer.ok)
+    throw new Stop(answer.max === undefined ? failure(answer.problem) : { ...failure(answer.problem), max: answer.max })
 }
 
 export async function savePrivateBook<R extends { ok: false }>(

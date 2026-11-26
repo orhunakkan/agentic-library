@@ -1,5 +1,6 @@
 import type { OtherAudio } from '~/shared/audiobooks/sniff'
-import { BOOK_QUOTA_TEXT } from '../import/import-problems'
+import { formatBytes } from '~/shared/lib/format-bytes'
+import { bookQuotaText } from '../import/import-problems'
 
 export type AudiobookProblem =
   | {
@@ -7,14 +8,11 @@ export type AudiobookProblem =
         | 'mixed'
         | 'drm'
         | 'aax'
-        | 'large'
         | 'files'
         | 'chapters'
         | 'long'
-        | 'room'
         | 'off'
         | 'server-full'
-        | 'books'
         | 'rate'
         | 'signed-out'
         | 'interrupted'
@@ -22,6 +20,7 @@ export type AudiobookProblem =
         | 'stopped'
         | 'failed'
     }
+  | { code: 'books' | 'large' | 'room'; max: number }
   | { code: 'type'; type: OtherAudio | null }
   | { code: 'unreadable'; reason: string }
   | { code: 'server-unreadable'; reason: string }
@@ -41,7 +40,7 @@ export function problemText(problem: AudiobookProblem): string {
     case 'type':
       return `Folio imports audiobooks as M4B or MP3 files. This one is ${problem.type ?? 'not an audio file'}.`
     case 'large':
-      return 'This audiobook is larger than 2 GB.'
+      return `This audiobook is larger than ${formatBytes(problem.max)}.`
     case 'files':
       return 'An audiobook can have at most 500 MP3 files.'
     case 'chapters':
@@ -49,7 +48,7 @@ export function problemText(problem: AudiobookProblem): string {
     case 'long':
       return 'One of this audiobook’s chapters is longer than 24 hours.'
     case 'room':
-      return 'Your audiobooks would go over 8 GB. Delete one to make room.'
+      return `Your audiobooks would go over ${formatBytes(problem.max)}. Delete one to make room.`
     case 'unreadable':
       return `This file couldn’t be read: ${sentence(problem.reason)}`
     case 'off':
@@ -57,7 +56,7 @@ export function problemText(problem: AudiobookProblem): string {
     case 'server-full':
       return 'The server is short of space for audiobooks right now. Try again later.'
     case 'books':
-      return BOOK_QUOTA_TEXT
+      return bookQuotaText(problem.max)
     case 'rate':
       return 'You’ve imported 10 books in the last hour. Try again later.'
     case 'server-unreadable':
@@ -75,7 +74,9 @@ export function problemText(problem: AudiobookProblem): string {
   }
 }
 
-export const problem = (code: Exclude<ProblemCode, 'type' | 'unreadable' | 'server-unreadable'>): AudiobookProblem => ({
+export const problem = (
+  code: Exclude<ProblemCode, 'type' | 'unreadable' | 'server-unreadable' | 'books' | 'large' | 'room'>,
+): AudiobookProblem => ({
   code,
 })
 

@@ -16,6 +16,7 @@ import { finishImport, startImport, storeChapter } from '~/server/user-books'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import { type OfflineBook, parseOfflineBook } from '~/shared/offline/book'
 import { pictureUrls } from '~/shared/offline/pictures'
 import { databaseUrl, freshDatabase } from '../testing/db'
@@ -59,14 +60,27 @@ async function account(username: string) {
 
 async function book(userId: number, finish = true) {
   const picture = fixture('tiny.png')
-  const start = await startImport(db(), userId, { ...META, images: { count: 1, bytes: picture.length } })
+  const start = await startImport(
+    db(),
+    userId,
+    { ...META, images: { count: 1, bytes: picture.length } },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
   const src = `/account/books/${start.id}/images/1`
   const figure = `<figure><a href="${src}"><img src="${src}" alt="" width="1" height="1"></a></figure>`
-  await storeChapter(db(), userId, start.id, 0, { title: 'Morning', pages: ['<p>dew</p>', figure] })
-  await storeChapter(db(), userId, start.id, 1, { title: 'Evening', pages: ['<p>dusk</p>'] })
+  await storeChapter(db(), userId, start.id, 0, { title: 'Morning', pages: ['<p>dew</p>', figure] }, DEFAULT_LIMITS)
+  await storeChapter(db(), userId, start.id, 1, { title: 'Evening', pages: ['<p>dusk</p>'] }, DEFAULT_LIMITS)
   const image = info(picture)
-  await storeImage(db(), userId, start.id, 1, newImage(picture, { ...image, type: image.type as 'image/png' }))
+  await storeImage(
+    db(),
+    userId,
+    start.id,
+    1,
+    newImage(picture, { ...image, type: image.type as 'image/png' }),
+    DEFAULT_LIMITS,
+  )
   if (finish) expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return { id: start.id, slug: privateBookSlug(start.id), picture: src, pictureBytes: picture.length }
 }

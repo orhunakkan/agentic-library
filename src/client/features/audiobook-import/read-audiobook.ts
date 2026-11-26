@@ -12,8 +12,6 @@ import {
   type AudioFileType,
   MAX_AUDIO_CHAPTERS,
   MAX_AUDIO_FILES,
-  MAX_AUDIOBOOK_BYTES,
-  MAX_USER_AUDIO_BYTES,
   MIN_FILE_MS,
   PARALLEL_FILES,
   SNIFF_BYTES,
@@ -23,6 +21,7 @@ import { sniffAudio } from '~/shared/audiobooks/sniff'
 import { LANGUAGE_TAG, type SourceCover } from '~/shared/import/blocks'
 import { type BookDetails, cleanDescription } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
+import type { InstanceLimits } from '~/shared/limits/limits'
 import { type AudiobookProblem, problem } from './audiobook-problems'
 
 export class AudiobookReadError extends Error {
@@ -148,6 +147,7 @@ async function coverOf(file: File, parse: Parse): Promise<SourceCover | null> {
 
 export interface ReadOptions {
   audioBytesUsed: number
+  limits: InstanceLimits
   onProgress?: (done: number, total: number) => void
   signal?: AbortSignal
   parse?: Parse
@@ -157,8 +157,9 @@ export async function readAudiobook(picked: readonly File[], options: ReadOption
   const parse = options.parse ?? parseBlob
   const bytes = picked.reduce((n, f) => n + f.size, 0)
   if (picked.length > MAX_AUDIO_FILES) fail(problem('files'))
-  if (bytes > MAX_AUDIOBOOK_BYTES) fail(problem('large'))
-  if (options.audioBytesUsed + bytes > MAX_USER_AUDIO_BYTES) fail(problem('room'))
+  const { audiobookBytes, userAudioBytes } = options.limits
+  if (bytes > audiobookBytes) fail({ code: 'large', max: audiobookBytes })
+  if (options.audioBytesUsed + bytes > userAudioBytes) fail({ code: 'room', max: userAudioBytes })
   let done = 0
   options.onProgress?.(0, picked.length)
   const reads = await inParallel(

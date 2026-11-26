@@ -12,6 +12,7 @@ import {
   isEmailError,
 } from '~/client/features/account/account-messages'
 import { type PasswordReason, parseReason } from '~/client/features/account/password-text'
+import { StorageSection } from '~/client/features/account/StorageSection'
 import { signOutSubmit } from '~/client/features/account/sign-out'
 import { AccountPage, Button, DateTime, Notice, Section, TextField } from '~/client/features/account/ui'
 import { PasskeysSection } from '~/client/features/passkeys/PasskeysSection'
@@ -91,6 +92,8 @@ function AccountScreen() {
           <dd className="font-medium text-ink">{account.role === 'admin' ? 'Admin' : 'Member'}</dd>
         </dl>
       </Section>
+
+      <StorageSection storage={account.storage} />
 
       <EmailSection username={account.username} email={account.email} error={error} />
 

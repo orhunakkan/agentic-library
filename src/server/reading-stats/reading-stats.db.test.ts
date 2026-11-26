@@ -19,6 +19,7 @@ import { listFinished, markFinished, saveTime, unmarkFinished } from '~/server/r
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import { deleteBook, finishImport, startImport, storeChapter } from '~/server/user-books'
+import { DEFAULT_LIMITS } from '~/shared/limits/limits'
 import type { ReadingStatsState } from '~/shared/reading-stats/contract'
 import { addDays, dayIn } from '~/shared/reading-stats/days'
 import { databaseUrl, freshDatabase } from '../testing/db'
@@ -50,15 +51,21 @@ async function signedIn() {
 }
 
 async function privateBook(userId: number, title = 'Notes'): Promise<string> {
-  const start = await startImport(db(), userId, {
-    title,
-    author: 'Ada',
-    language: 'en',
-    details: NO_DETAILS,
-    chapterCount: 1,
-  })
+  const start = await startImport(
+    db(),
+    userId,
+    {
+      title,
+      author: 'Ada',
+      language: 'en',
+      details: NO_DETAILS,
+      chapterCount: 1,
+    },
+    new Date(),
+    DEFAULT_LIMITS,
+  )
   if (!start.ok) throw new Error('could not start')
-  await storeChapter(db(), userId, start.id, 0, { title: 'Opening', pages: ['<p>one</p>'] })
+  await storeChapter(db(), userId, start.id, 0, { title: 'Opening', pages: ['<p>one</p>'] }, DEFAULT_LIMITS)
   expect(await finishImport(db(), userId, start.id, null)).toBe('ok')
   return start.id
 }
