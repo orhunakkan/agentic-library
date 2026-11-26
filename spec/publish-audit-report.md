@@ -38,12 +38,13 @@ piece of personal data that must go, the personal address on every commit, comes
 Nothing here blocks `go-public`, because no real secret was found, so nothing needs rotating.
 
 1. **Read this report and sign it off** with a dated line under "Sign-off" (Task 10).
-2. **Set your git email to the no-reply address now**, so new commits don't need rewriting. Your global
-   `user.email` is the personal address today (checked without printing it):
-   `git config --global user.email 70279053+orhunakkan@users.noreply.github.com`.
-   The commit that adds this report still uses the personal address, and `go-public`'s rewrite covers it.
-3. **Turn on GitHub's "Block command line pushes that expose my email"**, under Settings → Emails.
-4. **Push the audit commit** after your review. The build doesn't push.
+2. ~~**Set your git email to the no-reply address**~~ **Done 2026-11-25:** the global `user.email` is now
+   `70279053+orhunakkan@users.noreply.github.com`. The commit that adds this report was amended to that address
+   before it was pushed, so it carries no personal address. The 77 audited commits still do, and `go-public`'s
+   rewrite covers them.
+3. ~~**Turn on GitHub's "Block command line pushes that expose my email"**~~ **Done 2026-11-25:** the setting is on.
+   It refused the first push of the audit commit while that commit still carried the personal address.
+4. ~~**Push the audit commit**~~ **Done 2026-11-25.**
 5. **Optional, with no effect on the audit:** the local image `folio-audit-exiftool` and the pulled gitleaks and Debian
    images stay in Docker for `go-public`'s re-run. Remove them with `docker image rm` if you'd rather not keep them.
 
