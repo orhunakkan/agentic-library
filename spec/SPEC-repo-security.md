@@ -35,7 +35,8 @@ This reverses the map's "Moving all CI to GitHub-hosted runners: rejected for V1
 
 ### 1. CI on GitHub-hosted runners
 
-[ci.yml](../.github/workflows/ci.yml) keeps its jobs (checks, component, db, e2e) and their order. Only these change:
+[ci.yml](../.github/workflows/ci.yml) keeps its jobs (checks, component, db) and their order. The e2e job was removed on
+2026-11-26 along with the Playwright suite, and `pnpm build` moved into checks. Only these change:
 
 - `runs-on: ubuntu-24.04` on every job, replacing `${{ vars.CI_RUNNER }}`. The label is pinned so runs are
   reproducible, and moving to a newer image is a deliberate change.
@@ -45,8 +46,9 @@ This reverses the map's "Moving all CI to GitHub-hosted runners: rejected for V1
 - Every `uses:` is pinned to a full 40-character commit SHA, with the version in a trailing comment, which Dependabot
   keeps up to date.
 - The `container:` and `services:` images (`mcr.microsoft.com/playwright`, `postgres`) are pinned by `@sha256:`
-  digest, with the tag in a comment. They are still bumped by hand together with `@playwright/test`, as they are today.
-- `deploy-dev` becomes `request-dev-deploy`. It runs on `push` to `main` only, after `e2e`, and its only write
+  digest, with the tag in a comment. They are still bumped by hand together with the `playwright` package (Vitest's
+  browser provider), as they are today.
+- `deploy-dev` becomes `request-dev-deploy`. It runs on `push` to `main` only, after `db`, and its only write
   permission is `deployments: write`. It creates a GitHub Deployment for environment `dev` at `$GITHUB_SHA`. It
   doesn't deploy anything itself.
 - Two new jobs, which can run in parallel with `checks`: **Secrets scan** (gitleaks) and **Workflow lint** (zizmor). See
@@ -168,7 +170,7 @@ script instead of being clicked in by hand.
 |---|---|---|
 | Ruleset `main-history` | `refs/heads/main`: block deletion and force pushes. **No bypass**, the owner included. | no, applied by `go-public` |
 | Ruleset `main-changes` | `refs/heads/main`: require a PR (0 approvals, squash merges only) and the required checks below, from the GitHub Actions app (`integration_id` 15368), so other apps can't spoof them. **Bypass: repository admin, always**, so the owner keeps pushing directly. | no, applied by `go-public` |
-| Required checks | Lint, types, unit tests, audit · Component tests · Database tests · Build and end-to-end tests · Secrets scan · Workflow lint | (part of `main-changes`) |
+| Required checks | Lint, types, unit tests, build, audit · Component tests · Database tests · Secrets scan · Workflow lint | (part of `main-changes`) |
 | Secret scanning, push protection | on | no, applied by `go-public` |
 | Private vulnerability reporting | on | no, applied by `go-public` |
 | Dependabot alerts, security updates | on | yes |
@@ -353,9 +355,9 @@ function runnerProblems(file: string, workflowText: string): string[] {
   stop when the quota runs out, and nothing is charged. Mitigation: build this module late, right before
   `contributor-docs` and `go-public`, and check usage. Once the repo is public, minutes are free and the runners have
   4 vCPUs.
-- **Flaky end-to-end tests on new hardware.** Two flaky specs are already known: `sync.spec.ts:105` on phone and
-  `ask-prompts.spec.ts:88` on desktop. Rerun before debugging. If GitHub-hosted runners make them worse, tune the
-  Playwright workers in this module, but don't skip tests.
+- **Flaky tests on new hardware.** The coverage floors on `src/server/email/store.ts` and `actions.ts` have missed
+  once in CI with every test green. Rerun before debugging. If GitHub-hosted runners make it worse, find the cause in
+  this module, but don't skip tests or lower floors.
 - **Deploy delay.** Polling adds up to 30 seconds plus the deploy time. This is accepted.
 - **Server token expiry.** Deploys stop until the token is renewed. The owner sets a reminder before the expiry date.
 
@@ -366,7 +368,7 @@ function runnerProblems(file: string, workflowText: string): string[] {
   owner's direct pushes can come later.
 - OpenSSF Scorecard and its badge, which can be added once the repo is public.
 - `CODEOWNERS`. With one maintainer, it adds nothing that the rulesets don't already do.
-- Container image updates through Dependabot. Images stay bumped by hand with `@playwright/test`.
+- Container image updates through Dependabot. Images stay bumped by hand with the `playwright` package.
 - Adding `scripts/` to the coverage floors.
 
 ## Changes to other specs

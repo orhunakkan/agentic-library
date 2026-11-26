@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parseSearch, parseWork } from './open-library-parse'
 
 const fixture = (name: string): unknown =>
-  JSON.parse(readFileSync(new URL(`../../../tests/e2e/support/open-library/${name}.json`, import.meta.url), 'utf8'))
+  JSON.parse(readFileSync(new URL(`../../../tests/stubs/open-library/${name}.json`, import.meta.url), 'utf8'))
 
 describe('parseSearch', () => {
   it('reads the saved title search into matches, in order', () => {

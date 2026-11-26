@@ -56,7 +56,8 @@ let users = 0
 const newUser = () => testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
 const PRIDE = refFor('pride-and-prejudice')
-const pride = () => JSON.parse(readFileSync('tests/e2e/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook
+const pride = () =>
+  JSON.parse(readFileSync('tests/fixtures/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook
 
 async function importBook(
   userId: number,
@@ -180,7 +181,7 @@ describe('openBook', () => {
 
   it('gives a catalogue audiobook its episodes, and a book without one no audio', async () => {
     const user = await newUser()
-    const catalogue = JSON.parse(readFileSync('tests/e2e/content/audio/the-prophet.json', 'utf8')) as AudioBook
+    const catalogue = JSON.parse(readFileSync('tests/fixtures/content/audio/the-prophet.json', 'utf8')) as AudioBook
     for (const reader of [null, user.id]) {
       const prophet = await openBook(db(), reader, 'the-prophet')
       expect((await prophet?.audio())?.episodes.length).toBe(catalogue.episodes.length)

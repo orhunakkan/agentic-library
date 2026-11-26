@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { elevenLabsKey, elevenLabsStub, STUB_ELEVENLABS_KEYS } from '../../../tests/e2e/support/elevenlabs-stub'
+import { elevenLabsKey, elevenLabsStub, STUB_ELEVENLABS_KEYS } from '../../../tests/stubs/elevenlabs-stub'
 import {
   checkKey,
   elevenLabsKeyProblem,

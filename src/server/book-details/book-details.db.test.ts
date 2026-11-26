@@ -25,7 +25,7 @@ import { deleteBook, finishImport, listBooks, loadBookPage, startImport, storeCh
 import { NO_DETAILS } from '~/shared/import/details'
 import { sniffImage } from '~/shared/import/image'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
-import { openLibraryStub, STUB_COVERS, STUB_TITLES } from '../../../tests/e2e/support/open-library-stub'
+import { openLibraryStub, STUB_COVERS, STUB_TITLES } from '../../../tests/stubs/open-library-stub'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
 import { testUser } from '../testing/users'

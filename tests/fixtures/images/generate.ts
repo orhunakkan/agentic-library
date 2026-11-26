@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { chromium } from '@playwright/test'
+import { chromium } from 'playwright'
 
 const DIR = import.meta.dirname
 

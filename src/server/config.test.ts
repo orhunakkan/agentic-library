@@ -65,7 +65,7 @@ describe('parseConfig', () => {
     expect(config.appOrigin).toBe('http://localhost:3000')
   })
 
-  it('reads the e2e settings', () => {
+  it('reads the settings that point the outside services at local stubs', () => {
     const config = parseConfig(
       {
         COOKIE_SECURE: 'false',

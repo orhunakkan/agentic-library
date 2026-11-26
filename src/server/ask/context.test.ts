@@ -27,12 +27,14 @@ import {
 } from './context'
 
 const pride = bookText(
-  JSON.parse(readFileSync('tests/e2e/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook,
+  JSON.parse(readFileSync('tests/fixtures/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook,
 )
 const ghazzali = bookText(
-  JSON.parse(readFileSync('tests/e2e/content/books/confessions-of-al-ghazzali.json', 'utf8')) as PagedBook,
+  JSON.parse(readFileSync('tests/fixtures/content/books/confessions-of-al-ghazzali.json', 'utf8')) as PagedBook,
 )
-const code = bookText(JSON.parse(readFileSync('tests/e2e/content/books/fixture-code-book.json', 'utf8')) as ChapterBook)
+const code = bookText(
+  JSON.parse(readFileSync('tests/fixtures/content/books/fixture-code-book.json', 'utf8')) as ChapterBook,
+)
 const TITLE = 'Pride and Prejudice'
 
 function built(text: BookText, pageIndex: number, wholeBook = false): BookContext {

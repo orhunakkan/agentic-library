@@ -1,0 +1,79 @@
+{
+  "collection": {
+    "slug": "code-samples",
+    "title": "Code Samples",
+    "kind": "chapter",
+    "tone": "default",
+    "order": 3,
+    "tagline": "1 series · 2 books"
+  },
+  "series": [
+    {
+      "slug": "code-fixtures",
+      "title": "Code Fixtures",
+      "description": "Small test books of code blocks, lists, tables and a figure, served only to the tests.",
+      "collectionSlug": "code-samples"
+    }
+  ],
+  "books": [
+    {
+      "id": "a87d7a34-49a6-50e7-bfcd-f1cee3e53ec5",
+      "slug": "fixture-code-book",
+      "title": "A Small Book of Code",
+      "author": "Ada Tester",
+      "seriesSlug": "code-fixtures",
+      "order": 1,
+      "shortDescription": "Four short chapters of prose, code, lists and a table, for the tests.",
+      "language": "en",
+      "tagline": "Code, lists and tables",
+      "kind": "chapter",
+      "cover": {
+        "background": [
+          "#14213d",
+          "#3a5a99"
+        ],
+        "ink": "#e8eefc",
+        "motif": "grid"
+      },
+      "coverImage": {
+        "file": "fixture-code-book.jpg",
+        "type": "image/jpeg",
+        "width": 400,
+        "height": 600,
+        "hash": "b0afbf0ffc7961012de0f1bcc44e85bc0d60fc39d46bf4d12b4547d6c5c4e6e7"
+      },
+      "chapterCount": 4,
+      "source": {
+        "name": "The Folio tests",
+        "url": "https://example.com/fixture-code-book",
+        "license": "CC0"
+      }
+    },
+    {
+      "id": "2c94dd90-d590-5dbe-bea1-cfed799186f0",
+      "slug": "fixture-figure-book",
+      "title": "A Small Book of Figures",
+      "author": "Ada Tester",
+      "seriesSlug": "code-fixtures",
+      "order": 2,
+      "shortDescription": "Three short chapters of prose and a figure, for the tests.",
+      "language": "en",
+      "tagline": "A figure and its caption",
+      "kind": "chapter",
+      "cover": {
+        "background": [
+          "#14213d",
+          "#3a5a99"
+        ],
+        "ink": "#e8eefc",
+        "motif": "grid"
+      },
+      "chapterCount": 3,
+      "source": {
+        "name": "The Folio tests",
+        "url": "https://example.com/fixture-figure-book",
+        "license": "CC0"
+      }
+    }
+  ]
+}

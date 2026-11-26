@@ -8,7 +8,7 @@ vi.mock('~/server/functions', () => ({ getSearchIndex: vi.fn() }))
 
 const BOOK_PAGE = '/library/poetry-of-the-spirit/the-prophet'
 
-/** The server's answer to the change, as the E2E test's page.route gave it. */
+/** The server's answer to the change. */
 const answer = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 

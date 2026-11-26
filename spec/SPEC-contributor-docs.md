@@ -37,7 +37,7 @@ the licence clear:
 
 **What success looks like:** on a clean machine with Node 26, pnpm and Docker, the README quick start, followed word
 for word, gives a running Folio at `http://localhost:3000` with an admin account signed in. CONTRIBUTING, followed the
-same way, gives a passing `pnpm check`, `pnpm test:db` and `pnpm e2e:local`. The docs never mention plans, prices or
+same way, gives a passing `pnpm check`, `pnpm test:db` and `pnpm test:browser`. The docs never mention plans, prices or
 Paddle. A setting added to the server without a line in `.env.example`, or a doc that names a missing `pnpm` script
 or links to a missing file, fails `pnpm check`.
 
@@ -64,12 +64,11 @@ or links to a missing file, fails `pnpm check`.
   - [test-databases.ts](../tests/test-databases.ts) defaults the db tests to
     `postgres://postgres:postgres@127.0.0.1:5432/agentic_test`. The db tests need that database to exist, and they drop
     and re-create its `public` schema.
-  - The e2e server derives `agentic_e2e_test` and creates it itself.
   - The owner's local dev database is `agentic_dev` on the same server.
   - CI uses a `postgres:18` service with `POSTGRES_PASSWORD=postgres` and `POSTGRES_DB=agentic_test`.
-- **Browsers:** every Playwright project, component tests included, uses Chromium.
-- **Voices:** e2e read-aloud tests need `pnpm voices:fetch en_GB-cori-medium`, which downloads from Hugging Face into
-  `.cache/voices`.
+- **Browsers:** Vitest is the only test tool. The component tests (`pnpm test:browser`) run in headless Chromium,
+  which Vitest drives through Playwright (`@vitest/browser-playwright`). The Playwright end-to-end suite was removed on
+  2026-11-26.
 - **Pre-commit hook:** [.githooks/pre-commit](../.githooks/pre-commit) runs only after
   `git config core.hooksPath .githooks`. No script turns it on.
 - **Commits** follow Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, `ci:`, `style:`).
@@ -121,13 +120,13 @@ installation page instead.
 | Section | Content |
 |---|---|
 | Before you start | Small fixes go straight to a PR. For a larger change, open an issue first so the approach can be agreed. Report security problems through `SECURITY.md`, never in a public issue. Send copyright notices to `/copyright`, not to an issue. |
-| Setup | The quick start (linked, not copied), then: `pnpm exec playwright install --with-deps chromium`, `pnpm voices:fetch en_GB-cori-medium`, and, optionally, `git config core.hooksPath .githooks` to turn on the pre-commit hook. What to do if port 5432 is taken (section 7). |
-| Commands | `pnpm dev`, `check`, `test:browser`, `test:db`, `e2e:local`, `lint:fix`, `db:migrate`, with one line each, plus `docker compose down -v` to reset the local databases. |
+| Setup | The quick start (linked, not copied), then: `pnpm exec playwright install --with-deps chromium` (the browser the component tests run in) and, optionally, `git config core.hooksPath .githooks` to turn on the pre-commit hook. What to do if port 5432 is taken (section 7). |
+| Commands | `pnpm dev`, `check`, `test:browser`, `test:db`, `lint:fix`, `db:migrate`, with one line each, plus `docker compose down -v` to reset the local databases. |
 | Code standards | Follow [CODE_STANDARDS.md](../CODE_STANDARDS.md), with one line per rule (names, no `any`, `/** */` comments) and a note that `tests/comments.test.ts` enforces the comments rule. Agents read [AGENTS.md](../AGENTS.md). |
-| Tests | Unit tests sit next to their module as `*.test.ts`. Database tests are `*.db.test.ts`, and component tests are `*.browser.test.tsx`. End-to-end tests are in `tests/e2e/`. Coverage floors only go up (`pnpm coverage:ratchet`). Run `pnpm check` before you push, and `pnpm test:db` or `pnpm e2e:local` when your change touches the server or the UI. Some e2e tests can flake under load, so rerun once before you debug. |
+| Tests | Unit tests sit next to their module as `*.test.ts`. Database tests are `*.db.test.ts`, and component tests are `*.browser.test.tsx`. Vitest runs all three; there is no other test tool. Coverage floors only go up (`pnpm coverage:ratchet`). Run `pnpm check` before you push, and `pnpm test:db` or `pnpm test:browser` when your change touches the server or the UI. |
 | Migrations | Add a new `db/migrations/NNNN_description.sql`. Never edit or delete an applied migration, because `db:migrate` refuses a changed checksum. To drop a column, stop using it first, then drop it in a later release. |
 | Commits and PRs | One change per PR. The PR title uses Conventional Commits, because it becomes the squash commit. Update docs and `.env.example` in the same PR as the change they describe. Never put API keys, real user data or book text in code, fixtures, issues or logs. |
-| How your PR is tested and merged | Every PR, fork or not, runs the full suite on GitHub-hosted runners, with no secrets and a read-only token. A first-time contributor's run waits for the owner to approve it. The required checks are the six listed in [SPEC-repo-security.md](SPEC-repo-security.md). Only the owner merges, as a squash. Dependabot PRs follow the same path. |
+| How your PR is tested and merged | Every PR, fork or not, runs the full suite on GitHub-hosted runners, with no secrets and a read-only token. A first-time contributor's run waits for the owner to approve it. The required checks are the five listed in [SPEC-repo-security.md](SPEC-repo-security.md). Only the owner merges, as a squash. Dependabot PRs follow the same path. |
 | AI-assisted PRs | Welcome, with no disclosure needed. Whoever opens the PR must have read and run every change and must answer review questions about it. Agents get their instructions from `AGENTS.md`. |
 | Licence of contributions | A contribution is under the project's MIT licence. There's no CLA and no DCO. |
 
@@ -169,7 +168,7 @@ alternatives considered.
 - Checklist:
   - [ ] `pnpm check` passes
   - [ ] tests added or updated
-  - [ ] `pnpm test:db` or `pnpm e2e:local` run if the server or UI changed
+  - [ ] `pnpm test:db` or `pnpm test:browser` run if the server or UI changed
   - [ ] docs and `.env.example` updated if behaviour or settings changed
   - [ ] migrations only added, never edited
   - [ ] no secrets or personal data
@@ -187,7 +186,7 @@ alternatives considered.
   over.
 - **Secrets are always empty:** `KEK`, `KEK_PREVIOUS`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` and `GITHUB_TOKEN`.
   Their comments say how to generate the value, and which systemd credential can supply it in production.
-- **The "Only for tests" group** holds the `*_BASE` overrides that point outside services at the e2e stubs, along with
+- **The "Only for tests" group** holds the `*_BASE` overrides that point outside services at local stubs, along with
   `ARTICLE_TEST_HOSTS`, `AUDIO_BASE` and `MAIL_CAPTURE_DIR`. They are commented out, and the heading says operators
   don't need them.
 
@@ -236,13 +235,13 @@ volumes:
   folio-postgres:
 ```
 
-- `db/local/create-test-database.sql` runs once, when the volume is first created, and creates `agentic_test`. The e2e
-  server creates `agentic_e2e_test` itself. `db:migrate` only reads `db/migrations/`, so `db/local/` doesn't affect it.
+- `db/local/create-test-database.sql` runs once, when the volume is first created, and creates `agentic_test`.
+  `db:migrate` only reads `db/migrations/`, so `db/local/` doesn't affect it.
 - **The port is bound to `127.0.0.1` only,** so the well-known password is never reachable from the network.
 - **The image is pinned by the same digest as the `postgres` service in [ci.yml](../.github/workflows/ci.yml),** so
   local runs and CI use the same Postgres, and it's bumped together with CI by hand.
 - **If 5432 is taken,** set `FOLIO_DB_PORT=55432`. Then change the port in `.env`, and export
-  `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/agentic_test` before `pnpm test:db` and `pnpm e2e:local`.
+  `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/agentic_test` before `pnpm test:db`.
   CONTRIBUTING says this.
 - Compose is optional. Your own Postgres 18 with the same two databases works too.
 
@@ -355,7 +354,6 @@ it('lists every setting the server reads, and nothing else', () => {
   that didn't work as written, fix the doc, and repeat until none fail. It's run once by the owner or an agent, on
   Linux.
 - **Compose:** `docker compose up -d --wait`, then `pnpm test:db` with no `DATABASE_URL` set, passes against it.
-  `pnpm e2e:local` passes against it too.
 - **Templates:** checked on GitHub by `go-public`, because the issue chooser only renders on the public repo.
 - No coverage floors change. The tests only read files, and they're outside the coverage `include` globs.
 
@@ -382,7 +380,7 @@ it('lists every setting the server reads, and nothing else', () => {
 - [ ] `LICENSE` is the standard MIT text with `Copyright (c) 2026 Orhun Akkan`, and `package.json` says `MIT`. GitHub's
       licence API reports `mit` once the repo is public (checked by `go-public`).
 - [ ] The fresh-clone walkthrough ends with an admin signed in at `http://localhost:3000`. `pnpm check`, `pnpm test:db`
-      and `pnpm e2e:local` pass, with every step taken from the README or CONTRIBUTING as written.
+      and `pnpm test:browser` pass, with every step taken from the README or CONTRIBUTING as written.
 - [ ] `docker compose up -d --wait` starts Postgres 18 on `127.0.0.1:5432` with `agentic_dev` and `agentic_test`, using
       the same image digest as `ci.yml`. Nothing listens on another interface.
 - [ ] `tests/env-example.test.ts` passes. Removing any setting from `.env.example`, or adding one that the code doesn't

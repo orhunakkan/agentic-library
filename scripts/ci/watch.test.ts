@@ -4,10 +4,10 @@ import { type Job, type Tools, verdict, watchCi } from './watch.ts'
 const SHA = 'abc1234def5678abc1234def5678abc1234def56'
 const URL = 'https://github.com/o/r/actions/runs/77'
 
-function jobs(checks: string, e2e: string, deploy: string): Job[] {
+function jobs(checks: string, db: string, deploy: string): Job[] {
   return [
-    { name: 'Lint, types, unit tests, audit', conclusion: checks },
-    { name: 'Build and end-to-end tests', conclusion: e2e },
+    { name: 'Lint, types, unit tests, build, audit', conclusion: checks },
+    { name: 'Database tests', conclusion: db },
     { name: 'Deploy to dev', conclusion: deploy },
   ]
 }
@@ -102,8 +102,8 @@ describe('verdict', () => {
     expect(verdict(jobs('success', 'success', 'success'), RUN)).toEqual({
       ok: true,
       lines: [
-        'Lint, types, unit tests, audit: success',
-        'Build and end-to-end tests: success',
+        'Lint, types, unit tests, build, audit: success',
+        'Database tests: success',
         'Deploy to dev: success',
         'CI success for abc1234: https://github.com/o/r/actions/runs/1',
       ],
@@ -113,7 +113,7 @@ describe('verdict', () => {
   it('fails when any job did not succeed, and names that job', () => {
     const result = verdict(jobs('success', 'failure', 'skipped'), RUN)
     expect(result.ok).toBe(false)
-    expect(result.lines).toContain('Build and end-to-end tests: failure')
+    expect(result.lines).toContain('Database tests: failure')
     expect(result.lines.at(-1)).toBe('CI failure for abc1234: https://github.com/o/r/actions/runs/1')
   })
 

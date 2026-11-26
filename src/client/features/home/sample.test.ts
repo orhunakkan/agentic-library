@@ -18,8 +18,8 @@ import {
   READER_ASK,
 } from './sample'
 
-const book = JSON.parse(readFileSync('tests/e2e/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook
-const catalog = JSON.parse(readFileSync('tests/e2e/content/catalog/novels.json', 'utf8')) as {
+const book = JSON.parse(readFileSync('tests/fixtures/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook
+const catalog = JSON.parse(readFileSync('tests/fixtures/content/catalog/novels.json', 'utf8')) as {
   books: { title: string }[]
 }
 const pages = bookPages(book)

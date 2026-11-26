@@ -148,8 +148,7 @@ you think infringes your copyright, and what happens next." It adds `COPYRIGHT_U
 | `other` | Other illegal content | Report anything else you believe is illegal to the same contact, saying what it is and why. Folio handles it the same way. |
 | `code` | Folio's own code and voices | This page is about uploads. Folio's code and the parts it uses are credited on Credits, and in the source repository when `SOURCE_URL` is set. |
 
-The page is public, cached like Terms, and listed with the other legal pages in `private-pages.test.ts`,
-`test-ids.spec.ts` and `smoke-dev.ts`. The required elements cover what both a US DMCA notice (17 U.S.C.
+The page is public, cached like Terms, and listed with the other legal pages in `private-pages.test.ts`. The required elements cover what both a US DMCA notice (17 U.S.C.
 §512(c)(3)) and an EU Digital Services Act notice (Art. 16) ask for, so the page doesn't name a jurisdiction.
 
 ### 4. Operator tool: `scripts/db/books.ts`
@@ -236,7 +235,7 @@ owner in V1.
 ```
 pnpm check                                    Lint, types, unit tests
 pnpm test:db                                  Database tests (scripts/db/books.ts)
-pnpm e2e:local                                End-to-end on desktop, phone and tablet
+pnpm test:browser                             Component tests (legal pages and footers)
 pnpm build && head -40 dist/client/third-party-licenses.txt
                                               Notices are generated; the build fails on a package with no licence
 SOURCE_URL=http://example.org pnpm dev        Should refuse to start, naming SOURCE_URL
@@ -263,10 +262,8 @@ scripts/build/licence-overrides.ts       new
 scripts/build/licences/GPL-3.0.txt       vendored licence text
 vite.config.ts                           registers thirdPartyNotices()
 src/server/private-pages.test.ts         /copyright public
-scripts/smoke-dev.ts                     /copyright, /third-party-licenses.txt
-tests/e2e/specs/legal.spec.ts            new
-tests/e2e/specs/home.spec.ts, test-ids.spec.ts, signup.spec.ts
-tests/e2e/support/test-server.ts         sets SOURCE_URL
+src/routes/*.browser.test.tsx            new: Terms, Privacy, Copyright, Credits
+src/client/**/*Footer.browser.test.tsx  new: both footers, with and without SOURCE_URL
 ```
 
 ## Code style
@@ -308,17 +305,14 @@ When a function's names are touched and some are unclear, rename them in a separ
   two accounts, and records `book.searched` with the reason. `remove` deletes the book, its pages and pictures,
   records `book.removed`, and returns the owner's username and address. Both refuse to run without `--reason`, and
   removing a missing id changes nothing.
-- **End to end (`pnpm e2e:local`):**
-  - new `legal.spec.ts`: Terms, Privacy and Copyright each show their parts by id, the contact link from
-    `SITE_CONTACT`, and none of "Pro", "Paddle", "price", "subscription" or "refund". Copyright lists the six notice
-    elements. Credits links `/third-party-licenses.txt`, and the file is served and names `react`.
-  - `home.spec.ts` checks both footers: the new `SITE_CREDIT`, and the Copyright, Credits and Source code links.
-    `test-server.ts` sets `SOURCE_URL`, and one test without it checks that no Source code link is shown.
-  - `test-ids.spec.ts` includes `/copyright`. `signup.spec.ts` still finds the Terms and Privacy links.
+- **Component (`pnpm test:browser`):** Vitest is the only test tool; the Playwright suite was removed on 2026-11-26.
+  - Terms, Privacy and Copyright each show their parts by id, the contact link from `SITE_CONTACT`, and none of
+    "Pro", "Paddle", "price", "subscription" or "refund". Copyright lists the six notice elements. Credits links
+    `/third-party-licenses.txt`.
+  - Both footers show the new `SITE_CREDIT` and the Copyright, Credits and Source code links when `SOURCE_URL` is set,
+    and no Source code link when it isn't.
 - **Build:** CI already runs `pnpm build`, which now fails on a package with no licence.
 - **Coverage floors don't go down.**
-- **Known flaky specs:** `sync.spec.ts:105` on phone and `ask-prompts.spec.ts:88` on desktop. Rerun them before
-  debugging.
 
 ## Boundaries
 
@@ -355,7 +349,7 @@ When a function's names are touched and some are unclear, rename them in a separ
 - [ ] `pnpm build` writes `dist/client/third-party-licenses.txt`, which covers every `node_modules` package in the
       client chunks and the engine packages. A package with no licence fails the build. Credits links the file.
 - [ ] The legal pages and HomeFooter carry the self-hoster comment.
-- [ ] `pnpm check`, `pnpm test:db`, `pnpm e2e:local` and `pnpm build` pass, with no coverage floor lowered.
+- [ ] `pnpm check`, `pnpm test:db`, `pnpm test:browser` and `pnpm build` pass, with no coverage floor lowered.
 - [ ] After `go-public` sets `SOURCE_URL`, both footers' Source code link opens the public repo on dev and production.
 
 ## Risks
@@ -373,7 +367,7 @@ When a function's names are touched and some are unclear, rename them in a separ
   configurable.
 - **The search tool is a privacy-sensitive power.** Mitigation: CLI only, on the server, titles and authors only,
   `--reason` required, and every use logged and described on Privacy.
-- **A prerendered shell with a stale `SOURCE_URL`.** Mitigation: the shell is built with it unset, and an e2e test
+- **A prerendered shell with a stale `SOURCE_URL`.** Mitigation: the shell is built with it unset, and a component test
   checks the link after the nav data loads.
 - **Licence detection misses a package**, such as a nested copy or an asset imported by URL. Mitigation: unit tests
   for `?url` ids and scoped packages, and the build fails on a missing licence rather than skipping the package.

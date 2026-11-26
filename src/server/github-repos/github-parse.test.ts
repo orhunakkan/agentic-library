@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { isSha, parseCommitSha, parseRateLimit, parseRepo, parseTree } from './github-parse.ts'
 
 const answers = JSON.parse(
-  readFileSync(new URL('../../../tests/e2e/support/github/answers.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../../tests/stubs/github/answers.json', import.meta.url), 'utf8'),
 ) as Record<string, { body: unknown }>
 const body = (name: string) => answers[name]?.body
 

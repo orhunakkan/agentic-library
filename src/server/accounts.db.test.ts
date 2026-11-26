@@ -35,9 +35,9 @@ import {
   setDisabled,
   setPasswordHash,
 } from '~/server/users'
-import { anthropicStub } from '../../tests/e2e/support/anthropic-stub'
-import { elevenLabsKey, elevenLabsStub, STUB_ELEVENLABS_KEYS } from '../../tests/e2e/support/elevenlabs-stub'
-import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../tests/e2e/support/openai-stub'
+import { anthropicStub } from '../../tests/stubs/anthropic-stub'
+import { elevenLabsKey, elevenLabsStub, STUB_ELEVENLABS_KEYS } from '../../tests/stubs/elevenlabs-stub'
+import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../tests/stubs/openai-stub'
 import { databaseUrl, freshDatabase } from './testing/db'
 import { spend } from './testing/quota'
 import { testUser } from './testing/users'

@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   checks:
-    name: Lint, types, unit tests, audit
+    name: Lint, types, unit tests, build, audit
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_RUNNER }}
     timeout-minutes: 15
@@ -42,6 +42,7 @@ jobs:
             { echo '### Unit coverage (src/shared, src/client)'; echo '```'; cat coverage/unit/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           fi
           node scripts/coverage/changed-lines.ts coverage/unit/lcov.info "$CHANGE_RANGE" 'unit' | tee -a "$GITHUB_STEP_SUMMARY"
+      - run: pnpm build
       - run: pnpm audit
 
   component:
@@ -113,61 +114,9 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
           node scripts/coverage/changed-lines.ts coverage/server/lcov.info "$CHANGE_RANGE" 'server' | tee -a "$GITHUB_STEP_SUMMARY"
 
-  e2e:
-    name: Build and end-to-end tests
-    needs: db
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_RUNNER }}
-    timeout-minutes: 30
-    container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
-      options: --ipc=host
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_DB: agentic_test
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd "pg_isready -U postgres -d agentic_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      CI: "true"
-      HOME: /root
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/agentic_test
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 26
-      - uses: pnpm/action-setup@v6
-        with:
-          cache: true
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/cache@v6
-        with:
-          path: .cache/voices
-          key: folio-voices-${{ hashFiles('src/shared/read-aloud/folio-voices.ts') }}
-          restore-keys: folio-voices-
-      - run: pnpm voices:fetch en_GB-cori-medium
-      - run: pnpm e2e
-      - run: pnpm smoke:dev
-      - if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
-
   deploy-dev:
     name: Deploy to dev
-    needs: e2e
+    needs: db
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ${{ vars.CI_RUNNER }}
     timeout-minutes: 20

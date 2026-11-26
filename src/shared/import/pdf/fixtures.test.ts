@@ -10,7 +10,7 @@ import { pdfMetadata } from './metadata.ts'
 import { styleKinds } from './styles.ts'
 import type { PdfOverrides, PdfSource } from './types.ts'
 
-const FIXTURES = join(import.meta.dirname, '../../../../tests/e2e/fixtures/imports')
+const FIXTURES = join(import.meta.dirname, '../../../../tests/fixtures/imports')
 const HANDBOOK_CHAPTERS = ['Keeping the Light', 'Signals and Codes', 'Keeping Records']
 
 const PICTURES: RenderContext = { imageSrc: (n) => `picture-${n}`, imageSize: () => ({ width: 400, height: 300 }) }

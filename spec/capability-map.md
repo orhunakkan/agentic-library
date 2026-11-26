@@ -91,8 +91,9 @@ These rules apply to every module, decided 2026-11-25:
   owner doesn't edit the file by hand. A build never signs off on its own.
 
 Facts for the `repo-security` spec, gathered 2026-11-25:
-- **CI layout.** [ci.yml](../.github/workflows/ci.yml) runs checks, component, db, e2e and deploy-dev, all on
-  `runs-on: ${{ vars.CI_RUNNER }}`. That's the self-hosted runner `LINUX-LAPTOP`. Deploys run
+- **CI layout.** [ci.yml](../.github/workflows/ci.yml) runs checks, component, db and deploy-dev, all on
+  `runs-on: ${{ vars.CI_RUNNER }}`. (An e2e job ran after db until 2026-11-26, when the Playwright suite was removed
+  and Vitest became the only test tool.) That's the self-hosted runner `LINUX-LAPTOP`. Deploys run
   `sudo -n /usr/local/bin/agentic-library-deploy`.
 - **Fork guard.** Every test job has
   `if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository`.
@@ -115,9 +116,8 @@ Facts for the `repo-security` spec, gathered 2026-11-25:
   in [ci.yml](../.github/workflows/ci.yml) was never a boundary, because a fork PR runs its own copy of the workflow file.
   `repo-security` moves CI to GitHub-hosted runners, and the server pulls only deploy requests that it checks itself.
   The test in `tests/workflows.test.ts` fails if a self-hosted job or `pull_request_target` comes back.
-- **Public CI logs and artifacts.** Once the repo is public, anyone can read the logs and download the artifacts, such
-  as `playwright-report`. They must never print environment values, server paths beyond those already accepted, or
-  real user data.
+- **Public CI logs and artifacts.** Once the repo is public, anyone can read the logs and download any artifacts. They
+  must never print environment values, server paths beyond those already accepted, or real user data.
 - **Open sign-up storage.** Today's Pro cap allows 8 GB of audiobooks per user (`MAX_USER_AUDIO_BYTES`). With open
   sign-up that becomes a hosting cost and abuse risk, so `instance-limits` exists to let the hosted site set lower values.
 - **Copyright on uploads.** Uploaded books and audiobooks are per-user, but open sign-up still needs a takedown contact

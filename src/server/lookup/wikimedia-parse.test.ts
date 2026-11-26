@@ -12,9 +12,7 @@ import {
 } from './wikimedia-parse'
 
 const saved = (name: string) =>
-  JSON.parse(
-    readFileSync(new URL(`../../../tests/e2e/support/wikimedia/${name}.json`, import.meta.url), 'utf8'),
-  ) as unknown
+  JSON.parse(readFileSync(new URL(`../../../tests/stubs/wikimedia/${name}.json`, import.meta.url), 'utf8')) as unknown
 
 const definition = (text: string) => ({ definition: text })
 const section = (partOfSpeech: string, ...texts: string[]) => ({

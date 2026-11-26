@@ -32,8 +32,8 @@ export interface Verdict {
 /**
  * Jobs that `.github/workflows/ci.yml` skips by design: "Deploy to dev" runs only for a push to main,
  * so a pull request or a manual run on another branch skips it. On a push to main it is skipped only
- * when the e2e job didn't succeed, and that job already fails the verdict. Every other job ("Lint,
- * types, unit tests, audit", "Build and end-to-end tests") must succeed: skipped counts as a failure.
+ * when an earlier job didn't succeed, and that job already fails the verdict. Every other job ("Lint,
+ * types, unit tests, build, audit", "Database tests") must succeed: skipped counts as a failure.
  */
 const MAY_SKIP = new Set(['Deploy to dev'])
 

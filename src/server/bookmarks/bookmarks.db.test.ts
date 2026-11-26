@@ -211,7 +211,7 @@ describe('the limits', () => {
 describe('the endpoints', () => {
   const origin = getConfig().appOrigin
   const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
-  const pride = JSON.parse(readFileSync('tests/e2e/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook
+  const pride = JSON.parse(readFileSync('tests/fixtures/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook
   const chapter6Page2 = bookPages(pride).find((p) => p.chapterSlug === 'chapter-6' && p.page === 2)
   if (!chapter6Page2) throw new Error('fixture page missing')
 

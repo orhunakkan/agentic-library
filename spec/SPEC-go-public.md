@@ -64,7 +64,7 @@ Every one must hold before step 1. If one doesn't, the launch waits.
 
 - Every module in the map's Progress table is **Built**, including `billing-removal`'s release 2 (the drop
   migration), and live on production.
-- `pnpm check`, `pnpm test:db` and `pnpm e2e:local` pass on the tip of `main`. The last CI run on `main` is green on
+- `pnpm check`, `pnpm test:db` and `pnpm test:browser` pass on the tip of `main`. The last CI run on `main` is green on
   GitHub-hosted runners.
 - Dev and production both run that tip, as their latest `success` deployment statuses show.
 - `spec/publish-audit-report.md` is signed off by the owner.

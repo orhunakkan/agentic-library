@@ -46,7 +46,7 @@ describe('withoutPictures', () => {
 })
 
 describe('readPdf', () => {
-  const handbook = readFileSync(join(import.meta.dirname, '../../../tests/e2e/fixtures/imports/pdf-handbook.pdf'))
+  const handbook = readFileSync(join(import.meta.dirname, '../../../tests/fixtures/imports/pdf-handbook.pdf'))
 
   it('reads the handbook fixture into its three chapters, figures as captions', async () => {
     const chapters = await readPdf(handbook, { firstPage: 1, lastPage: 9 }, 'Handbook')

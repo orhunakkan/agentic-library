@@ -29,7 +29,7 @@ import {
   resetElevenLabsStub,
   STUB_ELEVENLABS_KEYS,
   stubSpeechRequests,
-} from '../../../tests/e2e/support/elevenlabs-stub'
+} from '../../../tests/stubs/elevenlabs-stub'
 import { databaseUrl, freshDatabase } from '../testing/db'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })

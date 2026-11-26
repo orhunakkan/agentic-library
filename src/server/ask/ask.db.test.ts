@@ -17,8 +17,8 @@ import { privateBookSlug } from '~/shared/content/book-slug'
 import type { ChapterBook } from '~/shared/content/schema'
 import { bookPages } from '~/shared/highlights/page-text'
 import { DEFAULT_LIMITS } from '~/shared/limits/limits'
-import { anthropicStub, STUB_KEYS, STUB_RIGHT_ANSWER } from '../../../tests/e2e/support/anthropic-stub'
-import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/e2e/support/openai-stub'
+import { anthropicStub, STUB_KEYS, STUB_RIGHT_ANSWER } from '../../../tests/stubs/anthropic-stub'
+import { openAiKey, openAiStub, STUB_OPENAI_KEYS } from '../../../tests/stubs/openai-stub'
 import { NO_DETAILS } from '../../shared/import/details.ts'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { spend } from '../testing/quota'
@@ -345,7 +345,7 @@ describe('POST /read/<book>/ask', () => {
 
 describe('Ask with the reader’s highlights', () => {
   const pride = bookPages(
-    JSON.parse(readFileSync('tests/e2e/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook,
+    JSON.parse(readFileSync('tests/fixtures/content/books/pride-and-prejudice.json', 'utf8')) as ChapterBook,
   )
   const book = refFor('pride-and-prejudice')
 

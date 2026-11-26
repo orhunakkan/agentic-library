@@ -5,10 +5,10 @@ import { bookText } from './book-text'
 
 const load = <T extends BookContent>(path: string) => JSON.parse(readFileSync(path, 'utf8')) as T
 
-const pride = load<ChapterBook>('tests/e2e/content/books/pride-and-prejudice.json')
-const prophet = load<ChapterBook>('tests/e2e/content/books/the-prophet.json')
-const code = load<ChapterBook>('tests/e2e/content/books/fixture-code-book.json')
-const ghazzali = load<PagedBook>('tests/e2e/content/books/confessions-of-al-ghazzali.json')
+const pride = load<ChapterBook>('tests/fixtures/content/books/pride-and-prejudice.json')
+const prophet = load<ChapterBook>('tests/fixtures/content/books/the-prophet.json')
+const code = load<ChapterBook>('tests/fixtures/content/books/fixture-code-book.json')
+const ghazzali = load<PagedBook>('tests/fixtures/content/books/confessions-of-al-ghazzali.json')
 
 describe('bookText on the catalogue and fixture books', () => {
   for (const book of [pride, prophet, code]) {

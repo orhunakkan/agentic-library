@@ -18,13 +18,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "e2e": "playwright test",
-    "e2e:local": "playwright test --project=desktop --project=phone --project=tablet-landscape",
     "coverage:changed": "node scripts/coverage/changed-lines.ts coverage/unit/lcov.info origin/main..HEAD unit && node scripts/coverage/changed-lines.ts coverage/server/lcov.info origin/main..HEAD server",
     "coverage:ratchet": "node scripts/coverage/ratchet.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "ci:watch": "node scripts/ci/watch.ts",
-    "smoke:dev": "node scripts/smoke-dev.ts",
     "voices:fetch": "node --env-file-if-exists=.env scripts/voices/fetch.ts",
     "db:migrate": "node --env-file-if-exists=.env scripts/db/migrate.ts",
     "db:users": "node --env-file-if-exists=.env scripts/db/users.ts"
@@ -64,11 +61,9 @@
     "sucrase": "3.35.1"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "^2.6.4",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/noto-sans-math": "^5.3.0",
-    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
@@ -77,6 +72,7 @@
     "@vitest/browser-playwright": "5.1.0",
     "@vitest/coverage-v8": "5.1.0",
     "pdfjs-dist": "6.5.438",
+    "playwright": "1.64.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

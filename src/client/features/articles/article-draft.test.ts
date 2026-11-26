@@ -6,7 +6,7 @@ import { XSS_CORPUS } from '../../../../tests/fixtures/xss-corpus'
 import { type ArticleDraft, draftArticle, type ReadabilityResult } from './article-draft'
 
 const saved = (name: string) =>
-  JSON.parse(readFileSync(`tests/e2e/support/articles/${name}.readability.json`, 'utf8')) as {
+  JSON.parse(readFileSync(`tests/fixtures/articles/${name}.readability.json`, 'utf8')) as {
     finalUrl: string
     result: ReadabilityResult
   }

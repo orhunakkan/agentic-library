@@ -20,8 +20,8 @@ const catalog = await loadCatalog()
 const books = await Promise.all(catalog.books.map(async (meta) => ({ meta, content: await loadBook(meta.slug) })))
 const audioFiles = servedFolders.flatMap((dir) => filesIn(dir, 'audio').map((f) => f.replace(/\.json$/, '')))
 
-it('serves the e2e fixture books, so these checks have something to check', () => {
-  expect(servedFolders).toContain(join('tests', 'e2e', 'content'))
+it('serves the test fixture books, so these checks have something to check', () => {
+  expect(servedFolders).toContain(join('tests', 'fixtures', 'content'))
   expect(catalog.books.map((b) => b.slug)).toContain('pride-and-prejudice')
 })
 
