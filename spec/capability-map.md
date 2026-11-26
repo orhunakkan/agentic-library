@@ -54,12 +54,12 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 | Module | Spec | Plan and tasks | Built |
 |---|---|---|---|
 | `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | [plan](../tasks/publish-audit-plan.md), [tasks](../tasks/publish-audit-todo.md) | done, signed off 2026-11-25 ([report](publish-audit-report.md)) |
-| `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | — | — |
+| `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | — |
 | `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | [plan](../tasks/billing-removal-plan.md), [tasks](../tasks/billing-removal-todo.md) | done, signed off 2026-11-26 |
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | [plan](../tasks/instance-limits-plan.md), [tasks](../tasks/instance-limits-todo.md) | done, signed off 2026-11-26 |
-| `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | — | — |
-| `contributor-docs` | [approved 2026-11-25](SPEC-contributor-docs.md) | — | — |
-| `go-public` | [approved 2026-11-25](SPEC-go-public.md) | — | — |
+| `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | — |
+| `contributor-docs` | [approved 2026-11-25](SPEC-contributor-docs.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | — |
+| `go-public` | [approved 2026-11-25](SPEC-go-public.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | — |
 
 The owner chose to write every module spec before planning or building any of them. Specs are written one per
 session.
@@ -71,6 +71,10 @@ These rules apply to every module, decided 2026-11-25:
 - **One module at a time**, in the build order below. A module is planned in one session and built in another.
 - **Plan files are named per module:** `tasks/<module>-plan.md` and `tasks/<module>-todo.md`, never a generic
   `tasks/plan.md`.
+- **The four remaining modules share one plan** *(2026-11-26)*: [open-source-launch-plan.md](../tasks/open-source-launch-plan.md)
+  and [open-source-launch-todo.md](../tasks/open-source-launch-todo.md), with no open questions. `legal-and-attribution`,
+  `repo-security` and `contributor-docs` are built in one session, in one go, with one commit each. `go-public` is
+  then run as a launch sitting with the owner, because its spec makes every GitHub and server step ask-first.
 - **Each build runs in one go**, from the first task to the last. The owner reviews the finished work once, at the
   end, and doesn't approve checkpoints along the way. Checkpoints are self-checks: if one fails, fix it and re-run it.
 - **Anything only the owner can do goes in a "Needs owner action" list** in the module's deliverable, and the build
