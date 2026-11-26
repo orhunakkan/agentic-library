@@ -34,8 +34,9 @@ export async function wikimediaStub(request: Request): Promise<Response> {
   if (!/^Folio \(/.test(request.headers.get('user-agent') ?? '')) return new Response('No User-Agent', { status: 403 })
   const definition = /\/wiktionary\/api\/rest_v1\/page\/definition\/([^/]+)$/.exec(url.pathname)
   const summary = /\/wikipedia\/([a-z]{2,3})\/api\/rest_v1\/page\/summary\/([^/]+)$/.exec(url.pathname)
-  const term = definition ? titleOf(definition[1] as string) : summary ? titleOf(summary[2] as string) : null
-  if (term === null) return new Response('Not found', { status: 404 })
+  const segment = definition?.[1] ?? summary?.[2]
+  if (segment === undefined) return new Response('Not found', { status: 404 })
+  const term = titleOf(segment)
 
   if (term === STUB_TERMS.busy) return new Response('Too many requests', { status: 503 })
   if (term === STUB_TERMS.broken) return new Response('Error', { status: 500 })

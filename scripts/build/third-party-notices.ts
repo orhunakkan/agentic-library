@@ -67,12 +67,12 @@ export function readPackage(root: string, overrides: Readonly<Record<string, Lic
   const files = readdirSync(root)
     .filter((file) => LICENCE_FILE.test(file))
     .sort()
-  if (override && files.length)
-    throw new Error(
-      `${name} ${version} now ships its own licence file (${files.join(', ')}). Check it, and remove its entry from ` +
-        'scripts/build/licence-overrides.ts.',
-    )
-  if (override)
+  if (override) {
+    if (files.length)
+      throw new Error(
+        `${name} ${version} now ships its own licence file (${files.join(', ')}). Check it, and remove its entry from ` +
+          'scripts/build/licence-overrides.ts.',
+      )
     return {
       name,
       version,
@@ -80,6 +80,7 @@ export function readPackage(root: string, overrides: Readonly<Record<string, Lic
       texts: override.texts.map(({ file, path }) => ({ file, text: readFileSync(path, 'utf8') })),
       note: override.note,
     }
+  }
   const texts = files.map((file) => ({ file, text: readFileSync(join(root, file), 'utf8') }))
   if (!texts.length)
     throw new Error(
@@ -108,9 +109,10 @@ export function collectPackages(
     const notice = readPackage(packageRoot, overrides)
     byKey.set(`${notice.name}@${notice.version}`, notice)
   }
-  return [...byKey.values()].sort((a, b) =>
-    a.name === b.name ? a.version.localeCompare(b.version) : a.name < b.name ? -1 : 1,
-  )
+  return [...byKey.values()].sort((a, b) => {
+    if (a.name !== b.name) return a.name < b.name ? -1 : 1
+    return a.version.localeCompare(b.version)
+  })
 }
 
 const RULE = '-'.repeat(79)

@@ -183,6 +183,39 @@ function writeCover(slug: string, cover: SourceCover | null, contentDir: string)
   }
 }
 
+interface ImportedBook {
+  book: ChapterBook
+  coverImage: CoverImage | undefined
+}
+
+/** A book this run leaves as the last run wrote it, with the cover its entry in the previous catalogue named. */
+function keptBook(slug: string, bookPath: string, previous: CatalogFile | null): ImportedBook {
+  return {
+    book: JSON.parse(readFileSync(bookPath, 'utf8')) as ChapterBook,
+    coverImage: previous?.books.find((b) => b.slug === slug)?.coverImage,
+  }
+}
+
+/** Builds a book from its source file, then writes its cover, its pictures and its JSON, saying what it wrote. */
+async function rebuildBook(
+  def: BookDef,
+  sourceDir: string,
+  contentDir: string,
+  bookPath: string,
+): Promise<ImportedBook> {
+  console.log(`• ${def.slug}`)
+  const { book, cover, pictures } = await buildBook(def, sourceDir)
+  const coverImage = writeCover(def.slug, cover, contentDir)
+  if (coverImage) console.log(`  cover: ${coverImage.file}, ${coverImage.width}×${coverImage.height}`)
+  writePictures(def.slug, pictures, contentDir)
+  const count = pictures.length
+  if (count) console.log(`  ${count} picture${count === 1 ? '' : 's'} in images/${def.slug}/`)
+  writeFileSync(bookPath, JSON.stringify(book))
+  const pages = book.chapters.reduce((n, c) => n + c.pages.length, 0)
+  console.log(`  ${book.chapters.length} chapters, ${pages} pages`)
+  return { book, coverImage }
+}
+
 export interface CollectionPlan {
   collection: Omit<Collection, 'tagline'>
   series: SeriesDef[]
@@ -207,24 +240,10 @@ export async function importCollection(plan: CollectionPlan, only: readonly stri
   const metas: BookMeta[] = []
   for (const def of books) {
     const bookPath = join(contentDir, 'books', `${def.slug}.json`)
-    let book: ChapterBook
-    let coverImage: CoverImage | undefined
-    if (only.length && !only.includes(def.slug) && existsSync(bookPath)) {
-      book = JSON.parse(readFileSync(bookPath, 'utf8')) as ChapterBook
-      coverImage = previous?.books.find((b) => b.slug === def.slug)?.coverImage
-    } else {
-      console.log(`• ${def.slug}`)
-      const built = await buildBook(def, sourceDir)
-      book = built.book
-      coverImage = writeCover(def.slug, built.cover, contentDir)
-      if (coverImage) console.log(`  cover: ${coverImage.file}, ${coverImage.width}×${coverImage.height}`)
-      writePictures(def.slug, built.pictures, contentDir)
-      const count = built.pictures.length
-      if (count) console.log(`  ${count} picture${count === 1 ? '' : 's'} in images/${def.slug}/`)
-      writeFileSync(bookPath, JSON.stringify(book))
-      const pages = book.chapters.reduce((n, c) => n + c.pages.length, 0)
-      console.log(`  ${book.chapters.length} chapters, ${pages} pages`)
-    }
+    const keep = only.length && !only.includes(def.slug) && existsSync(bookPath)
+    const { book, coverImage } = keep
+      ? keptBook(def.slug, bookPath, previous)
+      : await rebuildBook(def, sourceDir, contentDir, bookPath)
     const series = must(
       allSeries.find((s) => s.slug === def.seriesSlug),
       `series ${def.seriesSlug}`,

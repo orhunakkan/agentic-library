@@ -108,11 +108,12 @@ async function speech(request: Request, voice: string, key: string): Promise<Res
 }
 
 export async function elevenLabsStub(request: Request): Promise<Response> {
-  const path = new URL(request.url).pathname
+  const url = new URL(request.url)
+  const path = url.pathname
   const key = request.headers.get('xi-api-key') ?? ''
   if (path.endsWith('/requests')) {
     if (request.method === 'DELETE') resetElevenLabsStub()
-    const only = new URL(request.url).searchParams.get('key')
+    const only = url.searchParams.get('key')
     const list = only === null ? recorded : recorded.filter((r) => r.key === only)
     return Response.json(list, { headers: { 'cache-control': 'no-store' } })
   }
@@ -121,7 +122,7 @@ export async function elevenLabsStub(request: Request): Promise<Response> {
     if (!valid) return error(401, 'invalid_api_key')
     if (key.endsWith(STUB_ELEVENLABS_KEYS.noVoices)) return error(403, 'missing_permissions')
     if (key.endsWith(STUB_ELEVENLABS_KEYS.down)) return new Response('upstream down', { status: 500 })
-    const size = Number(new URL(request.url).searchParams.get('page_size') ?? 10)
+    const size = Number(url.searchParams.get('page_size') ?? 10)
     return Response.json({ voices: STUB_VOICES.slice(0, size), has_more: false, total_count: STUB_VOICES.length })
   }
   const speak = /\/v1\/text-to-speech\/([^/]+)\/with-timestamps$/.exec(path)

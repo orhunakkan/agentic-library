@@ -104,11 +104,12 @@ function checkRuleset(
       found: `ruleset ${id} answered ${detail?.status ?? 'nothing'}`,
       rulesetId: id,
     }
+  const body = detail.body
   const wanted = rulesets[name]
   if (!isRecord(wanted)) throw new Error(`.github/rulesets/${name}.json isn't a ruleset`)
   const differing = RULESET_FIELDS.filter((field) => {
     const want = wanted[field]
-    return want !== undefined && !holds(isRecord(detail.body) ? detail.body[field] : undefined, want)
+    return want !== undefined && !holds(body[field], want)
   })
   return differing.length
     ? { setting, state: 'differs', found: `differs in ${differing.join(', ')}`, rulesetId: id }
@@ -228,23 +229,26 @@ function readAll(target: Target): Answers {
     if (!answers.has(path)) answers.set(path, gh('GET', path))
     const list = answers.get(path)
     if (setting.expect.kind !== 'ruleset' || !list || !ok2xx(list) || !Array.isArray(list.body)) continue
-    for (const entry of list.body)
-      if (isRecord(entry) && typeof entry.id === 'number' && !answers.has(`${path}/${entry.id}`))
-        answers.set(`${path}/${entry.id}`, gh('GET', `${path}/${entry.id}`))
+    for (const entry of list.body) {
+      if (!isRecord(entry) || typeof entry.id !== 'number') continue
+      const detailPath = `${path}/${entry.id}`
+      if (!answers.has(detailPath)) answers.set(detailPath, gh('GET', detailPath))
+    }
   }
   return answers
 }
 
 function rulesetFiles(): Record<string, JsonValue> {
   const files: Record<string, JsonValue> = {}
-  for (const setting of DESIRED)
-    if (setting.expect.kind === 'ruleset') {
-      const parsed: unknown = JSON.parse(
-        readFileSync(new URL(`../../.github/rulesets/${setting.expect.name}.json`, import.meta.url), 'utf8'),
-      )
-      if (!isRecord(parsed)) throw new Error(`.github/rulesets/${setting.expect.name}.json isn't an object`)
-      files[setting.expect.name] = parsed as JsonValue
-    }
+  for (const setting of DESIRED) {
+    if (setting.expect.kind !== 'ruleset') continue
+    const { name } = setting.expect
+    const parsed: unknown = JSON.parse(
+      readFileSync(new URL(`../../.github/rulesets/${name}.json`, import.meta.url), 'utf8'),
+    )
+    if (!isRecord(parsed)) throw new Error(`.github/rulesets/${name}.json isn't an object`)
+    files[name] = parsed as JsonValue
+  }
   return files
 }
 

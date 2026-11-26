@@ -36,9 +36,15 @@ type Input = { role: string; content: unknown }[]
 
 const inputOf = (body: Body) => (Array.isArray(body.input) ? (body.input as Input) : [])
 
-function askProblem(request: Request, body: Body): string | null {
+function headersOrModelProblem(request: Request, body: Body): string | null {
   if (request.headers.has('openai-organization') || request.headers.has('openai-project')) return 'org or project'
   if (!GPT_MODELS.includes(String(body.model))) return 'model'
+  return null
+}
+
+function askProblem(request: Request, body: Body): string | null {
+  const shared = headersOrModelProblem(request, body)
+  if (shared) return shared
   if (body.stream !== true || body.max_output_tokens !== 16_000) return 'stream or max_output_tokens'
   if (JSON.stringify(body.reasoning) !== '{"effort":"medium"}') return 'reasoning'
   if (body.store !== false) return 'store'
@@ -53,8 +59,8 @@ function askProblem(request: Request, body: Body): string | null {
 }
 
 function translateProblem(request: Request, body: Body): string | null {
-  if (request.headers.has('openai-organization') || request.headers.has('openai-project')) return 'org or project'
-  if (!GPT_MODELS.includes(String(body.model))) return 'model'
+  const shared = headersOrModelProblem(request, body)
+  if (shared) return shared
   if (body.stream === true || body.max_output_tokens !== 4_000) return 'stream or max_output_tokens'
   if (JSON.stringify(body.reasoning) !== '{"effort":"low"}') return 'reasoning'
   if (body.store !== false) return 'store'

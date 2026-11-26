@@ -188,7 +188,7 @@ export async function githubStub(request: Request): Promise<Response> {
   type Kind = 'api' | 'raw' | 'control' | 'requests'
   let kind: Kind
   let path = url.pathname
-  let base = `${url.origin}`
+  let base = url.origin
   if (url.hostname === 'api.github.com') kind = 'api'
   else if (url.hostname === 'raw.githubusercontent.com') kind = 'raw'
   else {

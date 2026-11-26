@@ -6,6 +6,7 @@ import { parseArgs } from 'node:util'
 import {
   type Action,
   ciStateOf,
+  type DeployRecord,
   decide,
   type Environment,
   isFullSha,
@@ -52,6 +53,10 @@ function isRecord(candidate: unknown): candidate is Record<string, unknown> {
   return typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate)
 }
 
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 function readToken(): string {
   const directory = process.env.CREDENTIALS_DIRECTORY
   const file = directory ? join(directory, 'github_token') : null
@@ -70,7 +75,7 @@ function recordFile(): string | null {
   return directory ? join(directory, 'deployed.jsonl') : null
 }
 
-function readRecord(): ReturnType<typeof readDeployRecord> {
+function readRecord(): DeployRecord[] {
   const file = recordFile()
   return file && existsSync(file) ? readDeployRecord(readFileSync(file, 'utf8')) : []
 }
@@ -202,7 +207,7 @@ async function run(argv: string[]): Promise<boolean> {
       allowPositionals: false,
     }).values
   } catch (error) {
-    throw new UsageError(error instanceof Error ? error.message : String(error))
+    throw new UsageError(messageOf(error))
   }
   const repo = options.repo ?? DEFAULT_REPO
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new UsageError('--repo must be owner/name')
@@ -214,7 +219,7 @@ async function run(argv: string[]): Promise<boolean> {
       await pollEnvironment(call, repo, environment, options['dry-run'] === true)
     } catch (error) {
       allPolled = false
-      console.error(`poll: ${environment}: ${error instanceof Error ? error.message : String(error)}`)
+      console.error(`poll: ${environment}: ${messageOf(error)}`)
     }
   return allPolled
 }
@@ -236,7 +241,7 @@ if (underLock()) {
   try {
     process.exitCode = (await run(process.argv.slice(2))) ? 0 : 1
   } catch (error) {
-    console.error(`poll: ${error instanceof Error ? error.message : String(error)}`)
+    console.error(`poll: ${messageOf(error)}`)
     if (error instanceof UsageError) console.error(USAGE)
     process.exitCode = 1
   }
