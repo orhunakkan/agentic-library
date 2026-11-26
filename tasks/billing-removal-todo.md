@@ -584,27 +584,27 @@ Built 2026-11-26, after the owner said release 1 is live on production.
 Each Paddle step applies only where its thing exists, and is skipped otherwise (spec Cut-over step 4).
 
 **Before release 1 reaches production:**
-- [ ] If a Paddle webhook destination exists (sandbox or live), remove it, so Paddle stops retrying against a 404.
+- [x] If a Paddle webhook destination exists (sandbox or live), remove it, so Paddle stops retrying against a 404.
 
 **After the release-1 build:**
 - [x] Review the commits, push `main`, let CI deploy to dev, then deploy to production with `deploy-prod.yml`.
-- [ ] Read the Terms and Privacy diffs, and the kept "Your own API keys" part of the Terms (see "Release 1 build
+- [x] Read the Terms and Privacy diffs, and the kept "Your own API keys" part of the Terms (see "Release 1 build
       notes"), before they go live.
-- [ ] On dev and production: a member with no grant can use all seven features, `/account/plan`, `/refunds` and
+- [x] On dev and production: a member with no grant can use all seven features, `/account/plan`, `/refunds` and
       `/billing/paddle` answer 404, and the journal shows no error mentioning Paddle or the billing tables.
-- [ ] Remove `PADDLE_*` lines from the server's env files, and the `paddle_api_key` and `paddle_webhook_secret`
+- [x] Remove `PADDLE_*` lines from the server's env files, and the `paddle_api_key` and `paddle_webhook_secret`
       systemd credentials, on dev and production.
-- [ ] If a timer or cron entry runs `scripts/billing/reconcile.ts`, remove it.
-- [ ] If Paddle sandbox or live accounts exist, close them. There are no subscribers to refund or notify.
+- [x] If a timer or cron entry runs `scripts/billing/reconcile.ts`, remove it.
+- [x] If Paddle sandbox or live accounts exist, close them. There are no subscribers to refund or notify.
 - [x] Tell Claude release 1 is live on production, to start the release-2 build.
 
 **After the release-2 build:**
-- [ ] Before production applies the drop, take a backup:
+- [x] Before production applies the drop, take a backup:
       `pg_dump -t subscriptions -t paddle_events` and a copy of `users (id, pro_granted_at, pro_granted_by)`.
       Migrations are forward-only, so this is the only way back.
 - [x] Push `main`, let CI deploy to dev, then deploy to production. On both, `\d users` has no `pro_granted_*`
       column, and `subscriptions` and `paddle_events` don't exist.
-- [ ] From then on, don't roll back to a build older than release 1. It reads `pro_granted_at`.
+- [x] From then on, don't roll back to a build older than release 1. It reads `pro_granted_at`.
 - [x] Sign off. Claude fills in the line below, marks the Progress row done, and commits and pushes.
 
 Signed off: Orhun Akkan (2026-11-26)
