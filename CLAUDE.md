@@ -16,6 +16,7 @@ pnpm check          Lint, typecheck and unit tests (run before calling a change 
 pnpm test:db        Database tests (*.db.test.ts)
 pnpm test:browser   Component tests (*.browser.test.tsx) in headless Chromium
 pnpm lint:fix       Apply Biome fixes and formatting
+docker compose up -d --wait   Local Postgres for dev and tests
 ```
 
 The pre-commit hook in `.githooks/pre-commit` runs Biome on staged files, the typecheck, and the tests in `tests/`.

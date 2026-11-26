@@ -1,0 +1,24 @@
+# Local Postgres 18 for development and the database tests: agentic_dev for pnpm dev, agentic_test for pnpm test:db.
+# The image is pinned by the same digest as the postgres service in .github/workflows/ci.yml, and is bumped with it.
+# The port is bound to 127.0.0.1 only, so the well-known password is never reachable from the network. If 5432 is
+# taken, start it with FOLIO_DB_PORT=55432 (see CONTRIBUTING.md).
+name: folio
+services:
+  postgres:
+    image: postgres:18@sha256:c699303802144847d238196173655dbbecf7a96aeca1565f2b02eb671a1f0b6b # 18.x
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: agentic_dev
+    ports:
+      - "127.0.0.1:${FOLIO_DB_PORT:-5432}:5432"
+    volumes:
+      - folio-postgres:/var/lib/postgresql
+      - ./db/local:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Over TCP: while the init scripts run, the image serves the socket only, so this waits for agentic_test.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d agentic_dev"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+volumes:
+  folio-postgres:

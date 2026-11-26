@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/orhunakkan/agentic-library/security/advisories/new
+    about: Report it privately, never in a public issue. See SECURITY.md.
+  - name: Copyright notice about an uploaded book
+    url: https://agenticlibrary.app/copyright
+    about: How to send a notice about a book or article on agenticlibrary.app, and what happens next.
+  - name: Help with an agenticlibrary.app account
+    url: https://agenticlibrary.app/privacy
+    about: The Privacy page shows the site's contact. Please don't post your username here.

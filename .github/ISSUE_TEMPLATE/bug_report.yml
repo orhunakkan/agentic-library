@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in Folio doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Select …
+        3. See …
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - agenticlibrary.app
+        - Self-hosted
+        - Local development
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Firefox 150 on an Android phone
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: A commit SHA, or for agenticlibrary.app, the date you saw it.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you send it
+      options:
+        - label: I've removed API keys, passwords, personal details and book text.
+          required: true
