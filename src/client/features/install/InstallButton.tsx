@@ -31,7 +31,10 @@ export function InstallButton({ className }: { className?: string }) {
       <button
         ref={row}
         type="button"
-        onClick={() => (offer === 'ios' ? setSteps(true) : void promptInstall())}
+        onClick={() => {
+          if (offer === 'ios') setSteps(true)
+          else void promptInstall()
+        }}
         data-testid="install-app"
         className={cn(
           'flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] font-medium text-body transition hover:bg-panel/60 hover:text-ink',

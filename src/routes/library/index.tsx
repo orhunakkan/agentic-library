@@ -95,6 +95,13 @@ function LibraryPage() {
     [library.collections],
   )
 
+  /** Where the reader's own shelves link: My books and Articles. Undefined for every other shelf. */
+  const privateShelfHref = (slug: string) => {
+    if (slug === library.myShelf?.slug) return '/account/books'
+    if (slug === library.myArticles?.slug) return ARTICLES_HREF
+    return undefined
+  }
+
   const setSearch = (next: LibrarySearch) =>
     navigate({ search: (prev) => ({ ...prev, ...next }), replace: true, resetScroll: false })
   const typed = (next: string) => {
@@ -198,14 +205,13 @@ function LibraryPage() {
               />
             )
           }
-          const mine = shelf.slug === library.myShelf?.slug
-          const articles = shelf.slug === library.myArticles?.slug
+          const privateHref = privateShelfHref(shelf.slug)
           return (
             <ShelfRow
               key={shelf.slug}
               shelf={shelf}
-              collection={mine || articles ? 'Private' : collectionTitles.get(shelf.collectionSlug)}
-              href={mine ? '/account/books' : articles ? ARTICLES_HREF : `/library/${shelf.slug}`}
+              collection={privateHref ? 'Private' : collectionTitles.get(shelf.collectionSlug)}
+              href={privateHref}
             />
           )
         })

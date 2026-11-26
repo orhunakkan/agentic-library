@@ -155,6 +155,11 @@ function Fact({ label, value }: { label: string; value: string }) {
   )
 }
 
+const FORMATS = [
+  { format: 'text', label: 'Text', Icon: BookOpen },
+  { format: 'audio', label: 'Audiobook', Icon: Headphones },
+] as const
+
 function FormatTabs({ showAudio, onSelect }: { showAudio: boolean; onSelect: (tab: 'text' | 'audio') => void }) {
   return (
     <div
@@ -163,7 +168,7 @@ function FormatTabs({ showAudio, onSelect }: { showAudio: boolean; onSelect: (ta
       data-testid="book-format-tabs"
       className="mb-8 inline-flex rounded-full border border-line bg-surface p-1"
     >
-      {(['text', 'audio'] as const).map((format) => {
+      {FORMATS.map(({ format, label, Icon }) => {
         const selected = (format === 'audio') === showAudio
         return (
           <button
@@ -179,12 +184,8 @@ function FormatTabs({ showAudio, onSelect }: { showAudio: boolean; onSelect: (ta
               selected ? 'bg-accent-fill text-on-accent' : 'text-muted hover:text-ink',
             )}
           >
-            {format === 'text' ? (
-              <BookOpen className="size-4" aria-hidden />
-            ) : (
-              <Headphones className="size-4" aria-hidden />
-            )}
-            {format === 'text' ? 'Text' : 'Audiobook'}
+            <Icon className="size-4" aria-hidden />
+            {label}
           </button>
         )
       })}

@@ -64,7 +64,10 @@ function You() {
 
 const COLUMNS = ['Role', 'Status', 'Last active', 'Sessions', 'API key', 'Email'] as const
 
-const sessionsText = (n: number) => (n === 0 ? 'No sessions' : n === 1 ? '1 session' : `${n} sessions`)
+function sessionsText(count: number): string {
+  if (count === 0) return 'No sessions'
+  return count === 1 ? '1 session' : `${count} sessions`
+}
 
 function Actions({ user, busy, onChoose }: { user: AdminUserView } & Omit<ListProps, 'users'>) {
   if (user.you) return null

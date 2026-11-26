@@ -29,14 +29,10 @@ export const Route = createFileRoute('/account/repos/$id/')({
     if (state.state === 'not_found') throw notFound()
     return state
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: `${loaderData?.state === 'ready' ? `${loaderData.repo.owner}/${loaderData.repo.name}` : 'Repository'} | ${SITE_NAME}`,
-      },
-      { name: 'robots', content: 'noindex' },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const pageName = loaderData?.state === 'ready' ? `${loaderData.repo.owner}/${loaderData.repo.name}` : 'Repository'
+    return { meta: [{ title: `${pageName} | ${SITE_NAME}` }, { name: 'robots', content: 'noindex' }] }
+  },
   headers: () => ({ 'cache-control': 'private, no-store' }),
   server: { handlers: { POST: ({ request, params }) => handleRepoAction(request, params.id) } },
   component: RepoScreen,
