@@ -1,0 +1,13 @@
+# Starts folio-deploy-poll.service every 30 seconds. systemd never starts it again while a pass is still running.
+
+[Unit]
+Description=Run the Folio deploy poller every 30 seconds
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=30s
+AccuracySec=1s
+Unit=folio-deploy-poll.service
+
+[Install]
+WantedBy=timers.target

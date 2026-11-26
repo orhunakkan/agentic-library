@@ -54,7 +54,7 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 | Module | Spec | Plan and tasks | Built |
 |---|---|---|---|
 | `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | [plan](../tasks/publish-audit-plan.md), [tasks](../tasks/publish-audit-todo.md) | done, signed off 2026-11-25 ([report](publish-audit-report.md)) |
-| `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | — |
+| `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | built, awaiting sign-off (needs the owner's cut-over) |
 | `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | [plan](../tasks/billing-removal-plan.md), [tasks](../tasks/billing-removal-todo.md) | done, signed off 2026-11-26 |
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | [plan](../tasks/instance-limits-plan.md), [tasks](../tasks/instance-limits-todo.md) | done, signed off 2026-11-26 |
 | `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | built, awaiting sign-off |

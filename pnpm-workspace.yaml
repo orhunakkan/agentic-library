@@ -1,3 +1,11 @@
+# Skip versions published in the past 7 days, so a hijacked release has time to be caught. pnpm checks the lockfile
+# against it on every install, frozen ones too.
+minimumReleaseAge: 10080
+# Already in the lockfile when the policy came in, and younger than 7 days then (published 2026-11-20). Remove this
+# entry once that version is a week old.
+minimumReleaseAgeExclude:
+  - openai@7.62.0
+
 allowBuilds:
   protobufjs: false
 

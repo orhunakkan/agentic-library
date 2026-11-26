@@ -1,0 +1,41 @@
+# The deploy poller: one pass over the waiting GitHub Deployments, started every 30 seconds by
+# folio-deploy-poll.timer. Installed by hand, after review: copy scripts/deploy/* to /opt/folio-deploy/, then this
+# file and the timer to /etc/systemd/system/. A commit on main never changes what runs here until the owner installs
+# it. See spec/SPEC-repo-security.md, section 2.
+#
+# Install /opt/folio-deploy as root:root, mode 0755, so the folio-deploy user can't change what runs here. That
+# user's sudo rule is for the deploy script only, and with sudo 1.9.10 or newer it can pin the arguments too:
+#   folio-deploy ALL=(root) NOPASSWD: /usr/local/bin/agentic-library-deploy ^(dev|prod) [0-9a-f]{40}$
+# The token is a root-only file, handed to the service as the credential github_token. Change the path to where you
+# keep it. What the server has deployed is recorded in /var/lib/folio-deploy-poll/deployed.jsonl (StateDirectory=),
+# which production's "tested on dev" check reads, because a deployment status on GitHub can be posted by anyone
+# with deployments: write.
+
+[Unit]
+Description=Folio deploy poller: deploy the GitHub deployment requests that pass the server's checks
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=folio-deploy
+Group=folio-deploy
+WorkingDirectory=/opt/folio-deploy
+ExecStart=/usr/bin/node /opt/folio-deploy/poll.ts
+LoadCredential=github_token:/etc/folio-deploy/github_token
+RuntimeDirectory=folio-deploy-poll
+StateDirectory=folio-deploy-poll
+StateDirectoryMode=0700
+TimeoutStartSec=25min
+
+# Hardening. The deploy script runs as a child of this service, through sudo, and inherits its sandbox, so only the
+# settings that can't get in a deploy's way are here: no ProtectSystem=, ProtectHome=, PrivateTmp= or
+# PrivateDevices=, which would make the deploy's own files read-only or hidden. NoNewPrivileges= stays off, because
+# sudo needs to gain privileges. Tighten these once you know what the deploy script writes.
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+LockPersonality=yes

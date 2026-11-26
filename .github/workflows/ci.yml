@@ -1,5 +1,10 @@
 name: CI
 
+# Every job runs on a GitHub-hosted runner, for every push, PR and fork PR alike: there are no secrets, the token is
+# read-only, and the runner is thrown away after the job, so a PR has nothing to reach. Deploys don't run here. The
+# last job only asks for one, and the server checks the request itself (spec/SPEC-repo-security.md). The five job
+# names below are the required checks in .github/rulesets/main-changes.json, so rename them together.
+
 on:
   push:
     branches: [main]
@@ -16,17 +21,17 @@ concurrency:
 jobs:
   checks:
     name: Lint, types, unit tests, build, audit
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
@@ -48,21 +53,22 @@ jobs:
   component:
     name: Component tests
     needs: checks
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f # v1.64.1-noble, bumped with the playwright package
       options: --ipc=host
     env:
       CI: "true"
       HOME: /root
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
@@ -71,14 +77,13 @@ jobs:
   db:
     name: Database tests
     needs: component
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.CI_RUNNER }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f # v1.64.1-noble
     services:
       postgres:
-        image: postgres:18
+        image: postgres:18@sha256:c699303802144847d238196173655dbbecf7a96aeca1565f2b02eb671a1f0b6b # 18.x, the same digest as compose.yaml
         env:
           POSTGRES_DB: agentic_test
           POSTGRES_PASSWORD: postgres
@@ -92,13 +97,14 @@ jobs:
       HOME: /root
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/agentic_test
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
@@ -114,17 +120,71 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
           node scripts/coverage/changed-lines.ts coverage/server/lcov.info "$CHANGE_RANGE" 'server' | tee -a "$GITHUB_STEP_SUMMARY"
 
-  deploy-dev:
-    name: Deploy to dev
-    needs: db
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.CI_RUNNER }}
-    timeout-minutes: 20
+  secrets-scan:
+    name: Secrets scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Choose the commits to scan
+        id: range
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # The pushed or PR range. With no base, or the all-zeros base of a new branch or repo, every commit.
+          # The allowlist comes from the base commit, so a change can't allowlist its own findings.
+          config=.gitleaks.toml
+          case "$BASE" in
+            '' | 0000000000000000000000000000000000000000) echo 'log-opts=--all' >> "$GITHUB_OUTPUT" ;;
+            *[!0-9a-f]*) echo "Not a commit SHA: $BASE" >&2; exit 1 ;;
+            *)
+              echo "log-opts=$BASE..$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+              if git show "$BASE:.gitleaks.toml" > .git/gitleaks-base.toml 2>/dev/null; then config=.git/gitleaks-base.toml; fi
+              ;;
+          esac
+          echo "config=$config" >> "$GITHUB_OUTPUT"
+      - name: Scan with gitleaks
+        uses: docker://ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f # v8.30.1
+        with:
+          args: git /github/workspace --log-opts=${{ steps.range.outputs.log-opts }} --config /github/workspace/${{ steps.range.outputs.config }} --redact
+
+  workflow-lint:
+    name: Workflow lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Lint the workflows with zizmor
+        uses: docker://ghcr.io/zizmorcore/zizmor@sha256:ecd3ffe6158de1322e05a044ed43749bee12b1dccb7e1a7859bc6ac4b2a1c516 # v1.33.1
+        env:
+          # Read-only. With it, zizmor also checks that each pinned SHA is the tagged commit of the action's own repo.
+          GH_TOKEN: ${{ github.token }}
+        with:
+          args: /github/workspace/.github/workflows
+
+  request-dev-deploy:
+    name: Request the dev deploy
+    needs: [db, secrets-scan, workflow-lint]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      deployments: write # to create the dev deployment that the server's poller picks up
     concurrency:
-      group: deploy-dev
+      group: request-dev-deploy
       cancel-in-progress: false
     steps:
-      - run: sudo -n /usr/local/bin/agentic-library-deploy dev "$GITHUB_SHA"
-      - run: |
-          echo "Dev is now $GITHUB_SHA: https://dev.agenticlibrary.app" >> "$GITHUB_STEP_SUMMARY"
+      - name: Ask the server to deploy this commit to dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The server's poller picks this up, checks the commit for itself, and deploys it. It deploys nothing here.
+          printf '{"ref":"%s","environment":"dev","auto_merge":false,"required_contexts":[],"description":"CI passed on main"}' "$GITHUB_SHA" |
+            gh api --method POST "repos/$GITHUB_REPOSITORY/deployments" --input - --jq '"Deployment \(.id) requested for dev"'
+          echo "Dev deploy requested for $GITHUB_SHA: https://dev.agenticlibrary.app" >> "$GITHUB_STEP_SUMMARY"
           echo "To promote it: gh workflow run deploy-prod.yml -f sha=$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
