@@ -55,7 +55,7 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 |---|---|---|---|
 | `publish-audit` | [approved 2026-11-25](SPEC-publish-audit.md) | [plan](../tasks/publish-audit-plan.md), [tasks](../tasks/publish-audit-todo.md) | done, signed off 2026-11-25 ([report](publish-audit-report.md)) |
 | `repo-security` | [approved 2026-11-25](SPEC-repo-security.md) | — | — |
-| `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | — | — |
+| `billing-removal` | [approved 2026-11-25](SPEC-billing-removal.md) | [plan](../tasks/billing-removal-plan.md), [tasks](../tasks/billing-removal-todo.md) | — |
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | — | — |
 | `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | — | — |
 | `contributor-docs` | [approved 2026-11-25](SPEC-contributor-docs.md) | — | — |
