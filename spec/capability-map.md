@@ -64,6 +64,25 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 The owner chose to write every module spec before planning or building any of them. Specs are written one per
 session.
 
+### How each module is planned and built
+
+These rules apply to every module, decided 2026-11-25:
+
+- **One module at a time**, in the build order below. A module is planned in one session and built in another.
+- **Plan files are named per module:** `tasks/<module>-plan.md` and `tasks/<module>-todo.md`, never a generic
+  `tasks/plan.md`.
+- **Each build runs in one go**, from the first task to the last. The owner reviews the finished work once, at the
+  end, and doesn't approve checkpoints along the way. Checkpoints are self-checks: if one fails, fix it and re-run it.
+- **Anything only the owner can do goes in a "Needs owner action" list** in the module's deliverable, and the build
+  carries on. That covers rotating secrets, sudo installs, sign-offs, and any action the spec marks as ask-first. The
+  build never does these on the owner's behalf.
+- **A stop that can't be avoided goes in a preflight task** (Task 0), before any work starts. A missing tool is an
+  example.
+- **The build ends with one local commit on `main`**, unless its spec says otherwise. The owner pushes after
+  reviewing.
+- **When a build is done**, the module's Progress row says "built, awaiting sign-off". The owner's review changes it
+  to done.
+
 Facts for the `repo-security` spec, gathered 2026-11-25:
 - **CI layout.** [ci.yml](../.github/workflows/ci.yml) runs checks, component, db, e2e and deploy-dev, all on
   `runs-on: ${{ vars.CI_RUNNER }}`. That's the self-hosted runner `LINUX-LAPTOP`. Deploys run
