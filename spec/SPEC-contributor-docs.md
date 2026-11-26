@@ -1,6 +1,6 @@
 # Spec: contributor-docs — V1
 
-Status: approved (2026-11-25)
+Status: approved (2026-11-25); implemented, awaiting sign-off (2026-11-26)
 
 Module of [capability-map.md](capability-map.md). It depends on `billing-removal`, `instance-limits` and `repo-security`,
 and it takes the self-hosting notes that `legal-and-attribution` hands it. The docs describe the repo as those modules

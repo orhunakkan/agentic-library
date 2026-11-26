@@ -1,6 +1,6 @@
 # Spec: legal-and-attribution — V1
 
-Status: approved (2026-11-25)
+Status: approved (2026-11-25); implemented, awaiting sign-off (2026-11-26)
 
 Module of [capability-map.md](capability-map.md). It depends on `billing-removal` and starts from the Terms and
 Privacy pages that module leaves behind, with no billing in them. It uses the Storage section from `instance-limits`.

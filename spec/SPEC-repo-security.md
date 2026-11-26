@@ -1,6 +1,6 @@
 # Spec: repo-security — V1
 
-Status: approved (2026-11-25)
+Status: approved (2026-11-25); implemented, awaiting sign-off (2026-11-26)
 
 Module of [capability-map.md](capability-map.md). Depends on `publish-audit`, which provides `.gitleaks.toml`.
 `contributor-docs` depends on this module, and `go-public` applies the GitHub settings it defines.
