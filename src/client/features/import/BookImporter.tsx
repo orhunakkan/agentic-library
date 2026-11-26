@@ -18,7 +18,7 @@ import { CoverChooser, coverSourceText, IMAGE_PROBLEM_TEXT } from '~/client/feat
 import { drawCover } from '~/client/features/book-details/cover-image'
 import { cn } from '~/client/lib/cn'
 import { privateCover } from '~/shared/content/private-book'
-import type { DraftBook, DraftChapter } from '~/shared/import/blocks'
+import type { BookBlock, DraftBook, DraftChapter, ImageBlock } from '~/shared/import/blocks'
 import {
   BOOK_ROOM,
   chapterWords,
@@ -135,9 +135,8 @@ export function BookImporter({
       if (picks.isCurrent(pick)) setStage({ kind: 'review', draft, fileName: file.name })
     } catch (error) {
       if (!picks.isCurrent(pick)) return
-      if (isAbort(error)) setStage({ kind: 'pick' })
-      else
-        setStage({ kind: 'pick', error: error instanceof ImportError ? error.message : 'This file couldn’t be read.' })
+      if (isAbort(error)) return setStage({ kind: 'pick' })
+      setStage({ kind: 'pick', error: error instanceof ImportError ? error.message : 'This file couldn’t be read.' })
     }
   }
 
@@ -458,6 +457,9 @@ interface ReviewProps {
   onCancel: () => void
 }
 
+/** A block that shows one of the book's pictures, not a figure kept only for its caption. */
+const isPicture = (block: BookBlock): block is ImageBlock => block.type === 'image' && block.image > 0
+
 function useReviewPictures(draft: DraftBook): { pictures: ReadonlyMap<number, ReviewPicture>; ready: boolean } {
   const [pictures, setPictures] = useState<ReadonlyMap<number, ReviewPicture>>(new Map())
   const [ready, setReady] = useState(false)
@@ -466,11 +468,7 @@ function useReviewPictures(draft: DraftBook): { pictures: ReadonlyMap<number, Re
   useEffect(() => {
     let live = true
     const urls: string[] = []
-    const wanted = [
-      ...new Set(
-        opened.current.flatMap((c) => c.blocks.flatMap((b) => (b.type === 'image' && b.image > 0 ? [b.image] : []))),
-      ),
-    ]
+    const wanted = [...new Set(opened.current.flatMap((c) => c.blocks.filter(isPicture).map((b) => b.image)))]
     void (async () => {
       const drawn = new Map<number, ReviewPicture>()
       for (const pictureNumber of wanted) {
@@ -481,17 +479,18 @@ function useReviewPictures(draft: DraftBook): { pictures: ReadonlyMap<number, Re
         }
         const result = await drawPicture(source.bytes, source.type)
         if (!live) return
-        if ('problem' in result) drawn.set(pictureNumber, { state: { ok: false, problem: result.problem } })
-        else {
-          const url = URL.createObjectURL(result.blob)
-          urls.push(url)
-          const { width, height } = result
-          drawn.set(pictureNumber, {
-            state: { ok: true, bytes: result.blob.size, width, height },
-            blob: result.blob,
-            url,
-          })
+        if ('problem' in result) {
+          drawn.set(pictureNumber, { state: { ok: false, problem: result.problem } })
+          continue
         }
+        const url = URL.createObjectURL(result.blob)
+        urls.push(url)
+        const { width, height } = result
+        drawn.set(pictureNumber, {
+          state: { ok: true, bytes: result.blob.size, width, height },
+          blob: result.blob,
+          url,
+        })
       }
       if (!live) return
       setPictures(drawn)
@@ -528,7 +527,7 @@ function Review({
     () => planPictures(draft.chapters, (n) => pictures.get(n)?.state, BOOK_ROOM(imageBytesLeft)),
     [draft.chapters, pictures, imageBytesLeft],
   )
-  const hasPictures = draft.chapters.some((c) => c.blocks.some((b) => b.type === 'image' && b.image > 0))
+  const hasPictures = draft.chapters.some((c) => c.blocks.some(isPicture))
   const reading = hasPictures && !ready
   const context = useMemo<RenderContext>(
     () => ({

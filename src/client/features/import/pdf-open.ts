@@ -151,20 +151,19 @@ export async function openPdf(fileName: string, bytes: Uint8Array, options: Open
 
   const crops = new Map<string, Uint8Array | null>()
   let source: PdfSource | null = null
+  let cover: SourceCover | null = null
 
   async function layOut(extracted: PdfSource, overrides: PdfOverrides, step: OpenOptions): Promise<PdfRead> {
     const meta = pdfMetadata(extracted.info, extracted.pages, fileName)
     const layout = layoutPdf(extracted.pages, extracted.outline, overrides, meta.title)
     const pages = new Map(extracted.pages.map((p) => [p.number, p]))
     const wanted = layout.regions.filter((r) => !crops.has(boxKey(r.page, r.box)))
-    let done = 0
-    for (const region of wanted) {
+    for (const [done, region] of wanted.entries()) {
       step.signal?.throwIfAborted()
       step.onProgress?.({ stage: 'drawing', done, total: wanted.length })
       crops.set(boxKey(region.page, region.box), await crop(region, pages.get(region.page)))
-      done++
     }
-    if (wanted.length) step.onProgress?.({ stage: 'drawing', done, total: wanted.length })
+    if (wanted.length) step.onProgress?.({ stage: 'drawing', done: wanted.length, total: wanted.length })
     const pictures = layout.regions.map((r): SourcePicture => {
       const cropped = crops.get(boxKey(r.page, r.box))
       return cropped ? { key: r.key, bytes: cropped, type: 'image/png' } : { key: r.key, problem: 'unreadable' }
@@ -191,7 +190,6 @@ export async function openPdf(fileName: string, bytes: Uint8Array, options: Open
     }
   }
 
-  let cover: SourceCover | null = null
   try {
     source = await extractPdf(doc, {
       signal,

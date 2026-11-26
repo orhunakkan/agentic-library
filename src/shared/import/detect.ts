@@ -11,13 +11,15 @@ function splitChapters(items: readonly HtmlItem[], level: ChapterLevel): DraftCh
   const chapters: DraftChapter[] = []
   for (const item of items) {
     const current = chapters.at(-1)
-    if (item.kind === 'heading') {
-      if (item.level === level) chapters.push({ title: item.title, blocks: [] })
-      else if (item.level > level && current) {
-        const heading: BookBlock = { type: 'heading', level: item.level === level + 1 ? 3 : 4, runs: item.runs }
-        if (renderBlock(heading)) current.blocks.push(heading)
-      }
-    } else current?.blocks.push(item.block)
+    if (item.kind === 'block') {
+      current?.blocks.push(item.block)
+      continue
+    }
+    if (item.level === level) chapters.push({ title: item.title, blocks: [] })
+    else if (item.level > level && current) {
+      const heading: BookBlock = { type: 'heading', level: item.level === level + 1 ? 3 : 4, runs: item.runs }
+      if (renderBlock(heading)) current.blocks.push(heading)
+    }
   }
   return chapters.filter((c) => c.blocks.length)
 }

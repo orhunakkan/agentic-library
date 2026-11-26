@@ -95,22 +95,23 @@ function lookupOf(sizes: Map<string, { width: number; height: number }>) {
   return { lookup, pictures, urls, capped: () => over }
 }
 
+const runsText = (runs: readonly Run[]) => runs.map((r) => ('text' in r ? r.text : ' ')).join('')
+
 function textOf(block: BookBlock | ListBlock): string {
-  const runs = (list: readonly Run[]) => list.map((r) => ('text' in r ? r.text : ' ')).join('')
   switch (block.type) {
     case 'heading':
     case 'paragraph':
-      return runs(block.runs)
+      return runsText(block.runs)
     case 'blockquote':
-      return block.paragraphs.map(runs).join(' ')
+      return block.paragraphs.map(runsText).join(' ')
     case 'list':
-      return block.items.map((item) => [runs(item.runs), ...(item.lists ?? []).map(textOf)].join(' ')).join(' ')
+      return block.items.map((item) => [runsText(item.runs), ...(item.lists ?? []).map(textOf)].join(' ')).join(' ')
     case 'table':
-      return [...block.head, ...block.body].map((row) => row.map(runs).join(' ')).join(' ')
+      return [...block.head, ...block.body].map((row) => row.map(runsText).join(' ')).join(' ')
     case 'code':
       return block.text
     case 'image':
-      return block.caption ? runs(block.caption) : ''
+      return block.caption ? runsText(block.caption) : ''
   }
 }
 
@@ -124,7 +125,7 @@ function blocksOf(items: readonly HtmlItem[], title: string): BookBlock[] {
     }
     const repeat = firstHeading && sameText(item.title, title)
     firstHeading = false
-    if (repeat || !line(textOf({ type: 'heading', level: 3, runs: item.runs }))) continue
+    if (repeat || !line(runsText(item.runs))) continue
     blocks.push({ type: 'heading', level: item.level <= 2 ? 3 : 4, runs: item.runs })
   }
   return blocks
@@ -139,7 +140,7 @@ export function draftArticle(result: ReadabilityResult | null, finalUrl: string)
   const items: HtmlItem[] = []
   walkHtml(root, items, { pictures: pictures.lookup })
   const blocks = blocksOf(items, title)
-  const characters = blocks.map(textOf).join(' ').replace(/\s+/g, ' ').trim().length
+  const characters = line(blocks.map(textOf).join(' ')).length
   if (characters < MIN_ARTICLE_CHARACTERS) return { ok: false, problem: 'no_article' }
 
   const byline = line(result.byline).replace(/^by\s+/i, '')

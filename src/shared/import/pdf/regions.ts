@@ -109,6 +109,17 @@ const mathShare = (line: PdfLine) => {
   return all ? math / all : 0
 }
 
+/** Whether an equation's area is indented past, or centred under, the lines around it. */
+function standsApart(area: Box, around: readonly PdfLine[], body: BodyStyle): boolean {
+  if (!around.length) return true
+  const left = Math.min(...around.map((l) => l.x))
+  const span = Math.max(...around.map((l) => l.x + l.width)) - left
+  const centre = left + span / 2
+  const indented = area.x - left > body.size
+  const centred = Math.abs(area.x + area.width / 2 - centre) < span * 0.1 && area.width < span * 0.8
+  return indented || centred
+}
+
 function equations(lines: readonly PdfLine[], body: BodyStyle, gap: number): PdfLine[][] {
   const found: PdfLine[][] = []
   for (let i = 0; i < lines.length; i++) {
@@ -122,17 +133,7 @@ function equations(lines: readonly PdfLine[], body: BodyStyle, gap: number): Pdf
     const last = group.at(-1) as PdfLine
     const spaced = (!before || first.y - before.y > gap * 1.15) && (!after || after.y - last.y > gap * 1.15)
     const around = [before, after].filter((l): l is PdfLine => !!l)
-    const area = union(group.map(lineBox))
-    let apart = !around.length
-    if (around.length) {
-      const left = Math.min(...around.map((l) => l.x))
-      const span = Math.max(...around.map((l) => l.x + l.width)) - left
-      const centre = left + span / 2
-      const indented = area.x - left > body.size
-      const centred = Math.abs(area.x + area.width / 2 - centre) < span * 0.1 && area.width < span * 0.8
-      apart = indented || centred
-    }
-    if (spaced && apart) found.push(group)
+    if (spaced && standsApart(union(group.map(lineBox)), around, body)) found.push(group)
     i = end
   }
   return found

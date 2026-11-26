@@ -60,11 +60,11 @@ export function ipv6Number(text: string): bigint | null {
   address = address.split('%')[0] ?? ''
   if (!address.includes(':')) return null
   const groups: number[] = []
-  const tail = /(\d+\.\d+\.\d+\.\d+)$/.exec(address)
-  if (tail) {
-    const v4value = ipv4Number(tail[1] as string)
+  const dottedTail = /(\d+\.\d+\.\d+\.\d+)$/.exec(address)?.[1]
+  if (dottedTail) {
+    const v4value = ipv4Number(dottedTail)
     if (v4value === null) return null
-    address = `${address.slice(0, -(tail[1] as string).length)}${(v4value >>> 16).toString(16)}:${(v4value & 0xffff).toString(16)}`
+    address = `${address.slice(0, -dottedTail.length)}${(v4value >>> 16).toString(16)}:${(v4value & 0xffff).toString(16)}`
   }
   const halves = address.split('::')
   if (halves.length > 2) return null

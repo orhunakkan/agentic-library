@@ -4,6 +4,7 @@ import { Button, Notice, TextField } from '~/client/features/account/ui'
 import { uploadCover } from '~/client/features/book-details/details-client'
 import { CoverAndDetails, type ReviewCover } from '~/client/features/import/BookImporter'
 import { discardUpload } from '~/client/features/import/import-client'
+import { plural } from '~/client/features/import/pdf-reading'
 import { type CoverRefusal, refusalOf } from '~/client/features/import/private-book-save'
 import { formatLength } from '~/shared/audiobooks/chapters'
 import { fileSize } from '~/shared/content/private-book'
@@ -32,9 +33,8 @@ const FROM_TEXT: Record<AudiobookDraft['from'], string> = {
 }
 
 function summary(draft: AudiobookDraft): string {
-  const chapters = `${draft.chapters.length.toLocaleString('en-GB')} ${draft.chapters.length === 1 ? 'chapter' : 'chapters'}`
   const kind = draft.type === 'mp4' ? 'M4B' : `${draft.files.length} MP3 ${draft.files.length === 1 ? 'file' : 'files'}`
-  return `${formatLength(draft.totalMs)} · ${chapters} · ${fileSize(draft.bytes)} · ${kind}`
+  return `${formatLength(draft.totalMs)} · ${plural(draft.chapters.length, 'chapter')} · ${fileSize(draft.bytes)} · ${kind}`
 }
 
 export function AudiobookImporter({
@@ -179,19 +179,6 @@ export function AudiobookImporter({
     )
 
   const { draft } = stage
-  return (
-    <Review
-      draft={draft}
-      error={stage.kind === 'review' ? stage.error : undefined}
-      cover={cover}
-      onCover={setCover}
-      locked={stage.kind !== 'review'}
-      onChange={(next) => stage.kind === 'review' && setStage({ kind: 'review', draft: next })}
-      onImport={() => void start(draft)}
-      onCancel={cancel}
-      progress={progressOf(stage)}
-    />
-  )
 
   function progressOf(stage: Exclude<Stage, { kind: 'reading' }>) {
     if (stage.kind === 'uploading' || stage.kind === 'stopped')
@@ -217,6 +204,20 @@ export function AudiobookImporter({
       )
     return null
   }
+
+  return (
+    <Review
+      draft={draft}
+      error={stage.kind === 'review' ? stage.error : undefined}
+      cover={cover}
+      onCover={setCover}
+      locked={stage.kind !== 'review'}
+      onChange={(next) => stage.kind === 'review' && setStage({ kind: 'review', draft: next })}
+      onImport={() => void start(draft)}
+      onCancel={cancel}
+      progress={progressOf(stage)}
+    />
+  )
 }
 
 function UploadProgress({

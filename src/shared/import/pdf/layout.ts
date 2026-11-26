@@ -324,8 +324,8 @@ function walk(items: readonly Item[], notesOf: ReadonlySet<PdfLine>): Walk {
   const opensItem = (start: ItemStart | null, index: number, page: number) => {
     if (!start) return false
     if (lists.some((l) => Math.abs(l.markerX - start.markerX) <= HANGING_SLACK)) return true
-    const next = items.slice(index + 1).find((i) => 'entry' in i)
-    if (!next || !('entry' in next)) return false
+    const next = items.slice(index + 1).find((later): later is { entry: Entry } => 'entry' in later)
+    if (!next) return false
     const line = next.entry.line
     if (next.entry.kind !== 'body' || line.page !== page) return false
     return Math.abs(line.x - start.textX) <= HANGING_SLACK || itemStart(line) !== null

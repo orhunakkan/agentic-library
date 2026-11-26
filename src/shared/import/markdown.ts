@@ -96,7 +96,7 @@ export async function readMarkdownZip(file: Uint8Array, fileName: string, option
   const paths = [...zip.keys()].filter((p) => !isHidden(p))
   const shallowest = (name: string) =>
     paths.filter((p) => p.split('/').pop()?.toLowerCase() === name).sort(shallowFirst)[0]
-  const read = async (path: string) => utf8.decode(await (zip.get(path)?.read() ?? Promise.resolve(new Uint8Array())))
+  const read = async (path: string) => utf8.decode((await zip.get(path)?.read()) ?? new Uint8Array())
 
   const summaryPath = shallowest('summary.md')
   const markdown = new Set(paths.filter((p) => isMarkdown(p) && p !== summaryPath))
