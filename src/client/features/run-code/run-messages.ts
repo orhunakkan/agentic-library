@@ -85,7 +85,7 @@ export function hintFor(lang: RunLang, message: string): string | null {
   }
   if (lang === 'python') {
     if (/^ModuleNotFoundError\b/.test(message)) return HINTS.python
-    if (/input\(\) isn’t available|input\(\) isn't available/.test(message)) return HINTS.input
+    if (/input\(\) isn[’']t available/.test(message)) return HINTS.input
     if (NO_NETWORK.test(message)) return HINTS.network
     return null
   }

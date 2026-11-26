@@ -26,7 +26,8 @@ const ALIASES: Record<string, RunLang> = {
 }
 
 export function aliasLang(name: string): RunLang | null {
-  return Object.hasOwn(ALIASES, name.toLowerCase()) ? (ALIASES[name.toLowerCase()] as RunLang) : null
+  const alias = name.toLowerCase()
+  return Object.hasOwn(ALIASES, alias) ? (ALIASES[alias] as RunLang) : null
 }
 
 export interface HintSource {
@@ -36,12 +37,12 @@ export interface HintSource {
 const ATTRIBUTES = ['data-code-language', 'data-lang', 'data-language'] as const
 
 function classHint(classes: string): string | null {
-  const brush = /(?:^|[\s;])brush:\s*([^\s;]*)/i.exec(classes)
   const tokens = classes.split(/\s+/).filter(Boolean)
   for (const token of tokens) {
     const named = /^(?:language|lang)-(.*)$/i.exec(token)
     if (named) return named[1] ?? ''
   }
+  const brush = /(?:^|[\s;])brush:\s*([^\s;]*)/i.exec(classes)
   if (brush) return brush[1] ?? ''
   if (tokens.includes('sourceCode')) return tokens.find((t) => t !== 'sourceCode' && aliasLang(t)) ?? null
   return null

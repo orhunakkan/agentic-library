@@ -212,11 +212,10 @@ export function workerMain(
     }
     const mapped = entries(() => Map.prototype.entries.call(data)) as [unknown, unknown][] | null
     const setted = mapped ? null : entries(() => Set.prototype.values.call(data))
-    const pairs: [string, unknown][] = mapped
-      ? mapped.map(([k, v], i) => [String(i), { Key: k, Values: v }])
-      : setted
-        ? setted.map((v, i) => [String(i), v])
-        : Object.entries(data)
+    let pairs: [string, unknown][]
+    if (mapped) pairs = mapped.map(([k, v], i) => [String(i), { Key: k, Values: v }])
+    else if (setted) pairs = setted.map((v, i) => [String(i), v])
+    else pairs = Object.entries(data)
     const keys: string[] = []
     let values = false
     for (const [, value] of pairs.slice(0, MAX_ROWS)) {

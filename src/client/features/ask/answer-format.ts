@@ -30,15 +30,17 @@ function cites(text: string): Inline[] {
 function textInlines(text: string, out: Inline[]) {
   const parts = text.split(/\*\*(.+?)\*\*/g)
   parts.forEach((part, i) => {
+    /** split() puts each **bold** capture at an odd index. */
+    const kind = i % 2 ? 'strong' : 'text'
     let last = 0
     for (const marker of part.matchAll(MARKER)) {
       const before = part.slice(last, marker.index)
-      if (before) out.push({ kind: i % 2 ? 'strong' : 'text', text: before })
+      if (before) out.push({ kind, text: before })
       out.push({ kind: 'cite', index: Number(marker[1]) })
       last = (marker.index ?? 0) + marker[0].length
     }
     const rest = part.slice(last)
-    if (rest) out.push({ kind: i % 2 ? 'strong' : 'text', text: rest })
+    if (rest) out.push({ kind, text: rest })
   })
 }
 

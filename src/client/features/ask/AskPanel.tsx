@@ -338,6 +338,14 @@ function Question({ text }: { text: string }) {
   )
 }
 
+function StoppedBadge() {
+  return (
+    <span className="rounded-full bg-r-line/60 px-2 py-0.5" data-testid="ask-stopped">
+      Stopped
+    </span>
+  )
+}
+
 function Turn({
   turn,
   index,
@@ -374,9 +382,7 @@ function Turn({
   if (turn.stopped && !turn.text.trim()) {
     return (
       <li className="text-[12.5px] text-r-muted" data-testid="ask-answer" data-key={turn.at}>
-        <span className="rounded-full bg-r-line/60 px-2 py-0.5" data-testid="ask-stopped">
-          Stopped
-        </span>
+        <StoppedBadge />
       </li>
     )
   }
@@ -392,11 +398,7 @@ function Turn({
     <li data-testid="ask-answer" data-key={turn.at}>
       <AnswerText text={turn.text} citations={turn.citations} onNavigate={onNavigate} />
       <div className="mt-1.5 flex items-center gap-2 text-[12.5px] text-r-muted">
-        {turn.stopped && (
-          <span className="rounded-full bg-r-line/60 px-2 py-0.5" data-testid="ask-stopped">
-            Stopped
-          </span>
-        )}
+        {turn.stopped && <StoppedBadge />}
         <button
           type="button"
           onClick={copy}

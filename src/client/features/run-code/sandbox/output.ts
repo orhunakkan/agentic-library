@@ -58,14 +58,15 @@ export function appendOutput(state: Output, entries: readonly OutputEntry[]): Ou
       continue
     }
     const next = shownOf(entry)
+    const size = charsOf(next)
     const room = MAX_OUTPUT_CHARS - chars
-    if (charsOf(next) > room) {
+    if (size > room) {
       if (next.t === 'line' && room > 0) shown.push({ ...next, text: cut(next.text, room) })
       chars = MAX_OUTPUT_CHARS
       capped = true
       break
     }
-    chars += charsOf(next)
+    chars += size
     shown.push(next)
   }
   return { shown, count, chars, capped }

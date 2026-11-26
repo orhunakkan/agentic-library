@@ -8,8 +8,11 @@ export const letter = (index: number) => LETTERS[index] ?? '?'
 const where = (span: StudySpan) => (span === 'two' ? 'this chapter so far and the one before' : 'this chapter so far')
 
 export function studyHeading(study: ThreadStudy): string {
-  const n = study.kind === 'quiz' ? study.questions.length : study.cards.length
-  if (study.kind === 'quiz') return `${n} ${n === 1 ? 'question' : 'questions'} on ${where(study.span)}`
+  if (study.kind === 'quiz') {
+    const n = study.questions.length
+    return `${n} ${n === 1 ? 'question' : 'questions'} on ${where(study.span)}`
+  }
+  const n = study.cards.length
   return `${n} ${n === 1 ? 'flashcard' : 'flashcards'} from ${where(study.span)}`
 }
 
