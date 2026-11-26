@@ -38,7 +38,6 @@ describe('migrations', () => {
       'highlights',
       'listening_places',
       'login_attempts',
-      'paddle_events',
       'passkey_challenges',
       'passkeys',
       'reader_settings',
@@ -52,7 +51,6 @@ describe('migrations', () => {
       'shelves',
       'signup_tokens',
       'speech_usage',
-      'subscriptions',
       'user_book_audio_chapters',
       'user_book_audio_files',
       'user_book_chapters',
@@ -168,6 +166,58 @@ describe('migrations', () => {
     expect(check?.validated).toBe(true)
     const indexes = await sql`select 1 from pg_indexes where indexname = 'user_books_article_idx'`
     expect(indexes).toHaveLength(1)
+  })
+
+  it('drop the billing tables and grant columns, and keep the users, books and audit events', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'migrations-'))
+    try {
+      for (const m of readMigrations().filter((m) => m.name < '0029')) writeFileSync(join(dir, m.name), m.sql)
+      await migrate({ url: databaseUrl, dir })
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+    const [granter] = await sql<{ id: string }[]>`
+      insert into users (username, password_hash, role) values ('granter', 'x', 'admin') returning id`
+    const [granted] = await sql<{ id: string }[]>`
+      insert into users (username, password_hash, role, starter_book_at, pro_granted_at, pro_granted_by)
+      values ('granted', 'y', 'member', '2026-11-01T12:00:00Z', now(), ${granter?.id ?? ''}) returning id`
+    const grantedId = granted?.id ?? ''
+    await sql`
+      insert into user_books (user_id, title, author, language, chapter_count, starter)
+      values (${grantedId}, 'Pride and Prejudice', 'Jane Austen', 'en-GB', 1, true)`
+    await sql`
+      insert into audit_events (user_id, event, detail)
+      values (${grantedId}, 'plan.granted', ${sql.json({ by: 'granter' })})`
+    await sql`
+      insert into subscriptions (id, user_id, customer_id, price_id, cadence, founding, status, event_at)
+      values ('sub_01abc', ${grantedId}, 'ctm_01abc', 'pri_01monthly', 'month', true, 'active', now())`
+    await sql`
+      insert into paddle_events (event_id, event_type, occurred_at)
+      values ('evt_01abc', 'subscription.created', now())`
+    const kept = () =>
+      Promise.all([
+        sql`select id, username, password_hash, role, created_at, starter_book_at from users order by id`,
+        sql`select id, user_id, title, starter from user_books order by id`,
+        sql`select id, user_id, event, at, detail from audit_events order by id`,
+      ])
+    const before = await kept()
+
+    await migrate({ url: databaseUrl })
+    const remaining = await tables()
+    expect(remaining).not.toContain('subscriptions')
+    expect(remaining).not.toContain('paddle_events')
+    const columns = async (table: string) =>
+      (
+        await sql<{ column_name: string }[]>`
+          select column_name from information_schema.columns where table_schema = 'public' and table_name = ${table}`
+      ).map((c) => c.column_name)
+    const userColumns = await columns('users')
+    expect(userColumns).not.toContain('pro_granted_at')
+    expect(userColumns).not.toContain('pro_granted_by')
+    expect(userColumns).toContain('starter_book_at')
+    expect(await columns('user_books')).toContain('starter')
+    expect(await kept()).toEqual(before)
+    expect(before.map((rows) => rows.length)).toEqual([2, 1, 1])
   })
 
   it('are idempotent', async () => {

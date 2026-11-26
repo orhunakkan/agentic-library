@@ -54,18 +54,15 @@ describe('the foreign keys to users and user_books', () => {
       from pg_constraint con
       where con.contype = 'f' and con.confrelid in ('users'::regclass, 'user_books'::regclass)
       order by 2, 1`
-    const expected = [
-      'users set null',
-      /** The billing table release 2 drops (spec/SPEC-billing-removal.md); nothing reads or writes it until then. */
-      'subscriptions set null',
-      ...Object.keys(USER_TABLES).flatMap((table) =>
+    const expected = Object.keys(USER_TABLES)
+      .flatMap((table) =>
         table === 'audit_events'
           ? [`${table} set null`]
           : table === 'signup_tokens'
             ? [`${table} cascade`, `${table} set null`]
             : [`${table} cascade`],
-      ),
-    ].sort()
+      )
+      .sort()
     expect(
       keys
         .filter((k) => k.references === 'users')

@@ -463,7 +463,7 @@ commit locally (see Decisions in the plan). **Don't push.**
 
 ---
 
-# Release 2 (a later session)
+# Release 2
 
 ## Task R0: Preflight for the drop
 
@@ -474,9 +474,9 @@ out the migration number from the newest file in `db/migrations/`. If the owner 
 reader, stop now and say so.
 
 **Acceptance criteria:**
-- [ ] The owner has confirmed release 1 is live on production
-- [ ] Only `migrations.db.test.ts` names the four objects outside the old migrations
-- [ ] The new migration's number is known (`0029` if nothing else landed)
+- [x] The owner has confirmed release 1 is live on production
+- [x] Only `migrations.db.test.ts` names the four objects outside the old migrations
+- [x] The new migration's number is known (`0029` if nothing else landed)
 
 **Dependencies:** Task 14, and the owner's deploy
 
@@ -493,12 +493,12 @@ and a granted user, apply the drop. `subscriptions`, `paddle_events`, `users.pro
 `users.pro_granted_by` are gone, and the users, books and audit events are untouched.
 
 **Acceptance criteria:**
-- [ ] The migration applies with `pnpm db:migrate` on a local database, and `\d users` has no `pro_granted_*` column
-- [ ] The new test case passes, and `0018_plans.sql` and `0019_billing.sql` are unchanged (checksums match)
-- [ ] `user_books.starter` and `users.starter_book_at` are untouched
+- [x] The migration applies with `pnpm db:migrate` on a local database, and `\d users` has no `pro_granted_*` column
+- [x] The new test case passes, and `0018_plans.sql` and `0019_billing.sql` are unchanged (checksums match)
+- [x] `user_books.starter` and `users.starter_book_at` are untouched
 
 **Verification:**
-- [ ] `pnpm db:migrate`, `pnpm test:db`
+- [x] `pnpm db:migrate`, `pnpm test:db`
 
 **Dependencies:** Task R0
 
@@ -517,12 +517,12 @@ because the table still points at `users` until the drop (see "Release 1 build n
 Commit the migration as one local commit on `main`. **Don't push.**
 
 **Acceptance criteria:**
-- [ ] The leftover check shows only the release-2 expected hits, and the three runs pass
-- [ ] One local commit on `main`, separate from release 1's
-- [ ] This file ends with `Signed off: ____ (date)`
+- [x] The leftover check shows only the release-2 expected hits, and the three runs pass
+- [x] One local commit on `main`, separate from release 1's
+- [x] This file ends with `Signed off: ____ (date)`
 
 **Verification:**
-- [ ] The three full runs, and `git log origin/main..main --oneline`
+- [x] The three full runs, and `git log origin/main..main --oneline`
 
 **Dependencies:** Task R1
 
@@ -533,8 +533,8 @@ Commit the migration as one local commit on `main`. **Don't push.**
 ---
 
 ## Checkpoint: Release 2 complete
-- [ ] Every success criterion in the spec is met except the owner's deploy checks and sign-off
-- [ ] The final message lists the "Needs owner action" items first
+- [x] Every success criterion in the spec is met except the owner's deploy checks and sign-off
+- [x] The final message lists the "Needs owner action" items first
 
 ---
 
@@ -566,6 +566,19 @@ Built 2026-11-25. Where the build left the plan's letter, and why:
 - **Renames** go through TypeScript 7's language server (`tsc --lsp --stdio`, the `textDocument/rename` request that
   F2 sends), because TypeScript 7 has no JavaScript language-service API.
 
+## Release 2 build notes
+
+Built 2026-11-26, after the owner said release 1 is live on production.
+
+- **The admin foreign-key test lost two lines, not one.** Besides `'subscriptions set null'`, its expected list had
+  `'users set null'`. That line was `users.pro_granted_by`, the only key from `users` to itself. The leftover check
+  couldn't find it, because the line names neither dropped object, and the release-1 notes missed it. Both lines go.
+- **The migration's test** starts from a database migrated to 0028. It seeds an admin, a granted member with a starter
+  book, an audit event, a `subscriptions` row and a `paddle_events` row, then applies 0029. The two tables and two
+  columns are gone, `users.starter_book_at` and `user_books.starter` stay, and the users, books and audit events read
+  back unchanged. With 0029 moved out of the folder, the case fails.
+- **Checksums.** `0018_plans.sql` and `0019_billing.sql` match `origin/main` byte for byte.
+
 ## Needs owner action
 
 Each Paddle step applies only where its thing exists, and is skipped otherwise (spec Cut-over step 4).
@@ -574,7 +587,7 @@ Each Paddle step applies only where its thing exists, and is skipped otherwise (
 - [ ] If a Paddle webhook destination exists (sandbox or live), remove it, so Paddle stops retrying against a 404.
 
 **After the release-1 build:**
-- [ ] Review the commits, push `main`, let CI deploy to dev, then deploy to production with `deploy-prod.yml`.
+- [x] Review the commits, push `main`, let CI deploy to dev, then deploy to production with `deploy-prod.yml`.
 - [ ] Read the Terms and Privacy diffs, and the kept "Your own API keys" part of the Terms (see "Release 1 build
       notes"), before they go live.
 - [ ] On dev and production: a member with no grant can use all seven features, `/account/plan`, `/refunds` and
@@ -583,7 +596,7 @@ Each Paddle step applies only where its thing exists, and is skipped otherwise (
       systemd credentials, on dev and production.
 - [ ] If a timer or cron entry runs `scripts/billing/reconcile.ts`, remove it.
 - [ ] If Paddle sandbox or live accounts exist, close them. There are no subscribers to refund or notify.
-- [ ] Tell Claude release 1 is live on production, to start the release-2 build.
+- [x] Tell Claude release 1 is live on production, to start the release-2 build.
 
 **After the release-2 build:**
 - [ ] Before production applies the drop, take a backup:
@@ -593,3 +606,5 @@ Each Paddle step applies only where its thing exists, and is skipped otherwise (
       column, and `subscriptions` and `paddle_events` don't exist.
 - [ ] From then on, don't roll back to a build older than release 1. It reads `pro_granted_at`.
 - [ ] Sign off. Claude fills in the line below, marks the Progress row done, and commits and pushes.
+
+Signed off: ____ (date)
