@@ -36,15 +36,12 @@ describe('isAudioName and pickerAccept', () => {
 })
 
 describe('pickRefusal', () => {
-  it('refuses audio on Free, and a pick at the plan’s book limit', () => {
-    expect(pickRefusal('audio', 'free', 0)).toBe('Uploading audiobooks is part of Pro.')
-    expect(pickRefusal('book', 'free', 1)).toBeNull()
-    expect(pickRefusal('book', 'free', 2)).toBe(
-      'Free includes 2 of your own books. Delete one, or go Pro for up to 25.',
-    )
-    expect(pickRefusal('book', 'free', 7)).toMatch(/^Free includes 2/)
-    expect(pickRefusal('audio', 'pro', 24)).toBeNull()
-    expect(pickRefusal('audio', 'pro', 25)).toBe('You have 25 of your own books. Delete one to import another.')
-    expect(pickRefusal('mixed', 'free', 9)).toBeNull()
+  it('refuses a book or an audiobook at the book limit', () => {
+    expect(pickRefusal('audio', 0)).toBeNull()
+    expect(pickRefusal('book', 24)).toBeNull()
+    expect(pickRefusal('book', 25)).toBe('You have 25 of your own books. Delete one to import another.')
+    expect(pickRefusal('audio', 25)).toBe('You have 25 of your own books. Delete one to import another.')
+    expect(pickRefusal('book', 30)).toBe('You have 25 of your own books. Delete one to import another.')
+    expect(pickRefusal('mixed', 30)).toBeNull()
   })
 })

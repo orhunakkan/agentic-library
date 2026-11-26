@@ -7,7 +7,6 @@ import { drawPicture } from '~/client/features/import/picture-draw'
 import { parseArticleUrl } from '~/shared/articles/article-url'
 import type { ArticleView } from '~/shared/articles/contract'
 import { privateBookHref } from '~/shared/content/private-book'
-import type { Plan } from '~/shared/plans/plans'
 import { articleProblemText, canRetry, progressText, type SaveStage, savedText } from './article-messages'
 import type { SaveSteps } from './article-save'
 import { type ArticleFailure, fetchArticle, fetchArticlePicture, startArticle } from './articles-client'
@@ -40,14 +39,12 @@ const link = 'font-semibold underline underline-offset-2'
 
 export function SaveArticleForm({
   initialUrl = '',
-  plan,
   max,
   testHosts,
   imageBytesUsed,
   articles,
 }: {
   initialUrl?: string
-  plan: Plan
   max: number
   testHosts: readonly string[]
   imageBytesUsed: number
@@ -133,7 +130,6 @@ export function SaveArticleForm({
       {failure && (
         <Notice kind="error" id="articles-error" data-testid="articles-error">
           {articleProblemText(failure.problem, {
-            plan: failure.plan ?? plan,
             max: failure.max ?? max,
             retryAt: failure.retryAt,
           })}

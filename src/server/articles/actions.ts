@@ -4,6 +4,7 @@ import {
   type ArticleErrorCode,
   type ArticlesState,
   type ArticleView,
+  MAX_ARTICLES,
   siteOf,
   type WebFetchProblem,
 } from '../../shared/articles/contract.ts'
@@ -13,7 +14,6 @@ import { chapterPageHref } from '../../shared/content/navigation.ts'
 import { myArticles } from '../../shared/content/private-book.ts'
 import { sniffImage } from '../../shared/import/image.ts'
 import { isObject } from '../../shared/lib/json-shape.ts'
-import { limitsFor } from '../../shared/plans/plans.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { recordEvent } from '../audit.ts'
 import { noStoreJson, requestIp, seeOther } from '../auth.ts'
@@ -139,8 +139,7 @@ export function articlesState(request: Request): Promise<ArticlesState> {
     return {
       state: 'ready',
       articles: articles.map(toArticleView),
-      max: limitsFor(session.plan).articles,
-      plan: session.plan,
+      max: MAX_ARTICLES,
       testHosts: getConfig().articleTestHosts,
       imageBytesUsed: used,
     }

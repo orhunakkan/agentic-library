@@ -235,7 +235,7 @@ describe('the Invites list', () => {
 describe('the admin gate', () => {
   it('lets an admin through and answers anyone else 404 not_found', async () => {
     const gate = (role: Role) => {
-      const session: SessionUser = { userId: 1, username: 'orhun', role, plan: 'pro', expiresAt: new Date() }
+      const session: SessionUser = { userId: 1, username: 'orhun', role, expiresAt: new Date() }
       return adminOnly({ session, db: getDb(), via: 'cookie', tokenId: null })
     }
     expect(gate('admin')).toBeUndefined()

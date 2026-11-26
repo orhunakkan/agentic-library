@@ -13,8 +13,6 @@ const row = (over: Partial<AdminUserRow> = {}): AdminUserRow => ({
   sessions: 0,
   hasKey: false,
   email: 'none',
-  given: false,
-  paid: null,
   lockedUntil: null,
   you: false,
   ...over,
@@ -33,20 +31,8 @@ describe('toAdminUserView', () => {
       sessions: 2,
       hasKey: true,
       email: 'none',
-      plan: 'free',
-      planSource: 'free',
-      paid: null,
       you: false,
     })
-  })
-
-  it('says each account’s plan and why', () => {
-    expect(toAdminUserView(row())).toMatchObject({ plan: 'free', planSource: 'free' })
-    expect(toAdminUserView(row({ given: true }))).toMatchObject({ plan: 'pro', planSource: 'given' })
-    expect(toAdminUserView(row({ role: 'admin' }))).toMatchObject({ plan: 'pro', planSource: 'admin' })
-    const paid = { cadence: 'year', founding: true, pastDue: false } as const
-    expect(toAdminUserView(row({ given: true, paid }))).toMatchObject({ plan: 'pro', planSource: 'paid', paid })
-    expect(toAdminUserView(row({ role: 'admin', paid }))).toMatchObject({ planSource: 'admin', paid: null })
   })
 
   it('says locked while there is a lock, and disabled over locked', () => {

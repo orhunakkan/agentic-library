@@ -593,18 +593,25 @@ describe('the key form posts', () => {
     expect(seen).toEqual([`${getConfig().openAiApiBase}/v1/models Bearer ${openAiKey('7777')}`])
   })
 
-  it('lets a free reader delete an OpenAI key saved before, but not save one', async () => {
+  it('lets a plain member with no grant save an Anthropic, an OpenAI and an ElevenLabs key, and delete one', async () => {
     const { user, cookie } = await signedIn()
-    await saveKey(db(), user.id, 'openai', openAiKey('1111'))
-    await raw`update users set pro_granted_at = null where id = ${user.id}`
-    const asked = vi.fn(stubs)
-    const refused = await post(cookie, { intent: 'save', provider: 'openai', key: openAiKey('2222') }, asked)
-    expect(refused.headers.get('location')).toBe(at('error=pro&provider=openai', 'openai'))
-    expect(asked).not.toHaveBeenCalled()
-    expect((await getKeyStatuses(db(), user.id)).map((k) => k.last4)).toEqual(['1111'])
+    const keys = [
+      ['anthropic', 'sk-ant-test-valid-xxxxxxxxxxxxxxxx1111'],
+      ['openai', openAiKey('2222')],
+      ['elevenlabs', elevenLabsKey('3333')],
+    ] as const
+    for (const [provider, key] of keys) {
+      const saved = await save(cookie, provider, key)
+      expect(saved.headers.get('location')).toBe(at(`status=saved&provider=${provider}`, provider))
+    }
+    expect((await getKeyStatuses(db(), user.id)).map((k) => [k.provider, k.last4])).toEqual([
+      ['anthropic', '1111'],
+      ['elevenlabs', '3333'],
+      ['openai', '2222'],
+    ])
     const deleted = await post(cookie, { intent: 'delete', provider: 'openai' })
     expect(deleted.headers.get('location')).toBe(at('status=deleted&provider=openai', 'openai'))
-    expect(await getKeyStatuses(db(), user.id)).toEqual([])
+    expect((await getKeyStatuses(db(), user.id)).map((k) => k.provider)).toEqual(['anthropic', 'elevenlabs'])
   })
 
   it('counts OpenAI key changes against the same limit', async () => {

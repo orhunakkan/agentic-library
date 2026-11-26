@@ -25,7 +25,8 @@ git grep -niE 'paddle|pro_granted|subscriptions|refund|PRO_|FREE_LIMITS|requireP
 
 Expected hits after release 1, and nothing else: the 404 test's three URLs, the leftover `PADDLE_*` case in
 `config.test.ts`, and `subscriptions` and `paddle_events` in `migrations.db.test.ts`'s table list. After release 2: the
-drop migration and its case in `migrations.db.test.ts`.
+drop migration and its case in `migrations.db.test.ts`. The release-1 build found one more, kept on purpose: the
+`'subscriptions set null'` line in `admin.db.test.ts` (see "Release 1 build notes"). Release 2 removes it.
 
 **Per-task verification:** `pnpm check` (lint, types, unit tests with coverage) and `pnpm test:db`, plus the e2e specs
 the task names, run on desktop with `pnpm e2e:local --grep` or by file. The full e2e run is in Task 14.
@@ -43,9 +44,9 @@ so later checkpoints can compare. If any of these fails, stop now and say what's
 comes before any work is done.
 
 **Acceptance criteria:**
-- [ ] `git status` is clean on `main`
-- [ ] `pnpm check` and `pnpm test:db` pass, and their coverage totals are recorded
-- [ ] `home.spec.ts` passes on desktop
+- [x] `git status` is clean on `main`
+- [x] `pnpm check` and `pnpm test:db` pass, and their coverage totals are recorded
+- [x] `home.spec.ts` passes on desktop
 
 **Dependencies:** None
 
@@ -61,14 +62,14 @@ and `canUse` from `ask/setup.ts`, so the `pro` flag it computes goes. The Ask pr
 `ask-prompts-client` lose their `pro` cases and the `ProNotice` they show. The key check stays.
 
 **Acceptance criteria:**
-- [ ] A plain member with no grant and a saved key can ask, and list, add and use prompts (one db test each, changed
+- [x] A plain member with no grant and a saved key can ask, and list, add and use prompts (one db test each, changed
       from an existing Pro setup)
-- [ ] The prompts page state has no `plan`, and no client code reads one
-- [ ] The Free-refusal tests for Ask and prompts are deleted, and the no-key tests stay
+- [x] The prompts page state has no `plan`, and no client code reads one
+- [x] The Free-refusal tests for Ask and prompts are deleted, and the no-key tests stay
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `ask.spec.ts` and `ask-prompts.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `ask.spec.ts` and `ask-prompts.spec.ts` on desktop
 
 **Dependencies:** Task 0
 
@@ -86,13 +87,13 @@ from `highlights/export.ts`, so export no longer answers the `proNotice` heading
 `lookup-messages`, `lookup-client` and `routes/account/highlights/index.tsx` lose their Pro branches.
 
 **Acceptance criteria:**
-- [ ] A plain member with no grant can translate with their own key, and export their notes as Markdown (a db test
+- [x] A plain member with no grant can translate with their own key, and export their notes as Markdown (a db test
       each)
-- [ ] The highlights page shows the export link to every signed-in reader
+- [x] The highlights page shows the export link to every signed-in reader
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `lookup.spec.ts` and `highlights.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `lookup.spec.ts` and `highlights.spec.ts` on desktop
 
 **Dependencies:** Task 0
 
@@ -112,14 +113,14 @@ answers `{ state: 'pro' }` for the voice list. The `'pro'` state leaves `shared/
 counts there move in Task 6. Disk space and the audio caps stay.
 
 **Acceptance criteria:**
-- [ ] A plain member with no grant can start an audiobook upload and list ElevenLabs voices with their own key (a db
+- [x] A plain member with no grant can start an audiobook upload and list ElevenLabs voices with their own key (a db
       test each)
-- [ ] No server code answers `{ state: 'pro' }`, and the type has no `'pro'` member
-- [ ] `speech/actions.ts` keeps its per-file coverage floor
+- [x] No server code answers `{ state: 'pro' }`, and the type has no `'pro'` member
+- [x] `speech/actions.ts` keeps its per-file coverage floor
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `audiobook-import.spec.ts` and `read-aloud-elevenlabs.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `audiobook-import.spec.ts` and `read-aloud-elevenlabs.spec.ts` on desktop
 
 **Dependencies:** Task 0
 
@@ -140,13 +141,13 @@ browser: `run-code/run-access.ts` stops reading `viewer.plan`, and `RunDialog` a
 the Pro state. The signed-out copy becomes "Sign in to run code." without "Running code is part of Pro."
 
 **Acceptance criteria:**
-- [ ] A plain member with no grant can open their flashcards page with cards and review one (a db test)
-- [ ] A plain member runs a code example (`run-code.spec.ts`, signed in as a member)
-- [ ] `run-access.ts` decides only signed in or signed out, with no plan input
+- [x] A plain member with no grant can open their flashcards page with cards and review one (a db test)
+- [x] A plain member runs a code example (`run-code.spec.ts`, signed in as a member)
+- [x] `run-access.ts` decides only signed in or signed out, with no plan input
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `study.spec.ts` and `run-code.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `study.spec.ts` and `run-code.spec.ts` on desktop
 
 **Dependencies:** Task 0
 
@@ -165,13 +166,13 @@ and the `feature` field on the key rules if nothing else reads it. `routes/accou
 every account, and `account-messages` loses the `pro` case.
 
 **Acceptance criteria:**
-- [ ] A plain member saves an Anthropic, an OpenAI and an ElevenLabs key (the existing refusal test in
+- [x] A plain member saves an Anthropic, an OpenAI and an ElevenLabs key (the existing refusal test in
       `accounts.db.test.ts` is turned into this)
-- [ ] `account.spec.ts`'s "on Free the section is locked behind Pro" test is deleted, and a member save test stays
+- [x] `account.spec.ts`'s "on Free the section is locked behind Pro" test is deleted, and a member save test stays
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `account.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `account.spec.ts` on desktop
 
 **Dependencies:** Task 0
 
@@ -184,9 +185,9 @@ every account, and `account-messages` loses the `pro` case.
 ---
 
 ## Checkpoint: Features (after Tasks 1–5, self-check)
-- [ ] `git grep -nE 'requirePro|canUse\(' -- src` finds only `src/server/plans/` and `src/shared/plans/`
-- [ ] `pnpm check` and `pnpm test:db` pass, with coverage totals at or above the floors
-- [ ] If not, fix and re-run before going on
+- [x] `git grep -nE 'requirePro|canUse\(' -- src` finds only `src/server/plans/` and `src/shared/plans/`
+- [x] `pnpm check` and `pnpm test:db` pass, with coverage totals at or above the floors
+- [x] If not, fix and re-run before going on
 
 ---
 
@@ -199,14 +200,14 @@ message. The starter-copy test in `user-books.db.test.ts` is rewritten against `
 the "moved from Pro to Free" test is deleted.
 
 **Acceptance criteria:**
-- [ ] A plain member imports 25 books, and the 26th gets `409 { error: 'quota', scope: 'books', max: 25 }` with no
+- [x] A plain member imports 25 books, and the 26th gets `409 { error: 'quota', scope: 'books', max: 25 }` with no
       `plan`
-- [ ] The starter-copy case still shows a former starter copy counts, at the `MAX_BOOKS` limit
-- [ ] No client code reads `plan` from a quota answer
+- [x] The starter-copy case still shows a former starter copy counts, at the `MAX_BOOKS` limit
+- [x] No client code reads `plan` from a quota answer
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `import.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `import.spec.ts` on desktop
 
 **Dependencies:** Task 3
 
@@ -227,14 +228,14 @@ the "moved from Pro to Free" test is deleted.
 case.
 
 **Acceptance criteria:**
-- [ ] A plain member saves 500 articles and the 501st gets `409 { error: 'quota', scope: 'articles', max: 500 }`
-- [ ] A plain member reaches `MAX_HIGHLIGHTS_PER_BOOK`, and the next highlight gets the `book` quota answer with no
+- [x] A plain member saves 500 articles and the 501st gets `409 { error: 'quota', scope: 'articles', max: 500 }`
+- [x] A plain member reaches `MAX_HIGHLIGHTS_PER_BOOK`, and the next highlight gets the `book` quota answer with no
       `plan`. The same for `MAX_HIGHLIGHTS_PER_USER`
-- [ ] `articles/actions.ts` keeps its 100% coverage floor
+- [x] `articles/actions.ts` keeps its 100% coverage floor
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `articles.spec.ts` and `highlights.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `articles.spec.ts` and `highlights.spec.ts` on desktop
 
 **Dependencies:** Task 2
 
@@ -255,14 +256,14 @@ loses `billing_failed`, and the `skipBilling` and `paddle` options go. `account-
 calling `sweepPaddleEvents`, and `login.db.test.ts` loses its sweep case.
 
 **Acceptance criteria:**
-- [ ] A db test deletes an account with no outbound HTTP call (the fetch double sees no call) and `DeleteResult` has
+- [x] A db test deletes an account with no outbound HTTP call (the fetch double sees no call) and `DeleteResult` has
       no `billing_failed`
-- [ ] Nothing outside `src/server/billing/` imports from it
-- [ ] `sign-in.ts` keeps its 100% floor, and `passkeys/sign-in.ts` its per-file floor
+- [x] Nothing outside `src/server/billing/` imports from it
+- [x] `sign-in.ts` keeps its 100% floor, and `passkeys/sign-in.ts` its per-file floor
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `account.spec.ts` and `users.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `account.spec.ts` and `users.spec.ts` on desktop
 
 **Dependencies:** Task 0
 
@@ -286,14 +287,14 @@ the `PADDLE_*` env and the `billing` entry in the phone project's spec list. Rem
 `bundle.spec.ts`'s list. This is a large delete but few edits.
 
 **Acceptance criteria:**
-- [ ] The listed paths are gone, and the build regenerates `src/routeTree.gen.ts` without `/billing/paddle` and
+- [x] The listed paths are gone, and the build regenerates `src/routeTree.gen.ts` without `/billing/paddle` and
       `/account/plan`
-- [ ] `@paddle/paddle-js` isn't in `package.json` or `pnpm-lock.yaml`
-- [ ] `git grep -n "billing/" -- src scripts tests` finds no import
+- [x] `@paddle/paddle-js` isn't in `package.json` or `pnpm-lock.yaml`
+- [x] `git grep -n "billing/" -- src scripts tests` finds no import
 
 **Verification:**
-- [ ] `pnpm install`, `pnpm build`, `pnpm check`, `pnpm test:db`
-- [ ] `bundle.spec.ts` on desktop
+- [x] `pnpm install`, `pnpm build`, `pnpm check`, `pnpm test:db`
+- [x] `bundle.spec.ts` on desktop
 
 **Dependencies:** Task 8
 
@@ -315,12 +316,12 @@ stays 1. `user-rows.ts` stops inserting a `subscriptions` row, `KEPT_WITHOUT_USE
 `paddle_events` leave the test truncate lists.
 
 **Acceptance criteria:**
-- [ ] The server's config parses with leftover `PADDLE_*` values set (the new `config.test.ts` case)
-- [ ] `redact.ts` keeps its 100% floor, and the export test shows no `subscriptions` key
-- [ ] Nothing outside the old migrations and `migrations.db.test.ts` names `subscriptions` or `paddle_events`
+- [x] The server's config parses with leftover `PADDLE_*` values set (the new `config.test.ts` case)
+- [x] `redact.ts` keeps its 100% floor, and the export test shows no `subscriptions` key
+- [x] Nothing outside the old migrations and `migrations.db.test.ts` names `subscriptions` or `paddle_events`
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
+- [x] `pnpm check`, `pnpm test:db`
 
 **Dependencies:** Task 9
 
@@ -334,10 +335,10 @@ stays 1. `user-rows.ts` stops inserting a `subscriptions` row, `KEPT_WITHOUT_USE
 ---
 
 ## Checkpoint: No Paddle (after Tasks 6–10, self-check)
-- [ ] `git grep -niE 'paddle' -- src scripts tests package.json playwright.config.ts` finds only the leftover
+- [x] `git grep -niE 'paddle' -- src scripts tests package.json playwright.config.ts` finds only the leftover
       config case
-- [ ] `pnpm check` and `pnpm test:db` pass, with coverage at or above the floors (compare with `$SCRATCH/baseline.txt`)
-- [ ] If not, fix and re-run before going on
+- [x] `pnpm check` and `pnpm test:db` pass, with coverage at or above the floors (compare with `$SCRATCH/baseline.txt`)
+- [x] If not, fix and re-run before going on
 
 ---
 
@@ -349,14 +350,14 @@ action that sets `pro_granted_at`. `scripts/db/users.ts` loses `grant-pro` and `
 column. `src/server/users.ts` stops selecting `pro_given`.
 
 **Acceptance criteria:**
-- [ ] The Users page shows no plan, paid label or Pro buttons (`users.spec.ts`)
-- [ ] `node scripts/db/users.ts` usage text has no `grant-pro`, `revoke-pro` or `--skip-billing`
-- [ ] Nothing reads or writes `pro_granted_at` or `pro_granted_by` outside `src/server/plans/` and
+- [x] The Users page shows no plan, paid label or Pro buttons (`users.spec.ts`)
+- [x] `node scripts/db/users.ts` usage text has no `grant-pro`, `revoke-pro` or `--skip-billing`
+- [x] Nothing reads or writes `pro_granted_at` or `pro_granted_by` outside `src/server/plans/` and
       `src/server/sessions.ts`
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `users.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `users.spec.ts` on desktop
 
 **Dependencies:** Task 10
 
@@ -379,13 +380,13 @@ a processor. `TERMS_UPDATED` and `PRIVACY_UPDATED` move to the build date. Nothi
 `home.spec.ts` checks there is no pricing section and no price, and `account.spec.ts` that there is no plan section.
 
 **Acceptance criteria:**
-- [ ] The home, account, Terms and Privacy pages show no price, plan, Pro, Paddle or refund
-- [ ] `scripts/smoke-dev.ts` no longer visits `/refunds`
-- [ ] The Terms and Privacy diffs only remove billing text and change the dates
+- [x] The home, account, Terms and Privacy pages show no price, plan, Pro, Paddle or refund
+- [x] `scripts/smoke-dev.ts` no longer visits `/refunds`
+- [x] The Terms and Privacy diffs only remove billing text and change the dates
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `home.spec.ts`, `account.spec.ts` and `signup.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `home.spec.ts`, `account.spec.ts` and `signup.spec.ts` on desktop
 
 **Dependencies:** Task 10
 
@@ -407,13 +408,13 @@ every test that passed `plan` stops. `plans.spec.ts` and its entry in the phone 
 `bundle.spec.ts`'s list. The compiler finds every remaining reader; fix each by removing the branch.
 
 **Acceptance criteria:**
-- [ ] `src/shared/plans/`, `src/server/plans/` and `ProNotice.tsx` are gone, and `pnpm typecheck` passes
-- [ ] `/api/me` answers `{ username, role, via }` (a db test)
-- [ ] `sessions.ts`, `access-tokens/store.ts` and `auth.ts` keep their per-file floors
+- [x] `src/shared/plans/`, `src/server/plans/` and `ProNotice.tsx` are gone, and `pnpm typecheck` passes
+- [x] `/api/me` answers `{ username, role, via }` (a db test)
+- [x] `sessions.ts`, `access-tokens/store.ts` and `auth.ts` keep their per-file floors
 
 **Verification:**
-- [ ] `pnpm check`, `pnpm test:db`
-- [ ] `access-tokens.spec.ts`, `reading-stats.spec.ts` and `bundle.spec.ts` on desktop
+- [x] `pnpm check`, `pnpm test:db`
+- [x] `access-tokens.spec.ts`, `reading-stats.spec.ts` and `bundle.spec.ts` on desktop
 
 **Dependencies:** Tasks 1–12
 
@@ -438,15 +439,15 @@ Rename any unclear names in touched functions. Then mark the Progress row "relea
 commit locally (see Decisions in the plan). **Don't push.**
 
 **Acceptance criteria:**
-- [ ] The proof matrix (seven features and four quotas) is complete, each with a file and test name, recorded in the
+- [x] The proof matrix (seven features and four quotas) is complete, each with a file and test name, recorded in the
       final message
-- [ ] The leftover check shows only the expected hits, and `pnpm check`, `pnpm test:db` and `pnpm e2e:local` pass,
+- [x] The leftover check shows only the expected hits, and `pnpm check`, `pnpm test:db` and `pnpm e2e:local` pass,
       with no coverage floor lowered
-- [ ] One removal commit on `main`, and one rename commit after it if any names were renamed, both local
+- [x] One removal commit on `main`, and one rename commit after it if any names were renamed, both local
 
 **Verification:**
-- [ ] The three full runs, and `git log origin/main..main --oneline`
-- [ ] Grep the staged diff for secrets and personal addresses: nothing
+- [x] The three full runs, and `git log origin/main..main --oneline`
+- [x] Grep the staged diff for secrets and personal addresses: nothing
 
 **Dependencies:** Task 13
 
@@ -457,8 +458,8 @@ commit locally (see Decisions in the plan). **Don't push.**
 ---
 
 ## Checkpoint: Release 1 complete
-- [ ] Every release-1 success criterion the build can check is met, and the rest are in "Needs owner action"
-- [ ] The final message lists the "Needs owner action" items first, then the proof matrix and the summary
+- [x] Every release-1 success criterion the build can check is met, and the rest are in "Needs owner action"
+- [x] The final message lists the "Needs owner action" items first, then the proof matrix and the summary
 
 ---
 
@@ -501,7 +502,9 @@ and a granted user, apply the drop. `subscriptions`, `paddle_events`, `users.pro
 
 **Dependencies:** Task R0
 
-**Files likely touched:** `db/migrations/00NN_drop_billing.sql`, `src/server/migrations.db.test.ts`
+**Files likely touched:** `db/migrations/00NN_drop_billing.sql`, `src/server/migrations.db.test.ts`, and the
+`'subscriptions set null'` line in `src/server/admin/admin.db.test.ts`'s foreign-key test, which release 1 left there
+because the table still points at `users` until the drop (see "Release 1 build notes")
 
 **Estimated scope:** S
 
@@ -535,6 +538,34 @@ Commit the migration as one local commit on `main`. **Don't push.**
 
 ---
 
+## Release 1 build notes
+
+Built 2026-11-25. Where the build left the plan's letter, and why:
+
+- **Order.** Task 9's deletions broke imports that later tasks were meant to remove, so their pieces moved earlier:
+  the home page's pricing, the account page's Plan section, the Terms edit (Task 12), the admin plan column and Pro
+  grants (Task 11), and `plan.ts`'s `subscriptions` lookup (Task 13). `plans.spec.ts` was deleted in Task 4, when the
+  Run code dialog lost the locator it used. Task 7's `pnpm check` was red on unit statements (91.99% against 92%) until
+  Task 9 deleted the untested `use-checkout.ts`, as projected; it was green from then on.
+- **One more leftover-check hit, kept on purpose.** `admin.db.test.ts` checks every foreign key to `users` against
+  the account export's tables. `subscriptions` still has one until release 2, so the expected list names it on one
+  line, with a comment. Task R1 removes that line.
+- **Terms.** "Free and Pro" held one term that isn't billing: Ask, Translate and ElevenLabs run on your own keys under
+  your agreements with those providers. That paragraph is kept word for word as its own part, "Your own API keys".
+  Everything else billing in Terms and Privacy is removed, and both dates are 2026-11-25.
+- **Home page.** The Hero's line is "Folio is free." The FAQ also loses "Is there a free trial?", whose answer was
+  `NO_TRIAL`, and the header loses its Pricing link.
+- **Flashcards.** "Delete all for this book" lived only on the Free counts page, and Pro's books page had no way to
+  clear a removed book's cards. The counts page goes, and its button and notices move to the books page, so every
+  reader keeps them. The button's accessible name now includes its visible text (axe flagged the old one).
+- **Coverage.** Removing well-tested billing code took the server statements total below 96%, so tests were added,
+  not floors lowered: ElevenLabs unreachable while listing voices, sign-in and sign-out with a failing database, a
+  failed sign-in sweep, credentials read from disk, an Ask audit that can't be settled, and a server without
+  `DATABASE_URL`. Final totals: unit 92.25 / 89.76 / 91.23 / 93.33, server 96.12 / 93.36 / 94.77 / 97.01
+  (statements / branches / functions / lines), each at or above the Task 0 baseline.
+- **Renames** go through TypeScript 7's language server (`tsc --lsp --stdio`, the `textDocument/rename` request that
+  F2 sends), because TypeScript 7 has no JavaScript language-service API.
+
 ## Needs owner action
 
 Each Paddle step applies only where its thing exists, and is skipped otherwise (spec Cut-over step 4).
@@ -544,6 +575,8 @@ Each Paddle step applies only where its thing exists, and is skipped otherwise (
 
 **After the release-1 build:**
 - [ ] Review the commits, push `main`, let CI deploy to dev, then deploy to production with `deploy-prod.yml`.
+- [ ] Read the Terms and Privacy diffs, and the kept "Your own API keys" part of the Terms (see "Release 1 build
+      notes"), before they go live.
 - [ ] On dev and production: a member with no grant can use all seven features, `/account/plan`, `/refunds` and
       `/billing/paddle` answer 404, and the journal shows no error mentioning Paddle or the billing tables.
 - [ ] Remove `PADDLE_*` lines from the server's env files, and the `paddle_api_key` and `paddle_webhook_secret`

@@ -27,7 +27,6 @@ export const USER_TABLES: Record<string, string | null> = {
   book_ratings: 'ratings',
   ask_prompts: 'askPrompts',
   speech_usage: 'speechUsage',
-  subscriptions: 'subscriptions',
   reading_time: 'readingTime',
   finished_books: 'finishedBooks',
   reading_goals: 'readingGoals',
@@ -156,15 +155,6 @@ export interface AccountRows {
     updatedAt: Date
   }[]
   speechUsage: { minute: Date; characters: number; requests: number }[]
-  subscriptions: {
-    status: string
-    cadence: string
-    founding: boolean
-    periodEndsAt: Date | null
-    cancelAt: Date | null
-    canceledAt: Date | null
-    createdAt: Date
-  }[]
   readingTime: { day: string; readingSeconds: number; listeningSeconds: number }[]
   finishedBooks: (BookKey & { finishedAt: Date })[]
   readingGoals: { fromDay: string; minutes: number; setAt: Date }[]
@@ -350,15 +340,6 @@ export function toAccountExport(
       minute: iso(u.minute),
       characters: u.characters,
       requests: u.requests,
-    })),
-    subscriptions: rows.subscriptions.map((sub) => ({
-      status: sub.status,
-      cadence: sub.cadence,
-      founding: sub.founding,
-      periodEndsAt: isoOrNull(sub.periodEndsAt),
-      cancelAt: isoOrNull(sub.cancelAt),
-      canceledAt: isoOrNull(sub.canceledAt),
-      createdAt: iso(sub.createdAt),
     })),
     readingTime: rows.readingTime.map((t) => ({
       day: t.day,

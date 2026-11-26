@@ -10,13 +10,9 @@ export interface TestUser {
 
 export async function createUser(
   request: APIRequestContext,
-  {
-    role = 'member',
-    signedIn = false,
-    plan = 'pro',
-  }: { role?: 'admin' | 'member'; signedIn?: boolean; plan?: 'free' | 'pro' } = {},
+  { role = 'member', signedIn = false }: { role?: 'admin' | 'member'; signedIn?: boolean } = {},
 ): Promise<TestUser> {
-  const response = await request.post('/test-users', { data: { role, signedIn, plan } })
+  const response = await request.post('/test-users', { data: { role, signedIn } })
   if (!response.ok()) throw new Error(`/test-users answered ${response.status()}`)
   return response.json()
 }

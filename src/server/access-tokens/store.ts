@@ -1,7 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { recordEvent } from '../audit.ts'
 import type { Db, Pool } from '../db.ts'
-import { planFor, proSql } from '../plans/plan.ts'
 import { deleteUserSessions, SESSION_IDLE, type SessionUser } from '../sessions.ts'
 import type { Role } from '../users.ts'
 
@@ -81,13 +80,12 @@ export async function findAccessToken(db: Db, tokenHash: Buffer): Promise<TokenU
       user_id: string
       username: string
       role: Role
-      pro: boolean
       expires_at: Date
       ended: boolean
       stale: boolean
     }[]
   >`
-    select t.id, t.user_id, u.username, u.role, ${proSql(db)} as pro, t.expires_at,
+    select t.id, t.user_id, u.username, u.role, t.expires_at,
       (t.expires_at <= now() or coalesce(t.last_used_at, t.created_at) <= now() - ${SESSION_IDLE}::interval
         or u.disabled_at is not null) as ended,
       (t.last_used_at is null or t.last_used_at <= now() - ${TOUCH_EVERY}::interval) as stale
@@ -104,7 +102,6 @@ export async function findAccessToken(db: Db, tokenHash: Buffer): Promise<TokenU
     userId: Number(row.user_id),
     username: row.username,
     role: row.role,
-    plan: planFor(row.pro),
     expiresAt: row.expires_at,
   }
 }

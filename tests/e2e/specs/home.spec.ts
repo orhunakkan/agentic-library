@@ -35,7 +35,7 @@ test.describe('Home page', () => {
     await expect(signIn).toHaveAttribute('href', '/login?next=%2Flibrary')
     await expect(homePage.header.getByRole('link', { name: 'Open the library' })).toHaveCount(0)
     if (!homePage.hasSectionLinks) await expect(homePage.sections).toBeHidden()
-    else await expect(homePage.sections.getByRole('link')).toHaveText(['Features', 'Pricing', 'Questions'])
+    else await expect(homePage.sections.getByRole('link')).toHaveText(['Features', 'Questions'])
     const box = await homePage.header.getByRole('link', { name: 'Start reading free' }).boundingBox()
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(page.viewportSize()?.width ?? 0)
 
@@ -49,12 +49,12 @@ test.describe('Home page', () => {
     await expect(page).toHaveURL(/\/login(\?next=%2Flibrary)?$/)
   })
 
-  test('the content: hero, headings, pricing, Storybook and the footer', async ({ page, homePage }, testInfo) => {
+  test('the content: hero, headings, no pricing, Storybook and the footer', async ({ page, homePage }, testInfo) => {
     test.skip(!['desktop', 'phone'].includes(testInfo.project.name), 'What is said, not where; two widths are enough.')
     await homePage.goto()
     const main = homePage.section('Read it. Hear it. Ask it.')
     await expect(main.getByText('A reading app for every kind of book')).toBeVisible()
-    await expect(main.getByText('Free to read. Pro is $4.99 a month or $39 a year.')).toBeVisible()
+    await expect(main.getByTestId('home-hero-free')).toHaveText('Folio is free.')
     await expect(main.getByRole('link', { name: 'See what it does' })).toHaveAttribute('href', '#features')
 
     const levels = await page
@@ -70,25 +70,14 @@ test.describe('Home page', () => {
       'Questions that can’t spoil the ending.',
     )
 
-    const pricing = homePage.section('Free to read, for good. Pro when you want more.')
-    const free = pricing.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Free', exact: true }) })
-    const pro = pricing.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Pro', exact: true }) })
-    await expect(free).toContainText('$0')
-    await expect(free).toContainText('Import 2 of your own books')
-    await expect(free).toContainText('Up to 50 highlights and notes')
-    await expect(free.getByRole('link', { name: 'Start reading' })).toHaveAttribute('href', '/library')
-    await expect(pro).toContainText('$4.99')
-    await expect(pro).toContainText('or $39 a year, about 35% less')
-    await expect(pro).toContainText('Upload your own audiobooks')
-    await expect(pro.getByRole('link')).toHaveText(['Go Pro'])
-    await expect(pro.getByRole('link', { name: 'Go Pro' })).toHaveAttribute('href', '/login?next=%2Faccount%2Fplan')
-    await expect(pricing).toContainText('Your library and read aloud stay free for everyone.')
-    await expect(pricing.getByTestId('founding-band')).toHaveText(
-      /^Founding members: \$29 a year, for as long as you stay subscribed\. \d+ of the first 100 left\.$/,
-    )
-    const questions = homePage.section('Questions').locator('summary')
-    await expect(questions.nth(2)).toHaveText('How does paying work?')
-    await expect(questions.nth(3)).toHaveText('What happens if I stop paying?')
+    await expect(page.locator('#pricing')).toHaveCount(0)
+    await expect(page.getByRole('main')).not.toContainText(/\$\d|\bPro\b/)
+    await expect(homePage.section('Questions').locator('summary')).toHaveText([
+      'Do I need an account to read?',
+      'What does Ask the book cost?',
+      'Are my own books private?',
+      'Which voices does Read aloud use?',
+    ])
 
     const storybook = homePage.section('Storybook, for bedtime.')
     await expect(storybook).toContainText('In the works')
@@ -97,7 +86,7 @@ test.describe('Home page', () => {
 
     const footer = homePage.footer
     await expect(footer.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms')
-    await expect(footer.getByRole('link', { name: 'Refunds' })).toHaveAttribute('href', '/refunds')
+    await expect(footer.getByTestId('home-footer-link')).toHaveText(['The library', 'Privacy', 'Terms', 'Sign in'])
     await expect(footer).toContainText('© 2026 Orhun Akkan')
     await expect(footer).toContainText('Books are in the public domain or shared under open licences')
     await expect(footer.getByRole('link', { name: 'The library' })).toHaveAttribute('href', '/library')

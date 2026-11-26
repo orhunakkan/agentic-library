@@ -1,6 +1,5 @@
 import type { OtherAudio } from '~/shared/audiobooks/sniff'
-import { bookQuotaCopy, proNotice } from '~/shared/plans/copy'
-import { FREE_LIMITS, PRO_LIMITS } from '~/shared/plans/plans'
+import { BOOK_QUOTA_TEXT } from '../import/import-problems'
 
 export type AudiobookProblem =
   | {
@@ -16,8 +15,6 @@ export type AudiobookProblem =
         | 'off'
         | 'server-full'
         | 'books'
-        | 'books-free'
-        | 'pro'
         | 'rate'
         | 'signed-out'
         | 'interrupted'
@@ -60,11 +57,7 @@ export function problemText(problem: AudiobookProblem): string {
     case 'server-full':
       return 'The server is short of space for audiobooks right now. Try again later.'
     case 'books':
-      return bookQuotaCopy('pro', PRO_LIMITS.books)
-    case 'books-free':
-      return bookQuotaCopy('free', FREE_LIMITS.books)
-    case 'pro':
-      return proNotice('audiobooks').heading
+      return BOOK_QUOTA_TEXT
     case 'rate':
       return 'You’ve imported 10 books in the last hour. Try again later.'
     case 'server-unreadable':

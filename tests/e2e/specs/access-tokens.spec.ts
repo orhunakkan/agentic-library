@@ -34,7 +34,7 @@ test.describe('Access tokens', () => {
 
     const me = await request.get('/api/me', { headers })
     expect(me.status()).toBe(200)
-    expect(await me.json()).toEqual({ username: user.username, role: 'member', plan: 'pro', via: 'token' })
+    expect(await me.json()).toEqual({ username: user.username, role: 'member', via: 'token' })
 
     const shelf = await request.post('/account/shelves/new', { headers, data: { name: 'To read' } })
     expect(shelf.status()).toBe(201)

@@ -6,7 +6,6 @@ import { closeDb, getDb } from '../../src/server/db.ts'
 import { clearFailures } from '../../src/server/login-attempts.ts'
 import { removePasskeysForReset } from '../../src/server/passkeys/store.ts'
 import { generatePassword, hashPassword } from '../../src/server/passwords.ts'
-import { grantPro, planSourceFor, revokePro } from '../../src/server/plans/plan.ts'
 import {
   createUser,
   findUserByUsername,
@@ -18,7 +17,6 @@ import {
   setPasswordHash,
 } from '../../src/server/users.ts'
 import { isOneOf } from '../../src/shared/lib/json-shape.ts'
-import { planLabel } from '../../src/shared/plans/copy.ts'
 
 const USAGE = `usage: node scripts/db/users.ts <command>
   create <username> --role admin|member   create an account and print its generated password once
@@ -28,13 +26,9 @@ const USAGE = `usage: node scripts/db/users.ts <command>
   unlock <username>                       clear the sign-in lock after failed attempts
   revoke-sessions <username>              end every session and access token of the user
   set-role <username> admin|member        change the role; refused for the only enabled admin
-  grant-pro <username> | revoke-pro <username>
-                                          give a member Pro, or take it back; refused for an admin, who is always Pro
-  delete <username> [--skip-billing]      delete the account and everything in it; refused for the only enabled admin.
-                                          A Pro subscription is cancelled at Paddle first; --skip-billing leaves it
-                                          to be cancelled in Paddle's dashboard, for when Paddle can't be reached
-  list                                    every account with its role, plan, sessions, whether a key is saved and its
-                                          email status`
+  delete <username>                       delete the account and everything in it; refused for the only enabled admin
+  list                                    every account with its role, sessions, whether a key is saved and its email
+                                          status`
 
 class UsageError extends Error {}
 
@@ -53,7 +47,7 @@ async function existing(username: string | undefined) {
 async function run(argv: string[]): Promise<void> {
   const { positionals, values } = parseArgs({
     args: argv,
-    options: { role: { type: 'string' }, 'skip-billing': { type: 'boolean' } },
+    options: { role: { type: 'string' } },
     allowPositionals: true,
   })
   const [command, name] = positionals
@@ -133,36 +127,11 @@ async function run(argv: string[]): Promise<void> {
       console.log(`${user.username} is now ${described}`)
       return
     }
-    case 'grant-pro':
-    case 'revoke-pro': {
-      const user = await existing(name)
-      const give = command === 'grant-pro'
-      const result = await (give ? grantPro : revokePro)(db, user.id, {
-        by: null,
-        via: 'users script',
-        ...(detail.osUser ? { osUser: detail.osUser } : {}),
-      })
-      if (result === 'not_found') throw new Error(`no user named "${user.username}"`)
-      if (result === 'admin') throw new Error(`${user.username} is an admin, and admins are always on Pro`)
-      const now = give ? 'on Pro' : 'on Free'
-      console.log(result.changed ? `${user.username} is ${now} now` : `${user.username} is already ${now}`)
-      return
-    }
     case 'delete': {
       const user = await existing(name)
-      const skipBilling = values['skip-billing'] === true
-      const result = await deleteAccount(
-        db,
-        user.id,
-        { detail: { ...detail, ...(skipBilling ? { skipBilling } : {}) } },
-        { skipBilling },
-      )
+      const result = await deleteAccount(db, user.id, { detail })
       if (result === 'missing') throw new Error(`no user named "${user.username}"`)
       if (result === 'last_admin') throw new Error(`${user.username} is the only enabled admin`)
-      if (result === 'billing_failed')
-        throw new Error(
-          `Paddle couldn't cancel ${user.username}'s subscription, so nothing was deleted. Try again, or cancel it in Paddle's dashboard and rerun with --skip-billing`,
-        )
       console.log(`${user.username} deleted, with everything in the account`)
       return
     }
@@ -173,7 +142,6 @@ async function run(argv: string[]): Promise<void> {
         users.map((user) => ({
           username: user.username,
           role: user.role,
-          plan: planLabel(planSourceFor(user.role, user.proGiven, user.paid !== null), user.paid),
           created: date(user.createdAt),
           disabled: date(user.disabledAt),
           sessions: user.activeSessions,

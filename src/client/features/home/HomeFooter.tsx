@@ -34,11 +34,6 @@ export function HomeFooter({ viewer }: { viewer: Viewer | null }) {
                 Terms
               </Link>
             </li>
-            <li>
-              <Link to="/refunds" className={link} data-testid="home-footer-link" data-key="refunds">
-                Refunds
-              </Link>
-            </li>
             {!viewer && (
               <li>
                 <Link

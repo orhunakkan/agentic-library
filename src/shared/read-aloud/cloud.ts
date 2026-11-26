@@ -34,7 +34,6 @@ export type SpeakErrorCode =
   | 'invalid'
   | 'not_found'
   | 'signed_out'
-  | 'pro'
   | 'no_key'
   | 'key_rejected'
   | 'no_credits'
@@ -53,7 +52,7 @@ export interface CloudVoice {
 }
 
 export type SpeechVoicesState =
-  | { state: 'signed_out' | 'pro' | 'no_key' | 'not_found' | 'permission' | 'key_rejected' | 'unavailable' }
+  | { state: 'signed_out' | 'no_key' | 'not_found' | 'permission' | 'key_rejected' | 'unavailable' }
   | { state: 'ready'; voices: CloudVoice[]; model: string }
 
 export const primarySubtag = (tag: string) => tag.replace(/_/g, '-').split('-')[0]?.toLowerCase() ?? ''

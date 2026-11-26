@@ -638,7 +638,6 @@ describe('checkCurrentPassword', () => {
       userId: user.id,
       username: 'ann',
       role: 'member' as const,
-      plan: 'pro' as const,
       expiresAt: new Date(),
     }
     expect(await checkCurrentPassword(getDb(), session, 'x'.repeat(1025), null, 'passkey')).toBe(false)

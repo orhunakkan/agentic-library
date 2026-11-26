@@ -7,7 +7,6 @@ import { getDb } from '../db.ts'
 import { clearFailures } from '../login-attempts.ts'
 import { removePasskeysForReset } from '../passkeys/store.ts'
 import { generatePassword, hashPassword } from '../passwords.ts'
-import { grantPro, revokePro } from '../plans/plan.ts'
 import type { SessionUser } from '../sessions.ts'
 import { findUserByUsername, isValidUsername, setPasswordHash, type User } from '../users.ts'
 import { adminOnly, admins, fail } from './caller.ts'
@@ -103,19 +102,10 @@ async function apply(request: Request, admin: SessionUser, target: User, change:
       if (result.from !== result.to) await audit('user.role_changed', { from: result.from, to: result.to })
       return rowOf(admin, target.username)
     }
-    case 'grant-pro':
-    case 'revoke-pro': {
-      const setGrant = change.intent === 'grant-pro' ? grantPro : revokePro
-      const result = await setGrant(db, target.id, { by: admin.userId, via: 'users page', ip })
-      if (result === 'not_found') return fail(404, 'not_found')
-      if (result === 'admin') return fail(409, 'admin')
-      return rowOf(admin, target.username)
-    }
     case 'delete': {
       const result = await deleteAccount(db, target.id, { ip, detail: by })
       if (result === 'missing') return fail(404, 'not_found')
       if (result === 'last_admin') return fail(409, 'last_admin')
-      if (result === 'billing_failed') return fail(502, 'billing')
       return noStoreJson(200, { deleted: target.username })
     }
   }

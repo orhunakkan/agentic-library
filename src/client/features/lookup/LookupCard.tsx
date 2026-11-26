@@ -11,7 +11,6 @@ import type { Tone } from '~/shared/content/schema'
 import { type AiProvider, aiModelName, isAiModel } from '~/shared/lib/ai-models'
 import type { DictionaryEntry, WordAnswer, WordSource } from '~/shared/lookup/contract'
 import { englishName, primaryLanguage, type TranslateLanguage, translateOptions } from '~/shared/lookup/languages'
-import { ProNotice } from '../plans/ProNotice'
 import { translationText } from './lookup-answers'
 import type { TranslateProblem, WordProblem } from './lookup-client'
 import {
@@ -269,7 +268,6 @@ function TranslateFailure({
 }) {
   const rejected = keyRejected(provider)
   if (problem === 'signed_out') return <SignedOut currentHref={currentHref} />
-  if (problem === 'pro') return <TranslatePro />
   if (problem === 'no_key') return <NoKey provider={provider} />
   if (problem === 'key_rejected')
     return (
@@ -325,10 +323,6 @@ function Translation({
   )
 }
 
-function TranslatePro() {
-  return <ProNotice feature="translate" compact className="py-2" linkClassName={textLink} />
-}
-
 function TranslateBody({ lookup, currentHref }: { lookup: LookupState; currentHref: string }) {
   const { setup, to } = lookup
   const provider = providerFor(setup)
@@ -339,7 +333,6 @@ function TranslateBody({ lookup, currentHref }: { lookup: LookupState; currentHr
   )
   if (setup === null) return translating
   if (!setup.signedIn) return <SignedOut currentHref={currentHref} />
-  if (!setup.pro) return <TranslatePro />
   if (!setup.hasKey) return <NoKey provider={provider} />
   if (!to)
     return (

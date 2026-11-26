@@ -50,8 +50,8 @@ beforeEach(async () => {
 })
 
 let users = 0
-const newUser = (plan: 'free' | 'pro' = 'pro') =>
-  testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member', { plan })
+/** A plain member: no grant and no subscription, so the limits here are every account's. */
+const newUser = () => testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
 
 const PRIDE: BookRef = refFor('pride-and-prejudice')
 const CODE_BOOK: BookRef = refFor('fixture-code-book')
@@ -229,7 +229,7 @@ describe('a book’s highlights, resolved (highlightsFor)', () => {
   })
 })
 
-describe('the plan limits', () => {
+describe('the limits', () => {
   async function fill(userId: number, book: BookRef, n: number) {
     await raw`
       insert into highlights (user_id, book_slug, user_book_id, chapter, page, start_offset, end_offset, exact, color)
@@ -278,8 +278,8 @@ describe('the endpoints', () => {
   if (!chapter6Page2) throw new Error('fixture page missing')
   const passage = chapter6Page2.text.slice(100, 160)
 
-  async function signedIn(plan: 'free' | 'pro' = 'pro') {
-    const user = await newUser(plan)
+  async function signedIn() {
+    const user = await newUser()
     const token = newSessionToken()
     await createSession(db(), { tokenHash: hashToken(token), userId: user.id, ip: null, userAgent: 'test' })
     return { user, cookie: `${cookieName}=${token}` }
@@ -373,23 +373,22 @@ describe('the endpoints', () => {
     ])
   })
 
-  it('holds a Free reader to 50 highlights and notes, and lets them add one again after deleting one', async () => {
-    const { user, cookie } = await signedIn('free')
+  it('lets a plain member reach the per-user limit, answers the next with no plan, and lets them add one after deleting one', async () => {
+    const { user, cookie } = await signedIn()
     await raw`
       insert into highlights (user_id, book_slug, chapter, page, start_offset, end_offset, exact, color)
-      select ${user.id}, 'fixture-code-book', 'chapter-1', 1, 0, 1, 'x', 'yellow'
-      from generate_series(1, 50)`
+      select ${user.id}, 'book-' || (n % 10), 'chapter-1', 1, 0, 1, 'x', 'yellow'
+      from generate_series(1, ${MAX_HIGHLIGHTS_PER_USER}) as n`
     const refused = await create(cookie)
     expect([refused.status, await refused.json()]).toEqual([
       409,
-      { error: 'quota', scope: 'user', max: 50, plan: 'free' },
+      { error: 'quota', scope: 'user', max: MAX_HIGHLIGHTS_PER_USER },
     ])
     await raw`delete from highlights where id = (select id from highlights where user_id = ${user.id} limit 1)`
     expect((await create(cookie)).status).toBe(201)
-    expect(((await (await create(cookie)).json()) as { plan?: string }).plan).toBe('free')
   })
 
-  it('says quota with its scope and limit', async () => {
+  it('lets a plain member reach the per-book limit, and answers the next with no plan', async () => {
     const { user, cookie } = await signedIn()
     await raw`
       insert into highlights (user_id, book_slug, chapter, page, start_offset, end_offset, exact, color)
@@ -398,7 +397,7 @@ describe('the endpoints', () => {
     const response = await create(cookie)
     expect([response.status, await response.json()]).toEqual([
       409,
-      { error: 'quota', scope: 'book', max: MAX_HIGHLIGHTS_PER_BOOK, plan: 'pro' },
+      { error: 'quota', scope: 'book', max: MAX_HIGHLIGHTS_PER_BOOK },
     ])
   })
 
@@ -481,7 +480,7 @@ describe('the endpoints', () => {
     expect(await highlightsPage(bob.cookie)).toEqual({ kind: 'all', books: [] })
   })
 
-  it('exports Markdown as an attachment, and sends a signed-out visitor to sign in', async () => {
+  it('exports Markdown as an attachment for a plain member, and sends a signed-out visitor to sign in', async () => {
     const { cookie } = await signedIn()
     await create(cookie, { note: 'A note.' })
     const response = await exportAs(cookie, 'pride-and-prejudice')

@@ -6,7 +6,6 @@ describe('PROBLEM_TEXT', () => {
   it('says each reason there is no answer in plain words', () => {
     expect(PROBLEM_TEXT).toEqual({
       signed_out: 'Sign in and add an Anthropic API key to ask questions about this book.',
-      pro: 'Ask the book is part of Pro.',
       no_key: 'Add an Anthropic API key to ask questions.',
       not_found: 'Couldn’t get an answer. Try again.',
       no_prompt: 'That prompt isn’t there any more. It may have been deleted on another device.',

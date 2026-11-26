@@ -12,7 +12,6 @@ import { openTextBook } from '../books/book.ts'
 import { slugOf } from '../books/ref.ts'
 import { getConfig } from '../config.ts'
 import { getDb, isDatabaseConfigured } from '../db.ts'
-import { requireProText } from '../plans/plan.ts'
 import { logError } from '../redact.ts'
 import { highlightsFor, resolvedHighlights } from './resolve.ts'
 import { bookSummaries } from './store.ts'
@@ -32,8 +31,6 @@ export async function handleExport(request: Request, slug: string): Promise<Resp
   if (!isBookSlug(slug)) return noStoreText(404, 'Not found')
   const session = isDatabaseConfigured() ? await sessionForRequest(request) : null
   if (!session) return toSignIn(`/account/highlights?book=${slug}`)
-  const notPro = requireProText(session, 'export')
-  if (notPro) return notPro
   try {
     const db = getDb()
     const book = await openTextBook(db, session.userId, slug)
@@ -53,8 +50,6 @@ export async function handleExport(request: Request, slug: string): Promise<Resp
 export async function handleExportAll(request: Request): Promise<Response> {
   const session = isDatabaseConfigured() ? await sessionForRequest(request) : null
   if (!session) return toSignIn('/account/highlights')
-  const notPro = requireProText(session, 'export')
-  if (notPro) return notPro
   try {
     const db = getDb()
     const books: ExportAllBook[] = []

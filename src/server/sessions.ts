@@ -1,7 +1,5 @@
 import '@tanstack/react-start/server-only'
-import type { Plan } from '../shared/plans/plans.ts'
 import type { Db } from './db.ts'
-import { planFor, proSql } from './plans/plan.ts'
 import type { Role } from './users.ts'
 
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
@@ -12,7 +10,6 @@ export interface SessionUser {
   userId: number
   username: string
   role: Role
-  plan: Plan
   expiresAt: Date
 }
 
@@ -31,9 +28,9 @@ export async function createSession(
 
 export async function findSession(db: Db, tokenHash: Buffer): Promise<SessionUser | null> {
   const [row] = await db<
-    { user_id: string; username: string; role: Role; pro: boolean; expires_at: Date; ended: boolean; stale: boolean }[]
+    { user_id: string; username: string; role: Role; expires_at: Date; ended: boolean; stale: boolean }[]
   >`
-    select s.user_id, u.username, u.role, ${proSql(db)} as pro, s.expires_at,
+    select s.user_id, u.username, u.role, s.expires_at,
       (s.expires_at <= now() or s.last_seen_at <= now() - ${SESSION_IDLE}::interval or u.disabled_at is not null)
         as ended,
       s.last_seen_at <= now() - ${TOUCH_EVERY}::interval as stale
@@ -49,7 +46,6 @@ export async function findSession(db: Db, tokenHash: Buffer): Promise<SessionUse
     userId: Number(row.user_id),
     username: row.username,
     role: row.role,
-    plan: planFor(row.pro),
     expiresAt: row.expires_at,
   }
 }

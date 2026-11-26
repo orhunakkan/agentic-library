@@ -15,7 +15,6 @@ const CODES: readonly SpeakErrorCode[] = [
   'invalid',
   'not_found',
   'signed_out',
-  'pro',
   'no_key',
   'key_rejected',
   'no_credits',

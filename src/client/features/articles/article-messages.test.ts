@@ -36,12 +36,8 @@ describe('articleProblemText', () => {
   it.each(Object.entries(sentences))('%s', (code, sentence) =>
     expect(articleProblemText(code as ArticleProblem)).toBe(sentence),
   )
-  it('says each plan’s limit', () => {
-    expect(articleProblemText('quota', { plan: 'free', max: 20 })).toBe(
-      'Free includes 20 saved articles. Delete one, or go Pro for up to 500.',
-    )
-    expect(articleProblemText('quota', { plan: 'free' })).toContain('Free includes 20')
-    expect(articleProblemText('quota', { plan: 'pro', max: 500 })).toBe(
+  it('says the limit', () => {
+    expect(articleProblemText('quota', { max: 500 })).toBe(
       'You have 500 saved articles, the most an account can keep. Delete one to save another.',
     )
     expect(articleProblemText('quota')).toContain('You have 500')

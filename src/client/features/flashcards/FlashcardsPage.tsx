@@ -3,16 +3,9 @@ import { Layers } from 'lucide-react'
 import { useState } from 'react'
 import { AppLink } from '~/client/components/AppLink'
 import { AccountPage, Button, Notice, Section } from '~/client/features/account/ui'
-import type {
-  BookFlashcards,
-  FlashcardBookCount,
-  FlashcardBookSummary,
-  FlashcardView,
-} from '~/shared/flashcards/contract'
-import { ProNotice } from '../plans/ProNotice'
+import type { BookFlashcards, FlashcardBookSummary, FlashcardView } from '~/shared/flashcards/contract'
 import { CardList } from './CardList'
 import { bookLine } from './dates'
-import { cardCountLine } from './flashcard-problems'
 import { ReviewSession } from './ReviewSession'
 
 export type FlashcardsNotice = 'deleted-book' | 'missing' | 'invalid' | 'unavailable'
@@ -24,58 +17,7 @@ const NOTICE_TEXT: Record<FlashcardsNotice, string> = {
   unavailable: 'Something went wrong. Try again in a few minutes.',
 }
 
-export function FlashcardsProPage({ books, notice }: { books: FlashcardBookCount[]; notice?: FlashcardsNotice }) {
-  return (
-    <AccountPage eyebrow="Account" title="Flashcards" titleTestId="flashcards-title" nav>
-      {notice && (
-        <Notice
-          kind={notice === 'deleted-book' ? 'success' : 'error'}
-          data-testid={notice === 'deleted-book' ? 'flashcards-deleted' : 'flashcards-error'}
-        >
-          {NOTICE_TEXT[notice]}
-        </Notice>
-      )}
-      <ProNotice feature="flashcards" className="mt-6 space-y-2 text-[14.5px] leading-relaxed text-body" />
-      {books.length > 0 && (
-        <Section id="books" title="Your saved cards">
-          <ul className="divide-y divide-line">
-            {books.map((book) => (
-              <li
-                key={book.slug}
-                className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
-                data-testid="flashcards-book"
-                data-key={book.slug}
-              >
-                <Layers className="size-5 shrink-0 text-subtle" aria-hidden />
-                <p
-                  className="min-w-0 flex-1 text-[14.5px] text-ink"
-                  data-testid="flashcards-book-count"
-                  data-key={book.slug}
-                >
-                  {cardCountLine(book.title, book.cards)}
-                </p>
-                <form method="post" action="/account/flashcards">
-                  <input type="hidden" name="intent" value="delete-book" />
-                  <input type="hidden" name="book" value={book.slug} />
-                  <Button
-                    variant="danger"
-                    aria-label={`Delete all cards for ${book.title}`}
-                    data-testid="flashcards-delete-book"
-                    data-key={book.slug}
-                  >
-                    Delete all for this book
-                  </Button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-    </AccountPage>
-  )
-}
-
-export function FlashcardBooksPage({ books }: { books: FlashcardBookSummary[] }) {
+export function FlashcardBooksPage({ books, notice }: { books: FlashcardBookSummary[]; notice?: FlashcardsNotice }) {
   const now = new Date()
   return (
     <AccountPage
@@ -85,6 +27,14 @@ export function FlashcardBooksPage({ books }: { books: FlashcardBookSummary[] })
       lead="Cards you saved from Ask’s quizzes and flashcards, by book. Review the ones that are due."
       nav
     >
+      {notice && (
+        <Notice
+          kind={notice === 'deleted-book' ? 'success' : 'error'}
+          data-testid={notice === 'deleted-book' ? 'flashcards-deleted' : 'flashcards-error'}
+        >
+          {NOTICE_TEXT[notice]}
+        </Notice>
+      )}
       <Section id="books" title="Your books">
         {books.length === 0 ? (
           <p className="text-[14.5px] text-muted" data-testid="flashcards-empty">
@@ -135,6 +85,13 @@ export function FlashcardBooksPage({ books }: { books: FlashcardBookSummary[] })
                     <span className="sr-only"> cards in {book.title}</span>
                   </Link>
                 )}
+                <form method="post" action="/account/flashcards" className="shrink-0">
+                  <input type="hidden" name="intent" value="delete-book" />
+                  <input type="hidden" name="book" value={book.slug} />
+                  <Button variant="danger" data-testid="flashcards-delete-book" data-key={book.slug}>
+                    Delete all<span className="sr-only"> cards for {book.title}</span>
+                  </Button>
+                </form>
               </li>
             ))}
           </ul>

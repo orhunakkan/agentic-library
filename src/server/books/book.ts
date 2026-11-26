@@ -247,7 +247,7 @@ export interface CappedColumns {
   }
 }
 
-/** The tables of things a reader keeps many of in a book, each capped per book and per reader: by their plan for highlights, by fixed caps for the rest. */
+/** The tables of things a reader keeps many of in a book, each capped per book and per reader by fixed caps. */
 export type CappedTable = keyof CappedColumns
 
 export type CappedColumn<T extends CappedTable> = keyof CappedColumns[T] & string

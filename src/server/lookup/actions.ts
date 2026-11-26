@@ -6,7 +6,6 @@ import { hasKey } from '../api-keys.ts'
 import { noStoreJson, requestIp } from '../auth.ts'
 import { openTextBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
-import { requirePro } from '../plans/plan.ts'
 import { take } from '../quota.ts'
 import { signedInEndpoints } from '../signed-in.ts'
 import { getAiModel } from '../users.ts'
@@ -110,7 +109,6 @@ export const handleTranslate = (request: Request, options: LookupOptions = {}) =
     {
       log: 'translate',
       body: { json: TRANSLATE_BODY_BYTES },
-      before: ({ session }) => requirePro(session, 'translate') ?? undefined,
       parse: parseTranslateInput,
     },
     async ({ session, db, input }) => {

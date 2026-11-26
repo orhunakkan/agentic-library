@@ -1,9 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { type EmailStatus, emailStatus } from '../shared/admin/users.ts'
-import { PRO_STATUSES } from '../shared/billing/billing.ts'
 import { type AiModelId, resolveAiModel } from '../shared/lib/ai-models.ts'
 import { resolveSpeechModel, type SpeechModelId } from '../shared/lib/speech-models.ts'
-import type { PaidLabel } from '../shared/plans/copy.ts'
 import { USERNAME_PATTERN } from '../shared/signup/signup.ts'
 import type { Db } from './db.ts'
 import { SESSION_IDLE } from './sessions.ts'
@@ -129,8 +127,6 @@ export interface UserSummary {
   activeSessions: number
   hasApiKey: boolean
   email: EmailStatus
-  proGiven: boolean
-  paid: PaidLabel | null
 }
 
 export async function listUsers(db: Db): Promise<UserSummary[]> {
@@ -144,24 +140,14 @@ export async function listUsers(db: Db): Promise<UserSummary[]> {
       has_api_key: boolean
       has_email: boolean
       email_bounced: boolean
-      pro_given: boolean
-      paid_cadence: 'month' | 'year' | null
-      paid_founding: boolean | null
-      paid_status: string | null
     }[]
   >`
-    select u.username, u.role, u.created_at, u.disabled_at, u.pro_granted_at is not null as pro_given,
-      paid.cadence as paid_cadence, paid.founding as paid_founding, paid.status as paid_status,
+    select u.username, u.role, u.created_at, u.disabled_at,
       (select count(*) from sessions s where s.user_id = u.id and s.expires_at > now()
         and s.last_seen_at > now() - ${SESSION_IDLE}::interval) as active_sessions,
       exists (select 1 from api_keys k where k.user_id = u.id) as has_api_key,
       u.email is not null as has_email, u.email_bounced_at is not null as email_bounced
     from users u
-    left join lateral (
-      select s.cadence, s.founding, s.status from subscriptions s
-      where s.user_id = u.id and s.status = any(${[...PRO_STATUSES]}::text[])
-      order by s.created_at desc limit 1
-    ) paid on true
     order by u.username`
   return rows.map((user) => ({
     username: user.username,
@@ -171,9 +157,5 @@ export async function listUsers(db: Db): Promise<UserSummary[]> {
     activeSessions: Number(user.active_sessions),
     hasApiKey: user.has_api_key,
     email: emailStatus(user.has_email, user.email_bounced),
-    proGiven: user.pro_given,
-    paid: user.paid_cadence
-      ? { cadence: user.paid_cadence, founding: user.paid_founding === true, pastDue: user.paid_status === 'past_due' }
-      : null,
   }))
 }

@@ -61,6 +61,7 @@ beforeEach(() => {
 })
 
 let users = 0
+/** A plain member: no grant and no subscription, so every case shows ElevenLabs voices work for any account with a key. */
 async function reader({ key = elevenLabsKey() as string | null } = {}) {
   const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()
@@ -437,6 +438,12 @@ describe('speechVoicesState', () => {
       expect(await voices(r.cookie), ending).toEqual({ state })
     }
     expect(errors.mock.calls.join(' ')).toContain('ElevenLabs answered 500')
+    const unreachable = (async () => {
+      throw new TypeError('fetch failed')
+    }) as typeof fetch
+    const r = await reader()
+    expect(await speechVoicesState(request(r.cookie), BOOK, { fetch: unreachable })).toEqual({ state: 'unavailable' })
+    expect(errors.mock.calls.join(' ')).toContain('ElevenLabs answered none')
     await raw`alter table api_keys rename to api_keys_gone`
     try {
       expect(await voices(cookie)).toEqual({ state: 'unavailable' })

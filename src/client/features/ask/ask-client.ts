@@ -16,7 +16,6 @@ export const isStudyAction = (action: AskAction | null | undefined): action is '
 
 export type AskProblem =
   | 'signed_out'
-  | 'pro'
   | 'no_key'
   | 'not_found'
   | 'no_prompt'
@@ -93,7 +92,6 @@ export type AskResult =
 
 const KNOWN: readonly AskProblem[] = [
   'signed_out',
-  'pro',
   'no_key',
   'not_found',
   'no_prompt',

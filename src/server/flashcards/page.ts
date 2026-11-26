@@ -1,40 +1,24 @@
 import '@tanstack/react-start/server-only'
-import type { BookFlashcards, FlashcardBookCount, FlashcardBookSummary } from '~/shared/flashcards/contract'
+import type { BookFlashcards, FlashcardBookSummary } from '~/shared/flashcards/contract'
 import { REVIEW_SESSION_MAX } from '~/shared/flashcards/limits'
-import { canUse } from '~/shared/plans/plans'
 import { sessionForRequest } from '../auth.ts'
 import { labelRows, openTextBook } from '../books/book.ts'
 import { getDb } from '../db.ts'
 import { bookCards, cardBooks, dueCards } from './store.ts'
 import { toCardView } from './view.ts'
 
-export type FlashcardsProState = { kind: 'pro'; books: FlashcardBookCount[] }
+export type FlashcardBooksState = { kind: 'signed_out' } | { kind: 'all'; books: FlashcardBookSummary[] }
 
-export type FlashcardBooksState =
-  | { kind: 'signed_out' }
-  | { kind: 'all'; books: FlashcardBookSummary[] }
-  | FlashcardsProState
-
-export type BookFlashcardsState =
-  | { kind: 'signed_out' }
-  | { kind: 'not_found' }
-  | ({ kind: 'book' } & BookFlashcards)
-  | FlashcardsProState
+export type BookFlashcardsState = { kind: 'signed_out' } | { kind: 'not_found' } | ({ kind: 'book' } & BookFlashcards)
 
 async function labelled(userId: number, now: Date) {
   const db = getDb()
   return labelRows(db, userId, await cardBooks(db, userId, now), (b) => b.book)
 }
 
-async function counts(userId: number, now: Date): Promise<FlashcardsProState> {
-  const books = await labelled(userId, now)
-  return { kind: 'pro', books: books.map((b) => ({ slug: b.slug, title: b.label.title, cards: b.row.cards })) }
-}
-
 export async function flashcardBooksState(request: Request, now = new Date()): Promise<FlashcardBooksState> {
   const session = await sessionForRequest(request)
   if (!session) return { kind: 'signed_out' }
-  if (!canUse(session.plan, 'flashcards')) return counts(session.userId, now)
   const books = await labelled(session.userId, now)
   return {
     kind: 'all',
@@ -57,7 +41,6 @@ export async function bookFlashcardsState(
 ): Promise<BookFlashcardsState> {
   const session = await sessionForRequest(request)
   if (!session) return { kind: 'signed_out' }
-  if (!canUse(session.plan, 'flashcards')) return counts(session.userId, now)
   const db = getDb()
   const book = await openTextBook(db, session.userId, slug)
   if (!book) return { kind: 'not_found' }

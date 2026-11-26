@@ -1,7 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { CircleAlert, type LucideIcon, Play, RotateCcw, Square, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { ProNotice } from '~/client/features/plans/ProNotice'
 import { cn } from '~/client/lib/cn'
 import type { RunLang } from '~/shared/run-code/langs'
 import type { RunAccess } from './run-access'
@@ -293,27 +292,21 @@ export function RunDialog({
               <X className="size-5" aria-hidden />
             </button>
           </header>
-          {access === 'pro' ? (
+          {access === 'signed_in' ? (
             <RunPanel key={target.key} target={target} edits={edits} />
           ) : (
             <div className="min-h-0 overflow-auto">
-              {access === 'free' ? (
-                <div data-testid="run-pro" className="rounded-xl border border-line bg-inset p-4">
-                  <ProNotice feature="run" />
-                </div>
-              ) : (
-                <div className="rounded-xl border border-line bg-inset p-4 text-[14.5px] leading-relaxed">
-                  <p data-testid="run-signed-out">{SIGNED_OUT_TEXT}</p>
-                  <Link
-                    to="/login"
-                    search={{ next: here }}
-                    data-testid="run-sign-in"
-                    className="mt-3 inline-flex h-11 items-center rounded-xl bg-accent-fill px-5 font-semibold text-on-accent transition hover:brightness-105"
-                  >
-                    Sign in
-                  </Link>
-                </div>
-              )}
+              <div className="rounded-xl border border-line bg-inset p-4 text-[14.5px] leading-relaxed">
+                <p data-testid="run-signed-out">{SIGNED_OUT_TEXT}</p>
+                <Link
+                  to="/login"
+                  search={{ next: here }}
+                  data-testid="run-sign-in"
+                  className="mt-3 inline-flex h-11 items-center rounded-xl bg-accent-fill px-5 font-semibold text-on-accent transition hover:brightness-105"
+                >
+                  Sign in
+                </Link>
+              </div>
               <ReadOnlyCode code={target.code} />
             </div>
           )}

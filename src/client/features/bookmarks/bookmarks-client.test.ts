@@ -44,9 +44,7 @@ describe('createBookmark', () => {
   it('treats stale, other codes, a body without a bookmark and a network error as failures', async () => {
     answer(409, { error: 'stale' })
     expect(await createBookmark(request)).toEqual({ ok: false, problem: 'failed' })
-    answer(403, { error: 'pro' })
-    expect(await createBookmark(request)).toEqual({ ok: false, problem: 'failed' })
-    answer(409, { error: 'quota', plan: 'free', max: 50 })
+    answer(403, { error: 'forbidden' })
     expect(await createBookmark(request)).toEqual({ ok: false, problem: 'failed' })
     answer(400, { error: 'invalid' })
     expect(await createBookmark(request)).toEqual({ ok: false, problem: 'failed' })

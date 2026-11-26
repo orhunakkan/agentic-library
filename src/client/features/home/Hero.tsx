@@ -1,13 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import type { Viewer } from '~/server/auth'
-import { HOME_HERO_LINE } from '~/shared/billing/copy'
-import { formatPrice, PRO_PRICE } from '~/shared/plans/pricing'
 import { primaryButton, secondaryButton } from './buttons'
 
 export const HERO_LINE =
   'Folio is a calm place to read on any screen. Have any page read aloud, keep your highlights in one place, and ask questions that only see the pages you’ve read.'
 
-export function Hero({ viewer, billing }: { viewer: Viewer | null; billing: boolean }) {
+export function Hero({ viewer }: { viewer: Viewer | null }) {
   return (
     <section aria-labelledby="home-title" className="flex flex-col items-center pt-12 text-center sm:pt-16 lg:pt-20">
       <p className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13.5px] font-medium text-body">
@@ -33,10 +31,8 @@ export function Hero({ viewer, billing }: { viewer: Viewer | null; billing: bool
           See what it does
         </a>
       </div>
-      <p className="mt-5 text-[14px] text-muted">
-        {billing
-          ? HOME_HERO_LINE
-          : `Free to read. Pro is coming soon: ${formatPrice(PRO_PRICE.monthly)} a month or ${formatPrice(PRO_PRICE.yearly)} a year.`}
+      <p className="mt-5 text-[14px] text-muted" data-testid="home-hero-free">
+        Folio is free.
       </p>
     </section>
   )

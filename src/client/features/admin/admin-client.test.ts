@@ -21,9 +21,6 @@ const USER: AdminUserView = {
   lastActiveAt: null,
   sessions: 0,
   hasKey: false,
-  plan: 'free',
-  planSource: 'free',
-  paid: null,
   email: 'none',
   you: false,
 }
@@ -165,7 +162,6 @@ describe('problemText', () => {
     )
     expect(problemText('quota', 'change')).toBe('There are already 20 open invites. Revoke one first.')
     expect(problemText('closed', 'change')).toBe('Sign-up is turned off on this server, so invites can’t be made.')
-    expect(problemText('admin', 'change')).toBe('Admins are always on Pro.')
   })
 })
 
@@ -173,14 +169,12 @@ describe('the menu items', () => {
   it('send the change each names', () => {
     expect(changeFor('make-admin')).toEqual({ intent: 'role', role: 'admin' })
     expect(changeFor('make-member')).toEqual({ intent: 'role', role: 'member' })
-    expect(changeFor('give-pro')).toEqual({ intent: 'grant-pro' })
-    expect(changeFor('take-pro')).toEqual({ intent: 'revoke-pro' })
     for (const action of ['reset-password', 'unlock', 'sign-out', 'disable', 'enable'] as const)
       expect(changeFor(action)).toEqual({ intent: action })
   })
 
   it('have a label and a status line each', () => {
-    expect(Object.keys(ACTION_LABELS)).toHaveLength(10)
+    expect(Object.keys(ACTION_LABELS)).toHaveLength(8)
     expect(ACTION_LABELS.delete).toBe('Delete…')
     const lines = (['add', ...Object.keys(ACTION_LABELS)] as Parameters<typeof doneText>[0][]).map((a) =>
       doneText(a, 'ada'),
@@ -190,8 +184,6 @@ describe('the menu items', () => {
       'ada’s password was reset.',
       'ada is now an admin.',
       'ada is now a member.',
-      'ada is on Pro now.',
-      'ada is on Free now.',
       'ada was unlocked.',
       'ada was signed out everywhere.',
       'ada was disabled.',

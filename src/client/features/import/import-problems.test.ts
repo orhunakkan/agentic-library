@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { BAD_ISBN, IMPORT_PROBLEM_TEXT, importSaveText, PICTURE_FAILED, SAVE_FAILED } from './import-problems'
 
 describe('the importer’s save problems', () => {
-  it('says each plan’s book limit and the hourly limit with their numbers', () => {
+  it('says the book limit and the hourly limit with their numbers', () => {
     expect(IMPORT_PROBLEM_TEXT.quota).toBe('You have 25 of your own books. Delete one to import another.')
-    expect(IMPORT_PROBLEM_TEXT['quota-free']).toBe(
-      'Free includes 2 of your own books. Delete one, or go Pro for up to 25.',
-    )
     expect(IMPORT_PROBLEM_TEXT.rate).toBe('You’ve imported 10 books in the last hour. Try again later.')
   })
 
@@ -24,7 +21,7 @@ describe('the importer’s save problems', () => {
       incomplete: 'The import was interrupted. Try again.',
       failed: 'Something went wrong while saving. Try again in a few minutes.',
     })
-    expect(Object.keys(IMPORT_PROBLEM_TEXT)).toHaveLength(13)
+    expect(Object.keys(IMPORT_PROBLEM_TEXT)).toHaveLength(12)
   })
 
   it('falls back to the general failure, and names a refused picture', () => {
@@ -48,9 +45,7 @@ describe('the importer’s save problems', () => {
   it('says what stopped a save, by the step', () => {
     const refused = (problem: string) => ({ ok: false as const, problem: problem as 'rate' })
     expect(importSaveText({ ok: false, at: 'start', refused: refused('rate') })).toBe(IMPORT_PROBLEM_TEXT.rate)
-    expect(importSaveText({ ok: false, at: 'start', refused: refused('quota-free') })).toBe(
-      IMPORT_PROBLEM_TEXT['quota-free'],
-    )
+    expect(importSaveText({ ok: false, at: 'start', refused: refused('quota') })).toBe(IMPORT_PROBLEM_TEXT.quota)
     expect(importSaveText({ ok: false, at: 'picture', problem: 'type' })).toBe(PICTURE_FAILED)
     expect(importSaveText({ ok: false, at: 'picture', problem: 'failed' })).toBe(PICTURE_FAILED)
     expect(importSaveText({ ok: false, at: 'chapter', problem: 'empty' })).toBe(IMPORT_PROBLEM_TEXT.empty)

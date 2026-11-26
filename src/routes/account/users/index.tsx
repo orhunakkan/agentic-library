@@ -34,16 +34,6 @@ const CONFIRM = {
     body: 'They are signed out everywhere. You’ll see the new password once.',
     confirm: 'Reset password',
   },
-  'give-pro': {
-    title: (u: string) => `Give ${u} Pro?`,
-    body: 'They get every Pro feature until you take it back.',
-    confirm: 'Give Pro',
-  },
-  'take-pro': {
-    title: (u: string) => `Take Pro back from ${u}?`,
-    body: 'They keep everything they made, but can’t add more than Free allows.',
-    confirm: 'Take back Pro',
-  },
 }
 
 function UsersScreen() {

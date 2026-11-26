@@ -1,5 +1,4 @@
 import { timeOfDay } from '~/client/lib/format'
-import { proNotice } from '~/shared/plans/copy'
 import { aboutMegabytes, megabytes } from '~/shared/read-aloud/folio-voices'
 import type { Problem } from './controller'
 import type { CloudProblemCode, LocalProblemCode } from './speaker'
@@ -12,7 +11,6 @@ const CLOUD_TEXT: Record<Exclude<CloudProblemCode, 'rate'>, string> = {
   busy: 'ElevenLabs is busy. Press play to try again.',
   no_key: 'Your ElevenLabs key was removed. Add it again on the API keys page.',
   signed_out: 'Sign in again to use your ElevenLabs voice.',
-  pro: proNotice('elevenlabs').heading,
 }
 
 const LOCAL_TEXT: Record<LocalProblemCode, string> = {

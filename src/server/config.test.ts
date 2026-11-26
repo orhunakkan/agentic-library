@@ -1,4 +1,6 @@
-import { resolve } from 'node:path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ConfigError, kekId, parseConfig } from './config'
 
@@ -172,6 +174,19 @@ describe('GitHub settings', () => {
       path === '/run/creds/github_token' ? `${TOKEN}\n` : null,
     )
     expect(fromCredential.githubToken).toBe(TOKEN)
+  })
+
+  it('read a credential from the systemd credentials directory on disk, and treat a missing one as unset', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'folio-creds-'))
+    try {
+      writeFileSync(join(dir, 'github_token'), `${TOKEN}\n`)
+      const config = parseConfig({ CREDENTIALS_DIRECTORY: dir })
+      expect(config.githubToken).toBe(TOKEN)
+      expect(config.kek).toBeNull()
+      expect(config.mailWebhookKey).toBeNull()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   it('refuse a malformed token and a bad base', () => {
@@ -368,95 +383,23 @@ describe('the audiobooks’ directory', () => {
   })
 })
 
-describe('billing settings', () => {
-  const BILLING = {
-    PADDLE_ENV: 'sandbox',
-    PADDLE_CLIENT_TOKEN: 'test_0123456789abcdef',
-    PADDLE_PRICE_MONTHLY: 'pri_01monthly',
-    PADDLE_PRICE_YEARLY: 'pri_01yearly',
-    PADDLE_PRICE_FOUNDING: 'pri_01founding',
-    PADDLE_API_KEY: 'pdl_sdbx_apikey_0123456789abcdefghij',
-    PADDLE_WEBHOOK_SECRET: 'pdl_ntfset_0123456789abcdef',
-  }
-
-  it('are off when none is set', () => {
-    expect(parseConfig(PROD, noFiles).billing).toBeNull()
-    expect(parseConfig({ ...PROD, PADDLE_API_BASE: 'http://127.0.0.1:1/x' }, noFiles).billing).toBeNull()
-  })
-
-  it('are on when all are set, with the API base from PADDLE_ENV', () => {
-    expect(parseConfig({ ...PROD, ...BILLING }, noFiles).billing).toEqual({
-      env: 'sandbox',
-      apiBase: 'https://sandbox-api.paddle.com',
-      apiKey: BILLING.PADDLE_API_KEY,
-      webhookSecret: BILLING.PADDLE_WEBHOOK_SECRET,
-      clientToken: BILLING.PADDLE_CLIENT_TOKEN,
-      prices: { monthly: 'pri_01monthly', yearly: 'pri_01yearly', founding: 'pri_01founding' },
-    })
-    const live = parseConfig(
-      {
-        ...PROD,
-        ...BILLING,
-        PADDLE_ENV: 'production',
-        PADDLE_CLIENT_TOKEN: 'live_0123456789abcdef',
-        PADDLE_API_KEY: 'pdl_live_apikey_0123456789abcdefghij',
-      },
-      noFiles,
-    ).billing
-    expect(live?.apiBase).toBe('https://api.paddle.com')
-    expect(
-      parseConfig({ ...PROD, ...BILLING, PADDLE_API_BASE: 'http://127.0.0.1:3100/test-paddle/' }, noFiles).billing
-        ?.apiBase,
-    ).toBe('http://127.0.0.1:3100/test-paddle')
-  })
-
-  it('read the secrets from the systemd credentials first', () => {
+describe('leftover billing settings', () => {
+  it('are ignored, so a server that still has them starts, with no billing in its config', () => {
     const files: Record<string, string> = {
-      '/run/creds/paddle_api_key': 'a-paddle-key-from-a-credential-file\n',
-      '/run/creds/paddle_webhook_secret': 'pdl_ntfset_fromthecredential\n',
+      '/run/creds/paddle_api_key': 'pdl_sdbx_apikey_0123456789abcdefghij\n',
+      '/run/creds/paddle_webhook_secret': 'pdl_ntfset_0123456789abcdef\n',
     }
-    const billing = parseConfig(
-      { ...PROD, ...BILLING, PADDLE_API_KEY: undefined, CREDENTIALS_DIRECTORY: '/run/creds' },
-      (path) => files[path.replaceAll('\\', '/')] ?? null,
-    ).billing
-    expect(billing?.apiKey).toBe('a-paddle-key-from-a-credential-file')
-    expect(billing?.webhookSecret).toBe('pdl_ntfset_fromthecredential')
-  })
-
-  it('refuse a partial set, naming what is missing', () => {
-    for (const name of Object.keys(BILLING)) {
-      const env = { ...PROD, ...BILLING, [name]: undefined }
-      expect(() => parseConfig(env, noFiles), name).toThrow(ConfigError)
-      expect(() => parseConfig(env, noFiles), name).toThrow(name)
+    const leftover = {
+      ...PROD,
+      PADDLE_ENV: 'sandbox',
+      PADDLE_CLIENT_TOKEN: 'test_0123456789abcdef',
+      PADDLE_PRICE_MONTHLY: 'pri_01monthly',
+      PADDLE_API_KEY: 'not even a valid key',
+      CREDENTIALS_DIRECTORY: '/run/creds',
     }
-    expect(() => parseConfig({ ...PROD, PADDLE_ENV: 'sandbox' }, noFiles)).toThrow(/half set up/)
-  })
-
-  it('refuse settings for the other environment', () => {
-    expect(() => parseConfig({ ...PROD, ...BILLING, PADDLE_CLIENT_TOKEN: 'live_0123456789abcdef' }, noFiles)).toThrow(
-      /other environment/,
-    )
-    expect(() =>
-      parseConfig(
-        { ...PROD, ...BILLING, PADDLE_ENV: 'production', PADDLE_CLIENT_TOKEN: 'test_0123456789abcdef' },
-        noFiles,
-      ),
-    ).toThrow(/other environment/)
-    expect(() =>
-      parseConfig({ ...PROD, ...BILLING, PADDLE_API_KEY: 'pdl_live_apikey_0123456789abcdefghij' }, noFiles),
-    ).toThrow(/other environment/)
-  })
-
-  it('refuse malformed values', () => {
-    const bad = (extra: Record<string, string>) => () => parseConfig({ ...PROD, ...BILLING, ...extra }, noFiles)
-    expect(bad({ PADDLE_ENV: 'live' })).toThrow(/sandbox or production/)
-    expect(bad({ PADDLE_CLIENT_TOKEN: 'test_' })).toThrow(/PADDLE_CLIENT_TOKEN/)
-    expect(bad({ PADDLE_PRICE_YEARLY: 'price_1' })).toThrow(/PADDLE_PRICE_YEARLY/)
-    expect(bad({ PADDLE_PRICE_FOUNDING: 'pri_01yearly' })).toThrow(/must differ/)
-    expect(bad({ PADDLE_API_KEY: 'short' })).toThrow(/API key/)
-    expect(bad({ PADDLE_API_KEY: 'a key with spaces in it, long enough' })).toThrow(/API key/)
-    expect(bad({ PADDLE_WEBHOOK_SECRET: 'short' })).toThrow(/webhook secret/)
-    expect(bad({ PADDLE_API_BASE: 'ftp://paddle.example' })).toThrow(/PADDLE_API_BASE/)
+    const config = parseConfig(leftover, (path) => files[path.replaceAll('\\', '/')] ?? null)
+    expect(config).not.toHaveProperty('billing')
+    expect(config).toEqual(parseConfig({ ...PROD, CREDENTIALS_DIRECTORY: '/run/creds' }, noFiles))
   })
 })
 

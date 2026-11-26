@@ -50,8 +50,6 @@ const ALLOWLIST: Record<string, string> = {
     'runs only in a real browser with WASM; read-aloud-folio-real.spec.ts drives it',
   'src/client/features/read-aloud/piper/protocol.ts': 'types only: the messages to and from the Folio voice’s worker',
   'src/client/features/read-aloud/piper/piper-phonemize.d.ts': 'types only, for piper-wasm’s Emscripten build',
-  'src/client/features/billing/use-checkout.ts':
-    'the React hook that opens Paddle.js; its logic is in billing-client and confirm-wait, and Paddle.js only runs in a browser; covered by billing.spec.ts',
   'src/client/features/articles/readability.ts':
     'DOMParser and Readability, browser only (a DOM for Vitest would be a second dependency); its result goes through article-draft.ts, unit-tested; covered by articles.spec.ts',
   'src/client/features/run-code/use-runner.ts':

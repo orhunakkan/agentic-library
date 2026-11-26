@@ -92,6 +92,8 @@ test.describe('Delete account', () => {
     const user = await signedInAt(page, '/account')
     await page.evaluate(() => localStorage.setItem('ask:u-00000000-0000-4000-8000-000000000000', '{}'))
     const section = accountPage.deleteAccount
+    await expect(page.getByRole('main').getByRole('heading', { level: 2, name: 'Plan' })).toHaveCount(0)
+    await expect(page.getByRole('main')).not.toContainText(/\bPro\b|\bplan\b|subscription/)
 
     await accountPage.deleteWith('not my password at all')
     await expect(section.getByRole('alert')).toHaveText('Your password is incorrect.')
@@ -246,15 +248,6 @@ test.describe('An OpenAI key', () => {
     await model.getByRole('button', { name: 'Save model' }).click()
     await expect(accountPage.status).toHaveText('Model saved.')
     await expect(model.getByRole('radio', { name: /GPT-6 Luna/ })).toBeChecked()
-  })
-
-  test('on Free the section is locked behind Pro, with no form to save a key', async ({ page }) => {
-    await createUser(page.request, { signedIn: true, plan: 'free' })
-    await page.goto('/account/api-keys')
-    const openai = page.getByRole('region', { name: 'OpenAI' })
-    await expect(openai.getByText('Ask the book is part of Pro.')).toBeVisible()
-    await expect(openai.getByLabel('OpenAI API key', { exact: true })).toHaveCount(0)
-    await expectAccessible(page)
   })
 })
 

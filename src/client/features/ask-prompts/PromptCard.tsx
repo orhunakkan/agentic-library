@@ -10,7 +10,6 @@ export function PromptCard({
   prompt,
   first,
   last,
-  canChange,
   onEdit,
   onMove,
   onDelete,
@@ -18,7 +17,6 @@ export function PromptCard({
   prompt: AskPromptView
   first: boolean
   last: boolean
-  canChange: boolean
   onEdit: () => void
   onMove: (direction: 'up' | 'down') => void
   onDelete: () => void
@@ -37,39 +35,35 @@ export function PromptCard({
         {prompt.instruction}
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
-        {canChange && (
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onEdit}
-              data-testid="prompt-edit"
-              data-prompt-edit={prompt.id}
-            >
-              Edit
-            </Button>
-            <button
-              type="button"
-              className={iconButton}
-              disabled={first}
-              aria-label={moveLabel(prompt.name, 'up')}
-              onClick={() => onMove('up')}
-              data-testid="prompt-move-up"
-            >
-              <ArrowUp className="size-5" aria-hidden />
-            </button>
-            <button
-              type="button"
-              className={iconButton}
-              disabled={last}
-              aria-label={moveLabel(prompt.name, 'down')}
-              onClick={() => onMove('down')}
-              data-testid="prompt-move-down"
-            >
-              <ArrowDown className="size-5" aria-hidden />
-            </button>
-          </>
-        )}
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onEdit}
+          data-testid="prompt-edit"
+          data-prompt-edit={prompt.id}
+        >
+          Edit
+        </Button>
+        <button
+          type="button"
+          className={iconButton}
+          disabled={first}
+          aria-label={moveLabel(prompt.name, 'up')}
+          onClick={() => onMove('up')}
+          data-testid="prompt-move-up"
+        >
+          <ArrowUp className="size-5" aria-hidden />
+        </button>
+        <button
+          type="button"
+          className={iconButton}
+          disabled={last}
+          aria-label={moveLabel(prompt.name, 'down')}
+          onClick={() => onMove('down')}
+          data-testid="prompt-move-down"
+        >
+          <ArrowDown className="size-5" aria-hidden />
+        </button>
         <Button type="button" variant="danger" onClick={onDelete} data-testid="prompt-delete">
           Delete
         </Button>

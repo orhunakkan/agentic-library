@@ -34,18 +34,6 @@ describe('readAnswer', () => {
       ok: false,
       problem: 'quota-user',
     })
-    expect(await readAnswer(reply(409, { error: 'quota', scope: 'user', max: 50, plan: 'free' }), pick)).toEqual({
-      ok: false,
-      problem: 'quota-free',
-    })
-    expect(await readAnswer(reply(409, { error: 'quota', scope: 'user', max: 10000, plan: 'pro' }), pick)).toEqual({
-      ok: false,
-      problem: 'quota-user',
-    })
-    expect(await readAnswer(reply(403, { error: 'pro', feature: 'flashcards' }), pick)).toEqual({
-      ok: false,
-      problem: 'pro',
-    })
     for (const code of ['stale', 'signed_out', 'not_found'] as const) {
       expect(await readAnswer(reply(400, { error: code }), pick)).toEqual({ ok: false, problem: code })
     }

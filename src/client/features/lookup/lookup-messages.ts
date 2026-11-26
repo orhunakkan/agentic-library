@@ -56,7 +56,7 @@ export function wordNotice(source: WordSource, problem: Exclude<WordProblem, 'si
 }
 
 export function translateNotice(
-  problem: Exclude<TranslateProblem, 'signed_out' | 'pro' | 'no_key' | 'key_rejected'>,
+  problem: Exclude<TranslateProblem, 'signed_out' | 'no_key' | 'key_rejected'>,
   retryAt?: Date,
   provider: AiProvider = 'anthropic',
 ): Notice {

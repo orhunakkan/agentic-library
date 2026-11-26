@@ -61,9 +61,7 @@ const NOWHERE = '6f1c0000-0000-4000-8000-000000000000'
 
 let users = 0
 async function signedIn() {
-  const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member', {
-    plan: users % 2 ? 'free' : 'pro',
-  })
+  const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()
   await createSession(db(), { tokenHash: hashToken(token), userId: user.id, ip: null, userAgent: 'test' })
   return { user, cookie: `${cookieName}=${token}` }

@@ -23,9 +23,3 @@ export interface BookFlashcards {
   cards: FlashcardView[]
   due: FlashcardView[]
 }
-
-export interface FlashcardBookCount {
-  slug: string
-  title: string
-  cards: number
-}

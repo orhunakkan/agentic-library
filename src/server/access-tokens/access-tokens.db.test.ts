@@ -162,7 +162,7 @@ describe('making a token', () => {
 
     const who = await me({ bearer: body.token })
     expect(who.status).toBe(200)
-    expect(await who.json()).toEqual({ username: 'ann', role: 'member', plan: 'free', via: 'token' })
+    expect(await who.json()).toEqual({ username: 'ann', role: 'member', via: 'token' })
   })
 
   it('lasts expiresInDays, 30 without it', async () => {
@@ -414,11 +414,11 @@ describe('using a token', () => {
     expect(lines.join('\n')).not.toContain(PASSWORD)
   })
 
-  it('reads the role and plan live', async () => {
+  it('reads the role live', async () => {
     const ann = await newUser()
     const { token } = await made()
     await raw`update users set role = 'admin' where id = ${ann.id}`
-    expect(await (await me({ bearer: token })).json()).toMatchObject({ role: 'admin', plan: 'pro' })
+    expect(await (await me({ bearer: token })).json()).toMatchObject({ role: 'admin' })
     expect((await findAccessToken(getDb(), hashToken(token)))?.userId).toBe(ann.id)
   })
 })

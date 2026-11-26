@@ -35,7 +35,6 @@ try {
     '/login',
     '/credits',
     '/terms',
-    '/refunds',
     '/account/books',
   ]) {
     const response = await page.goto(`http://localhost:${PORT}${path}`, { waitUntil: 'networkidle', timeout: 60_000 })

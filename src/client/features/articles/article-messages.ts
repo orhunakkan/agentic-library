@@ -1,7 +1,6 @@
 import { timeOfDay } from '~/client/lib/format'
-import type { ArticleUrlProblem, WebFetchProblem } from '~/shared/articles/contract'
+import { type ArticleUrlProblem, MAX_ARTICLES, type WebFetchProblem } from '~/shared/articles/contract'
 import { readTimeText } from '~/shared/articles/read-time'
-import type { Plan } from '~/shared/plans/plans'
 
 export type ArticleProblem =
   | ArticleUrlProblem
@@ -46,18 +45,14 @@ const SENTENCES: Record<Exclude<ArticleProblem, 'quota' | 'limited'>, string> = 
 }
 
 export interface ProblemContext {
-  plan?: Plan
   max?: number
   retryAt?: string | null
   timeZone?: string
 }
 
 export function articleProblemText(problem: ArticleProblem, context: ProblemContext = {}): string {
-  if (problem === 'quota') {
-    if (context.plan === 'free')
-      return `Free includes ${context.max ?? 20} saved articles. Delete one, or go Pro for up to 500.`
-    return `You have ${context.max ?? 500} saved articles, the most an account can keep. Delete one to save another.`
-  }
+  if (problem === 'quota')
+    return `You have ${context.max ?? MAX_ARTICLES} saved articles, the most an account can keep. Delete one to save another.`
   if (problem === 'limited') {
     const base = 'You’ve saved a lot in the last hour.'
     return context.retryAt

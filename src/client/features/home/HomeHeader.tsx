@@ -7,7 +7,6 @@ import { primaryButton } from './buttons'
 
 const SECTIONS = [
   { href: '#features', label: 'Features' },
-  { href: '#pricing', label: 'Pricing' },
   { href: '#faq', label: 'Questions' },
 ] as const
 

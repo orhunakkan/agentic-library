@@ -11,14 +11,12 @@ import {
   EMAIL_ERRORS,
   isEmailError,
 } from '~/client/features/account/account-messages'
-import { PlanSection } from '~/client/features/account/PlanSection'
 import { type PasswordReason, parseReason } from '~/client/features/account/password-text'
 import { signOutSubmit } from '~/client/features/account/sign-out'
 import { AccountPage, Button, DateTime, Notice, Section, TextField } from '~/client/features/account/ui'
 import { PasskeysSection } from '~/client/features/passkeys/PasskeysSection'
 import { handleAccount } from '~/server/account-actions'
 import { getAccountPage } from '~/server/account-functions'
-import { DELETE_CANCELS_PRO } from '~/shared/billing/copy'
 import { SITE_NAME } from '~/shared/lib/site'
 
 type Session = Awaited<ReturnType<typeof getAccountPage>>['sessions'][number]
@@ -48,8 +46,8 @@ export const Route = createFileRoute('/account/')({
 const isPasswordError = (error: AccountSearch['error']): error is 'mismatch' | 'policy' | 'current' =>
   error === 'mismatch' || error === 'policy' || error === 'current'
 
-const isDeleteError = (error: AccountSearch['error']): error is 'delete-current' | 'last-admin' | 'delete-billing' =>
-  error === 'delete-current' || error === 'last-admin' || error === 'delete-billing'
+const isDeleteError = (error: AccountSearch['error']): error is 'delete-current' | 'last-admin' =>
+  error === 'delete-current' || error === 'last-admin'
 
 function AccountScreen() {
   const account = Route.useLoaderData()
@@ -94,8 +92,6 @@ function AccountScreen() {
         </dl>
       </Section>
 
-      <PlanSection plan={account.plan} />
-
       <EmailSection username={account.username} email={account.email} error={error} />
 
       <PasswordSection username={account.username} error={error} reason={reason} />
@@ -119,7 +115,7 @@ function AccountScreen() {
 
       <DataSection />
 
-      <DeleteSection username={account.username} error={error} paid={account.plan.source === 'paid'} />
+      <DeleteSection username={account.username} error={error} />
     </AccountPage>
   )
 }
@@ -288,14 +284,13 @@ function DataSection() {
   )
 }
 
-function DeleteSection({ username, error, paid }: { username: string; error: AccountSearch['error']; paid: boolean }) {
+function DeleteSection({ username, error }: { username: string; error: AccountSearch['error'] }) {
   const shown = isDeleteError(error) ? error : undefined
   return (
     <Section id="delete" title="Delete account">
       <p className={mutedText}>
         This deletes your account and everything in it for good: highlights, notes, bookmarks, shelves, private books,
         your saved API key and every session. Download your data first if you want a copy. It can’t be undone.
-        {paid && ` ${DELETE_CANCELS_PRO}`}
       </p>
       {shown && (
         <Notice kind="error" id="delete-error" data-testid="account-delete-error">

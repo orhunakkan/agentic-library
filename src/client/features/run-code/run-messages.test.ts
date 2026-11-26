@@ -110,7 +110,7 @@ describe('the dialog’s other copy', () => {
     expect(openLabel('sql')).toBe('Run SQL example')
     expect(TYPESCRIPT_NOTE).toBe('Types aren’t checked here. They’re removed, and the code runs as JavaScript.')
     expect(OUTPUT_EMPTY).toBe('Output appears here.')
-    expect(SIGNED_OUT_TEXT).toBe('Sign in to run code. Running code is part of Pro.')
+    expect(SIGNED_OUT_TEXT).toBe('Sign in to run code.')
     expect([ROWS_CUT(200), COLUMNS_CUT(50)]).toEqual([
       'Only the first 200 rows are shown.',
       'Only the first 50 columns are shown.',

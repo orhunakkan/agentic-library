@@ -1,7 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { sweepAccessTokens } from './access-tokens/store.ts'
 import { recordEvent, sweepAuditEvents } from './audit.ts'
-import { sweepPaddleEvents } from './billing/store.ts'
 import type { Db } from './db.ts'
 import {
   type Attempt,
@@ -87,6 +86,5 @@ function sweepAfterSignIn(db: Db): void {
     sweepAccessTokens(db),
     sweepAuditEvents(db),
     sweepSignupTokens(db),
-    sweepPaddleEvents(db),
   ]).catch((error) => logError('sweep', error))
 }

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { signedInAt } from '../support/accounts'
+import { createUser, signedInAt } from '../support/accounts'
 import { expect, expectAccessible, expectNoSideways, hydrated, test } from '../support/fixtures'
 
 const LISTING = '/read/fixture-code-book/values-and-names/2'
@@ -14,11 +14,13 @@ const folioState = (page: Page) =>
   }))
 
 test.describe('Run code', () => {
-  test('a Pro reader runs a JavaScript example, edits and breaks it, resets it, and runs a TypeScript one', async ({
+  test('a plain member runs a JavaScript example, edits and breaks it, resets it, and runs a TypeScript one', async ({
     page,
     runDialog,
   }) => {
-    await signedInAt(page, LISTING)
+    await createUser(page.request, { signedIn: true })
+    await page.goto(LISTING)
+    await hydrated(page)
     const open = runDialog.openButtons('JavaScript')
     await expect(open).toHaveCount(1)
     await expect(open).toHaveText('Run')
@@ -81,7 +83,7 @@ test.describe('Run code', () => {
     await page.goto(LISTING)
     await hydrated(page)
     await runDialog.openFrom(runDialog.openButtons('JavaScript'))
-    await expect(runDialog.signedOut).toHaveText('Sign in to run code. Running code is part of Pro.')
+    await expect(runDialog.signedOut).toHaveText('Sign in to run code.')
     await expect(runDialog.dialog.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
       'href',
       `/login?next=${encodeURIComponent(LISTING)}`,

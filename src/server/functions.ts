@@ -1,7 +1,6 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
-import type { BillingOffer } from '~/shared/billing/billing'
 import { buildBookPage } from '~/shared/content/book-page'
 import { isPrivateBookSlug } from '~/shared/content/book-slug'
 import { collectionHues } from '~/shared/content/hues'
@@ -10,7 +9,6 @@ import { chapterPageHref, pagedHref } from '~/shared/content/navigation'
 import { catalogWithoutRemoved, removedShelfBooks, withoutRemoved } from '~/shared/content/removed'
 import type { SpeechChapterData } from '~/shared/read-aloud/speech-text'
 import { readerOf } from './auth'
-import { billingOffer } from './billing/actions'
 import { openTextBook, type ReaderPage, type TextBook } from './books/book'
 import { getConfig, type SiteContact } from './config'
 import { ratingState } from './ratings/actions'
@@ -170,8 +168,6 @@ export const getSearchIndex = createServerFn({ method: 'GET' }).handler(async ()
   }
   return entries
 })
-
-export const getBillingOffer = createServerFn({ method: 'GET' }).handler((): Promise<BillingOffer> => billingOffer())
 
 export const getSiteContact = createServerFn({ method: 'GET' }).handler(
   (): SiteContact | null => getConfig().siteContact,

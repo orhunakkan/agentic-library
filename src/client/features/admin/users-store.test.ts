@@ -12,9 +12,6 @@ const view = (username: string, over: Partial<AdminUserView> = {}): AdminUserVie
   lastActiveAt: null,
   sessions: 0,
   hasKey: false,
-  plan: 'free',
-  planSource: 'free',
-  paid: null,
   email: 'none',
   you: false,
   ...over,
@@ -132,25 +129,6 @@ describe('UsersStore', () => {
     store.close()
     expect(now().dialog).toBeNull()
     expect(JSON.stringify(now())).not.toContain('new-password-for-ada-01')
-  })
-
-  it('asks before Give Pro and Take back Pro, then shows the new plan', async () => {
-    const { store, fakes, now } = setup({
-      changeUser: vi.fn(async (username: string, change) =>
-        changed(view(username, change.intent === 'grant-pro' ? { plan: 'pro', planSource: 'given' } : {})),
-      ),
-    })
-    await store.choose('ada', 'give-pro')
-    expect(now().dialog).toEqual({ kind: 'confirm', action: 'give-pro', username: 'ada' })
-    expect(fakes.changeUser).not.toHaveBeenCalled()
-    await store.confirm()
-    expect(fakes.changeUser).toHaveBeenCalledWith('ada', { intent: 'grant-pro' })
-    expect(now().users.find((u) => u.username === 'ada')?.planSource).toBe('given')
-    expect(now().status?.text).toBe('ada is on Pro now.')
-    await store.choose('ada', 'take-pro')
-    await store.confirm()
-    expect(fakes.changeUser).toHaveBeenLastCalledWith('ada', { intent: 'revoke-pro' })
-    expect(now().status?.text).toBe('ada is on Free now.')
   })
 
   it('keeps a confirm dialog open with its error when the server refuses', async () => {

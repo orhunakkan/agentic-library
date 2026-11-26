@@ -1,4 +1,4 @@
-import { Link, useRouteContext } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useId, useState } from 'react'
 import { AppLink } from '~/client/components/AppLink'
 import { TAB_MESSAGE, TabNotice } from '~/client/features/reader/TabNotice'
@@ -31,7 +31,6 @@ export function HighlightsTab({
   offline?: boolean
 }) {
   const id = useId()
-  const canExport = useRouteContext({ from: '__root__' }).viewer?.plan === 'pro'
   if (offline || api.state !== 'ready')
     return (
       <TabNotice
@@ -94,16 +93,14 @@ export function HighlightsTab({
         </section>
       )}
       <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-r-line px-1 pt-4 text-[13.5px]">
-        {canExport && (
-          <a
-            href={`/account/highlights/export/${view.book.slug}`}
-            download
-            data-testid="highlights-export"
-            className="font-medium text-r-accent underline-offset-2 hover:underline"
-          >
-            Export as Markdown
-          </a>
-        )}
+        <a
+          href={`/account/highlights/export/${view.book.slug}`}
+          download
+          data-testid="highlights-export"
+          className="font-medium text-r-accent underline-offset-2 hover:underline"
+        >
+          Export as Markdown
+        </a>
         <Link
           to="/account/highlights"
           data-testid="highlights-all"

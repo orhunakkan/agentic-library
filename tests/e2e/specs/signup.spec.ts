@@ -136,7 +136,7 @@ test.describe('Sign up', () => {
     await expect(usersPage.actionsButton(username)).toBeVisible()
   })
 
-  test('the Privacy, Terms and Refunds pages, from /signup and from both footers', async ({ page, signupPage }) => {
+  test('the Privacy and Terms pages, from /signup and from both footers', async ({ page, signupPage }) => {
     await signupPage.goto()
     await hydrated(page)
     await page.getByRole('main').getByRole('link', { name: 'Privacy' }).click()
@@ -173,19 +173,28 @@ test.describe('Sign up', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Terms' })).toBeVisible()
     await expect(page.getByRole('main')).toContainText('Folio is run by Orhun Akkan')
     await expect(page.getByRole('main').getByRole('link', { name: 'privacy@folio.test' })).toBeVisible()
-    await expectAccessible(page)
-    await page.goto('/')
-    await hydrated(page)
-    await page.getByRole('contentinfo').getByRole('link', { name: 'Refunds' }).click()
-    await expect(page).toHaveURL(/\/refunds$/)
-    await hydrated(page)
     await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText([
-      '14 days, in full',
-      'How to ask',
-      'Cancelling',
+      'Who you’re dealing with',
+      'Your own API keys',
+      'Using Folio',
+      'No warranty',
+      'Changes to these terms',
       'Questions',
     ])
+    await expect(page.getByRole('main')).not.toContainText(/\$\d|\bPro\b|subscription/)
     await expectAccessible(page)
+    await page.goto('/privacy')
+    await hydrated(page)
+    await expect(page.getByRole('main')).not.toContainText(/\bPro\b|subscription/)
+    await page.goto('/library')
+    await hydrated(page)
+    await expect(page.getByTestId('footer-link')).toHaveText([
+      'Browse the library',
+      'About Folio',
+      'Privacy',
+      'Terms',
+      'Credits',
+    ])
   })
 
   test('the link pages are never stored, and a foreign post is refused', { tag: '@http' }, async ({ request }) => {

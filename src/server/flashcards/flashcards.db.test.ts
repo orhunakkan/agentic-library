@@ -11,7 +11,7 @@ vi.mock('~/server/db', async (importOriginal) => {
 })
 
 import { type BookRef, refFor } from '~/server/books/ref'
-import { handleCardChange, handleCardSave } from '~/server/flashcards/actions'
+import { handleCardChange, handleCardSave, handleFlashcardsForm } from '~/server/flashcards/actions'
 import { bookFlashcardsState, flashcardBooksState } from '~/server/flashcards/page'
 import { bookCards, cardBooks, dueCards, reviewCard, saveCard } from '~/server/flashcards/store'
 import { hashToken, newSessionToken } from '~/server/security'
@@ -40,6 +40,7 @@ const PRIDE: BookRef = refFor('pride-and-prejudice')
 const DAY = 86_400_000
 
 let users = 0
+/** A plain member: no grant and no subscription, so every case shows Flashcards work for any account. */
 async function signedIn() {
   const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()
@@ -226,6 +227,48 @@ describe('POST /account/flashcards/<id>', () => {
     expect(await answer(await change(owner.cookie, 'not-a-uuid', { delete: true }))).toEqual([404, 'not_found'])
     expect(await answer(await change(null, card.id, { delete: true }))).toEqual([401, 'signed_out'])
     expect(await answer(await change(owner.cookie, card.id, { intent: 'delete' }))).toEqual([400, 'invalid'])
+  })
+})
+
+describe('POST /account/flashcards, the form', () => {
+  const form = (cookie: string, body: string) =>
+    handleFlashcardsForm(
+      new Request(`${origin}/account/flashcards`, {
+        method: 'POST',
+        headers: { origin, cookie, 'content-type': 'application/x-www-form-urlencoded' },
+        body,
+      }),
+    )
+
+  it('deletes a book’s cards, and answers a missing book or an unknown intent on the page', async () => {
+    const { cookie } = await signedIn()
+    await saved(cookie)
+    await saved(cookie, { front: 'Who is Elizabeth?' })
+    const deleted = await form(cookie, 'intent=delete-book&book=pride-and-prejudice')
+    expect([deleted.status, deleted.headers.get('location')]).toEqual([303, '/account/flashcards?status=deleted-book'])
+    expect((await raw`select 1 from flashcards`).count).toBe(0)
+    expect((await form(cookie, 'intent=delete-book&book=pride-and-prejudice')).headers.get('location')).toBe(
+      '/account/flashcards?error=missing',
+    )
+    expect((await form(cookie, 'intent=other&book=pride-and-prejudice')).headers.get('location')).toBe(
+      '/account/flashcards?error=invalid',
+    )
+  })
+
+  it('answers a failing database on the page, logged', async () => {
+    const { cookie } = await signedIn()
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const broken = (() => {
+      throw new Error('the database went away')
+    }) as unknown as Pool
+    try {
+      vi.mocked(getDb).mockReturnValueOnce(getDb()).mockReturnValueOnce(broken)
+      const failed = await form(cookie, 'intent=delete-book&book=pride-and-prejudice')
+      expect(failed.headers.get('location')).toBe('/account/flashcards?error=unavailable')
+      expect(errors.mock.calls.map((call) => String(call[0]))).toEqual([expect.stringMatching(/^\[flashcards form\] /)])
+    } finally {
+      errors.mockRestore()
+    }
   })
 })
 

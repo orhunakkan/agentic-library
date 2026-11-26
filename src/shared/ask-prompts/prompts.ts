@@ -1,6 +1,5 @@
 import { cleanText } from '../import/blocks.ts'
 import { isOneOf } from '../lib/json-shape.ts'
-import type { Plan } from '../plans/plans.ts'
 import { isUuid } from '../uuid.ts'
 
 export const MAX_ASK_PROMPTS = 20
@@ -25,12 +24,12 @@ export interface AskPromptChoice {
   appliesTo: AppliesTo
 }
 
-export type PromptErrorCode = 'signed_out' | 'not_found' | 'invalid' | 'exists' | 'quota' | 'pro' | 'failed'
+export type PromptErrorCode = 'signed_out' | 'not_found' | 'invalid' | 'exists' | 'quota' | 'failed'
 
 export type AskPromptsState =
   | { state: 'signed_out' }
   | { state: 'unavailable' }
-  | { state: 'ready'; plan: Plan; prompts: AskPromptView[] }
+  | { state: 'ready'; prompts: AskPromptView[] }
 
 export interface PromptFields {
   name: string

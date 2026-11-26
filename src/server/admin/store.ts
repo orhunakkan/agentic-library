@@ -1,16 +1,10 @@
 import '@tanstack/react-start/server-only'
 import { type EmailStatus, emailStatus } from '../../shared/admin/users.ts'
-import { PRO_STATUSES } from '../../shared/billing/billing.ts'
-import type { PaidLabel } from '../../shared/plans/copy.ts'
 import { endedDetail, endUserAccess } from '../access-tokens/store.ts'
 import { forgetUserAudio } from '../audiobooks/files.ts'
 import { recordEvent } from '../audit.ts'
-import { cancelNow, getSubscription, type PaddleOptions } from '../billing/paddle-api.ts'
-import { billableSubscriptions, detachUser } from '../billing/store.ts'
-import { getConfig } from '../config.ts'
 import type { Db, Pool } from '../db.ts'
 import { usernameLockedUntil } from '../login-attempts.ts'
-import { logError } from '../redact.ts'
 import { SESSION_IDLE } from '../sessions.ts'
 import { createUser, type Role, type User } from '../users.ts'
 
@@ -35,47 +29,18 @@ async function lockForChange(tx: Db, userId: number): Promise<{ target: Target; 
   }
 }
 
-export type DeleteResult = 'deleted' | 'last_admin' | 'missing' | 'billing_failed'
-
-export interface DeleteOptions {
-  skipBilling?: boolean
-  paddle?: PaddleOptions
-}
-
-async function cancelBilling(db: Db, userId: number, paddle: PaddleOptions = {}): Promise<boolean> {
-  if (!(paddle.config ?? getConfig().billing)) return true
-  for (const id of await billableSubscriptions(db, userId)) {
-    try {
-      await cancelNow(id, paddle)
-    } catch (error) {
-      const status = await getSubscription(id, paddle).then(
-        (entity) => (entity as { status?: unknown } | null)?.status,
-        () => null,
-      )
-      if (status === 'canceled') continue
-      logError('cancel subscription before deleting an account', error)
-      return false
-    }
-  }
-  return true
-}
+export type DeleteResult = 'deleted' | 'last_admin' | 'missing'
 
 export async function deleteAccount(
   pool: Pool,
   userId: number,
   audit: { ip?: string | null; detail: Record<string, unknown> },
-  options: DeleteOptions = {},
 ): Promise<DeleteResult> {
-  const early = await pool.begin(async (tx) => lockForChange(tx, userId))
-  if (!early) return 'missing'
-  if (early.onlyAdmin) return 'last_admin'
-  if (!options.skipBilling && !(await cancelBilling(pool, userId, options.paddle))) return 'billing_failed'
   const result = await pool.begin(async (tx): Promise<DeleteResult> => {
     const locked = await lockForChange(tx, userId)
     if (!locked) return 'missing'
     if (locked.onlyAdmin) return 'last_admin'
     const { target } = locked
-    await detachUser(tx, target.id)
     await tx`delete from users where id = ${target.id}`
     await tx`delete from login_attempts where username = ${target.username}`
     await recordEvent(tx, 'user.deleted', {
@@ -142,8 +107,6 @@ export interface AdminUserRow {
   sessions: number
   hasKey: boolean
   email: EmailStatus
-  given: boolean
-  paid: PaidLabel | null
   lockedUntil: Date | null
   you: boolean
 }
@@ -162,24 +125,13 @@ export async function listForAdmin(db: Db, viewerId: number, username?: string):
       has_key: boolean
       has_email: boolean
       email_bounced: boolean
-      given: boolean
-      paid_cadence: 'month' | 'year' | null
-      paid_founding: boolean | null
-      paid_status: string | null
     }[]
   >`
     select u.id, u.username, u.role, u.created_at, u.password_changed_at, u.disabled_at, live.last_active_at,
       coalesce(live.sessions, 0) as sessions,
       exists (select 1 from api_keys k where k.user_id = u.id) as has_key,
-      u.email is not null as has_email, u.email_bounced_at is not null as email_bounced,
-      u.pro_granted_at is not null as given,
-      paid.cadence as paid_cadence, paid.founding as paid_founding, paid.status as paid_status
+      u.email is not null as has_email, u.email_bounced_at is not null as email_bounced
     from users u
-    left join lateral (
-      select s.cadence, s.founding, s.status from subscriptions s
-      where s.user_id = u.id and s.status = any(${[...PRO_STATUSES]}::text[])
-      order by s.created_at desc limit 1
-    ) paid on true
     left join lateral (
       select max(s.last_seen_at) as last_active_at, count(*) as sessions from sessions s
       where s.user_id = u.id and s.expires_at > now() and s.last_seen_at > now() - ${SESSION_IDLE}::interval
@@ -198,14 +150,6 @@ export async function listForAdmin(db: Db, viewerId: number, username?: string):
       sessions: Number(user.sessions),
       hasKey: user.has_key,
       email: emailStatus(user.has_email, user.email_bounced),
-      given: user.given,
-      paid: user.paid_cadence
-        ? {
-            cadence: user.paid_cadence,
-            founding: user.paid_founding === true,
-            pastDue: user.paid_status === 'past_due',
-          }
-        : null,
       lockedUntil: await usernameLockedUntil(db, user.username),
       you: Number(user.id) === viewerId,
     })),

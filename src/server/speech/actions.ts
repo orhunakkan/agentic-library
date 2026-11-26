@@ -1,7 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { samePosition } from '../../shared/content/position.ts'
-import { canUse } from '../../shared/plans/plans.ts'
 import { sayMap, wordsFrom } from '../../shared/read-aloud/alignment.ts'
 import {
   primarySubtag,
@@ -16,7 +15,6 @@ import { hasKey, withApiKey } from '../api-keys.ts'
 import { noStoreJson } from '../auth.ts'
 import { openTextBook } from '../books/book.ts'
 import type { Db } from '../db.ts'
-import { requirePro } from '../plans/plan.ts'
 import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
 import { signedInEndpoints, signedInRead } from '../signed-in.ts'
@@ -102,7 +100,6 @@ export const handleSpeak = (request: Request, options: SpeechOptions = {}) =>
     request,
     {
       log: 'read aloud speech',
-      before: ({ session }) => requirePro(session, 'elevenlabs') ?? undefined,
       parse: parseSpeakInput,
     },
     async ({ session, db, input }) => {
@@ -155,7 +152,6 @@ export function speechVoicesState(
   options: ElevenLabsOptions = {},
 ): Promise<SpeechVoicesState> {
   return signedInRead(request, 'read aloud voices', async ({ session, db }): Promise<SpeechVoicesState> => {
-    if (!canUse(session.plan, 'elevenlabs')) return { state: 'pro' }
     if (!isBookSlug(book)) return { state: 'not_found' }
     const language = (await openTextBook(db, session.userId, book))?.language
     if (language === undefined) return { state: 'not_found' }

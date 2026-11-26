@@ -28,8 +28,6 @@ describe('problemText', () => {
     const cases: [AudiobookProblem, string][] = [
       [problem('server-full'), 'The server is short of space for audiobooks right now. Try again later.'],
       [problem('books'), 'You have 25 of your own books. Delete one to import another.'],
-      [problem('books-free'), 'Free includes 2 of your own books. Delete one, or go Pro for up to 25.'],
-      [problem('pro'), 'Uploading audiobooks is part of Pro.'],
       [problem('rate'), 'You’ve imported 10 books in the last hour. Try again later.'],
       [
         { code: 'server-unreadable', reason: 'it isn’t an M4B file' },

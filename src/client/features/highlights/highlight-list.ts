@@ -10,8 +10,6 @@ import type { PagePosition } from '~/shared/content/position'
 import { DEFAULT_COLOR, type HighlightColor } from '~/shared/highlights/colors'
 import type { HighlightPlace, HighlightView } from '~/shared/highlights/group'
 import { MAX_HIGHLIGHTS_PER_USER } from '~/shared/highlights/limits'
-import { highlightQuotaCopy } from '~/shared/plans/copy'
-import { FREE_LIMITS } from '~/shared/plans/plans'
 import type { HighlightProblem, NewHighlightRequest } from './highlights-client'
 
 export type HighlightsState = CollectionSnapshot<HighlightView>['state']
@@ -20,9 +18,7 @@ export type HighlightItem = Entry<HighlightView>
 
 export const PROBLEM_TEXT: Record<HighlightProblem, string> = {
   'quota-book': 'You’ve reached 1,000 highlights in this book.',
-  'quota-user': highlightQuotaCopy('pro', MAX_HIGHLIGHTS_PER_USER),
-  'quota-free': highlightQuotaCopy('free', FREE_LIMITS.highlights),
-  pro: 'Couldn’t save that. Try again.',
+  'quota-user': `You’ve reached ${MAX_HIGHLIGHTS_PER_USER.toLocaleString('en-GB')} highlights.`,
   stale: 'This page changed since it loaded. Reload it to highlight.',
   signed_out: 'You’ve been signed out. Sign in to keep highlights.',
   not_found: 'That highlight was already deleted.',

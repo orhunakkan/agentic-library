@@ -16,7 +16,6 @@ import { elevenLabsStub } from './elevenlabs-stub.ts'
 import { githubStub } from './github-stub.ts'
 import { openLibraryStub } from './open-library-stub.ts'
 import { openAiStub } from './openai-stub.ts'
-import { paddleStub } from './paddle-stub.ts'
 import { SEEDED } from './seed.ts'
 import { wikimediaStub } from './wikimedia-stub.ts'
 
@@ -76,30 +75,23 @@ try {
 }
 await migrate({ url })
 const sql = postgres(url, { max: 2, onnotice: () => {} })
-await sql`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, user_book_covers, user_book_images, user_book_audio_files, user_book_audio_chapters, highlights, bookmarks, flashcards, audio_bookmarks, reading_places, listening_places, reader_settings, shelves, shelf_books, removed_books, email_tokens, signup_tokens, speech_usage, subscriptions, paddle_events, passkeys, passkey_challenges, access_tokens, github_repos, reading_time, finished_books, reading_goals, book_ratings, ask_prompts restart identity cascade`
+await sql`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, user_book_covers, user_book_images, user_book_audio_files, user_book_audio_chapters, highlights, bookmarks, flashcards, audio_bookmarks, reading_places, listening_places, reader_settings, shelves, shelf_books, removed_books, email_tokens, signup_tokens, speech_usage, passkeys, passkey_challenges, access_tokens, github_repos, reading_time, finished_books, reading_goals, book_ratings, ask_prompts restart identity cascade`
 for (const user of Object.values(SEEDED)) {
   await sql`
-    insert into users (username, password_hash, role, pro_granted_at)
-    values (${user.username}, ${await hashPassword(user.password)}, ${user.role},
-      ${user.role === 'member' ? new Date() : null})`
+    insert into users (username, password_hash, role)
+    values (${user.username}, ${await hashPassword(user.password)}, ${user.role})`
 }
 
 async function createTestUser(request: Request): Promise<Response> {
-  const {
-    role = 'member',
-    signedIn = false,
-    plan = 'pro',
-  } = (await request.json().catch(() => ({}))) as {
+  const { role = 'member', signedIn = false } = (await request.json().catch(() => ({}))) as {
     role?: string
     signedIn?: boolean
-    plan?: 'free' | 'pro'
   }
   const username = `e2e-${randomBytes(6).toString('hex')}`
   const password = `e2e password ${randomBytes(6).toString('hex')}`
   const [user] = await sql<{ id: number }[]>`
-    insert into users (username, password_hash, role, pro_granted_at)
-    values (${username}, ${await hashPassword(password)}, ${role},
-      ${plan === 'pro' && role === 'member' ? new Date() : null})
+    insert into users (username, password_hash, role)
+    values (${username}, ${await hashPassword(password)}, ${role})
     returning id`
   if (!user) throw new Error('/test-users: the insert returned no row')
   const headers = signedIn ? { 'set-cookie': await startSession(sql, request, user.id) } : undefined
@@ -138,14 +130,6 @@ function capturedMail(request: Request): Response {
   return Response.json(messages, { headers: { 'cache-control': 'no-store' } })
 }
 
-const paddle = paddleStub(
-  new URL(process.env.PADDLE_API_BASE ?? 'http://127.0.0.1').origin,
-  process.env.PADDLE_WEBHOOK_SECRET ?? '',
-  {
-    founding: process.env.PADDLE_PRICE_FOUNDING ?? '',
-  },
-)
-
 await startServer([
   (request, next) => {
     const path = new URL(request.url).pathname
@@ -157,7 +141,6 @@ await startServer([
     if (path.startsWith('/test-wikimedia/')) return wikimediaStub(request)
     if (path.startsWith('/test-github/')) return githubStub(request)
     if (path.startsWith('/test-articles/')) return articlesStub(request)
-    if (path.startsWith('/test-paddle/')) return paddle(request)
     if (path === '/test-users' && request.method === 'POST') return createTestUser(request)
     if (path === '/test-mail/messages') return capturedMail(request)
     return next()

@@ -1,14 +1,12 @@
 import { type BookStart, startedOf } from '~/client/features/import/import-client'
 import { type ChangeResult, post } from '~/client/lib/post'
 import type { ArticleFetch, ArticleUrlProblem, WebFetchProblem } from '~/shared/articles/contract'
-import { isPlan, type Plan } from '~/shared/plans/plans'
 import type { ArticleProblem } from './article-messages'
 
 export interface ArticleFailure {
   problem: ArticleProblem
   existingId?: string
   retryAt?: string | null
-  plan?: Plan
   max?: number
 }
 
@@ -61,12 +59,7 @@ export async function readArticleAnswer<T>(
   if (problem === 'exists' && typeof body.id === 'string') return failed({ problem, existingId: body.id })
   if (problem === 'limited') return failed({ problem, retryAt: typeof body.retryAt === 'string' ? body.retryAt : null })
   if (problem === 'quota' && body.scope !== 'articles') return failed({ problem: 'failed' })
-  if (problem === 'quota')
-    return failed({
-      problem,
-      plan: isPlan(body.plan) ? body.plan : undefined,
-      max: typeof body.max === 'number' ? body.max : undefined,
-    })
+  if (problem === 'quota') return failed({ problem, max: typeof body.max === 'number' ? body.max : undefined })
   return failed({ problem })
 }
 

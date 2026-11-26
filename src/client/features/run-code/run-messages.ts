@@ -98,6 +98,6 @@ export const openLabel = (lang: RunLang): string => `Run ${titleText(lang)}`
 
 export const TYPESCRIPT_NOTE = 'Types aren’t checked here. They’re removed, and the code runs as JavaScript.'
 export const OUTPUT_EMPTY = 'Output appears here.'
-export const SIGNED_OUT_TEXT = 'Sign in to run code. Running code is part of Pro.'
+export const SIGNED_OUT_TEXT = 'Sign in to run code.'
 export const ROWS_CUT = (rows: number) => `Only the first ${rows} rows are shown.`
 export const COLUMNS_CUT = (columns: number) => `Only the first ${columns} columns are shown.`

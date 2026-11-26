@@ -1,13 +1,13 @@
 import type { ChapterProblem } from '~/shared/import/draft'
-import { MAX_CHAPTERS } from '~/shared/import/limits'
-import { bookQuotaCopy } from '~/shared/plans/copy'
-import { FREE_LIMITS, PRO_LIMITS } from '~/shared/plans/plans'
+import { MAX_BOOKS, MAX_CHAPTERS } from '~/shared/import/limits'
 import type { ImportProblem } from './import-client'
 import type { PrivateBookResult } from './private-book-save'
 
+/** What a reader at the book limit is told, whether they pick a book or an audiobook. */
+export const BOOK_QUOTA_TEXT = `You have ${MAX_BOOKS} of your own books. Delete one to import another.`
+
 export const IMPORT_PROBLEM_TEXT: Record<ImportProblem, string> = {
-  quota: bookQuotaCopy('pro', PRO_LIMITS.books),
-  'quota-free': bookQuotaCopy('free', FREE_LIMITS.books),
+  quota: BOOK_QUOTA_TEXT,
   'quota-user': 'This book’s pictures no longer fit the room left in your library. Choose the file again to review it.',
   rate: 'You’ve imported 10 books in the last hour. Try again later.',
   'book-too-large': 'This book is over 8 MB of text, the most a book can hold. Drop some chapters and try again.',

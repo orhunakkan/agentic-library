@@ -45,7 +45,6 @@ export async function readAccount(db: Db, userId: number): Promise<AccountRows |
     ratings,
     askPrompts,
     speechUsage,
-    subscriptions,
     readingTime,
     finishedBooks,
     readingGoals,
@@ -250,19 +249,6 @@ export async function readAccount(db: Db, userId: number): Promise<AccountRows |
       where user_id = ${userId} order by position, created_at, id`,
     db<{ minute: Date; characters: number; requests: number }[]>`
       select minute, characters, requests from speech_usage where user_id = ${userId} order by minute`,
-    db<
-      {
-        status: string
-        cadence: string
-        founding: boolean
-        period_ends_at: Date | null
-        cancel_at: Date | null
-        canceled_at: Date | null
-        created_at: Date
-      }[]
-    >`
-      select status, cadence, founding, period_ends_at, cancel_at, canceled_at, created_at from subscriptions
-      where user_id = ${userId} order by created_at`,
     db<{ day: string; reading: string; listening: string }[]>`
       select day::text as day,
         coalesce(sum(seconds) filter (where kind = 'reading'), 0) as reading,
@@ -440,15 +426,6 @@ export async function readAccount(db: Db, userId: number): Promise<AccountRows |
       updatedAt: askPrompt.updated_at,
     })),
     speechUsage,
-    subscriptions: subscriptions.map((subscription) => ({
-      status: subscription.status,
-      cadence: subscription.cadence,
-      founding: subscription.founding,
-      periodEndsAt: subscription.period_ends_at,
-      cancelAt: subscription.cancel_at,
-      canceledAt: subscription.canceled_at,
-      createdAt: subscription.created_at,
-    })),
     readingTime: readingTime.map((r) => ({
       day: r.day,
       readingSeconds: Number(r.reading),

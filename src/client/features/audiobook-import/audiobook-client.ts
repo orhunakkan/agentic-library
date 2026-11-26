@@ -35,9 +35,8 @@ export function problemOf(status: number, body: Body): AudiobookProblem {
     if (body.scope === 'server') return problem('server-full')
     if (body.scope === 'audio') return problem('room')
     if (body.scope === 'rate') return problem('rate')
-    return problem(body.plan === 'free' ? 'books-free' : 'books')
+    return problem('books')
   }
-  if (status === 403 && body.error === 'pro') return problem('pro')
   if (body.error === 'drm') return problem('drm')
   if (body.error === 'unreadable')
     return { code: 'server-unreadable', reason: typeof body.reason === 'string' ? body.reason : 'it couldn’t be read' }

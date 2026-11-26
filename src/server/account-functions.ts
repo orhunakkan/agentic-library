@@ -3,7 +3,6 @@ import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import type { ArticlesState } from '~/shared/articles/contract'
 import type { AskPromptsState } from '~/shared/ask-prompts/prompts'
-import type { PlanState } from '~/shared/billing/billing'
 import { privateBookSlug, refFor } from '~/shared/content/book-slug'
 import { chapterPageHref } from '~/shared/content/navigation'
 import {
@@ -37,7 +36,6 @@ import { askPromptsState } from './ask-prompts/actions.ts'
 import { audiobooksOn } from './audiobooks/files.ts'
 import { audioBytesUsed, loadAudiobook } from './audiobooks/store.ts'
 import { loginHref, readSessionToken, sessionForRequest, viewerForRequest } from './auth.ts'
-import { planStateFor } from './billing/actions.ts'
 import { imageBytesUsed } from './book-images/store.ts'
 import { type AudioBookmarksState, audioBookmarksState } from './bookmarks/audio-actions.ts'
 import { bookBookmarksState } from './bookmarks/read.ts'
@@ -53,7 +51,6 @@ import { bookHighlightsState } from './highlights/read.ts'
 import { mailAvailable } from './mail/mail.ts'
 import { listPasskeys } from './passkeys/store.ts'
 import { toPasskeyView } from './passkeys/view.ts'
-import { planUsage } from './plans/plan.ts'
 import { getRating } from './ratings/store.ts'
 import { statsState, summaryState } from './reading-stats/read.ts'
 import { hashToken } from './security.ts'
@@ -85,24 +82,15 @@ async function requireSession(next: string) {
 
 export const getAccountPage = createServerFn({ method: 'GET' }).handler(async () => {
   const { session, tokenHash } = await requireSession('/account')
-  const [sessions, email, usage, planState, passkeys, accessTokens] = await Promise.all([
+  const [sessions, email, passkeys, accessTokens] = await Promise.all([
     listSessions(getDb(), session.userId, tokenHash),
     emailSection(session.userId),
-    planUsage(getDb(), session.userId),
-    planStateFor(session),
     listPasskeys(getDb(), session.userId),
     listAccessTokens(getDb(), session.userId),
   ])
   return {
     username: session.username,
     role: session.role,
-    plan: {
-      plan: session.plan,
-      source: usage?.source ?? (session.plan === 'pro' ? 'given' : 'free'),
-      bookCount: usage?.books ?? 0,
-      highlightCount: usage?.highlights ?? 0,
-      subscription: planState.subscription,
-    },
     email: email && {
       confirmed: email.confirmed && {
         email: email.confirmed.email,
@@ -122,11 +110,6 @@ export const getAccountPage = createServerFn({ method: 'GET' }).handler(async ()
     })),
     accessTokens: accessTokens.map((t) => toAccessTokenView(t)),
   }
-})
-
-export const getPlanPage = createServerFn({ method: 'GET' }).handler(async (): Promise<PlanState> => {
-  const { session } = await requireSession('/account/plan')
-  return planStateFor(session)
 })
 
 const tokenInput = (data: { token?: unknown }) => ({
@@ -189,7 +172,6 @@ export const getMyBooksPage = createServerFn({ method: 'GET' }).handler(async ()
     imageBytesUsed: await imageBytesUsed(getDb(), session.userId),
     audiobooks: await audiobooksOn(),
     audioBytesUsed: await audioBytesUsed(getDb(), session.userId),
-    plan: session.plan,
     bookCount: await countedBooks(getDb(), session.userId),
     articleIds: (await listArticles(getDb(), session.userId)).map((a) => a.id),
     books: books.map((book) => ({

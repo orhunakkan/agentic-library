@@ -190,17 +190,6 @@ const rows = (): AccountRows => ({
     },
   ],
   speechUsage: [{ minute: at(21), characters: 1234, requests: 12 }],
-  subscriptions: [
-    {
-      status: 'active',
-      cadence: 'year',
-      founding: true,
-      periodEndsAt: at(30),
-      cancelAt: null,
-      canceledAt: null,
-      createdAt: at(23),
-    },
-  ],
   readingTime: [
     { day: '2026-11-06', readingSeconds: 1800, listeningSeconds: 600 },
     { day: '2026-11-05', readingSeconds: 60, listeningSeconds: 0 },
@@ -260,7 +249,6 @@ describe('toAccountExport', () => {
       'ratings',
       'askPrompts',
       'speechUsage',
-      'subscriptions',
       'readingTime',
       'finishedBooks',
       'readingGoals',
@@ -396,17 +384,6 @@ describe('toAccountExport', () => {
       },
     ])
     expect(keysOf(out.speechUsage[0])).toEqual(['minute', 'characters', 'requests'])
-    expect(out.subscriptions).toEqual([
-      {
-        status: 'active',
-        cadence: 'year',
-        founding: true,
-        periodEndsAt: '2026-11-06T12:30:00.000Z',
-        cancelAt: null,
-        canceledAt: null,
-        createdAt: '2026-11-06T12:23:00.000Z',
-      },
-    ])
     expect(out.readingTime).toEqual([
       { day: '2026-11-06', readingSeconds: 1800, listeningSeconds: 600 },
       { day: '2026-11-05', readingSeconds: 60, listeningSeconds: 0 },

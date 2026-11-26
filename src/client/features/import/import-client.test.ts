@@ -42,8 +42,7 @@ describe('startBook', () => {
 
   it.each([
     [409, { error: 'quota' }, 'quota'],
-    [409, { error: 'quota', scope: 'books', max: 25, plan: 'pro' }, 'quota'],
-    [409, { error: 'quota', scope: 'books', max: 2, plan: 'free' }, 'quota-free'],
+    [409, { error: 'quota', scope: 'books', max: 25 }, 'quota'],
     [409, { error: 'quota', scope: 'user', max: 1 }, 'quota-user'],
     [429, { error: 'rate' }, 'rate'],
     [401, { error: 'signed-out' }, 'signed-out'],

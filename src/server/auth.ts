@@ -1,5 +1,4 @@
 import '@tanstack/react-start/server-only'
-import type { Plan } from '../shared/plans/plans.ts'
 import { parseAuthorization } from './access-tokens/input.ts'
 import { findAccessToken, type TokenUser } from './access-tokens/store.ts'
 import { getConfig } from './config.ts'
@@ -13,7 +12,6 @@ import type { Role } from './users.ts'
 export interface Viewer {
   username: string
   role: Role
-  plan: Plan
 }
 
 export const NO_STORE = 'private, no-store'
@@ -137,13 +135,13 @@ export function handleMe(request: Request): Promise<Response> {
   return signedInEndpoints({ via: 'api', maxBytes: 0 }).post(
     request,
     { log: 'me', body: 'none' },
-    async ({ session: { username, role, plan }, via }) => noStoreJson(200, { username, role, plan, via }),
+    async ({ session: { username, role }, via }) => noStoreJson(200, { username, role, via }),
   )
 }
 
 export async function viewerForRequest(request: Request): Promise<Viewer | null> {
   const session = await sessionForRequest(request)
-  return session && { username: session.username, role: session.role, plan: session.plan }
+  return session && { username: session.username, role: session.role }
 }
 
 export function seeOther(location: string, headers: Record<string, string> = {}): Response {

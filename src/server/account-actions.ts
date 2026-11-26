@@ -3,7 +3,6 @@ import { isAiModel } from '../shared/lib/ai-models.ts'
 import { isOneOf } from '../shared/lib/json-shape.ts'
 import { DEFAULT_AFTER_SIGN_IN, safeNext } from '../shared/lib/safe-next.ts'
 import { isSpeechModel } from '../shared/lib/speech-models.ts'
-import { canUse, type ProFeature } from '../shared/plans/plans.ts'
 import { isTokenId } from './access-tokens/input.ts'
 import { endedDetail, endUserAccess, revokeAccessToken } from './access-tokens/store.ts'
 import { deleteAccount } from './admin/store.ts'
@@ -127,7 +126,6 @@ export const handleAccount = (request: Request) =>
           return seeOther('/account?error=delete-current#delete')
         const result = await deleteAccount(db, session.userId, { ip, detail: { via: 'account page' } })
         if (result === 'last_admin') return seeOther('/account?error=last-admin#delete')
-        if (result === 'billing_failed') return seeOther('/account?error=delete-billing#delete')
         return seeOther('/login?status=account-deleted', { 'set-cookie': clearSessionCookie() })
       }
       case 'passkey-remove': {
@@ -172,8 +170,6 @@ export interface ApiKeysOptions {
 type KeyShapeProblem = 'shape' | 'anthropic' | 'openai'
 
 interface ProviderKeyRules {
-  /** The plan feature a key needs before it can be saved; null when any plan can save one. */
-  feature: ProFeature | null
   shape: (key: string) => KeyShapeProblem | null
   check: (
     key: string,
@@ -183,17 +179,14 @@ interface ProviderKeyRules {
 
 const KEY_RULES: Record<Provider, ProviderKeyRules> = {
   anthropic: {
-    feature: null,
     shape: (key) => (isAnthropicKeyShape(key) ? null : isOpenAiKeyShape(key) ? 'openai' : 'shape'),
     check: (key, options) => checkAnthropicKey(key, getConfig().anthropicApiBase, options.fetch),
   },
   openai: {
-    feature: 'ask',
     shape: (key) => (isOpenAiKeyShape(key) ? null : key.startsWith('sk-ant-') ? 'anthropic' : 'shape'),
     check: (key, options) => checkOpenAiKey(key, getConfig().openAiApiBase, options.fetch),
   },
   elevenlabs: {
-    feature: 'elevenlabs',
     shape: elevenLabsKeyProblem,
     check: (key, options) => checkElevenLabsKey(key, { fetch: options.fetch }),
   },
@@ -217,7 +210,6 @@ export function handleApiKeys(request: Request, options: ApiKeysOptions = {}): P
     if (!isOneOf(provider, PROVIDERS)) return seeOther(`${page}?error=invalid`)
     if (intent !== 'save' && intent !== 'delete') return back(provider, 'error=invalid')
     const rules = KEY_RULES[provider]
-    if (intent === 'save' && rules.feature && !canUse(session.plan, rules.feature)) return back(provider, 'error=pro')
     const key = formField(form, 'key').trim()
     const shape = intent === 'save' ? rules.shape(key) : null
     if (shape) return back(provider, `error=${shape}`)

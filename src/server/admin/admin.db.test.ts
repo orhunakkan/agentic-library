@@ -1,5 +1,5 @@
 import postgres from 'postgres'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { getConfig } from '~/server/config'
 import { closeDb, getDb, type Pool } from '~/server/db'
 
@@ -11,7 +11,7 @@ vi.mock('~/server/db', async (importOriginal) => {
 import { handleLogin } from '~/server/account-actions'
 import { USER_TABLES } from '~/server/account-data/export'
 import { handleNewUser, handleUserChange, usersForAdmin } from '~/server/admin/actions'
-import { deleteAccount, listForAdmin, setDisabledGuarded, setRole } from '~/server/admin/store'
+import { type DeleteResult, deleteAccount, listForAdmin, setDisabledGuarded, setRole } from '~/server/admin/store'
 import { sessionForRequest } from '~/server/auth'
 import { recordAttempt } from '~/server/login-attempts'
 import { hashPassword } from '~/server/passwords'
@@ -20,8 +20,7 @@ import { createSession, findSession } from '~/server/sessions'
 import { createUser, findUserByUsername, type Role } from '~/server/users'
 import type { AdminUserView } from '~/shared/admin/users'
 import { databaseUrl, freshDatabase } from '../testing/db'
-import { TEST_BILLING } from '../testing/paddle'
-import { KEPT_WITHOUT_USER, ROWS_PER_USER, userWithEveryRow } from '../testing/user-rows'
+import { ROWS_PER_USER, userWithEveryRow } from '../testing/user-rows'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
 const db = () => getDb()
@@ -32,7 +31,7 @@ afterAll(async () => {
   await closeDb()
 })
 beforeEach(async () => {
-  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, user_book_covers, user_book_images, highlights, bookmarks, flashcards, audio_bookmarks, reading_places, listening_places, reader_settings, shelves, shelf_books, email_tokens, subscriptions restart identity cascade`
+  await raw`truncate users, sessions, login_attempts, api_keys, audit_events, user_books, user_book_covers, user_book_images, highlights, bookmarks, flashcards, audio_bookmarks, reading_places, listening_places, reader_settings, shelves, shelf_books, email_tokens restart identity cascade`
 })
 
 const HASH = '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA'
@@ -57,8 +56,10 @@ describe('the foreign keys to users and user_books', () => {
       order by 2, 1`
     const expected = [
       'users set null',
+      /** The billing table release 2 drops (spec/SPEC-billing-removal.md); nothing reads or writes it until then. */
+      'subscriptions set null',
       ...Object.keys(USER_TABLES).flatMap((table) =>
-        table === 'audit_events' || table === 'subscriptions'
+        table === 'audit_events'
           ? [`${table} set null`]
           : table === 'signup_tokens'
             ? [`${table} cascade`, `${table} set null`]
@@ -84,11 +85,6 @@ describe('deleteAccount', () => {
     expect(await findUserByUsername(db(), 'gone')).toBeNull()
     for (const [table, rows] of Object.entries(ROWS_PER_USER))
       expect([table, await count(table)]).toEqual([table, rows])
-    for (const [table, rows] of Object.entries(KEPT_WITHOUT_USER))
-      expect([table, await count(table)]).toEqual([table, rows * 2])
-    expect(await raw`select user_id, customer_id from subscriptions where id = 'sub_01gone'`).toEqual([
-      { user_id: null, customer_id: null },
-    ])
     expect((await raw`select 1 from login_attempts where username = 'gone'`).count).toBe(0)
     expect((await raw`select 1 from user_books where id = ${kept.bookId}`).count).toBe(1)
 
@@ -118,113 +114,19 @@ describe('deleteAccount', () => {
   })
 })
 
-describe('deleteAccount with a Pro subscription', () => {
-  const config = getConfig() as { billing: typeof TEST_BILLING | null }
-  beforeEach(() => {
-    config.billing = TEST_BILLING
-  })
-  afterAll(() => {
-    config.billing = null
-  })
-
-  const subscribe = (userId: number, id: string, status = 'active', founding = true) => raw`
-    insert into subscriptions (id, user_id, customer_id, price_id, cadence, founding, status, event_at)
-    values (${id}, ${userId}, 'ctm_01payer', 'pri_01testfounding', 'year', ${founding}, ${status}, now())`
-
-  function paddle(...answers: Response[]) {
-    const calls: string[] = []
-    const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      calls.push(`${init?.method ?? 'GET'} ${String(input)}`)
-      return answers.shift() ?? new Response('{}', { status: 500 })
-    }) as typeof globalThis.fetch
-    return { calls, options: { paddle: { fetch } } }
-  }
-  const ok = (data: object) => Response.json({ data, meta: {} })
-
-  it('cancels a live subscription at Paddle before the account goes, and keeps the row as a founder', async () => {
-    const user = await newUser('payer')
-    await subscribe(user.id, 'sub_01live')
-    await subscribe(user.id, 'sub_01ended', 'canceled')
-    const { calls, options } = paddle(ok({ id: 'sub_01live', status: 'canceled' }))
-    expect(await deleteAccount(getDb(), user.id, { detail: { via: 'account page' } }, options)).toBe('deleted')
-    expect(calls).toEqual(['POST http://paddle.test/subscriptions/sub_01live/cancel'])
-    expect(await findUserByUsername(db(), 'payer')).toBeNull()
-    expect(await raw`select id, user_id, customer_id, founding from subscriptions order by id`).toEqual([
-      { id: 'sub_01ended', user_id: null, customer_id: null, founding: true },
-      { id: 'sub_01live', user_id: null, customer_id: null, founding: true },
-    ])
-    expect(Number((await raw<{ n: string }[]>`select count(*) as n from subscriptions where founding`)[0]?.n)).toBe(2)
-  })
-
-  it('refuses the deletion and keeps the account when Paddle can’t cancel', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const user = await newUser('payer')
-    await subscribe(user.id, 'sub_01live', 'past_due')
-    const refused = Response.json({ error: { code: 'internal_error' } }, { status: 500 })
-    const { calls, options } = paddle(refused, ok({ id: 'sub_01live', status: 'past_due' }))
-    expect(await deleteAccount(getDb(), user.id, { detail: { via: 'account page' } }, options)).toBe('billing_failed')
-    expect(calls).toEqual([
-      'POST http://paddle.test/subscriptions/sub_01live/cancel',
-      'GET http://paddle.test/subscriptions/sub_01live',
-    ])
-    expect(await findUserByUsername(db(), 'payer')).not.toBeNull()
-    expect(await raw`select user_id from subscriptions`).toEqual([{ user_id: String(user.id) }])
-    expect(await count('audit_events')).toBe(0)
-    expect(String(error.mock.calls[0]?.[0])).toContain('Paddle API 500 internal_error')
-    error.mockRestore()
-  })
-
-  it('refuses the deletion when Paddle can’t be reached at all', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const user = await newUser('payer')
-    await subscribe(user.id, 'sub_01live')
-    const fetch = (async () => {
-      throw new TypeError('fetch failed')
-    }) as unknown as typeof globalThis.fetch
-    expect(await deleteAccount(getDb(), user.id, { detail: { via: 'users page' } }, { paddle: { fetch } })).toBe(
-      'billing_failed',
-    )
-    expect(await findUserByUsername(db(), 'payer')).not.toBeNull()
-    expect(String(error.mock.calls[0]?.[0])).toContain('Paddle API unreachable')
-    error.mockRestore()
-  })
-
-  it('goes ahead when Paddle says the subscription had already ended', async () => {
-    const user = await newUser('payer')
-    await subscribe(user.id, 'sub_01live')
-    const locked = Response.json({ error: { code: 'subscription_locked_pending_changes' } }, { status: 409 })
-    const { options } = paddle(locked, ok({ id: 'sub_01live', status: 'canceled' }))
-    expect(await deleteAccount(getDb(), user.id, { detail: { via: 'users page' } }, options)).toBe('deleted')
-  })
-
-  it('leaves the subscription to Paddle with --skip-billing, or with billing off', async () => {
-    const one = await newUser('one')
-    await subscribe(one.id, 'sub_01one')
-    const watched = paddle()
-    expect(
-      await deleteAccount(
-        getDb(),
-        one.id,
-        { detail: { via: 'users script' } },
-        { skipBilling: true, ...watched.options },
-      ),
-    ).toBe('deleted')
-    config.billing = null
-    const two = await newUser('two')
-    await subscribe(two.id, 'sub_01two')
-    expect(await deleteAccount(getDb(), two.id, { detail: { via: 'users script' } }, watched.options)).toBe('deleted')
-    expect(watched.calls).toEqual([])
-    expect(await raw`select user_id from subscriptions`).toEqual([{ user_id: null }, { user_id: null }])
-  })
-
-  it('doesn’t call Paddle for the only admin, who can’t be deleted', async () => {
-    const admin = await newUser('only', 'admin')
-    await subscribe(admin.id, 'sub_01admin')
-    const watched = paddle()
-    expect(await deleteAccount(getDb(), admin.id, { detail: { via: 'users script' } }, watched.options)).toBe(
-      'last_admin',
-    )
-    expect(watched.calls).toEqual([])
+describe('deleteAccount and the outside world', () => {
+  it('deletes an account with no outbound HTTP call, and answers only deleted, last_admin or missing', async () => {
+    expectTypeOf<DeleteResult>().toEqualTypeOf<'deleted' | 'last_admin' | 'missing'>()
+    const outbound = vi.spyOn(globalThis, 'fetch')
+    try {
+      const user = await newUser('leaving')
+      expect(await deleteAccount(getDb(), user.id, { detail: { via: 'account page' } })).toBe('deleted')
+      const admin = await newUser('only', 'admin')
+      expect(await deleteAccount(getDb(), admin.id, { detail: { via: 'users script' } })).toBe('last_admin')
+      expect(outbound).not.toHaveBeenCalled()
+    } finally {
+      outbound.mockRestore()
+    }
   })
 })
 
@@ -507,7 +409,6 @@ describe('usersForAdmin', () => {
       userId: user.id,
       username: user.username,
       role: user.role,
-      plan: 'pro' as const,
       expiresAt: new Date(),
     })
     expect(await usersForAdmin(session(member))).toBeNull()

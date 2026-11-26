@@ -241,7 +241,7 @@ describe('the store', () => {
   })
 })
 
-describe('the plan limits', () => {
+describe('the limits', () => {
   async function fill(userId: number, slug: string, n: number) {
     await raw`
       insert into audio_bookmarks (user_id, book_slug, kind, episode, position_ms)

@@ -11,7 +11,6 @@ export type ImportProblem =
   | 'request-too-large'
   | 'book-too-large'
   | 'quota'
-  | 'quota-free'
   | 'quota-user'
   | 'rate'
   | 'incomplete'
@@ -36,7 +35,6 @@ const failed = { ok: false, problem: 'failed' } as const
 
 function importProblem(data: Record<string, unknown>): ImportProblem {
   if (data.error === 'quota' && data.scope === 'user') return 'quota-user'
-  if (data.error === 'quota' && data.plan === 'free') return 'quota-free'
   return IMPORT_PROBLEMS.find((p) => p === data.error) ?? 'failed'
 }
 

@@ -129,6 +129,10 @@ test.describe('Quizzes and flashcards', () => {
     await expect(flashcardsPage.books.getByText(/^7 cards · next due \d{1,2} [A-Z][a-z]{2}$/)).toBeVisible()
     await expectAccessible(page)
     await expectNoSideways(page)
+
+    await flashcardsPage.books.getByRole('button', { name: 'Delete all cards for Pride and Prejudice' }).click()
+    await expect(page.getByTestId('flashcards-deleted')).toHaveText('Deleted every card in that book.')
+    await expect(page.getByTestId('flashcards-empty')).toBeVisible()
   })
 
   test('a quiz stopped while it is written shows only Stopped', async ({ page, readerPage }, testInfo) => {

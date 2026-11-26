@@ -10,7 +10,7 @@ import { isOneOf } from '~/shared/lib/json-shape'
 import type * as client from './admin-client'
 import { type AdminResult, type ChangedUser, changeFor, doneText, problemText } from './admin-client'
 
-const ASKS_FIRST = ['disable', 'reset-password', 'give-pro', 'take-pro'] as const satisfies readonly RowAction[]
+const ASKS_FIRST = ['disable', 'reset-password'] as const satisfies readonly RowAction[]
 export type ConfirmAction = (typeof ASKS_FIRST)[number]
 const asksFirst = (action: RowAction): action is ConfirmAction => isOneOf(action, ASKS_FIRST)
 

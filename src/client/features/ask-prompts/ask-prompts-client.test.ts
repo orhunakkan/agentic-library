@@ -75,7 +75,6 @@ describe('readPromptAnswer', () => {
     expect(await problem(409, { error: 'exists' })).toBe('exists')
     expect(await problem(409, { error: 'quota', max: 20 })).toBe('quota')
     expect(await problem(404, { error: 'not_found' })).toBe('not_found')
-    expect(await problem(403, { error: 'pro', feature: 'ask' })).toBe('pro')
     expect(await problem(401, { error: 'signed_out' })).toBe('signed_out')
     expect(await problem(500, { error: 'failed' })).toBe('failed')
     expect(await problem(403, 'not json')).toBe('failed')

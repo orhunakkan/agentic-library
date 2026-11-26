@@ -21,7 +21,6 @@ const PUBLIC_PAGES = [
   '/confirm-email',
   '/privacy',
   '/terms',
-  '/refunds',
   '/credits',
   '/no-such-page',
 ]
@@ -36,7 +35,6 @@ const ACCOUNT_PAGES = [
   '/account/prompts',
   '/account/api-keys',
   '/account/users',
-  '/account/plan',
 ]
 
 test.describe('data-testid contract', () => {

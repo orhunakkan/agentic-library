@@ -61,6 +61,7 @@ const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 let users = 0
 
+/** A plain member: no grant and no subscription, so every case shows audiobooks work for any account. */
 async function signedIn() {
   const user = await testUser(db(), `listener-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()
@@ -180,16 +181,14 @@ async function imported(cookie: string, body: unknown = m4bStart(), files: Uint8
 }
 
 describe('POST /account/books/new-audiobook', () => {
-  it('lets an upload started on Pro finish once the reader is on Free, and refuses a new one', async () => {
-    const { user, cookie } = await signedIn()
+  it('lets a plain member with no grant start, upload, finish and play an audiobook', async () => {
+    const { cookie } = await signedIn()
     const id = await started(cookie)
-    await raw`update users set pro_granted_at = null where id = ${user.id}`
     const half = Math.floor(M4B.length / 2)
     expect((await chunk(cookie, id, '1', 0, M4B.subarray(0, half))).status).toBe(200)
     expect((await chunk(cookie, id, '1', half, M4B.subarray(half))).status).toBe(200)
     expect(await answer(await finish(cookie, id))).toEqual([200, { ok: true }])
     expect((await fetchAudio(cookie, id, '1')).status).toBe(200)
-    expect(await answer(await start(cookie, m4bStart()))).toEqual([403, { error: 'pro', feature: 'audiobooks' }])
   })
 
   it('starts an uploading audiobook with its files and chapters, and makes its directory', async () => {
@@ -261,7 +260,7 @@ describe('POST /account/books/new-audiobook', () => {
     expect(await audioBytesUsed(db(), user.id)).toBe(8 * GB - M4B.length + 1)
     expect(await answer(await start(cookie, m4bStart()))).toEqual([
       409,
-      { error: 'quota', scope: 'audio', max: 8 * GB, plan: 'pro' },
+      { error: 'quota', scope: 'audio', max: 8 * GB },
     ])
 
     await raw`
@@ -269,19 +268,13 @@ describe('POST /account/books/new-audiobook', () => {
       select ${user.id}, 'Filler', 'Ada', 'en', 1 from generate_series(1, 23)`
     await raw`update user_books set audio_bytes = 0 where title = 'Big'`
     await raw`delete from user_books where title = 'Big' and ctid not in (select ctid from user_books where title = 'Big' limit 1)`
-    expect(await answer(await start(cookie, m4bStart()))).toEqual([
-      409,
-      { error: 'quota', scope: 'books', max: 25, plan: 'pro' },
-    ])
+    expect(await answer(await start(cookie, m4bStart()))).toEqual([409, { error: 'quota', scope: 'books', max: 25 }])
 
     await raw`delete from user_books where title = 'Filler'`
     await raw`
       insert into audit_events (user_id, event, detail)
       select ${user.id}, 'book.imported', '{}' from generate_series(1, 10)`
-    expect(await answer(await start(cookie, m4bStart()))).toEqual([
-      409,
-      { error: 'quota', scope: 'rate', max: 10, plan: 'pro' },
-    ])
+    expect(await answer(await start(cookie, m4bStart()))).toEqual([409, { error: 'quota', scope: 'rate', max: 10 }])
   })
 
   it('lets only one of two starts racing for the last of the account’s audio through', async () => {

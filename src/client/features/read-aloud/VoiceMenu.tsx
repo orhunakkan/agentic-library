@@ -4,8 +4,6 @@ import { AudioLines, Check, Download, RotateCw, Trash2 } from 'lucide-react'
 import { pill } from '~/client/features/player/PlayerFrames'
 import { usePlayer } from '~/client/features/player/PlayerProvider'
 import { menuItem, menuPopup } from '~/client/features/player/SleepMenu'
-import { proNotice } from '~/shared/plans/copy'
-import { PRO_LINK } from '~/shared/plans/plans'
 import { useOnline } from './FolioOffer'
 import { LOCAL_NOTE, localVoiceDetail, removeLabel, SLOW_NOTE } from './messages'
 import { cloudNote, onlineNote, regionName, type VoiceLike, voiceName } from './voices'
@@ -158,23 +156,7 @@ export function VoiceMenu() {
                 </p>
               )}
             </Menu.Group>
-            {cloud === 'pro' && (
-              <Menu.Group className="mt-1 border-t border-line pt-1">
-                <Menu.GroupLabel className={groupLabel}>ElevenLabs</Menu.GroupLabel>
-                <p className="px-3 py-2 text-[14px] text-body">
-                  {proNotice('elevenlabs').heading}{' '}
-                  <Menu.LinkItem
-                    closeOnClick
-                    render={<a href={PRO_LINK} />}
-                    data-testid="voice-see-pro"
-                    className="font-semibold text-accent underline-offset-2 outline-none hover:underline data-highlighted:bg-panel"
-                  >
-                    See Pro
-                  </Menu.LinkItem>
-                </p>
-              </Menu.Group>
-            )}
-            {cloud !== 'off' && cloud !== 'no-key' && cloud !== 'pro' && (
+            {cloud !== 'off' && cloud !== 'no-key' && (
               <Menu.Group className="mt-1 border-t border-line pt-1">
                 <Menu.GroupLabel className={groupLabel}>ElevenLabs</Menu.GroupLabel>
                 {cloud === 'loading' && (

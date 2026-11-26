@@ -18,7 +18,7 @@ export async function send<T>(
     const { problem } = result
     return {
       ok: false,
-      problem: problem === 'stale' || problem === 'pro' || problem === 'quota-free' ? 'failed' : problem,
+      problem: problem === 'stale' ? 'failed' : problem,
     }
   } catch {
     return { ok: false, problem: 'failed' }

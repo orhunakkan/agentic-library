@@ -2,7 +2,6 @@ import { ShieldCheck } from 'lucide-react'
 import { DateTime } from '~/client/features/account/ui'
 import { cn } from '~/client/lib/cn'
 import { type AdminUserView, type EmailStatus, type RowAction, rowActions } from '~/shared/admin/users'
-import { planLabel } from '~/shared/plans/copy'
 import { UserActionsMenu } from './UserActionsMenu'
 
 interface ListProps {
@@ -63,7 +62,7 @@ function You() {
   )
 }
 
-const COLUMNS = ['Role', 'Plan', 'Status', 'Last active', 'Sessions', 'API key', 'Email'] as const
+const COLUMNS = ['Role', 'Status', 'Last active', 'Sessions', 'API key', 'Email'] as const
 
 const sessionsText = (n: number) => (n === 0 ? 'No sessions' : n === 1 ? '1 session' : `${n} sessions`)
 
@@ -109,9 +108,6 @@ export function UsersList({ users, busy, onChoose }: ListProps) {
                 <td className="px-3 py-2.5 text-ink">
                   <Role user={user} />
                 </td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-muted" data-testid="user-plan">
-                  {planLabel(user.planSource, user.paid)}
-                </td>
                 <td className="px-3 py-2.5">
                   <Status user={user} />
                 </td>
@@ -153,8 +149,6 @@ export function UsersList({ users, busy, onChoose }: ListProps) {
                 </p>
                 <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] text-muted">
                   <Role user={user} />
-                  <span aria-hidden>·</span>
-                  <span data-testid="user-plan">{planLabel(user.planSource, user.paid)}</span>
                   <span aria-hidden>·</span>
                   <Status user={user} />
                   <span aria-hidden>·</span>

@@ -8,11 +8,10 @@ import {
   MIN_FREE_BYTES,
   MIN_FREE_BYTES_UPLOADING,
 } from '../../shared/audiobooks/limits.ts'
-import { limitsFor } from '../../shared/plans/plans.ts'
+import { MAX_BOOKS } from '../../shared/import/limits.ts'
 import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson, requestIp } from '../auth.ts'
 import type { Pool } from '../db.ts'
-import { requirePro } from '../plans/plan.ts'
 import { signedInEndpoints } from '../signed-in.ts'
 import { deleteBook } from '../user-books.ts'
 import {
@@ -68,17 +67,16 @@ export const handleNewAudiobook = (request: Request, options: AudiobookOptions =
     request,
     {
       log: 'audiobook start',
-      before: ({ session }) => requirePro(session, 'audiobooks') ?? undefined,
       parse: parseAudiobookStart,
     },
     async ({ session, db, input: book }) => {
       const root = await audiobooksDir()
       if (!root) return notFound()
-      const { userId, plan } = session
+      const { userId } = session
       const bytes = book.files.reduce((n, b) => n + b, 0)
       if ((await (options.freeBytes ?? diskFreeBytes)(root)) - bytes < MIN_FREE_BYTES) return serverFull()
-      const started = await startAudiobook(db, userId, book, new Date(), limitsFor(plan).books)
-      if (!started.ok) return fail(409, 'quota', { scope: started.quota, max: started.max, plan })
+      const started = await startAudiobook(db, userId, book, new Date(), MAX_BOOKS)
+      if (!started.ok) return fail(409, 'quota', { scope: started.quota, max: started.max })
       await makeBookDir(root, userId, started.id)
       await sweep(root, userId, await userBookIds(db, userId))
       return noStoreJson(201, { id: started.id })

@@ -39,7 +39,7 @@ export function useLookup({ book, lang, signedIn }: { book: string; lang: string
       .catch(() => setSetup({ signedIn: false }))
   }, [card.target, signedIn, asked])
 
-  const canTranslate = setup?.signedIn === true && setup.pro && setup.hasKey
+  const canTranslate = setup?.signedIn === true && setup.hasKey
   const next = nextRequest({ book, lang, signedIn, canTranslate, ...card })
   useEffect(() => store.send(next))
 

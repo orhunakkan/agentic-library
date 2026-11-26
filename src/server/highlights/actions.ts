@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { contextAt } from '~/shared/highlights/anchor'
+import { MAX_HIGHLIGHTS_PER_BOOK, MAX_HIGHLIGHTS_PER_USER } from '~/shared/highlights/limits'
 import { pageIndexOf } from '~/shared/highlights/page-text'
-import { limitsFor } from '~/shared/plans/plans'
 import { isBookSlug } from '../../shared/content/book-slug.ts'
 import { noStoreJson, seeOther } from '../auth.ts'
 import { openTextBook } from '../books/book.ts'
@@ -31,7 +31,7 @@ export const handleCreate = (request: Request) =>
     request,
     { log: 'highlight create', body: { json: MAX_CREATE_BYTES }, parse: parseCreate },
     async ({ session, db, input }) => {
-      const { userId, plan } = session
+      const { userId } = session
       const book = await openTextBook(db, userId, input.book)
       if (!book) return fail(404, 'not_found')
       const pages = await book.pages()
@@ -39,7 +39,6 @@ export const handleCreate = (request: Request) =>
       if (!page || input.end > page.text.length) return fail(400, 'invalid')
       const context = contextAt(page.text, input.start, input.end)
       if (context.exact !== input.text) return fail(409, 'stale')
-      const limits = limitsFor(plan)
       const result = await createHighlight(
         db,
         userId,
@@ -53,11 +52,11 @@ export const handleCreate = (request: Request) =>
           color: input.color,
           note: input.note,
         },
-        { perBook: limits.highlightsPerBook, perUser: limits.highlightsPerUser },
+        { perBook: MAX_HIGHLIGHTS_PER_BOOK, perUser: MAX_HIGHLIGHTS_PER_USER },
       )
       if (result === 'missing') return fail(404, 'not_found')
-      if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: limits.highlightsPerBook, plan })
-      if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: limits.highlightsPerUser, plan })
+      if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: MAX_HIGHLIGHTS_PER_BOOK })
+      if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: MAX_HIGHLIGHTS_PER_USER })
       return noStoreJson(201, { highlight: toView(result.row, pages) })
     },
   )

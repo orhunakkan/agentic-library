@@ -50,16 +50,6 @@ describe('OpenAI keys', () => {
   })
 })
 
-describe('Paddle’s secrets', () => {
-  it('are masked wherever they appear', () => {
-    const key = 'pdl_sdbx_apikey_01abcdefghijklmnopqrstuv_WxYz0123456789abcdefgh_AbC'
-    expect(redact(`authorization: Bearer ${key}`)).toBe('authorization: Bearer [redacted]')
-    expect(redact(`key=${key} failed`)).toBe('key=pdl_[redacted] failed')
-    expect(redact('secret pdl_ntfset_01abcdefghij_klmnopqrstuvwxyz0123456789')).toBe('secret pdl_[redacted]')
-    expect(redact('sub_01abc and ctm_01abc stay')).toBe('sub_01abc and ctm_01abc stay')
-  })
-})
-
 describe('describeError', () => {
   it('redacts thrown strings and objects, not only Errors', () => {
     expect(describeError(`failed with ${KEY}`)).toBe('failed with sk-ant-[redacted]')

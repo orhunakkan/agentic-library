@@ -4,21 +4,17 @@ import {
   PROMPT_INSTRUCTION_MAX,
   type PromptReason,
 } from '~/shared/ask-prompts/prompts'
-import { proNotice } from '~/shared/plans/copy'
 
 export const PROMPTS_INTRO =
   'Your own requests for Ask the book, run from the Your prompts menu in the Ask panel. Each one is sent to Anthropic or OpenAI with the book’s text on your own key, as a question you type is.'
 
 export const EMPTY_TEXT = 'You haven’t saved a prompt yet. Start from one of these, or write your own.'
 
-export const FREE_KEPT_TEXT = 'Your saved prompts are kept. You can delete any you don’t need.'
-
 export type PromptProblem =
   | Exclude<PromptReason, 'applies_to'>
   | 'exists'
   | 'quota'
   | 'not_found'
-  | 'pro'
   | 'signed_out'
   | 'failed'
 
@@ -42,8 +38,6 @@ export function promptProblemText(problem: PromptProblem, name = ''): string {
       return `You have ${MAX_ASK_PROMPTS} prompts, the most an account can keep. Delete one to add another.`
     case 'not_found':
       return 'That prompt isn’t there any more. It may have been deleted on another device.'
-    case 'pro':
-      return proNotice('ask').heading
     case 'signed_out':
       return 'Sign in again to change your prompts.'
     case 'failed':

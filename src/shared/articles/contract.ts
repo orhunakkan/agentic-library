@@ -1,5 +1,4 @@
-export const FREE_ARTICLES = 20
-export const PRO_ARTICLES = 500
+export const MAX_ARTICLES = 500
 
 export const MAX_ARTICLE_URL_LENGTH = 2000
 export const MAX_PAGE_BYTES = 5 * 1024 * 1024
@@ -63,7 +62,6 @@ export type ArticlesState =
       state: 'ready'
       articles: ArticleView[]
       max: number
-      plan: 'free' | 'pro'
       testHosts: string[]
       imageBytesUsed: number
     }

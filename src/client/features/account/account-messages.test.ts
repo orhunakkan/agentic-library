@@ -29,8 +29,6 @@ describe('/account messages', () => {
       current: 'Your current password is incorrect.',
       'delete-current': 'Your password is incorrect.',
       'last-admin': 'You’re the only admin. Make someone else an admin on the Users page first.',
-      'delete-billing':
-        'Couldn’t cancel your Pro subscription, so your account wasn’t deleted. Try again, or cancel it in Manage billing first.',
       invalid: 'That request wasn’t understood. Try again.',
       unavailable: 'Something went wrong. Try again in a few minutes.',
       'email-invalid': 'Enter an email address like name@example.com.',
@@ -73,7 +71,6 @@ describe('/account/api-keys messages', () => {
       limit: 'Too many key changes in the last hour. Try again later.',
       invalid: 'That request wasn’t understood. Try again.',
       failed: 'Something went wrong. Try again in a few minutes.',
-      pro: 'ElevenLabs voices are part of Pro.',
     }
     expect(Object.fromEntries(API_KEY_ERRORS.map((e) => [e, apiKeyErrorText(e, 'anthropic')]))).toEqual(anthropic)
     expect(Object.fromEntries(API_KEY_ERRORS.map((e) => [e, apiKeyErrorText(e, undefined)]))).toEqual(anthropic)
@@ -90,7 +87,6 @@ describe('/account/api-keys messages', () => {
       limit: 'Too many key changes in the last hour. Try again later.',
       invalid: 'That request wasn’t understood. Try again.',
       failed: 'Something went wrong. Try again in a few minutes.',
-      pro: 'ElevenLabs voices are part of Pro.',
     })
   })
 
@@ -105,7 +101,6 @@ describe('/account/api-keys messages', () => {
       limit: 'Too many key changes in the last hour. Try again later.',
       invalid: 'That request wasn’t understood. Try again.',
       failed: 'Something went wrong. Try again in a few minutes.',
-      pro: 'OpenAI keys are part of Pro, for Ask the book and Translate.',
     })
   })
 })

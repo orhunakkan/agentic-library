@@ -1,7 +1,5 @@
 import type { Provider } from '~/server/api-keys'
-import { DELETE_BILLING_FAILED } from '~/shared/billing/copy'
 import { isOneOf } from '~/shared/lib/json-shape'
-import { proNotice } from '~/shared/plans/copy'
 import { newPasswordText, type PasswordReason } from './password-text'
 
 export const ACCOUNT_STATUSES = [
@@ -32,7 +30,6 @@ export const ACCOUNT_ERRORS = [
   'current',
   'delete-current',
   'last-admin',
-  'delete-billing',
   'invalid',
   'unavailable',
   ...EMAIL_ERROR_CODES,
@@ -71,8 +68,6 @@ export function accountErrorText(error: AccountError, reason: PasswordReason | u
       return 'Your password is incorrect.'
     case 'last-admin':
       return 'You’re the only admin. Make someone else an admin on the Users page first.'
-    case 'delete-billing':
-      return DELETE_BILLING_FAILED
     case 'invalid':
       return 'That request wasn’t understood. Try again.'
     case 'unavailable':
@@ -93,7 +88,6 @@ export const API_KEY_ERRORS = [
   'limit',
   'invalid',
   'failed',
-  'pro',
 ] as const
 export type ApiKeyError = (typeof API_KEY_ERRORS)[number]
 
@@ -103,7 +97,6 @@ const COMMON_KEY_ERRORS: Record<Exclude<ApiKeyError, 'shape' | 'anthropic' | 'op
   limit: 'Too many key changes in the last hour. Try again later.',
   invalid: 'That request wasn’t understood. Try again.',
   failed: 'Something went wrong. Try again in a few minutes.',
-  pro: proNotice('elevenlabs').heading,
 }
 
 const ELEVENLABS_PERMISSION =
@@ -123,7 +116,6 @@ const PROVIDER_KEY_ERRORS: Record<Provider, Partial<Record<ApiKeyError, string>>
     shape: 'That doesn’t look like an OpenAI API key. Keys start with sk- and have no spaces.',
     anthropic: IN_ANTHROPIC,
     openai: 'That doesn’t look like an OpenAI API key. Keys start with sk- and have no spaces.',
-    pro: 'OpenAI keys are part of Pro, for Ask the book and Translate.',
   },
   elevenlabs: {
     shape: 'That doesn’t look like an ElevenLabs API key.',

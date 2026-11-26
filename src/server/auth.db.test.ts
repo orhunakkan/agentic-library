@@ -82,7 +82,7 @@ describe('sessionForRequest', () => {
     const { user, cookie } = await signedIn('admin')
     const req = request(`theme=dark; ${cookie}`)
     expect(await sessionForRequest(req)).toMatchObject({ userId: user.id, username: 'reader', role: 'admin' })
-    expect(await viewerForRequest(req)).toEqual({ username: 'reader', role: 'admin', plan: 'pro' })
+    expect(await viewerForRequest(req)).toEqual({ username: 'reader', role: 'admin' })
     expect(getDb).toHaveBeenCalledTimes(1)
   })
 

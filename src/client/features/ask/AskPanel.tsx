@@ -12,7 +12,6 @@ import { type AiProvider, aiModelName, canStudyWith, providerName } from '~/shar
 import { MicButton } from '../ask-voice/MicButton'
 import type { AskVoice } from '../ask-voice/use-ask-voice'
 import { VoiceNotices } from '../ask-voice/VoiceNotices'
-import { ProNotice } from '../plans/ProNotice'
 import { AnswerText } from './AnswerText'
 import { AskFailureNotice } from './AskFailureNotice'
 import { plainAnswer } from './answer-format'
@@ -50,12 +49,11 @@ function useSetup(active: boolean, signedIn: boolean) {
   return [signedIn ? setup : ({ signedIn: false } as const), refresh] as const
 }
 
-type Blocker = 'signed_out' | 'pro' | 'no_key'
+type Blocker = 'signed_out' | 'no_key'
 
 function blockedBy(setup: Setup | null): Blocker | null {
   if (!setup) return null
   if (!setup.signedIn) return 'signed_out'
-  if (!setup.pro) return 'pro'
   return setup.hasKey ? null : 'no_key'
 }
 
@@ -113,13 +111,13 @@ export function AskPanel({
   const [setup, refreshSetup] = useSetup(active, signedIn)
   const problem = ask.failure?.problem
   useEffect(() => {
-    if (problem === 'signed_out' || problem === 'pro' || problem === 'no_key' || problem === 'no_prompt') refreshSetup()
+    if (problem === 'signed_out' || problem === 'no_key' || problem === 'no_prompt') refreshSetup()
   }, [problem, refreshSetup])
 
   const blocked = blockedBy(setup)
   const provider = providerFor(setup)
   const studyOff = studyOffFor(setup)
-  const ready = setup?.signedIn === true && setup.pro && setup.hasKey
+  const ready = setup?.signedIn === true && setup.hasKey
   const prompts: readonly AskPromptChoice[] | null = setup?.signedIn ? setup.prompts : null
   const [question, setQuestion] = useState('')
   const ownBox = useRef<HTMLTextAreaElement>(null)
@@ -212,14 +210,6 @@ const blockedLink =
   'inline-flex h-11 items-center rounded-xl bg-r-accent px-5 text-[14.5px] font-semibold text-r-paper transition hover:brightness-105'
 
 function Blocked({ kind, currentHref, provider }: { kind: Blocker; currentHref: string; provider: AiProvider }) {
-  if (kind === 'pro')
-    return (
-      <ProNotice
-        feature="ask"
-        className="space-y-2 px-5 py-6 text-[14.5px] leading-relaxed"
-        linkClassName="font-semibold text-r-accent underline-offset-2 hover:underline"
-      />
-    )
   return (
     <div className="space-y-4 px-5 py-6 text-[14.5px] leading-relaxed">
       <p data-testid="ask-blocked">{problemText(kind, provider)}</p>

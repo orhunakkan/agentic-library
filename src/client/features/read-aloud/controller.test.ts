@@ -954,7 +954,6 @@ describe('ElevenLabs voices', () => {
     for (const [answer, shown] of [
       [{ state: 'signed_out' }, 'off'],
       [{ state: 'no_key' }, 'no-key'],
-      [{ state: 'pro' }, 'pro'],
       [{ state: 'permission' }, 'permission'],
       [{ state: 'key_rejected' }, 'failed'],
     ] as const) {

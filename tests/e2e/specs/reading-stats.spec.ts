@@ -13,7 +13,7 @@ function noonToday(): Date {
 
 async function freeReader(page: Page): Promise<void> {
   await page.clock.install({ time: noonToday() })
-  await createUser(page.request, { signedIn: true, plan: 'free' })
+  await createUser(page.request, { signedIn: true })
 }
 
 const PRIDE = 'pride-and-prejudice'

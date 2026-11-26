@@ -4,7 +4,6 @@ import type { SignInError } from '../../shared/passkeys/passkeys.ts'
 import { startSession } from '../account-actions.ts'
 import { recordEvent, sweepAuditEvents } from '../audit.ts'
 import { forbidden, NO_STORE, noStoreJson, requestIp } from '../auth.ts'
-import { sweepPaddleEvents } from '../billing/store.ts'
 import { getConfig } from '../config.ts'
 import { getDb, isDatabaseConfigured } from '../db.ts'
 import { PROBLEM_STATUS, readCapped, readJsonBody } from '../json-body.ts'
@@ -105,7 +104,6 @@ export async function handleSignIn(request: Request): Promise<Response> {
       sweepSessions(db),
       sweepAuditEvents(db),
       sweepSignupTokens(db),
-      sweepPaddleEvents(db),
       sweepChallenges(db),
     ]).catch((error) => logError('sweep', error))
     return new Response(JSON.stringify({ next: safeNext(input.next) }), {

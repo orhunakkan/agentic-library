@@ -1,8 +1,8 @@
-import { canUse, type Plan } from '~/shared/plans/plans'
+import type { Viewer } from '~/server/auth'
 
-export type RunAccess = 'pro' | 'free' | 'signed_out'
+export type RunAccess = 'signed_in' | 'signed_out'
 
-export function runAccess(viewer: { plan: Plan } | null | undefined): RunAccess {
-  if (!viewer) return 'signed_out'
-  return canUse(viewer.plan, 'run') ? 'pro' : 'free'
+/** Code runs in the reader's own browser, so any signed-in reader can run it. */
+export function runAccess(viewer: Viewer | null | undefined): RunAccess {
+  return viewer ? 'signed_in' : 'signed_out'
 }

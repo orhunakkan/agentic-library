@@ -45,7 +45,7 @@ function Harness({ onClose }: { onClose: () => void }) {
       <button type="button">Outside the dialog</button>
       <RunDialog
         target={target}
-        access="pro"
+        access="signed_in"
         edits={edits}
         onClose={() => {
           onClose()

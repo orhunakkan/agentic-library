@@ -6,7 +6,6 @@ import { isUuid } from '../../shared/uuid.ts'
 import { noStoreJson, seeOther } from '../auth.ts'
 import { openTextBook } from '../books/book.ts'
 import { refFor, slugOf } from '../books/ref.ts'
-import { requirePro } from '../plans/plan.ts'
 import { signedInEndpoints, signedInForm } from '../signed-in.ts'
 import { parseCardChange, parseNewCard } from './input.ts'
 import { deleteBookCards, deleteCard, reviewCard, saveCard } from './store.ts'
@@ -24,7 +23,6 @@ export const handleCardSave = (request: Request) =>
     request,
     {
       log: 'flashcard save',
-      before: ({ session }) => requirePro(session, 'flashcards') ?? undefined,
       parse: parseNewCard,
     },
     async ({ session, db, input }) => {
@@ -64,8 +62,6 @@ export const handleCardChange = (request: Request, id: string) =>
       if ('delete' in change) {
         return (await deleteCard(db, userId, id)) ? noStoreJson(200, { deleted: true }) : fail(404, 'not_found')
       }
-      const notPro = requirePro(session, 'flashcards')
-      if (notPro) return notPro
       const row = await reviewCard(db, userId, id, change.review, new Date())
       if (!row) return fail(404, 'not_found')
       const book = await openTextBook(db, userId, slugOf(row.book))

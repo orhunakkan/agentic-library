@@ -14,7 +14,6 @@ import {
   LibraryPage,
   LoginPage,
   PromptsPage,
-  ProPage,
   ReadAloud,
   ReaderPage,
   ReposPage,
@@ -52,7 +51,6 @@ interface PageObjects {
   importPage: ImportPage
   libraryPage: LibraryPage
   loginPage: LoginPage
-  proPage: ProPage
   readAloud: ReadAloud
   readerPage: ReaderPage
   promptsPage: PromptsPage
@@ -81,7 +79,6 @@ export const test = base.extend<{ page: Page } & PageObjects>({
   importPage: async ({ page }, use) => use(new ImportPage(page)),
   libraryPage: async ({ page }, use) => use(new LibraryPage(page)),
   loginPage: async ({ page }, use) => use(new LoginPage(page)),
-  proPage: async ({ page }, use) => use(new ProPage(page)),
   readAloud: async ({ page }, use) => use(new ReadAloud(page)),
   readerPage: async ({ page }, use) => use(new ReaderPage(page)),
   promptsPage: async ({ page }, use) => use(new PromptsPage(page)),

@@ -18,7 +18,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -29,7 +28,6 @@ import { Route as AccountRatingsRouteImport } from './routes/account/ratings'
 import { Route as AccountRemovedBooksRouteImport } from './routes/account/removed-books'
 import { Route as AccountSyncRouteImport } from './routes/account/sync'
 import { Route as ApiMeRouteImport } from './routes/api/me'
-import { Route as BillingPaddleRouteImport } from './routes/billing/paddle'
 import { Route as CoversFileRouteImport } from './routes/covers/$file'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as MailEventsRouteImport } from './routes/mail/events'
@@ -57,10 +55,6 @@ import { Route as AccountLookupTranslateRouteImport } from './routes/account/loo
 import { Route as AccountLookupWordRouteImport } from './routes/account/lookup/word'
 import { Route as AccountPasskeysNewRouteImport } from './routes/account/passkeys/new'
 import { Route as AccountPasskeysOptionsRouteImport } from './routes/account/passkeys/options'
-import { Route as AccountPlanIndexRouteImport } from './routes/account/plan/index'
-import { Route as AccountPlanCheckoutRouteImport } from './routes/account/plan/checkout'
-import { Route as AccountPlanPortalRouteImport } from './routes/account/plan/portal'
-import { Route as AccountPlanStateRouteImport } from './routes/account/plan/state'
 import { Route as AccountPromptsIndexRouteImport } from './routes/account/prompts/index'
 import { Route as AccountPromptsIdRouteImport } from './routes/account/prompts/$id'
 import { Route as AccountPromptsNewRouteImport } from './routes/account/prompts/new'
@@ -145,11 +139,6 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RefundsRoute = RefundsRouteImport.update({
-  id: '/refunds',
-  path: '/refunds',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -198,11 +187,6 @@ const AccountSyncRoute = AccountSyncRouteImport.update({
 const ApiMeRoute = ApiMeRouteImport.update({
   id: '/api/me',
   path: '/api/me',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BillingPaddleRoute = BillingPaddleRouteImport.update({
-  id: '/billing/paddle',
-  path: '/billing/paddle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoversFileRoute = CoversFileRouteImport.update({
@@ -339,26 +323,6 @@ const AccountPasskeysNewRoute = AccountPasskeysNewRouteImport.update({
 const AccountPasskeysOptionsRoute = AccountPasskeysOptionsRouteImport.update({
   id: '/account/passkeys/options',
   path: '/account/passkeys/options',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountPlanIndexRoute = AccountPlanIndexRouteImport.update({
-  id: '/account/plan/',
-  path: '/account/plan/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountPlanCheckoutRoute = AccountPlanCheckoutRouteImport.update({
-  id: '/account/plan/checkout',
-  path: '/account/plan/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountPlanPortalRoute = AccountPlanPortalRouteImport.update({
-  id: '/account/plan/portal',
-  path: '/account/plan/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountPlanStateRoute = AccountPlanStateRouteImport.update({
-  id: '/account/plan/state',
-  path: '/account/plan/state',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountPromptsIndexRoute = AccountPromptsIndexRouteImport.update({
@@ -569,7 +533,6 @@ export interface FileRoutesByFullPath {
   '/logout': typeof LogoutRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -579,7 +542,6 @@ export interface FileRoutesByFullPath {
   '/account/removed-books': typeof AccountRemovedBooksRoute
   '/account/sync': typeof AccountSyncRoute
   '/api/me': typeof ApiMeRoute
-  '/billing/paddle': typeof BillingPaddleRoute
   '/covers/$file': typeof CoversFileRoute
   '/mail/events': typeof MailEventsRoute
   '/offline/$file': typeof OfflineFileRoute
@@ -604,9 +566,6 @@ export interface FileRoutesByFullPath {
   '/account/lookup/word': typeof AccountLookupWordRoute
   '/account/passkeys/new': typeof AccountPasskeysNewRoute
   '/account/passkeys/options': typeof AccountPasskeysOptionsRoute
-  '/account/plan/checkout': typeof AccountPlanCheckoutRoute
-  '/account/plan/portal': typeof AccountPlanPortalRoute
-  '/account/plan/state': typeof AccountPlanStateRoute
   '/account/prompts/$id': typeof AccountPromptsIdRoute
   '/account/prompts/new': typeof AccountPromptsNewRoute
   '/account/read-aloud/speak': typeof AccountReadAloudSpeakRoute
@@ -624,7 +583,6 @@ export interface FileRoutesByFullPath {
   '/account/books/': typeof AccountBooksIndexRoute
   '/account/flashcards/': typeof AccountFlashcardsIndexRoute
   '/account/highlights/': typeof AccountHighlightsIndexRoute
-  '/account/plan/': typeof AccountPlanIndexRoute
   '/account/prompts/': typeof AccountPromptsIndexRoute
   '/account/repos/': typeof AccountReposIndexRoute
   '/account/stats/': typeof AccountStatsIndexRoute
@@ -661,7 +619,6 @@ export interface FileRoutesByTo {
   '/logout': typeof LogoutRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -671,7 +628,6 @@ export interface FileRoutesByTo {
   '/account/removed-books': typeof AccountRemovedBooksRoute
   '/account/sync': typeof AccountSyncRoute
   '/api/me': typeof ApiMeRoute
-  '/billing/paddle': typeof BillingPaddleRoute
   '/covers/$file': typeof CoversFileRoute
   '/mail/events': typeof MailEventsRoute
   '/offline/$file': typeof OfflineFileRoute
@@ -696,9 +652,6 @@ export interface FileRoutesByTo {
   '/account/lookup/word': typeof AccountLookupWordRoute
   '/account/passkeys/new': typeof AccountPasskeysNewRoute
   '/account/passkeys/options': typeof AccountPasskeysOptionsRoute
-  '/account/plan/checkout': typeof AccountPlanCheckoutRoute
-  '/account/plan/portal': typeof AccountPlanPortalRoute
-  '/account/plan/state': typeof AccountPlanStateRoute
   '/account/prompts/$id': typeof AccountPromptsIdRoute
   '/account/prompts/new': typeof AccountPromptsNewRoute
   '/account/read-aloud/speak': typeof AccountReadAloudSpeakRoute
@@ -716,7 +669,6 @@ export interface FileRoutesByTo {
   '/account/books': typeof AccountBooksIndexRoute
   '/account/flashcards': typeof AccountFlashcardsIndexRoute
   '/account/highlights': typeof AccountHighlightsIndexRoute
-  '/account/plan': typeof AccountPlanIndexRoute
   '/account/prompts': typeof AccountPromptsIndexRoute
   '/account/repos': typeof AccountReposIndexRoute
   '/account/stats': typeof AccountStatsIndexRoute
@@ -754,7 +706,6 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
   '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -764,7 +715,6 @@ export interface FileRoutesById {
   '/account/removed-books': typeof AccountRemovedBooksRoute
   '/account/sync': typeof AccountSyncRoute
   '/api/me': typeof ApiMeRoute
-  '/billing/paddle': typeof BillingPaddleRoute
   '/covers/$file': typeof CoversFileRoute
   '/mail/events': typeof MailEventsRoute
   '/offline/$file': typeof OfflineFileRoute
@@ -789,9 +739,6 @@ export interface FileRoutesById {
   '/account/lookup/word': typeof AccountLookupWordRoute
   '/account/passkeys/new': typeof AccountPasskeysNewRoute
   '/account/passkeys/options': typeof AccountPasskeysOptionsRoute
-  '/account/plan/checkout': typeof AccountPlanCheckoutRoute
-  '/account/plan/portal': typeof AccountPlanPortalRoute
-  '/account/plan/state': typeof AccountPlanStateRoute
   '/account/prompts/$id': typeof AccountPromptsIdRoute
   '/account/prompts/new': typeof AccountPromptsNewRoute
   '/account/read-aloud/speak': typeof AccountReadAloudSpeakRoute
@@ -809,7 +756,6 @@ export interface FileRoutesById {
   '/account/books/': typeof AccountBooksIndexRoute
   '/account/flashcards/': typeof AccountFlashcardsIndexRoute
   '/account/highlights/': typeof AccountHighlightsIndexRoute
-  '/account/plan/': typeof AccountPlanIndexRoute
   '/account/prompts/': typeof AccountPromptsIndexRoute
   '/account/repos/': typeof AccountReposIndexRoute
   '/account/stats/': typeof AccountStatsIndexRoute
@@ -848,7 +794,6 @@ export interface FileRouteTypes {
     | '/logout'
     | '/manifest.webmanifest'
     | '/privacy'
-    | '/refunds'
     | '/reset-password'
     | '/signup'
     | '/terms'
@@ -858,7 +803,6 @@ export interface FileRouteTypes {
     | '/account/removed-books'
     | '/account/sync'
     | '/api/me'
-    | '/billing/paddle'
     | '/covers/$file'
     | '/mail/events'
     | '/offline/$file'
@@ -883,9 +827,6 @@ export interface FileRouteTypes {
     | '/account/lookup/word'
     | '/account/passkeys/new'
     | '/account/passkeys/options'
-    | '/account/plan/checkout'
-    | '/account/plan/portal'
-    | '/account/plan/state'
     | '/account/prompts/$id'
     | '/account/prompts/new'
     | '/account/read-aloud/speak'
@@ -903,7 +844,6 @@ export interface FileRouteTypes {
     | '/account/books/'
     | '/account/flashcards/'
     | '/account/highlights/'
-    | '/account/plan/'
     | '/account/prompts/'
     | '/account/repos/'
     | '/account/stats/'
@@ -940,7 +880,6 @@ export interface FileRouteTypes {
     | '/logout'
     | '/manifest.webmanifest'
     | '/privacy'
-    | '/refunds'
     | '/reset-password'
     | '/signup'
     | '/terms'
@@ -950,7 +889,6 @@ export interface FileRouteTypes {
     | '/account/removed-books'
     | '/account/sync'
     | '/api/me'
-    | '/billing/paddle'
     | '/covers/$file'
     | '/mail/events'
     | '/offline/$file'
@@ -975,9 +913,6 @@ export interface FileRouteTypes {
     | '/account/lookup/word'
     | '/account/passkeys/new'
     | '/account/passkeys/options'
-    | '/account/plan/checkout'
-    | '/account/plan/portal'
-    | '/account/plan/state'
     | '/account/prompts/$id'
     | '/account/prompts/new'
     | '/account/read-aloud/speak'
@@ -995,7 +930,6 @@ export interface FileRouteTypes {
     | '/account/books'
     | '/account/flashcards'
     | '/account/highlights'
-    | '/account/plan'
     | '/account/prompts'
     | '/account/repos'
     | '/account/stats'
@@ -1032,7 +966,6 @@ export interface FileRouteTypes {
     | '/logout'
     | '/manifest.webmanifest'
     | '/privacy'
-    | '/refunds'
     | '/reset-password'
     | '/signup'
     | '/terms'
@@ -1042,7 +975,6 @@ export interface FileRouteTypes {
     | '/account/removed-books'
     | '/account/sync'
     | '/api/me'
-    | '/billing/paddle'
     | '/covers/$file'
     | '/mail/events'
     | '/offline/$file'
@@ -1067,9 +999,6 @@ export interface FileRouteTypes {
     | '/account/lookup/word'
     | '/account/passkeys/new'
     | '/account/passkeys/options'
-    | '/account/plan/checkout'
-    | '/account/plan/portal'
-    | '/account/plan/state'
     | '/account/prompts/$id'
     | '/account/prompts/new'
     | '/account/read-aloud/speak'
@@ -1087,7 +1016,6 @@ export interface FileRouteTypes {
     | '/account/books/'
     | '/account/flashcards/'
     | '/account/highlights/'
-    | '/account/plan/'
     | '/account/prompts/'
     | '/account/repos/'
     | '/account/stats/'
@@ -1125,7 +1053,6 @@ export interface RootRouteChildren {
   LogoutRoute: typeof LogoutRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
   PrivacyRoute: typeof PrivacyRoute
-  RefundsRoute: typeof RefundsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
@@ -1135,7 +1062,6 @@ export interface RootRouteChildren {
   AccountRemovedBooksRoute: typeof AccountRemovedBooksRoute
   AccountSyncRoute: typeof AccountSyncRoute
   ApiMeRoute: typeof ApiMeRoute
-  BillingPaddleRoute: typeof BillingPaddleRoute
   CoversFileRoute: typeof CoversFileRoute
   MailEventsRoute: typeof MailEventsRoute
   OfflineFileRoute: typeof OfflineFileRoute
@@ -1160,9 +1086,6 @@ export interface RootRouteChildren {
   AccountLookupWordRoute: typeof AccountLookupWordRoute
   AccountPasskeysNewRoute: typeof AccountPasskeysNewRoute
   AccountPasskeysOptionsRoute: typeof AccountPasskeysOptionsRoute
-  AccountPlanCheckoutRoute: typeof AccountPlanCheckoutRoute
-  AccountPlanPortalRoute: typeof AccountPlanPortalRoute
-  AccountPlanStateRoute: typeof AccountPlanStateRoute
   AccountPromptsIdRoute: typeof AccountPromptsIdRoute
   AccountPromptsNewRoute: typeof AccountPromptsNewRoute
   AccountReadAloudSpeakRoute: typeof AccountReadAloudSpeakRoute
@@ -1180,7 +1103,6 @@ export interface RootRouteChildren {
   AccountBooksIndexRoute: typeof AccountBooksIndexRoute
   AccountFlashcardsIndexRoute: typeof AccountFlashcardsIndexRoute
   AccountHighlightsIndexRoute: typeof AccountHighlightsIndexRoute
-  AccountPlanIndexRoute: typeof AccountPlanIndexRoute
   AccountPromptsIndexRoute: typeof AccountPromptsIndexRoute
   AccountReposIndexRoute: typeof AccountReposIndexRoute
   AccountStatsIndexRoute: typeof AccountStatsIndexRoute
@@ -1273,13 +1195,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/refunds': {
-      id: '/refunds'
-      path: '/refunds'
-      fullPath: '/refunds'
-      preLoaderRoute: typeof RefundsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -1348,13 +1263,6 @@ declare module '@tanstack/react-router' {
       path: '/api/me'
       fullPath: '/api/me'
       preLoaderRoute: typeof ApiMeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/billing/paddle': {
-      id: '/billing/paddle'
-      path: '/billing/paddle'
-      fullPath: '/billing/paddle'
-      preLoaderRoute: typeof BillingPaddleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/covers/$file': {
@@ -1544,34 +1452,6 @@ declare module '@tanstack/react-router' {
       path: '/account/passkeys/options'
       fullPath: '/account/passkeys/options'
       preLoaderRoute: typeof AccountPasskeysOptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account/plan/': {
-      id: '/account/plan/'
-      path: '/account/plan'
-      fullPath: '/account/plan/'
-      preLoaderRoute: typeof AccountPlanIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account/plan/checkout': {
-      id: '/account/plan/checkout'
-      path: '/account/plan/checkout'
-      fullPath: '/account/plan/checkout'
-      preLoaderRoute: typeof AccountPlanCheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account/plan/portal': {
-      id: '/account/plan/portal'
-      path: '/account/plan/portal'
-      fullPath: '/account/plan/portal'
-      preLoaderRoute: typeof AccountPlanPortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account/plan/state': {
-      id: '/account/plan/state'
-      path: '/account/plan/state'
-      fullPath: '/account/plan/state'
-      preLoaderRoute: typeof AccountPlanStateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/prompts/': {
@@ -1853,7 +1733,6 @@ const rootRouteChildren: RootRouteChildren = {
   LogoutRoute: LogoutRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
   PrivacyRoute: PrivacyRoute,
-  RefundsRoute: RefundsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
@@ -1863,7 +1742,6 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRemovedBooksRoute: AccountRemovedBooksRoute,
   AccountSyncRoute: AccountSyncRoute,
   ApiMeRoute: ApiMeRoute,
-  BillingPaddleRoute: BillingPaddleRoute,
   CoversFileRoute: CoversFileRoute,
   MailEventsRoute: MailEventsRoute,
   OfflineFileRoute: OfflineFileRoute,
@@ -1888,9 +1766,6 @@ const rootRouteChildren: RootRouteChildren = {
   AccountLookupWordRoute: AccountLookupWordRoute,
   AccountPasskeysNewRoute: AccountPasskeysNewRoute,
   AccountPasskeysOptionsRoute: AccountPasskeysOptionsRoute,
-  AccountPlanCheckoutRoute: AccountPlanCheckoutRoute,
-  AccountPlanPortalRoute: AccountPlanPortalRoute,
-  AccountPlanStateRoute: AccountPlanStateRoute,
   AccountPromptsIdRoute: AccountPromptsIdRoute,
   AccountPromptsNewRoute: AccountPromptsNewRoute,
   AccountReadAloudSpeakRoute: AccountReadAloudSpeakRoute,
@@ -1908,7 +1783,6 @@ const rootRouteChildren: RootRouteChildren = {
   AccountBooksIndexRoute: AccountBooksIndexRoute,
   AccountFlashcardsIndexRoute: AccountFlashcardsIndexRoute,
   AccountHighlightsIndexRoute: AccountHighlightsIndexRoute,
-  AccountPlanIndexRoute: AccountPlanIndexRoute,
   AccountPromptsIndexRoute: AccountPromptsIndexRoute,
   AccountReposIndexRoute: AccountReposIndexRoute,
   AccountStatsIndexRoute: AccountStatsIndexRoute,

@@ -41,7 +41,6 @@ export function ArticlesPage({
           {hydrated ? (
             <SaveArticleForm
               initialUrl={initialUrl}
-              plan={state.plan}
               max={state.max}
               testHosts={state.testHosts}
               imageBytesUsed={state.imageBytesUsed}

@@ -21,14 +21,12 @@ describe('promptProblemText', () => {
       exists: 'You already have a prompt called “Recap”. Pick another name.',
       quota: 'You have 20 prompts, the most an account can keep. Delete one to add another.',
       not_found: 'That prompt isn’t there any more. It may have been deleted on another device.',
-      pro: 'Ask the book is part of Pro',
       signed_out: 'Sign in again to change your prompts.',
       failed: 'Couldn’t save the prompt. Try again.',
     }
     for (const [code, sentence] of Object.entries(sentences)) {
       const text = promptProblemText(code as PromptProblem, 'Recap')
-      if (code === 'pro') expect(text).toContain(sentence)
-      else expect(text).toBe(sentence)
+      expect(text).toBe(sentence)
     }
   })
 })

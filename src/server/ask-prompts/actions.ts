@@ -1,7 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { type AskPromptsState, MAX_ASK_PROMPTS, type PromptErrorCode } from '~/shared/ask-prompts/prompts'
 import { noStoreJson } from '../auth.ts'
-import { requirePro } from '../plans/plan.ts'
 import { signedInEndpoints, signedInRead } from '../signed-in.ts'
 import { isPromptId, type Parsed, parseNewPrompt, parsePromptChange } from './input.ts'
 import { createPrompt, deletePrompt, editPrompt, listPrompts, movePrompt } from './store.ts'
@@ -22,7 +21,6 @@ export const handlePromptNew = (request: Request) =>
     request,
     {
       log: 'prompt new',
-      before: ({ session }) => requirePro(session, 'ask') ?? undefined,
       parse: (value) => withReason(parseNewPrompt(value)),
     },
     async ({ session, db, input }) => {
@@ -48,8 +46,6 @@ export const handlePromptChange = (request: Request, id: string) =>
           ? noStoreJson(200, { deleted: true })
           : fail(404, 'not_found')
       }
-      const notPro = requirePro(session, 'ask')
-      if (notPro) return notPro
       if (change.intent === 'move') {
         const moved = await movePrompt(db, userId, id, change.direction)
         return moved === 'missing' ? fail(404, 'not_found') : noStoreJson(200, { prompts: moved.map(toPromptView) })
@@ -65,5 +61,5 @@ export const handlePromptChange = (request: Request, id: string) =>
 export const askPromptsState = (request: Request): Promise<AskPromptsState> =>
   signedInRead(request, 'prompts read', async ({ session, db }) => {
     const prompts = await listPrompts(db, session.userId)
-    return { state: 'ready', plan: session.plan, prompts: prompts.map(toPromptView) }
+    return { state: 'ready', prompts: prompts.map(toPromptView) }
   })

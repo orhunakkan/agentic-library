@@ -41,9 +41,8 @@ function PrivacyPage() {
           bookmarks, saved flashcards (the card’s text and the page it came from), the prompts you save for Ask the book
           (each one’s name and text), shelves, the stars you gave books (nobody else ever sees them, and deleting a book
           you imported, or your account, deletes them), the books you removed from your library, reading and listening
-          places, reader settings and the AI and voice models you chose. It holds your plan too, and if an admin gave
-          you Pro, when and which admin. An API key you save is kept encrypted, and is never shown or sent back to your
-          browser.
+          places, reader settings and the AI and voice models you chose. An API key you save is kept encrypted, and is
+          never shown or sent back to your browser.
         </p>
         <p>
           If you add a passkey, Folio keeps its public key, its credential id, a name for it, when you added it and last
@@ -60,12 +59,6 @@ function PrivacyPage() {
           seconds in each stretch of reading or listening, and on which day, never which book or page. It also keeps the
           books you finished and when, your daily goals, and your device’s time zone, to know which day is today for
           you. They’re in your data’s download, they’re deleted with your account, and nobody else sees them.
-        </p>
-        <p>
-          If you buy Pro, Folio keeps your subscription’s status, plan (monthly, yearly or founding) and dates, with
-          Paddle’s ids for it and for you as its customer. When you delete your account, the subscription is cancelled
-          and the ids that tie it to you are deleted; the rest stays, without your account, so the count of founding
-          subscriptions stays right.
         </p>
         <p>To keep accounts safe, Folio keeps:</p>
         <ul className="list-disc space-y-2 pl-6">
@@ -96,11 +89,6 @@ function PrivacyPage() {
 
       <Part id="who-else" title="Who else sees it">
         <p>Resend sends Folio’s mail, so it receives your address and the message.</p>
-        <p>
-          If you buy Pro, Paddle sells it for Folio and takes the payment: it receives your payment details and the
-          address and country you pay with, under its own privacy notice. Folio never sees your card. Paddle tells Folio
-          when your subscription starts, renews, fails to renew or ends.
-        </p>
         <p>
           When you use Ask the book, Explain, summaries, recaps, quizzes, flashcards, one of your saved prompts or
           Translate, the passages, your question, the prompt’s text and any highlights sent with it go to Anthropic or

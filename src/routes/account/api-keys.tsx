@@ -10,7 +10,6 @@ import {
   apiKeyErrorText,
 } from '~/client/features/account/account-messages'
 import { AccountPage, Button, DateTime, Notice, Section, TextField } from '~/client/features/account/ui'
-import { ProNotice } from '~/client/features/plans/ProNotice'
 import { handleApiKeys } from '~/server/account-actions'
 import { getApiKeysPage } from '~/server/account-functions'
 import type { Provider } from '~/server/api-keys'
@@ -24,7 +23,6 @@ import {
   speechModelName,
   usd,
 } from '~/shared/lib/speech-models'
-import type { ProFeature } from '~/shared/plans/plans'
 
 const SEARCH_PROVIDERS = ['anthropic', 'openai', 'elevenlabs'] as const
 
@@ -60,7 +58,6 @@ function ApiKeysScreen() {
   const anthropic = data.keys.find((k) => k.provider === 'anthropic')
   const openai = data.keys.find((k) => k.provider === 'openai')
   const elevenlabs = data.keys.find((k) => k.provider === 'elevenlabs')
-  const pro = Route.useRouteContext().viewer?.plan === 'pro'
   const saved = new Set(data.keys.filter((k) => k.saved).map((k) => k.provider))
   const notices = (here: Provider | undefined) =>
     provider === here ? <Notices status={status} error={error} provider={here} /> : null
@@ -79,12 +76,7 @@ function ApiKeysScreen() {
           {notices('anthropic')}
         </ProviderKey>
       )}
-      {openai && !pro && (
-        <LockedKey entry={openai} feature="ask">
-          {notices('openai')}
-        </LockedKey>
-      )}
-      {openai && pro && (
+      {openai && (
         <ProviderKey entry={openai} invalid={invalid('openai')}>
           {notices('openai')}
         </ProviderKey>
@@ -92,12 +84,7 @@ function ApiKeysScreen() {
       <Section id="model" title="Model for agent features">
         <ModelForm current={data.model} saved={saved} />
       </Section>
-      {elevenlabs && !pro && (
-        <LockedKey entry={elevenlabs} feature="elevenlabs">
-          {notices('elevenlabs')}
-        </LockedKey>
-      )}
-      {elevenlabs && pro && (
+      {elevenlabs && (
         <ProviderKey
           entry={elevenlabs}
           invalid={invalid('elevenlabs')}
@@ -379,29 +366,6 @@ function SavedKey({
 }
 
 const KEY_PREFIX: Record<Provider, string> = { anthropic: 'sk-ant-', openai: 'sk-', elevenlabs: '' }
-
-/** A key section on the free plan: the Pro notice, and a key saved before, which can still be deleted. */
-function LockedKey({ entry, feature, children }: { entry: KeyEntry; feature: ProFeature; children?: ReactNode }) {
-  return (
-    <Section id={entry.provider} title={PROVIDER_NAMES[entry.provider]}>
-      {children && <div className="-mt-6 mb-5">{children}</div>}
-      <ProNotice feature={feature} className="space-y-2 text-[14.5px] leading-relaxed text-body" />
-      {entry.saved && <SavedKeyToDelete provider={entry.provider} saved={entry.saved} />}
-    </Section>
-  )
-}
-
-function SavedKeyToDelete({ provider, saved }: { provider: Provider; saved: NonNullable<KeyEntry['saved']> }) {
-  return (
-    <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-5">
-      <KeyRound className="size-5 shrink-0 text-subtle" aria-hidden />
-      <p className="min-w-0 flex-1 font-mono text-[14.5px] text-ink" data-testid="saved-key">
-        {KEY_PREFIX[provider]}…{saved.last4}
-      </p>
-      <DeleteKeyForm provider={provider} />
-    </div>
-  )
-}
 
 function DeleteKeyForm({ provider }: { provider: Provider }) {
   return (

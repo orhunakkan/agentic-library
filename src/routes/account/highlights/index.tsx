@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { AppLink } from '~/client/components/AppLink'
 import { AccountPage, Button, DateTime, Notice, Section } from '~/client/features/account/ui'
 import { SWATCH } from '~/client/features/highlights/HighlightPopover'
-import { ProNotice } from '~/client/features/plans/ProNotice'
 import { cn } from '~/client/lib/cn'
 import { getHighlightsPage } from '~/server/account-functions'
 import { handleHighlightsForm } from '~/server/highlights/actions'
@@ -52,7 +51,6 @@ export const Route = createFileRoute('/account/highlights/')({
 function HighlightsScreen() {
   const data = Route.useLoaderData()
   const { status, error } = Route.useSearch()
-  const canExport = Route.useRouteContext().viewer?.plan === 'pro'
   const notices = (
     <>
       {status === 'deleted' && (
@@ -74,22 +72,13 @@ function HighlightsScreen() {
   )
 
   return data.kind === 'book' ? (
-    <BookHighlights book={data.book} highlights={data.highlights} notices={notices} canExport={canExport} />
+    <BookHighlights book={data.book} highlights={data.highlights} notices={notices} />
   ) : (
-    <HighlightedBooks books={data.books} notices={notices} canExport={canExport} />
+    <HighlightedBooks books={data.books} notices={notices} />
   )
 }
 
-const ExportPro = () => (
-  <ProNotice feature="export" className="mt-5 space-y-1 text-[14.5px] leading-relaxed text-body" />
-)
-
-function BookHighlights({
-  book,
-  highlights,
-  notices,
-  canExport,
-}: BookData & { notices: ReactNode; canExport: boolean }) {
+function BookHighlights({ book, highlights, notices }: BookData & { notices: ReactNode }) {
   const { chapters, missing } = groupByChapter(highlights)
   return (
     <AccountPage
@@ -106,7 +95,7 @@ function BookHighlights({
         >
           All books
         </Link>
-        {!book.removed && canExport && (
+        {!book.removed && (
           <a
             href={`/account/highlights/export/${book.slug}`}
             download
@@ -118,7 +107,6 @@ function BookHighlights({
           </a>
         )}
       </div>
-      {!book.removed && !canExport && <ExportPro />}
       {notices}
       {highlights.length === 0 && (
         <p className="mt-8 text-[14.5px] text-muted" data-testid="my-highlights-empty">
@@ -164,15 +152,7 @@ function BookHighlights({
   )
 }
 
-function HighlightedBooks({
-  books,
-  notices,
-  canExport,
-}: {
-  books: AllData['books']
-  notices: ReactNode
-  canExport: boolean
-}) {
+function HighlightedBooks({ books, notices }: { books: AllData['books']; notices: ReactNode }) {
   return (
     <AccountPage
       eyebrow="Account"
@@ -181,8 +161,7 @@ function HighlightedBooks({
       lead="Everything you’ve highlighted, by book. Your highlights and notes are private to your account."
       nav
     >
-      {books.length > 0 && !canExport && <ExportPro />}
-      {books.length > 0 && canExport && (
+      {books.length > 0 && (
         <div className="mt-5 text-[14.5px]">
           <a
             href="/account/highlights/export"

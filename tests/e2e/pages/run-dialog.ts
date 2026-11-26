@@ -13,7 +13,6 @@ export class RunDialog {
   readonly status: Locator
   readonly hint: Locator
   readonly note: Locator
-  readonly proNotice: Locator
   readonly signedOut: Locator
   readonly readOnlyCode: Locator
 
@@ -29,7 +28,6 @@ export class RunDialog {
     this.status = this.dialog.getByRole('status')
     this.hint = this.dialog.getByTestId('run-hint')
     this.note = this.dialog.getByTestId('run-note')
-    this.proNotice = this.dialog.getByTestId('run-pro')
     this.signedOut = this.dialog.getByTestId('run-signed-out')
     this.readOnlyCode = this.dialog.getByTestId('run-code')
   }

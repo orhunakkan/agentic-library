@@ -44,6 +44,7 @@ const stubFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof fetch
 
 let users = 0
+/** A plain member: no grant and no subscription, so every case shows Ask works for any account with a key. */
 async function reader({ withKey = key() as string | null } = {}) {
   const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()
@@ -94,6 +95,35 @@ async function askedEvents(userId: number) {
 }
 
 describe('POST /read/<book>/ask', () => {
+  it('still answers when the question can’t be settled in the audit log, and logs it', async () => {
+    const { cookie } = await reader()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const auditGone = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      await raw`alter table audit_events rename to audit_events_away`
+      return stubFetch(input, init)
+    }) as typeof fetch
+    try {
+      const response = await handleAsk(
+        new Request(`${origin}/read/pride-and-prejudice/ask`, {
+          method: 'POST',
+          headers: { origin, 'content-type': 'application/json', cookie },
+          body: JSON.stringify(body()),
+        }),
+        'pride-and-prejudice',
+        { fetch: auditGone },
+      )
+      expect((await events(response)).at(-1)).toEqual({ type: 'done', stop: 'end_turn' })
+      await vi.waitFor(() =>
+        expect(error.mock.calls.map((call) => String(call[0]))).toContainEqual(
+          expect.stringMatching(/^\[ask audit\] /),
+        ),
+      )
+    } finally {
+      await raw`alter table if exists audit_events_away rename to audit_events`
+      error.mockRestore()
+    }
+  })
+
   it('streams an answer with a citation that links to the page it came from', async () => {
     const { user, cookie } = await reader()
     const response = await ask('pride-and-prejudice', cookie)
@@ -604,16 +634,6 @@ describe('Ask with a saved prompt', () => {
     expect(await raw`select 1 from audit_events where event = 'book.asked'`).toHaveLength(0)
   })
 
-  it('is Pro: a Free reader is 403 before the prompt is looked at', async () => {
-    const { user, cookie } = await reader()
-    const id = await saved(user.id, 'Mine', 'pages')
-    await raw`update users set pro_granted_at = null where id = ${user.id}`
-    const { sent, fetch } = capturing()
-    const response = await askWith(cookie, run(id), fetch)
-    expect([response.status, await response.json()]).toEqual([403, { error: 'pro', feature: 'ask' }])
-    expect(sent).toHaveLength(0)
-  })
-
   it('audits the run as action prompt, without its name or text, and counts it toward the hourly limit', async () => {
     const { user, cookie } = await reader()
     const id = await saved(user.id, 'Secret name', 'pages', 'Secret instruction.')
@@ -764,7 +784,6 @@ describe('Ask on a GPT model', () => {
     const setup = () => askSetup(new Request(`${origin}/read/pride-and-prejudice`, { headers: { cookie } }))
     expect(await setup()).toMatchObject({
       signedIn: true,
-      pro: true,
       hasKey: true,
       keys: { anthropic: false, openai: true },
       model: 'gpt-6-luna',

@@ -222,22 +222,53 @@ describe('handleLogin', () => {
   })
 })
 
-describe('the sweeps after a sign-in', () => {
-  it('sweep Paddle’s old events, and a failed sweep is logged without failing the sign-in', async () => {
+describe('a database failure', () => {
+  it('answers a sign-in with unavailable, logged without the password', async () => {
     await newUser()
-    await raw`
-      insert into paddle_events (event_id, event_type, occurred_at, received_at)
-      values ('evt_old', 'subscription.created', now(), now() - interval '91 days')`
-    expect((await login({ username: 'reader', password: PASSWORD })).status).toBe(303)
-    await vi.waitFor(async () => expect(await raw`select 1 from paddle_events`).toEqual([]))
-
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await raw`alter table paddle_events rename to paddle_events_away`
+    await raw`alter table login_attempts rename to login_attempts_away`
+    try {
+      const response = await login({ username: 'reader', password: PASSWORD })
+      expect([response.status, response.headers.get('location')]).toEqual([303, '/login?error=unavailable'])
+      expect(response.headers.get('set-cookie')).toBeNull()
+      const lines = error.mock.calls.map((call) => String(call[0]))
+      expect(lines).toEqual([expect.stringMatching(/^\[sign-in\] /)])
+      expect(lines.join('\n')).not.toContain(PASSWORD)
+    } finally {
+      await raw`alter table login_attempts_away rename to login_attempts`
+      error.mockRestore()
+    }
+  })
+
+  it('still clears the cookie on sign-out, and logs it', async () => {
+    const { cookie } = await signedIn()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await raw`alter table sessions rename to sessions_away`
+    try {
+      const response = await handleLogout(formPost('/logout', {}, { cookie }))
+      expect([response.status, response.headers.get('location')]).toEqual([303, DEFAULT_AFTER_SIGN_IN])
+      expect(response.headers.get('set-cookie')).toContain('Max-Age=0')
+      expect(error.mock.calls.map((call) => String(call[0]))).toEqual([
+        expect.stringMatching(/^\[session lookup\] /),
+        expect.stringMatching(/^\[sign-out\] /),
+      ])
+    } finally {
+      await raw`alter table sessions_away rename to sessions`
+      error.mockRestore()
+    }
+  })
+})
+
+describe('the sweeps after a sign-in', () => {
+  it('log a failed sweep without failing the sign-in', async () => {
+    await newUser()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await raw`alter table signup_tokens rename to signup_tokens_away`
     try {
       expect((await login({ username: 'reader', password: PASSWORD })).status).toBe(303)
       await vi.waitFor(() => expect(String(error.mock.calls[0]?.[0])).toMatch(/^\[sweep\] /))
     } finally {
-      await raw`alter table paddle_events_away rename to paddle_events`
+      await raw`alter table signup_tokens_away rename to signup_tokens`
       error.mockRestore()
     }
   })

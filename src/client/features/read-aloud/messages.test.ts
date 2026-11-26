@@ -44,7 +44,6 @@ describe('ElevenLabs problems', () => {
     expect(say('busy')).toBe('ElevenLabs is busy. Press play to try again.')
     expect(say('no_key')).toBe('Your ElevenLabs key was removed. Add it again on the API keys page.')
     expect(say('signed_out')).toBe('Sign in again to use your ElevenLabs voice.')
-    expect(say('pro')).toBe('ElevenLabs voices are part of Pro.')
   })
 
   it('say when the hourly limit allows more, in the reader’s time', () => {

@@ -1,10 +1,10 @@
 import '@tanstack/react-start/server-only'
+import { MAX_ARTICLES } from '../shared/articles/contract.ts'
 import { checkBookUpload, checkChapterUpload, UploadError } from '../shared/import/blocks.ts'
-import { MAX_CHAPTER_REQUEST_BYTES, MAX_CHAPTERS, MAX_META_REQUEST_BYTES } from '../shared/import/limits.ts'
+import { MAX_BOOKS, MAX_CHAPTER_REQUEST_BYTES, MAX_CHAPTERS, MAX_META_REQUEST_BYTES } from '../shared/import/limits.ts'
 import { paginate } from '../shared/import/paginate.ts'
 import { type RenderContext, renderBlocks } from '../shared/import/render.ts'
 import { isObject } from '../shared/lib/json-shape.ts'
-import { limitsFor } from '../shared/plans/plans.ts'
 import { isUuid } from '../shared/uuid.ts'
 import { take } from './articles/pending.ts'
 import { forgetBookAudio } from './audiobooks/files.ts'
@@ -64,17 +64,16 @@ function parseStart(value: unknown) {
 export const handleNewBook = (request: Request) =>
   imports.post(request, { log: 'book import start', parse: parseStart }, async ({ session, db, input }) => {
     const { book, article } = input
-    const { plan, userId } = session
+    const { userId } = session
     const pending = article ? take(userId, article) : null
     if (article && !pending) return noStoreJson(409, { error: 'expired' })
-    const limits = limitsFor(plan)
-    const start = pending ? { url: pending.url, max: limits.articles } : undefined
-    const result = await startImport(db, userId, book, new Date(), limits.books, start)
+    const start = pending ? { url: pending.url, max: MAX_ARTICLES } : undefined
+    const result = await startImport(db, userId, book, new Date(), MAX_BOOKS, start)
     if (!result.ok) {
       if (result.reason === 'room') return noStoreJson(409, { error: 'quota', scope: 'user', max: result.max })
       if (result.reason === 'exists') return noStoreJson(409, { error: 'exists', id: result.id })
       const scope = start ? 'articles' : 'books'
-      if (result.reason === 'quota') return noStoreJson(409, { error: 'quota', scope, max: result.max, plan })
+      if (result.reason === 'quota') return noStoreJson(409, { error: 'quota', scope, max: result.max })
       if (start) return noStoreJson(429, { error: 'limited', retryAt: result.retryAt?.toISOString() ?? null })
       return fail(429, 'rate')
     }

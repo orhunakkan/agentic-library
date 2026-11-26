@@ -11,7 +11,7 @@ const REASONS: readonly PromptProblem[] = [
   'instruction_too_long',
   'reserved',
 ]
-const CODES: readonly PromptProblem[] = ['exists', 'quota', 'not_found', 'pro', 'signed_out']
+const CODES: readonly PromptProblem[] = ['exists', 'quota', 'not_found', 'signed_out']
 
 const fail = (problem: PromptProblem): PromptResult<never> => ({ ok: false, problem })
 

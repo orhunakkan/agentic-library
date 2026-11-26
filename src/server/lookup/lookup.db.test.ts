@@ -48,6 +48,7 @@ const key = (ending = '0000') => `sk-ant-test-valid-${'x'.repeat(16)}${ending}`
 const BOOK = 'pride-and-prejudice'
 
 let users = 0
+/** A plain member: no grant and no subscription, so every case shows Translate works for any account with a key. */
 async function reader({ withKey = key() as string | null } = {}) {
   const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()

@@ -12,7 +12,6 @@ import { post } from '../../lib/post'
 export type WordProblem = 'signed_out' | 'not_found' | 'rate' | 'busy' | 'unavailable' | 'network' | 'failed'
 export type TranslateProblem =
   | 'signed_out'
-  | 'pro'
   | 'not_found'
   | 'no_key'
   | 'rate'
@@ -28,7 +27,6 @@ export type LookupResult<T, P extends string> = { ok: true; value: T } | { ok: f
 const WORD_CODES: readonly WordProblem[] = ['signed_out', 'not_found', 'rate', 'busy', 'unavailable']
 const TRANSLATE_CODES: readonly TranslateProblem[] = [
   'signed_out',
-  'pro',
   'not_found',
   'no_key',
   'rate',

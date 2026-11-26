@@ -3,7 +3,6 @@ const OPENAI_KEY = /\bsk-(?!ant-)[A-Za-z0-9_-]{16,}/g
 const HEADER = /(xi?-api-key["']?\s*[:=]\s*["']?)[^\s"',}]+/gi
 const BEARER = /(authorization["']?\s*[:=]\s*["']?bearer\s+)[^\s"',}]+/gi
 const TOKEN = /(\btoken=)[^&\s"'#]+/gi
-const PADDLE = /\bpdl_[a-z]+_[A-Za-z0-9_]+/g
 const ACCESS_TOKEN = /folio_at_[A-Za-z0-9_-]+/g
 const GITHUB_TOKEN = /\b(github_pat|ghp)_[A-Za-z0-9_]+/g
 
@@ -14,7 +13,6 @@ export function redact(text: string): string {
     .replace(HEADER, '$1[redacted]')
     .replace(BEARER, '$1[redacted]')
     .replace(TOKEN, '$1[redacted]')
-    .replace(PADDLE, 'pdl_[redacted]')
     .replace(ACCESS_TOKEN, 'folio_at_[redacted]')
     .replace(GITHUB_TOKEN, '$1_[redacted]')
 }

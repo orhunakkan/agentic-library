@@ -15,7 +15,6 @@ import { createPrompt, findPrompt, listPrompts, movePrompt, type PromptInput } f
 import { hashToken, newSessionToken } from '~/server/security'
 import { createSession } from '~/server/sessions'
 import type { AskPromptView } from '~/shared/ask-prompts/prompts'
-import type { Plan } from '~/shared/plans/plans'
 import { databaseUrl, freshDatabase } from '../testing/db'
 
 const raw = postgres(databaseUrl, { max: 1, onnotice: () => {} })
@@ -35,10 +34,9 @@ const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 const NOWHERE = '6f1c0000-0000-4000-8000-000000000000'
 
 let users = 0
-async function signedIn(plan: Plan = 'pro') {
-  const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member', {
-    plan,
-  })
+/** A plain member: no grant and no subscription, so every case shows prompts work for any account. */
+async function signedIn() {
+  const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()
   await createSession(db(), { tokenHash: hashToken(token), userId: user.id, ip: null, userAgent: 'test' })
   return { user, cookie: `${cookieName}=${token}` }
@@ -230,14 +228,6 @@ describe('POST /account/prompts/new', () => {
     expect(await answer(await create(cookie, fields({ name: 5 })))).toEqual([400, 'invalid'])
     expect(await answer(await create(cookie, 'not json'))).toEqual([400, 'invalid'])
   })
-
-  it('is Pro: a Free reader is 403 before the body is read', async () => {
-    const { user, cookie } = await signedIn('free')
-    const response = await create(cookie, 'not json')
-    expect(response.status).toBe(403)
-    expect(await response.json()).toEqual({ error: 'pro', feature: 'ask' })
-    expect(await listPrompts(db(), user.id)).toEqual([])
-  })
 })
 
 describe('POST /account/prompts/<id>', () => {
@@ -321,18 +311,9 @@ describe('POST /account/prompts/<id>', () => {
     expect(await answer(await change(cookie, one.id, 'not json'))).toEqual([400, 'invalid'])
   })
 
-  it('on Free, an edit or a move is 403 once its input is checked, and delete works', async () => {
+  it('checks an edit’s or a move’s input, and deletes', async () => {
     const { user, cookie } = await signedIn()
     const one = await made(cookie)
-    await raw`update users set pro_granted_at = null where id = ${user.id}`
-    for (const body of [
-      { intent: 'edit', ...fields({ name: 'Renamed' }) },
-      { intent: 'move', direction: 'up' },
-    ]) {
-      const response = await change(cookie, one.id, body)
-      expect(response.status).toBe(403)
-      expect(await response.json()).toEqual({ error: 'pro', feature: 'ask' })
-    }
     for (const body of [{ intent: 'edit', name: 5 }, { intent: 'move', direction: 'sideways' }, { nonsense: true }]) {
       expect(await answer(await change(cookie, one.id, body))).toEqual([400, 'invalid'])
     }
@@ -361,34 +342,30 @@ describe('the reads', () => {
   const pageRequest = (cookie: string | null) =>
     new Request(`${origin}/account/prompts`, { headers: cookie ? { cookie } : {} })
 
-  it('give the page every prompt in order, with the plan', async () => {
-    const { user, cookie } = await signedIn()
+  it('give the page every prompt in order', async () => {
+    const { cookie } = await signedIn()
     const a = await made(cookie, { name: 'A', appliesTo: 'passage' })
     await made(cookie, { name: 'B' })
     await change(cookie, a.id, { intent: 'move', direction: 'down' })
     const state = await askPromptsState(pageRequest(cookie))
     expect(state).toEqual({
       state: 'ready',
-      plan: 'pro',
       prompts: [
         expect.objectContaining({ name: 'B', appliesTo: 'pages' }),
         { id: a.id, name: 'A', appliesTo: 'passage', instruction: 'List the people so far.' },
       ],
     })
-    await raw`update users set pro_granted_at = null where id = ${user.id}`
-    expect(await askPromptsState(pageRequest(cookie))).toMatchObject({ state: 'ready', plan: 'free' })
     expect(await askPromptsState(pageRequest(null))).toEqual({ state: 'signed_out' })
   })
 
-  it('give the Ask panel the names and kinds in order, never the text, and none on Free', async () => {
-    const { user, cookie } = await signedIn()
+  it('give the Ask panel the names and kinds in order, never the text', async () => {
+    const { cookie } = await signedIn()
     const a = await made(cookie, { name: 'A', appliesTo: 'passage' })
     const b = await made(cookie, { name: 'B' })
     await change(cookie, b.id, { intent: 'move', direction: 'up' })
     const setup = await askSetup(pageRequest(cookie))
     expect(setup).toMatchObject({
       signedIn: true,
-      pro: true,
       hasKey: false,
       prompts: [
         { id: b.id, name: 'B', appliesTo: 'pages' },
@@ -396,8 +373,6 @@ describe('the reads', () => {
       ],
     })
     expect(JSON.stringify(setup)).not.toContain('List the people')
-    await raw`update users set pro_granted_at = null where id = ${user.id}`
-    expect(await askSetup(pageRequest(cookie))).toMatchObject({ signedIn: true, pro: false, prompts: [] })
     expect(await askSetup(pageRequest(null))).toEqual({ signedIn: false })
   })
 })

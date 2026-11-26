@@ -1,15 +1,9 @@
 import { Plus } from 'lucide-react'
-import { PAYING_QUESTIONS } from '~/shared/billing/copy'
-import { NO_TRIAL } from '~/shared/plans/copy'
 
 const QUESTIONS = [
   {
     q: 'Do I need an account to read?',
     a: 'No. The whole library and read aloud are open to everyone. An account adds highlights, notes, your own books and Ask the book; the Sign in page says how to get one.',
-  },
-  {
-    q: 'Is there a free trial?',
-    a: NO_TRIAL,
   },
   {
     q: 'What does Ask the book cost?',
@@ -25,8 +19,7 @@ const QUESTIONS = [
   },
 ]
 
-export function Faq({ billing }: { billing: boolean }) {
-  const questions = billing ? [...QUESTIONS.slice(0, 2), ...PAYING_QUESTIONS, ...QUESTIONS.slice(2)] : QUESTIONS
+export function Faq() {
   return (
     <section id="faq" aria-labelledby="faq-title" className="mt-24 scroll-mt-20 sm:mt-32">
       <h2
@@ -36,7 +29,7 @@ export function Faq({ billing }: { billing: boolean }) {
         Questions
       </h2>
       <div className="mt-8 divide-y divide-line-soft border-y border-line-soft">
-        {questions.map(({ q: question, a: answer }) => (
+        {QUESTIONS.map(({ q: question, a: answer }) => (
           <details key={question} className="group">
             <summary
               data-testid="faq-question"

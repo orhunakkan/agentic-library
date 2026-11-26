@@ -10,9 +10,6 @@ const view = (over: Partial<AdminUserView> = {}): AdminUserView => ({
   lastActiveAt: null,
   sessions: 0,
   hasKey: false,
-  plan: 'free',
-  planSource: 'free',
-  paid: null,
   email: 'none',
   you: false,
   ...over,
@@ -20,7 +17,7 @@ const view = (over: Partial<AdminUserView> = {}): AdminUserView => ({
 
 describe('rowActions', () => {
   it('offers an active member without sessions the basic set', () => {
-    expect(rowActions(view())).toEqual(['reset-password', 'make-admin', 'give-pro', 'disable', 'delete'])
+    expect(rowActions(view())).toEqual(['reset-password', 'make-admin', 'disable', 'delete'])
   })
 
   it('offers an admin Make member instead', () => {
@@ -28,38 +25,18 @@ describe('rowActions', () => {
   })
 
   it('offers Sign out everywhere only with a session', () => {
-    expect(rowActions(view({ sessions: 2 }))).toEqual([
-      'reset-password',
-      'make-admin',
-      'give-pro',
-      'sign-out',
-      'disable',
-      'delete',
-    ])
+    expect(rowActions(view({ sessions: 2 }))).toEqual(['reset-password', 'make-admin', 'sign-out', 'disable', 'delete'])
   })
 
   it('offers Unlock only while locked', () => {
     const locked = view({ status: 'locked', lockedUntil: '2026-11-06T12:15:00.000Z' })
-    expect(rowActions(locked)).toEqual(['reset-password', 'make-admin', 'give-pro', 'unlock', 'disable', 'delete'])
+    expect(rowActions(locked)).toEqual(['reset-password', 'make-admin', 'unlock', 'disable', 'delete'])
   })
 
   it('offers Enable for a disabled account, and still Unlock when its name is locked', () => {
-    expect(rowActions(view({ status: 'disabled' }))).toEqual([
-      'reset-password',
-      'make-admin',
-      'give-pro',
-      'enable',
-      'delete',
-    ])
+    expect(rowActions(view({ status: 'disabled' }))).toEqual(['reset-password', 'make-admin', 'enable', 'delete'])
     const both = view({ status: 'disabled', role: 'admin', lockedUntil: '2026-11-06T12:15:00.000Z' })
     expect(rowActions(both)).toEqual(['reset-password', 'make-member', 'unlock', 'enable', 'delete'])
-  })
-
-  it('offers Give Pro to a Free member, Take back Pro to a given one, and neither to an admin', () => {
-    expect(rowActions(view({ plan: 'pro', planSource: 'given' }))).toContain('take-pro')
-    expect(rowActions(view({ plan: 'pro', planSource: 'given' }))).not.toContain('give-pro')
-    const admin = rowActions(view({ role: 'admin', plan: 'pro', planSource: 'admin' }))
-    expect(admin.filter((a) => a === 'give-pro' || a === 'take-pro')).toEqual([])
   })
 
   it('offers nothing on your own row', () => {

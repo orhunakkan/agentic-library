@@ -12,7 +12,6 @@ import { getConfig } from '../config.ts'
 import type { Db } from '../db.ts'
 import { resolvedHighlights } from '../highlights/resolve.ts'
 import { OpenAiResponseError, openAiClient, openAiErrorCode } from '../openai.ts'
-import { requirePro } from '../plans/plan.ts'
 import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
 import { type Gate, signedInEndpoints } from '../signed-in.ts'
@@ -121,8 +120,6 @@ export interface AskOptions {
 }
 
 async function askedBook({ session, db }: Gate, slug: string) {
-  const notPro = requirePro(session, 'ask')
-  if (notPro) return notPro
   const found = await openTextBook(db, session.userId, slug)
   if (!found) return refuse(404, 'not_found')
   return { found, text: textOf(await found.content()) }

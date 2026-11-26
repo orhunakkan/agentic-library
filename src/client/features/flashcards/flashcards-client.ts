@@ -4,7 +4,7 @@ import type { FlashcardView } from '~/shared/flashcards/contract'
 import type { CardOrigin } from '~/shared/flashcards/limits'
 import type { ReviewResult } from '~/shared/flashcards/schedule'
 
-export type FlashcardProblem = 'quota-book' | 'quota-user' | 'pro' | 'signed_out' | 'not_found' | 'failed'
+export type FlashcardProblem = 'quota-book' | 'quota-user' | 'signed_out' | 'not_found' | 'failed'
 
 export type FlashcardResult<T> = ChangeResult<T, FlashcardProblem>
 
@@ -13,7 +13,7 @@ async function send<T>(path: string, body: unknown, pick: (body: Record<string, 
     const result = await readAnswer(await post(path, body), pick)
     if (result.ok) return result
     const { problem } = result
-    return { ok: false, problem: problem === 'stale' || problem === 'quota-free' ? 'failed' : problem } as const
+    return { ok: false, problem: problem === 'stale' ? 'failed' : problem } as const
   } catch {
     return { ok: false, problem: 'failed' } as const
   }

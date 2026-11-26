@@ -44,7 +44,7 @@ export const Route = createFileRoute('/account/books/')({
 })
 
 function BooksScreen() {
-  const { books, articleIds, imageBytesUsed, audiobooks, audioBytesUsed, plan, bookCount } = Route.useLoaderData()
+  const { books, articleIds, imageBytesUsed, audiobooks, audioBytesUsed, bookCount } = Route.useLoaderData()
   const { status, error } = Route.useSearch()
   const navigate = useNavigate({ from: '/account/books/' })
   const [hydrated, setHydrated] = useState(false)
@@ -102,7 +102,6 @@ function BooksScreen() {
                 imageBytesUsed={imageBytesUsed}
                 audiobooks={audiobooks}
                 audioBytesUsed={audioBytesUsed}
-                plan={plan}
                 bookCount={bookCount}
                 onImported={imported}
               />

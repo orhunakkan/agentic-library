@@ -25,7 +25,7 @@ import {
   startImport,
   storeChapter,
 } from '~/server/user-books'
-import { FREE_ARTICLES, PRO_ARTICLES } from '~/shared/articles/contract'
+import { MAX_ARTICLES } from '~/shared/articles/contract'
 import { ARTICLE_FETCH_LIMIT, ARTICLE_PICTURE_LIMIT, ARTICLE_SAVE_LIMIT, IMPORT_LIMIT } from '../rate-limit'
 import { databaseUrl, freshDatabase } from '../testing/db'
 import { testUser } from '../testing/users'
@@ -86,10 +86,9 @@ const origin = getConfig().appOrigin
 const cookieName = getConfig().cookieSecure ? '__Host-session' : 'session'
 
 let users = 0
-async function signedIn(plan: 'free' | 'pro' = 'pro') {
-  const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member', {
-    plan,
-  })
+/** A plain member: no grant and no subscription, so the limits here are every account's. */
+async function signedIn() {
+  const user = await testUser(db(), `reader-${++users}`, '$argon2id$v=19$m=1024,t=1,p=1$c2FsdA$aGFzaA', 'member')
   const token = newSessionToken()
   await createSession(db(), { tokenHash: hashToken(token), userId: user.id, ip: null, userAgent: 'test' })
   return { user, cookie: `${cookieName}=${token}` }
@@ -379,29 +378,18 @@ describe('saving an article', () => {
     expect(await answer(await start(cookie, { ...META, article: 1 }))).toEqual([400, 'invalid'])
   })
 
-  it('holds Free to 20 articles and Pro to 500, apart from the books', async () => {
-    const free = await signedIn('free')
-    await fillArticles(free.user.id, FREE_ARTICLES)
-    const { fetch } = await fetched(free.cookie)
-    const refused = await start(free.cookie, { ...META, article: fetch })
-    expect([refused.status, await refused.json()]).toEqual([
-      409,
-      { error: 'quota', scope: 'articles', max: FREE_ARTICLES, plan: 'free' },
-    ])
-    expect(await countedBooks(db(), free.user.id)).toBe(0)
-    expect((await start(free.cookie, META)).status).toBe(201)
-    expect((await start(free.cookie, META)).status).toBe(201)
-    expect(await answer(await start(free.cookie, META))).toEqual([409, 'quota'])
-    expect(await countedArticles(db(), free.user.id)).toBe(FREE_ARTICLES)
-
-    const pro = await signedIn('pro')
-    await fillArticles(pro.user.id, PRO_ARTICLES - 1)
-    expect((await start(pro.cookie, { ...META, article: (await fetched(pro.cookie)).fetch })).status).toBe(201)
-    const last = await start(pro.cookie, {
+  it('lets a plain member save 500 articles, refuses the 501st with no plan, and counts them apart from the books', async () => {
+    const member = await signedIn()
+    await fillArticles(member.user.id, MAX_ARTICLES - 1)
+    expect((await start(member.cookie, { ...META, article: (await fetched(member.cookie)).fetch })).status).toBe(201)
+    expect(await countedArticles(db(), member.user.id)).toBe(MAX_ARTICLES)
+    const refused = await start(member.cookie, {
       ...META,
-      article: (await fetched(pro.cookie, 'http://news.test/article?2')).fetch,
+      article: (await fetched(member.cookie, 'http://news.test/article?2')).fetch,
     })
-    expect(await last.json()).toMatchObject({ error: 'quota', scope: 'articles', max: PRO_ARTICLES, plan: 'pro' })
+    expect([refused.status, await refused.json()]).toEqual([409, { error: 'quota', scope: 'articles', max: 500 }])
+    expect(await countedBooks(db(), member.user.id)).toBe(0)
+    expect((await start(member.cookie, META)).status).toBe(201)
   })
 
   it('says the article is saved already at the start too', async () => {
@@ -458,8 +446,7 @@ describe('reads and bookkeeping', () => {
     const state = await articlesState(get(cookie))
     expect(state).toMatchObject({
       state: 'ready',
-      max: PRO_ARTICLES,
-      plan: 'pro',
+      max: MAX_ARTICLES,
       testHosts: [],
       imageBytesUsed: 0,
       articles: [

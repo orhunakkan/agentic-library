@@ -233,7 +233,7 @@ describe('the store', () => {
   })
 })
 
-describe('the plan limits', () => {
+describe('the limits', () => {
   it('allow 50 shelves per user', async () => {
     const user = await newUser()
     await raw`

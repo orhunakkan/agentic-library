@@ -90,10 +90,6 @@ export function problemText(problem: AdminProblem, on: 'add' | 'change'): string
       return `There are already ${INVITE_MAX} open invites. Revoke one first.`
     case 'closed':
       return 'Sign-up is turned off on this server, so invites can’t be made.'
-    case 'admin':
-      return 'Admins are always on Pro.'
-    case 'billing':
-      return 'Couldn’t cancel their Pro subscription, so the account wasn’t deleted. Try again, or cancel it in Paddle first.'
   }
 }
 
@@ -101,8 +97,6 @@ export const ACTION_LABELS: Record<RowAction, string> = {
   'reset-password': 'Reset password',
   'make-admin': 'Make admin',
   'make-member': 'Make member',
-  'give-pro': 'Give Pro…',
-  'take-pro': 'Take back Pro…',
   unlock: 'Unlock',
   'sign-out': 'Sign out everywhere',
   disable: 'Disable',
@@ -116,10 +110,6 @@ export function changeFor(action: Exclude<RowAction, 'delete'>): UserChange {
       return { intent: 'role', role: 'admin' }
     case 'make-member':
       return { intent: 'role', role: 'member' }
-    case 'give-pro':
-      return { intent: 'grant-pro' }
-    case 'take-pro':
-      return { intent: 'revoke-pro' }
     default:
       return { intent: action }
   }
@@ -135,10 +125,6 @@ export function doneText(action: RowAction | 'add', username: string): string {
       return `${username} is now an admin.`
     case 'make-member':
       return `${username} is now a member.`
-    case 'give-pro':
-      return `${username} is on Pro now.`
-    case 'take-pro':
-      return `${username} is on Free now.`
     case 'unlock':
       return `${username} was unlocked.`
     case 'sign-out':

@@ -4,7 +4,6 @@ import { AccountPage, Button, Notice, Section } from '~/client/features/account/
 import { DialogTitle, Modal } from '~/client/features/admin/ConfirmDialog'
 import { type AskPromptsState, type AskPromptView, MAX_ASK_PROMPTS } from '~/shared/ask-prompts/prompts'
 import { STARTER_PROMPTS } from '~/shared/ask-prompts/starters'
-import { ProNotice } from '../plans/ProNotice'
 import { PromptCard } from './PromptCard'
 import { EMPTY_DRAFT, NAME_ID, type PromptDraft, PromptForm } from './PromptForm'
 import {
@@ -12,7 +11,6 @@ import {
   countText,
   deleteQuestion,
   EMPTY_TEXT,
-  FREE_KEPT_TEXT,
   PROMPTS_INTRO,
   type PromptProblem,
   type PromptStatus,
@@ -87,7 +85,7 @@ function DeleteDialog({
   )
 }
 
-function PromptsList({ initial, pro }: { initial: readonly AskPromptView[]; pro: boolean }) {
+function PromptsList({ initial }: { initial: readonly AskPromptView[] }) {
   const { prompts, create, edit, move, remove } = useAskPrompts(initial)
   const toast = useToast()
   const [editing, setEditing] = useState<string | null>(null)
@@ -115,21 +113,13 @@ function PromptsList({ initial, pro }: { initial: readonly AskPromptView[]; pro:
 
   return (
     <>
-      {!pro && (
-        <>
-          <ProNotice feature="ask" className="mt-6 space-y-2 text-[14.5px] leading-relaxed text-body" />
-          {prompts.length > 0 && <p className="mt-6 text-[15px] text-body">{FREE_KEPT_TEXT}</p>}
-        </>
-      )}
-      {pro && (
-        <p className="mt-8 text-[14px] font-medium text-muted" data-testid="prompts-count">
-          {countText(prompts.length)}
-        </p>
-      )}
+      <p className="mt-8 text-[14px] font-medium text-muted" data-testid="prompts-count">
+        {countText(prompts.length)}
+      </p>
       <p className="sr-only" role="status" aria-live="polite" data-testid="prompts-status" key={status?.n}>
         {status ? statusText(status.status, status.name) : ''}
       </p>
-      {pro && !full && editing === null && (
+      {!full && editing === null && (
         <Section id="new-prompt" title="New prompt">
           <PromptForm
             key={draft.n}
@@ -146,7 +136,7 @@ function PromptsList({ initial, pro }: { initial: readonly AskPromptView[]; pro:
           />
         </Section>
       )}
-      {pro && prompts.length === 0 && (
+      {prompts.length === 0 && (
         <Starters
           onUse={(starter) => {
             setDraft((d) => ({ draft: starter, n: d.n + 1 }))
@@ -191,7 +181,6 @@ function PromptsList({ initial, pro }: { initial: readonly AskPromptView[]; pro:
                 prompt={prompt}
                 first={i === 0}
                 last={i === prompts.length - 1}
-                canChange={pro}
                 onEdit={() => setEditing(prompt.id)}
                 onMove={(direction) => void onMove(prompt, direction)}
                 onDelete={() => setDeleting(prompt)}
@@ -209,7 +198,7 @@ export function PromptsPage({ state }: { state: AskPromptsState }) {
   return (
     <AccountPage eyebrow="Account" title="Your prompts" titleTestId="prompts-title" lead={PROMPTS_INTRO} nav>
       {state.state === 'ready' ? (
-        <PromptsList key={state.prompts.map((p) => p.id).join()} initial={state.prompts} pro={state.plan === 'pro'} />
+        <PromptsList key={state.prompts.map((p) => p.id).join()} initial={state.prompts} />
       ) : (
         <Notice kind="error" data-testid="prompts-error">
           {promptProblemText(state.state === 'signed_out' ? 'signed_out' : 'failed')}

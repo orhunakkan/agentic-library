@@ -37,7 +37,7 @@ describe('privateHeaders', () => {
       expect(privateHeaders('/library', cookie), cookie).toEqual(NO_STORE)
     }
     expect(privateHeaders('/reset-password', 'session=abc')).toEqual(TOKEN_PAGE)
-    expect(privateHeaders('/account/plan', null)).toEqual(NO_STORE)
+    expect(privateHeaders('/account/books', null)).toEqual(NO_STORE)
   })
 
   it('leaves public pages alone for a signed-out visitor', () => {
@@ -49,8 +49,6 @@ describe('privateHeaders', () => {
       '/offline/pride-and-prejudice.json',
       '/privacy',
       '/terms',
-      '/refunds',
-      '/billing/paddle',
       '/loginx',
       '/accounts',
       '/signups',

@@ -44,8 +44,6 @@ describe('problemOf', () => {
     expect(problemOf(409, { error: 'quota', scope: 'audio' })).toEqual({ code: 'room' })
     expect(problemOf(409, { error: 'quota', scope: 'rate' })).toEqual({ code: 'rate' })
     expect(problemOf(409, { error: 'quota', scope: 'books' })).toEqual({ code: 'books' })
-    expect(problemOf(409, { error: 'quota', scope: 'books', max: 2, plan: 'free' })).toEqual({ code: 'books-free' })
-    expect(problemOf(403, { error: 'pro', feature: 'audiobooks' })).toEqual({ code: 'pro' })
     expect(problemOf(400, { error: 'drm' })).toEqual({ code: 'drm' })
     expect(problemOf(400, { error: 'unreadable', reason: 'x' })).toEqual({ code: 'server-unreadable', reason: 'x' })
     expect(problemOf(400, { error: 'unreadable' })).toEqual({

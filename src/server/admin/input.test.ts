@@ -29,17 +29,9 @@ describe('parseNewUser', () => {
 
 describe('parseUserChange', () => {
   it('takes every intent', () => {
-    for (const intent of [
-      'reset-password',
-      'disable',
-      'enable',
-      'unlock',
-      'sign-out',
-      'grant-pro',
-      'revoke-pro',
-      'delete',
-    ])
+    for (const intent of ['reset-password', 'disable', 'enable', 'unlock', 'sign-out', 'delete'])
       expect(parseUserChange({ intent })).toEqual({ intent })
+    for (const intent of ['grant-pro', 'revoke-pro']) expect(parseUserChange({ intent })).toBeNull()
     expect(parseUserChange({ intent: 'role', role: 'admin' })).toEqual({ intent: 'role', role: 'admin' })
     expect(parseUserChange({ intent: 'role', role: 'member' })).toEqual({ intent: 'role', role: 'member' })
   })

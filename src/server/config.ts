@@ -34,19 +34,7 @@ export interface Config {
   siteContact: SiteContact | null
   voicesDir: string
   audiobooksDir: string | null
-  billing: BillingConfig | null
   articleTestHosts: string[]
-}
-
-export type PaddleEnv = 'sandbox' | 'production'
-
-export interface BillingConfig {
-  env: PaddleEnv
-  apiBase: string
-  apiKey: string
-  webhookSecret: string
-  clientToken: string
-  prices: { monthly: string; yearly: string; founding: string }
 }
 
 export interface SiteContact {
@@ -157,73 +145,6 @@ function parseWebhookSecret(value: string | null | undefined): Buffer | null {
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || key.length < 16)
     throw new ConfigError('RESEND_WEBHOOK_SECRET must be whsec_ followed by base64 for at least 16 bytes')
   return key
-}
-
-const PADDLE_API_BASES: Record<PaddleEnv, string> = {
-  sandbox: 'https://sandbox-api.paddle.com',
-  production: 'https://api.paddle.com',
-}
-const TOKEN_PREFIX: Record<PaddleEnv, string> = { sandbox: 'test_', production: 'live_' }
-const KEY_ENV = /^pdl_(sdbx|live)_/
-
-function parseBilling(env: Env, credential: (name: string) => string | null): BillingConfig | null {
-  const values = {
-    PADDLE_ENV: env.PADDLE_ENV?.trim(),
-    PADDLE_CLIENT_TOKEN: env.PADDLE_CLIENT_TOKEN?.trim(),
-    PADDLE_PRICE_MONTHLY: env.PADDLE_PRICE_MONTHLY?.trim(),
-    PADDLE_PRICE_YEARLY: env.PADDLE_PRICE_YEARLY?.trim(),
-    PADDLE_PRICE_FOUNDING: env.PADDLE_PRICE_FOUNDING?.trim(),
-    'paddle_api_key (or PADDLE_API_KEY)': (credential('paddle_api_key') ?? env.PADDLE_API_KEY)?.trim(),
-    'paddle_webhook_secret (or PADDLE_WEBHOOK_SECRET)': (
-      credential('paddle_webhook_secret') ?? env.PADDLE_WEBHOOK_SECRET
-    )?.trim(),
-  }
-  const missing = Object.entries(values)
-    .filter(([, value]) => !value)
-    .map(([name]) => name)
-  if (missing.length === Object.keys(values).length) return null
-  if (missing.length > 0) throw new ConfigError(`Billing is half set up. Missing: ${missing.join(', ')}`)
-  const billing = values as Record<keyof typeof values, string>
-
-  const paddleEnv = billing.PADDLE_ENV
-  if (paddleEnv !== 'sandbox' && paddleEnv !== 'production')
-    throw new ConfigError(`PADDLE_ENV must be sandbox or production, got "${paddleEnv}"`)
-  const token = billing.PADDLE_CLIENT_TOKEN
-  if (!/^(test|live)_[A-Za-z0-9]{8,100}$/.test(token))
-    throw new ConfigError('PADDLE_CLIENT_TOKEN must be test_ or live_ followed by letters and digits')
-  if (!token.startsWith(TOKEN_PREFIX[paddleEnv]))
-    throw new ConfigError(
-      `PADDLE_CLIENT_TOKEN is for the other environment: ${paddleEnv} needs ${TOKEN_PREFIX[paddleEnv]}…`,
-    )
-
-  const prices = {
-    monthly: billing.PADDLE_PRICE_MONTHLY,
-    yearly: billing.PADDLE_PRICE_YEARLY,
-    founding: billing.PADDLE_PRICE_FOUNDING,
-  }
-  for (const [name, id] of Object.entries(prices))
-    if (!/^pri_[a-z0-9]{4,60}$/.test(id))
-      throw new ConfigError(`PADDLE_PRICE_${name.toUpperCase()} must be a Paddle price id (pri_…), got "${id}"`)
-  if (new Set(Object.values(prices)).size !== 3) throw new ConfigError('The three PADDLE_PRICE_ ids must differ')
-
-  const apiKey = billing['paddle_api_key (or PADDLE_API_KEY)']
-  if (/\s/.test(apiKey) || apiKey.length < 20 || apiKey.length > 200)
-    throw new ConfigError('The Paddle API key must be 20–200 characters with no whitespace')
-  const keyEnv = KEY_ENV.exec(apiKey)?.[1]
-  if (keyEnv && (keyEnv === 'live') !== (paddleEnv === 'production'))
-    throw new ConfigError(`The Paddle API key is for the other environment than PADDLE_ENV=${paddleEnv}`)
-  const webhookSecret = billing['paddle_webhook_secret (or PADDLE_WEBHOOK_SECRET)']
-  if (/\s/.test(webhookSecret) || webhookSecret.length < 16 || webhookSecret.length > 200)
-    throw new ConfigError('The Paddle webhook secret must be 16–200 characters with no whitespace')
-
-  return {
-    env: paddleEnv,
-    apiBase: parseBase(env.PADDLE_API_BASE, PADDLE_API_BASES[paddleEnv], 'PADDLE_API_BASE'),
-    apiKey,
-    webhookSecret,
-    clientToken: token,
-    prices,
-  }
 }
 
 function parseMail(env: Env, credential: (name: string) => string | null, appOrigin: string): MailConfig | null {
@@ -338,7 +259,6 @@ export function parseConfig(env: Env, readFile: ReadFile = readOptionalFile): Co
     siteContact,
     voicesDir: voicesDirOf(env),
     audiobooksDir: parseAudiobooksDir(env.AUDIOBOOKS_DIR),
-    billing: parseBilling(env, credential),
     articleTestHosts: parseArticleTestHosts(env.ARTICLE_TEST_HOSTS, appOrigin),
   }
 }

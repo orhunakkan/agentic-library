@@ -66,7 +66,7 @@ export type Problem =
   | { kind: 'local'; code: LocalProblemCode }
   | { kind: 'blocked' }
 
-export type CloudVoices = 'off' | 'loading' | 'failed' | 'permission' | 'pro' | 'no-key' | VoiceLike[]
+export type CloudVoices = 'off' | 'loading' | 'failed' | 'permission' | 'no-key' | VoiceLike[]
 
 export type Status = 'loading' | 'playing' | 'paused' | 'ended' | 'error'
 
@@ -176,8 +176,6 @@ const cloudVoicesOf = (answer: SpeechVoicesState, lang: string): CloudVoices => 
       return 'off'
     case 'no_key':
       return 'no-key'
-    case 'pro':
-      return 'pro'
     case 'permission':
       return 'permission'
     default:

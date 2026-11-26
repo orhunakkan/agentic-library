@@ -1,6 +1,5 @@
 import { timeOfDay } from '~/client/lib/format'
 import type { AiProvider } from '~/shared/lib/ai-models'
-import { proNotice } from '~/shared/plans/copy'
 import type { AskAction, AskProblem } from './ask-client'
 
 /** Why the Quiz and Flashcards actions are off with a GPT model: their questions link to pages through citations. */
@@ -8,7 +7,6 @@ export const NEEDS_CLAUDE_TEXT = 'Quizzes and flashcards need a Claude model, so
 
 export const PROBLEM_TEXT: Record<AskProblem, string> = {
   signed_out: 'Sign in and add an Anthropic API key to ask questions about this book.',
-  pro: proNotice('ask').heading,
   no_key: 'Add an Anthropic API key to ask questions.',
   not_found: 'Couldn’t get an answer. Try again.',
   no_prompt: 'That prompt isn’t there any more. It may have been deleted on another device.',

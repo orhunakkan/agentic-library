@@ -165,7 +165,7 @@ describe('the store', () => {
   })
 })
 
-describe('the plan limits', () => {
+describe('the limits', () => {
   async function fill(userId: number, slug: string, n: number) {
     await raw`
       insert into bookmarks (user_id, book_slug, chapter, page, start_offset, end_offset, exact)

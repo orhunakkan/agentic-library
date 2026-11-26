@@ -116,10 +116,6 @@ export async function userWithEveryRow(raw: Sql, username: string, role = 'membe
     values (${userId}, gen_random_uuid(), 'reading', '2026-11-20', 1234)`
   await raw`insert into finished_books (user_id, user_book_id) values (${userId}, ${bookId})`
   await raw`insert into reading_goals (user_id, from_day, minutes) values (${userId}, '2026-11-01', 30)`
-  await raw`
-    insert into subscriptions (id, user_id, customer_id, price_id, cadence, founding, status, canceled_at, event_at)
-    values (${`sub_01${username.replace(/[^a-z0-9]/g, '')}`}, ${userId}, ${`ctm_01${username.replace(/[^a-z0-9]/g, '')}`},
-      'pri_01founding', 'year', true, 'canceled', now(), now())`
 
   return { userId, username, bookId, audiobookId, shelfId }
 }
@@ -154,5 +150,3 @@ export const ROWS_PER_USER = {
   finished_books: 1,
   reading_goals: 1,
 } as const
-
-export const KEPT_WITHOUT_USER = { subscriptions: 1 } as const

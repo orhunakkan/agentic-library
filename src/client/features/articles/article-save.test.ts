@@ -146,10 +146,10 @@ describe('saveArticle', () => {
       startArticle: vi.fn(async () => ({
         ok: false as const,
         problem: 'quota' as const,
-        failure: { problem: 'quota' as const, plan: 'free' as const, max: 20 },
+        failure: { problem: 'quota' as const, max: 500 },
       })),
     })
-    expect((await run(s)).outcome).toEqual({ ok: false, failure: { problem: 'quota', plan: 'free', max: 20 } })
+    expect((await run(s)).outcome).toEqual({ ok: false, failure: { problem: 'quota', max: 500 } })
     expect(s.upload.uploadPicture).not.toHaveBeenCalled()
     const bare = steps({ startArticle: vi.fn(async () => ({ ok: false as const, problem: 'expired' as const })) })
     expect((await run(bare)).outcome).toEqual({ ok: false, failure: { problem: 'expired' } })

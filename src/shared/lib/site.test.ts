@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { PRIVACY_UPDATED, REFUNDS_UPDATED, shortDate, TERMS_UPDATED } from './site'
+import { PRIVACY_UPDATED, shortDate, TERMS_UPDATED } from './site'
 
 describe('the policy pages’ dates', () => {
   it('are real days, and not after today', () => {
-    for (const updated of [PRIVACY_UPDATED, TERMS_UPDATED, REFUNDS_UPDATED]) {
+    for (const updated of [PRIVACY_UPDATED, TERMS_UPDATED]) {
       expect(updated).toMatch(/^\d{4}-\d{2}-\d{2}$/)
       const day = new Date(`${updated}T00:00:00Z`)
       expect(day.toISOString().slice(0, 10)).toBe(updated)

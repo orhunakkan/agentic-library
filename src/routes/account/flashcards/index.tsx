@@ -3,7 +3,6 @@ import {
   BookFlashcardsPage,
   FlashcardBooksPage,
   type FlashcardsNotice,
-  FlashcardsProPage,
 } from '~/client/features/flashcards/FlashcardsPage'
 import { getBookFlashcards, getFlashcardBooks } from '~/server/account-functions'
 import { handleFlashcardsForm } from '~/server/flashcards/actions'
@@ -36,10 +35,9 @@ export const Route = createFileRoute('/account/flashcards/')({
 function FlashcardsScreen() {
   const data = Route.useLoaderData()
   const { status } = Route.useSearch()
-  if (data.kind === 'pro') return <FlashcardsProPage books={data.books} notice={status} />
   return data.kind === 'book' ? (
     <BookFlashcardsPage key={data.book.slug} data={data} />
   ) : (
-    <FlashcardBooksPage books={data.books} />
+    <FlashcardBooksPage books={data.books} notice={status} />
   )
 }

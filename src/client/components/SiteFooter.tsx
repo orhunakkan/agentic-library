@@ -33,9 +33,6 @@ export function SiteFooter() {
           <Link to="/terms" className={footerLink} data-testid="footer-link" data-key="terms">
             Terms
           </Link>
-          <Link to="/refunds" className={footerLink} data-testid="footer-link" data-key="refunds">
-            Refunds
-          </Link>
           <Link to="/credits" className={footerLink} data-testid="footer-link" data-key="credits">
             Credits
           </Link>

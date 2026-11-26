@@ -47,8 +47,6 @@ import {
 } from '~/shared/import/limits'
 import type { PdfOverrides } from '~/shared/import/pdf/types'
 import type { RenderContext } from '~/shared/import/render'
-import type { Plan } from '~/shared/plans/plans'
-import { SeeProLink } from '../plans/ProNotice'
 import { BOOK_STEPS } from './import-client'
 import { BAD_ISBN, importSaveText, PICTURE_FAILED, SAVE_FAILED } from './import-problems'
 import { latestPick, type PickToken } from './latest-pick'
@@ -85,7 +83,7 @@ interface PdfReview {
 }
 
 type Stage =
-  | { kind: 'pick'; error?: string; seePro?: boolean }
+  | { kind: 'pick'; error?: string }
   | { kind: 'audio'; files: File[] }
   | { kind: 'reading'; fileName: string; progress?: PdfProgress; cancel?: () => void }
   | { kind: 'review'; draft: DraftBook; fileName: string; error?: string; pdf?: PdfReview }
@@ -103,12 +101,10 @@ export function BookImporter({
   imageBytesUsed,
   audiobooks = false,
   audioBytesUsed = 0,
-  plan = 'pro',
   bookCount = 0,
   onImported,
 }: {
   imageBytesUsed: number
-  plan?: Plan
   bookCount?: number
   audiobooks?: boolean
   audioBytesUsed?: number
@@ -233,10 +229,10 @@ export function BookImporter({
   function pick(files: File[]) {
     const route = routePick(files)
     if (!route) return
-    const refused = pickRefusal(route.kind, plan, bookCount)
+    const refused = pickRefusal(route.kind, bookCount)
     if (refused) {
       picks.invalidate()
-      return setStage({ kind: 'pick', error: refused, seePro: plan === 'free' })
+      return setStage({ kind: 'pick', error: refused })
     }
     if (route.kind === 'book') return void read(route.file)
     picks.invalidate()
@@ -245,8 +241,7 @@ export function BookImporter({
     setStage({ kind: 'audio', files: route.files })
   }
 
-  if (stage.kind === 'pick')
-    return <Picker error={stage.error} seePro={stage.seePro} reading={null} audiobooks={audiobooks} onFiles={pick} />
+  if (stage.kind === 'pick') return <Picker error={stage.error} reading={null} audiobooks={audiobooks} onFiles={pick} />
   if (stage.kind === 'reading')
     return (
       <Picker reading={{ progress: stage.progress, cancel: stage.cancel }} audiobooks={audiobooks} onFiles={pick} />
@@ -365,13 +360,11 @@ function ReadingStatus({ reading }: { reading: Reading }) {
 
 function Picker({
   error,
-  seePro = false,
   reading,
   audiobooks,
   onFiles,
 }: {
   error?: string
-  seePro?: boolean
   reading: Reading | null
   audiobooks: boolean
   onFiles: (files: File[]) => void
@@ -389,12 +382,6 @@ function Picker({
       {error && (
         <Notice kind="error" id={`${id}-error`} data-testid="import-pick-error">
           {error}
-          {seePro && (
-            <>
-              {' '}
-              <SeeProLink />
-            </>
-          )}
         </Notice>
       )}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: a drop target only; the file input inside is the control. */}

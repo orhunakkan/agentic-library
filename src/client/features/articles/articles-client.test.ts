@@ -100,11 +100,11 @@ describe('readArticleAnswer', () => {
       failure: { retryAt: '2026-11-21T14:05:00Z' },
     })
     expect(await read(429, { error: 'limited' })).toMatchObject({ failure: { retryAt: null } })
-    expect(await read(409, { error: 'quota', scope: 'articles', plan: 'free', max: 20 })).toMatchObject({
-      failure: { problem: 'quota', plan: 'free', max: 20 },
+    expect(await read(409, { error: 'quota', scope: 'articles', max: 500 })).toMatchObject({
+      failure: { problem: 'quota', max: 500 },
     })
     expect(await read(409, { error: 'quota', scope: 'articles' })).toMatchObject({
-      failure: { problem: 'quota', plan: undefined, max: undefined },
+      failure: { problem: 'quota', max: undefined },
     })
     expect(await read(409, { error: 'quota', scope: 'user' })).toMatchObject({ problem: 'failed' })
   })

@@ -110,12 +110,12 @@ describe('the shelves client against the shelves endpoints', () => {
 describe("the shelves gate's refusals", () => {
   type Shelves = ReturnType<typeof signedInEndpoints<ShelfErrorCode, ShelfErrorAnswer>>
 
-  it('type a plan-limit refusal’s extras, and give other codes none', () => {
+  it('type a limit refusal’s extras, and give other codes none', () => {
     /** Never run: tsc checks these calls. */
     const typed = (fail: Shelves['fail']) => [
       fail(409, 'quota', { scope: 'shelves', max: 50 }),
       fail(404, 'not_found'),
-      // @ts-expect-error a plan-limit refusal needs its scope and limit
+      // @ts-expect-error a limit refusal needs its scope and limit
       fail(409, 'quota'),
       // @ts-expect-error the scope is one of the two limits
       fail(409, 'quota', { scope: 'books', max: 50 }),
