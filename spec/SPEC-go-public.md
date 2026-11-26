@@ -1,6 +1,6 @@
 # Spec: go-public — V1
 
-Status: approved (2026-11-25)
+Status: implemented (2026-11-26). See [go-public-report.md](go-public-report.md).
 
 Module of [capability-map.md](capability-map.md). Depends on every other module: `publish-audit`, `repo-security`,
 `billing-removal`, `instance-limits`, `legal-and-attribution` and `contributor-docs`. Nothing depends on it. This

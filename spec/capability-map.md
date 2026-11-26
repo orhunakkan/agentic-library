@@ -59,7 +59,7 @@ Each module gets its own `spec/SPEC-<module-id>.md`, written and approved in thi
 | `instance-limits` | [approved 2026-11-25](SPEC-instance-limits.md) | [plan](../tasks/instance-limits-plan.md), [tasks](../tasks/instance-limits-todo.md) | done, signed off 2026-11-26 |
 | `legal-and-attribution` | [approved 2026-11-25](SPEC-legal-and-attribution.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | built, awaiting sign-off |
 | `contributor-docs` | [approved 2026-11-25](SPEC-contributor-docs.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | built, awaiting sign-off |
-| `go-public` | [approved 2026-11-25](SPEC-go-public.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | — |
+| `go-public` | [approved 2026-11-25](SPEC-go-public.md) | [plan](../tasks/open-source-launch-plan.md), [tasks](../tasks/open-source-launch-todo.md) (shared) | built 2026-11-26 ([report](go-public-report.md)) |
 
 The owner chose to write every module spec before planning or building any of them. Specs are written one per
 session.
