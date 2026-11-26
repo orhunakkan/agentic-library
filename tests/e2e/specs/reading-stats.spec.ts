@@ -11,7 +11,7 @@ function noonToday(): Date {
   return noon
 }
 
-async function freeReader(page: Page): Promise<void> {
+async function readerAtNoon(page: Page): Promise<void> {
   await page.clock.install({ time: noonToday() })
   await createUser(page.request, { signedIn: true })
 }
@@ -41,7 +41,7 @@ test.describe('Reading stats', () => {
     readerPage,
     statsPage,
   }) => {
-    await freeReader(page)
+    await readerAtNoon(page)
     await openBook(page, libraryPage)
     for (let turn = 1; turn <= 6; turn++) {
       await readerPage.turnPage()
@@ -80,7 +80,7 @@ test.describe('Reading stats', () => {
     libraryPage,
     statsPage,
   }) => {
-    await freeReader(page)
+    await readerAtNoon(page)
     await statsPage.goto()
     await expect(statsPage.empty).toBeVisible()
     await expect(statsPage.finishedCount).toHaveText('No books finished this year yet.')
@@ -116,7 +116,7 @@ test.describe('Reading stats', () => {
     statsPage,
   }) => {
     await fakeSpeech(page)
-    await freeReader(page)
+    await readerAtNoon(page)
     await openBook(page, libraryPage)
     await page.goto(`/read/${PRIDE}/chapter-61`)
     await hang(page)
