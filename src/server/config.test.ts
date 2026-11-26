@@ -357,6 +357,29 @@ describe('the privacy contact', () => {
   })
 })
 
+describe('the source link', () => {
+  it('is unset by default', () => {
+    expect(parseConfig(PROD, noFiles).sourceUrl).toBeNull()
+    expect(parseConfig({ ...PROD, SOURCE_URL: '  ' }, noFiles).sourceUrl).toBeNull()
+  })
+
+  it('keeps an https: address', () => {
+    expect(parseConfig({ ...PROD, SOURCE_URL: ' https://github.com/example/folio ' }, noFiles).sourceUrl).toBe(
+      'https://github.com/example/folio',
+    )
+  })
+
+  it('refuses anything else, naming SOURCE_URL', () => {
+    for (const value of [
+      'http://example.org',
+      'github.com/example/folio',
+      `https://example.org/${'x'.repeat(181)}`,
+      'https://exa mple.org',
+    ])
+      expect(() => parseConfig({ ...PROD, SOURCE_URL: value }, noFiles), value).toThrow(/SOURCE_URL must be/)
+  })
+})
+
 describe('the Folio voice’s files', () => {
   it('default to .cache/voices under the working directory', () => {
     expect(parseConfig(PROD, noFiles).voicesDir).toBe(resolve('.cache/voices'))

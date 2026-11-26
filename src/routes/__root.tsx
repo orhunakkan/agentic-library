@@ -29,7 +29,12 @@ const isPrivateBook = (pathname: string) =>
   isPrivateBookSlug(readerParams(pathname)?.book) || /^\/account\/books\/[0-9a-f-]{36}\/?$/.test(pathname)
 
 type NavData = Awaited<ReturnType<typeof getNavData>>
-const EMPTY_NAV: NavData = { stats: { books: 0, series: 0, audiobooks: 0 }, collections: [], featured: [] }
+const EMPTY_NAV: NavData = {
+  stats: { books: 0, series: 0, audiobooks: 0 },
+  collections: [],
+  featured: [],
+  sourceUrl: null,
+}
 
 const prerendering = () =>
   import.meta.env.SSR && typeof process !== 'undefined' && process.env.TSS_PRERENDERING === 'true'
@@ -121,7 +126,7 @@ function RootComponent() {
                 <div className="min-w-0 flex-1">
                   <TopBar nav={nav} viewer={viewer} alwaysShown={shell === 'reader'} />
                   <Outlet />
-                  <SiteFooter />
+                  <SiteFooter sourceUrl={nav.sourceUrl} />
                 </div>
               </div>
             )}

@@ -21,6 +21,8 @@ export type AuditEvent =
   | 'book.imported'
   | 'article.saved'
   | 'book.deleted'
+  | 'book.searched'
+  | 'book.removed'
   | 'ai_model.changed'
   | 'speech_model.changed'
   | 'book.asked'

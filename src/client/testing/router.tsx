@@ -1,4 +1,5 @@
 import {
+  type AnyRoute,
   type AnyRouter,
   createMemoryHistory,
   createRootRouteWithContext,
@@ -26,6 +27,29 @@ export async function mountAt(url: string, ui: ReactNode, context: TestRouteCont
     routeTree: root.addChildren([anyPath]),
     history: createMemoryHistory({ initialEntries: [url] }),
     context,
+  })
+  await router.load()
+  mount(<RouterProvider router={router} />)
+  return router
+}
+
+/** What the app's root loader returns, as far as the pages under test read it. */
+export interface TestNavData {
+  sourceUrl: string | null
+}
+
+/**
+ * Renders one of the app's own file routes at `path`, under a stand-in root whose loader returns `nav`, the way the
+ * generated route tree attaches it. The route's own loader runs, so mock the server functions it calls.
+ */
+export async function mountRoute(route: AnyRoute, path: string, nav: TestNavData): Promise<AnyRouter> {
+  const root = createRootRouteWithContext<TestRouteContext>()({ loader: () => nav })
+  /** The generated tree attaches each file route this way; its types only fit inside that tree. */
+  const attached = route.update({ id: path, path, getParentRoute: () => root } as never)
+  const router = createRouter({
+    routeTree: root.addChildren([attached]),
+    history: createMemoryHistory({ initialEntries: [path] }),
+    context: {},
   })
   await router.load()
   mount(<RouterProvider router={router} />)

@@ -24,7 +24,8 @@
     "ci:watch": "node scripts/ci/watch.ts",
     "voices:fetch": "node --env-file-if-exists=.env scripts/voices/fetch.ts",
     "db:migrate": "node --env-file-if-exists=.env scripts/db/migrate.ts",
-    "db:users": "node --env-file-if-exists=.env scripts/db/users.ts"
+    "db:users": "node --env-file-if-exists=.env scripts/db/users.ts",
+    "db:books": "node --env-file-if-exists=.env scripts/db/books.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",

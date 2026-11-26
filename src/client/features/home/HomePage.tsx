@@ -8,7 +8,7 @@ import { HomeHeader } from './HomeHeader'
 import { ReaderPreview } from './ReaderPreview'
 import { StorybookPanel } from './StorybookPanel'
 
-export function HomePage({ viewer }: { viewer: Viewer | null }) {
+export function HomePage({ viewer, sourceUrl }: { viewer: Viewer | null; sourceUrl: string | null }) {
   return (
     <div id="top">
       <HomeHeader viewer={viewer} />
@@ -20,7 +20,7 @@ export function HomePage({ viewer }: { viewer: Viewer | null }) {
         <Faq />
         <ClosingCall viewer={viewer} />
       </main>
-      <HomeFooter viewer={viewer} />
+      <HomeFooter viewer={viewer} sourceUrl={sourceUrl} />
     </div>
   )
 }

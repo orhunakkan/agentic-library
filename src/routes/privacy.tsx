@@ -1,3 +1,8 @@
+/**
+ * This page is agenticlibrary.app's own, written for the service Orhun Akkan runs there: Cloudflare, Resend, the
+ * server's 14-day access log and its backups are facts about that site, not about the code. If you run Folio for other
+ * people, rewrite it for your own service before you open it.
+ */
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Contact, LegalPage, legalHead, legalLink, Part } from '~/client/components/LegalPage'
 import { getSiteContact } from '~/server/functions'
@@ -15,10 +20,14 @@ function PrivacyPage() {
   const contact = Route.useLoaderData()
   return (
     <LegalPage title="Privacy" titleTestId="privacy-title" lead={DESCRIPTION} updated={PRIVACY_UPDATED}>
-      <Part id="without-account" title="Reading without an account">
+      <Part id="visiting" title="Visiting Folio">
         <p>
-          Reading and listening need no account and set no cookie. Your settings, reading places, Ask threads and
-          listening positions are kept in this browser’s storage, on your device. Folio’s server doesn’t receive them.
+          Folio sets no cookie before you sign in. Your settings and reading places are kept in this browser’s storage,
+          on your device, and Folio’s server doesn’t receive them until you sign in and they’re saved to your account.
+        </p>
+        <p>
+          Every request passes through Cloudflare, which carries the site to Folio’s server. The server’s access log
+          records your IP address and the page you asked for, and keeps them for up to 14 days.
         </p>
         <p>
           Books you download stay in this browser until you remove them. Your own books’ downloads are deleted when you
@@ -26,15 +35,15 @@ function PrivacyPage() {
         </p>
         <p>
           If you download the Folio voice, its files come from Folio’s own server and stay in this browser until you
-          remove them from the Voice menu. It speaks on your device: the text it reads isn’t sent anywhere.
-        </p>
-        <p>
-          Every request passes through Cloudflare, which carries the site to Folio’s server. The server’s access log
-          records your IP address and the page you asked for, and keeps them for up to 14 days.
+          remove them from the Voice menu. It speaks on your device: the text of the book you open isn’t sent anywhere.
         </p>
       </Part>
 
       <Part id="with-account" title="With an account">
+        <p>
+          Signing up on this site needs an email address, which Folio confirms by sending you a link. If you ask for a
+          sign-up link and don’t finish, the address is deleted after 7 days.
+        </p>
         <p>
           Your account holds your username, a hash of your password (Folio can’t read the password itself) and, if you
           add one, the email address you confirmed. It also holds what you add: your own books, highlights, notes,
@@ -71,7 +80,7 @@ function PrivacyPage() {
           <li>
             an activity log of events such as signing in, changing your password or address, importing a book or asking
             a question, with the IP address, for a year. It records counts and outcomes, never your text, a book’s
-            contents or a password;
+            contents or a password. The one exception is a book removed after a legal notice, described below;
           </li>
           <li>
             if you read aloud with an ElevenLabs voice, how many characters it spoke on your key each minute, with no
@@ -84,7 +93,27 @@ function PrivacyPage() {
           own copy.
         </p>
         <p>Signed in, Folio sets one cookie, which keeps you signed in. It has no other cookies.</p>
-        <p>If you ask for a sign-up link and don’t finish, the address is deleted after 7 days.</p>
+      </Part>
+
+      <Part id="why" title="Why Folio keeps it">
+        <p>
+          Folio keeps your account and what you add to it to run the service you asked for. It keeps sessions, sign-in
+          attempts and the activity log to keep accounts safe and to stop abuse. It keeps records of legal notices
+          because the law asks for them. Nothing is used for anything else.
+        </p>
+      </Part>
+
+      <Part id="notices" title="Legal notices">
+        <p>
+          Folio doesn’t browse anyone’s library. To act on a copyright or other legal notice, the operator may search
+          book titles and authors across accounts, and remove the book the notice names. Each search is recorded in the
+          activity log with the search text and the reason, and each removal with the reason, the book’s title and its
+          owner’s username. Those records are kept for a year, even if the account is deleted.
+        </p>
+        <p>
+          The notice and the replies are kept as email for as long as they’re needed, and at most 3 years. If your book
+          is removed, you’re told what was removed and why, and who sent the notice, unless the law forbids it.
+        </p>
       </Part>
 
       <Part id="who-else" title="Who else sees it">
@@ -121,10 +150,14 @@ function PrivacyPage() {
           receives the audio to do it. Folio receives only the text, as if you had typed it. Answers are read aloud by
           your device.
         </p>
-        <p>Nothing is sold. There are no ads, analytics or trackers.</p>
+        <p>
+          Folio gives your data to no one else, unless the law requires it. Nothing is sold. There are no ads, analytics
+          or trackers.
+        </p>
+        <p>Folio’s code is public, and your data isn’t part of it.</p>
       </Part>
 
-      <Part id="choices" title="Your choices">
+      <Part id="rights" title="Your choices and rights">
         <p>
           From your{' '}
           <Link to="/account" className={legalLink} data-testid="privacy-account-link">
@@ -138,6 +171,14 @@ function PrivacyPage() {
           Folio has no backups yet, so a deletion can’t be undone. Once nightly backups run, they keep a copy for up to
           14 days.
         </p>
+        <p>You have the right to:</p>
+        <ul className="list-disc space-y-2 pl-6">
+          <li>get a copy of your data, which is the download on your account page;</li>
+          <li>correct it, on your account page;</li>
+          <li>delete it, by deleting your account;</li>
+          <li>object to a use of your data, or ask Folio to restrict it, by writing to the contact below;</li>
+          <li>complain to the data protection authority where you live.</li>
+        </ul>
       </Part>
 
       <Part id="children" title="Children">

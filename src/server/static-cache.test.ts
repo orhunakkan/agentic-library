@@ -18,6 +18,7 @@ describe('cacheControlFor', () => {
       '/offline',
       '/_shell',
       '/app-files.json.gz',
+      '/third-party-licenses.txt',
     ]) {
       expect(cacheControlFor(path), path).toBeNull()
     }
@@ -43,7 +44,14 @@ describe('headersFor', () => {
   })
 
   it('leaves every other path alone', () => {
-    for (const path of ['/sw.js', '/assets/index.js', '/voices/x.onnx', '/run-code', '/']) {
+    for (const path of [
+      '/sw.js',
+      '/assets/index.js',
+      '/voices/x.onnx',
+      '/run-code',
+      '/',
+      '/third-party-licenses.txt',
+    ]) {
       expect(headersFor(path), path).toBeNull()
     }
   })

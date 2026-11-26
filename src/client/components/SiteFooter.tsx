@@ -4,7 +4,8 @@ import { Logo } from './Logo'
 
 const footerLink = 'font-medium whitespace-nowrap text-accent hover:text-accent-strong hover:underline'
 
-export function SiteFooter() {
+/** The footer on every page but the home page and the reader. `sourceUrl` is null when the code isn't linked. */
+export function SiteFooter({ sourceUrl }: { sourceUrl: string | null }) {
   const inReader = useRouterState({ select: (s) => s.location.pathname.startsWith('/read/') })
   if (inReader) return null
   return (
@@ -33,9 +34,17 @@ export function SiteFooter() {
           <Link to="/terms" className={footerLink} data-testid="footer-link" data-key="terms">
             Terms
           </Link>
+          <Link to="/copyright" className={footerLink} data-testid="footer-link" data-key="copyright">
+            Copyright
+          </Link>
           <Link to="/credits" className={footerLink} data-testid="footer-link" data-key="credits">
             Credits
           </Link>
+          {sourceUrl && (
+            <a href={sourceUrl} rel="noopener" className={footerLink} data-testid="footer-link" data-key="source">
+              Source code
+            </a>
+          )}
         </div>
       </div>
     </footer>

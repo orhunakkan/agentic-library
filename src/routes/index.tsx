@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useLoaderData } from '@tanstack/react-router'
 import { HERO_LINE } from '~/client/features/home/Hero'
 import { HomePage } from '~/client/features/home/HomePage'
 import { SITE_NAME } from '~/shared/lib/site'
@@ -22,5 +22,6 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   const { viewer } = Route.useRouteContext()
-  return <HomePage viewer={viewer} />
+  const { sourceUrl } = useLoaderData({ from: '__root__' })
+  return <HomePage viewer={viewer} sourceUrl={sourceUrl} />
 }

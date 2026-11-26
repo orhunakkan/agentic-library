@@ -60,6 +60,7 @@ export const getNavData = createServerFn({ method: 'GET' }).handler(async () => 
         title: s.title,
         subtitle: `${catalog.books.filter((b) => b.seriesSlug === s.slug).length} vol. · ${s.featuredLabel}`,
       })),
+    sourceUrl: getConfig().sourceUrl,
   }
 })
 

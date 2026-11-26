@@ -35,6 +35,8 @@ export interface Config {
   mailWebhookKey: Buffer | null
   signup: SignupMode
   siteContact: SiteContact | null
+  /** Where the code is published, linked from the footers. Null hides the link. */
+  sourceUrl: string | null
   voicesDir: string
   audiobooksDir: string | null
   articleTestHosts: string[]
@@ -191,15 +193,23 @@ function parseSignup(value: string | undefined, mail: MailConfig | null): Signup
   return mode
 }
 
+const isHttpsUrl = (text: string) =>
+  text.length <= 200 && /^https:\/\/\S+$/.test(text) && URL.parse(text)?.protocol === 'https:'
+
+/** An https:// URL of at most 200 characters, or null when unset. Shared by SITE_CONTACT and SOURCE_URL. */
+export function parseHttpsUrl(value: string | undefined, name: string): string | null {
+  const text = value?.trim()
+  if (!text) return null
+  if (isHttpsUrl(text)) return text
+  throw new ConfigError(`${name} must be an https:// URL of at most 200 characters`)
+}
+
 function parseSiteContact(value: string | undefined): SiteContact | null {
   const text = value?.trim()
   if (!text) return null
-  if (text.includes('@')) {
-    const email = parseEmail(text)
-    if (email) return { kind: 'email', value: email }
-  } else if (text.length <= 200 && /^https:\/\/\S+$/.test(text) && URL.parse(text)?.protocol === 'https:') {
-    return { kind: 'url', value: text }
-  }
+  if (!text.includes('@') && isHttpsUrl(text)) return { kind: 'url', value: text }
+  const email = text.includes('@') ? parseEmail(text) : null
+  if (email) return { kind: 'email', value: email }
   throw new ConfigError('SITE_CONTACT must be an email address or an https:// URL of at most 200 characters')
 }
 
@@ -300,6 +310,7 @@ export function parseConfig(env: Env, readFile: ReadFile = readOptionalFile): Co
     mailWebhookKey: parseWebhookSecret(credential('resend_webhook_secret') ?? env.RESEND_WEBHOOK_SECRET),
     signup,
     siteContact,
+    sourceUrl: parseHttpsUrl(env.SOURCE_URL, 'SOURCE_URL'),
     voicesDir: voicesDirOf(env),
     audiobooksDir: parseAudiobooksDir(env.AUDIOBOOKS_DIR),
     articleTestHosts: parseArticleTestHosts(env.ARTICLE_TEST_HOSTS, appOrigin),

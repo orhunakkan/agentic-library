@@ -116,7 +116,16 @@ function CreditsPage() {
         </ul>
       </Part>
 
-      <Part id="software" title="Software">
+      <Part id="software" title="Software Folio is built on">
+        <p>
+          Folio’s own code is open source under the MIT licence. The open source packages in the code your browser
+          downloads, with their licences, are listed in{' '}
+          <a href="/third-party-licenses.txt" className={legalLink} data-testid="credits-third-party-licences">
+            third-party-licenses.txt
+          </a>
+          . It includes the GPL-3.0 parts of the Folio voice below, and where their source is.
+        </p>
+        <p>The Folio voice runs on:</p>
         <ul className="list-disc space-y-2 pl-5">
           {ENGINE_SOFTWARE.map((software) => (
             <li key={software.name}>

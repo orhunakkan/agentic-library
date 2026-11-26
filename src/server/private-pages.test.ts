@@ -49,6 +49,8 @@ describe('privateHeaders', () => {
       '/offline/pride-and-prejudice.json',
       '/privacy',
       '/terms',
+      '/copyright',
+      '/credits',
       '/loginx',
       '/accounts',
       '/signups',

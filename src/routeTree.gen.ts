@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
+import { Route as CopyrightRouteImport } from './routes/copyright'
 import { Route as CreditsRouteImport } from './routes/credits'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HealthzRouteImport } from './routes/healthz'
@@ -102,6 +103,11 @@ const IndexRoute = IndexRouteImport.update({
 const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
   id: '/confirm-email',
   path: '/confirm-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CopyrightRoute = CopyrightRouteImport.update({
+  id: '/copyright',
+  path: '/copyright',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreditsRoute = CreditsRouteImport.update({
@@ -526,6 +532,7 @@ const AccountBooksIdImagesNRoute = AccountBooksIdImagesNRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/confirm-email': typeof ConfirmEmailRoute
+  '/copyright': typeof CopyrightRoute
   '/credits': typeof CreditsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/healthz': typeof HealthzRoute
@@ -612,6 +619,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/confirm-email': typeof ConfirmEmailRoute
+  '/copyright': typeof CopyrightRoute
   '/credits': typeof CreditsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/healthz': typeof HealthzRoute
@@ -699,6 +707,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/confirm-email': typeof ConfirmEmailRoute
+  '/copyright': typeof CopyrightRoute
   '/credits': typeof CreditsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/healthz': typeof HealthzRoute
@@ -787,6 +796,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/confirm-email'
+    | '/copyright'
     | '/credits'
     | '/forgot-password'
     | '/healthz'
@@ -873,6 +883,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/confirm-email'
+    | '/copyright'
     | '/credits'
     | '/forgot-password'
     | '/healthz'
@@ -959,6 +970,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/confirm-email'
+    | '/copyright'
     | '/credits'
     | '/forgot-password'
     | '/healthz'
@@ -1046,6 +1058,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfirmEmailRoute: typeof ConfirmEmailRoute
+  CopyrightRoute: typeof CopyrightRoute
   CreditsRoute: typeof CreditsRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HealthzRoute: typeof HealthzRoute
@@ -1144,6 +1157,13 @@ declare module '@tanstack/react-router' {
       path: '/confirm-email'
       fullPath: '/confirm-email'
       preLoaderRoute: typeof ConfirmEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/copyright': {
+      id: '/copyright'
+      path: '/copyright'
+      fullPath: '/copyright'
+      preLoaderRoute: typeof CopyrightRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/credits': {
@@ -1726,6 +1746,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfirmEmailRoute: ConfirmEmailRoute,
+  CopyrightRoute: CopyrightRoute,
   CreditsRoute: CreditsRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HealthzRoute: HealthzRoute,
