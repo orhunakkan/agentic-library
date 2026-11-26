@@ -2,8 +2,8 @@ import { globSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 /**
- * Keeps `.env.example` in step with the code (spec/SPEC-contributor-docs.md, section 8): it lists exactly the settings
- * the server reads, every secret in it is empty, and no line holds a value shaped like a real key.
+ * Keeps `.env.example` in step with the code: it lists exactly the settings the server reads, every secret in it is
+ * empty, and no line holds a value shaped like a real key.
  */
 
 /** Where the server and its operator scripts read settings. Tests and stubs read others, which don't belong here. */

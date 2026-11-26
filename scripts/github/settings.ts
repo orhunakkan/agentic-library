@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util'
 import { type ApiCall, DESIRED, type DesiredSetting, type Expectation, type JsonValue } from './desired.ts'
 
 /**
- * GitHub settings as code (spec/SPEC-repo-security.md, section 6).
+ * GitHub settings as code.
  *
  *   node scripts/github/settings.ts --check [--repo owner/name]   print every difference; exit 1 if there is any
  *   node scripts/github/settings.ts --apply [--repo owner/name]   set what differs, then run --check again
@@ -185,14 +185,14 @@ export function fixFor(verdict: Verdict, rulesets: Readonly<Record<string, JsonV
 
 export function report(verdicts: readonly Verdict[]): { lines: string[]; differences: number } {
   const lines = verdicts.map(({ setting, state, found }) => {
-    const label = `${setting.label}${setting.needsPublic ? ' [applied by go-public]' : ''}`
+    const label = `${setting.label}${setting.needsPublic ? ' [public repos only]' : ''}`
     return state === 'matches' ? `matches    ${label}` : `${state.padEnd(10)} ${label}: ${found}`
   })
   const differing = verdicts.filter((verdict) => verdict.state !== 'matches')
   const publicOnly = differing.filter((verdict) => verdict.setting.needsPublic).length
   lines.push(
     differing.length
-      ? `${differing.length} difference(s), ${publicOnly} of them in rows applied by go-public`
+      ? `${differing.length} difference(s), ${publicOnly} of them in rows only a public repo can have`
       : 'no differences',
   )
   return { lines, differences: differing.length }

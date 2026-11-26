@@ -6,7 +6,6 @@
 #
 # To add an entry: confirm that the value is fake, add it as an exact, anchored value, and say why in a comment.
 # Remove an entry once no commit or tracked file contains it.
-# See spec/SPEC-publish-audit.md and spec/publish-audit-report.md.
 
 [extend]
 useDefault = true

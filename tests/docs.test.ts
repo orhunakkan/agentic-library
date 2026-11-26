@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
 /**
- * Keeps the contributor docs true to the repo (spec/SPEC-contributor-docs.md, section 8): their relative links point to
- * files that exist, every `pnpm <name>` they show is a real script, the licence is MIT, the local Postgres is pinned
- * by digest and bound to localhost, and no billing word comes back.
+ * Keeps the contributor docs true to the repo: their relative links point to files that exist, every `pnpm <name>` they
+ * show is a real script, the licence is MIT, the local Postgres is pinned by digest and bound to localhost, and no
+ * billing word comes back.
  */
 
 const DOCS = ['README.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'SECURITY.md', '.github/pull_request_template.md']

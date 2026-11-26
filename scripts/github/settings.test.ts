@@ -51,7 +51,7 @@ describe('checkSettings', () => {
     expect(report(verdicts)).toEqual({ lines: expect.arrayContaining(['no differences']), differences: 0 })
   })
 
-  it('reports today’s private repo row by row, and counts the rows go-public applies', () => {
+  it('reports today’s private repo row by row, and counts the rows only a public repo can have', () => {
     const verdicts = checkSettings(DESIRED, answersFrom('private-today.json'), RULESETS, TARGET)
     expect(
       Object.fromEntries(verdicts.filter((v) => v.state !== 'matches').map((v) => [v.setting.id, v.state])),
@@ -69,7 +69,7 @@ describe('checkSettings', () => {
     })
     const { lines, differences } = report(verdicts)
     expect(differences).toBe(10)
-    expect(lines.at(-1)).toBe('10 difference(s), 4 of them in rows applied by go-public')
+    expect(lines.at(-1)).toBe('10 difference(s), 4 of them in rows only a public repo can have')
     expect(lines).toContain('differs    Actions off: enabled: true')
   })
 
@@ -132,7 +132,7 @@ describe('checkSettings', () => {
 })
 
 describe('the desired state', () => {
-  it('has one row per setting, with each row applied by go-public marked', () => {
+  it('has one row per setting, with each public-only row marked', () => {
     expect(DESIRED.map((setting) => setting.id)).toEqual([
       'ruleset-main-history',
       'ruleset-main-changes',

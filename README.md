@@ -75,8 +75,7 @@ Storage section shows the limits in effect.
 
 Sizes take a unit (`KB`, `MB` or `GB`) and are binary, so `1GB` is 1024³ bytes. A bare number is refused for a size,
 so `LIMIT_USER_AUDIO=1` can’t mean one byte. `LIMIT_AUDIOBOOK_SIZE` can’t be larger than `LIMIT_USER_AUDIO`, and
-`LIMIT_ARTICLE_TEXT` can’t be larger than `8MB`. See [SPEC-instance-limits.md](spec/SPEC-instance-limits.md) for the
-details.
+`LIMIT_ARTICLE_TEXT` can’t be larger than `8MB`.
 
 ## Running in production
 

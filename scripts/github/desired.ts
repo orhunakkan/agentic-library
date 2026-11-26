@@ -1,8 +1,7 @@
 /**
- * The GitHub settings this repository should have, one entry per setting.
- * `settings.ts --check` compares them with the live repository, and `--apply` sets the ones it can. Rows marked
- * `needsPublic` can only be set once the repository is public, and go-public applies them. Paths use `{repo}` for
- * owner/name and `{owner}` for the owner.
+ * The GitHub settings this repository should have, one entry per setting. `settings.ts --check` compares them with the
+ * live repository, and `--apply` sets the ones it can. Rows marked `needsPublic` can only be set while the repository
+ * is public. Paths use `{repo}` for owner/name and `{owner}` for the owner.
  */
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
@@ -29,7 +28,7 @@ export interface ApiCall {
 export interface DesiredSetting {
   id: string
   label: string
-  /** Applied by go-public, because GitHub only offers it on a public repository (or a paid plan). */
+  /** GitHub only offers it on a public repository (or a paid plan). */
   needsPublic: boolean
   read: string
   expect: Expectation
