@@ -445,3 +445,32 @@ The spec's criteria, each with where its evidence is.
 ## Sign-off
 
 Signed off: Orhun Akkan (2026-11-25)
+
+## Re-run before go-public — 2026-11-26
+
+**Result: passed. 0 unallowed findings, the canaries are caught, and nothing new needs accepting.**
+
+- **Scanned:** `main` at `7c31cf4d7d9a572bbc1c6b2a5af974d26ce27c49`, 106 commits, 28 of them after the sign-off commit
+  `89f46c8d`. CI on that SHA is green on all six jobs, on GitHub-hosted runners.
+- **Secrets:** gitleaks v8.30.1 (same digest, real `.gitleaks.toml`) over the history (104 commits scanned), the 1,261
+  tracked files, and all 2,877 blobs reachable from `main`: 0 findings each, exit 0.
+- **Canaries:** the same three shapes as section 3, freshly random, in a `--no-local` scratch clone: all 3 caught
+  (`github-pat` once, `generic-api-key` twice). The clone was deleted.
+- **Hand check of new key-shaped strings** since the sign-off: `sk-ant-test-valid-xxxx…1111`, `pdl_sdbx_apikey_0123…`,
+  `pdl_ntfset_0123…`, and the GitHub setting names `require_code_owner_review` and `require_last_push_approval`. All
+  fake or not keys.
+- **Identities:** the personal address on 153 author and committer fields of the 78 commits up to the sign-off, the
+  no-reply address on 58, and `GitHub <noreply@github.com>` once. The 28 commits since the sign-off carry only the
+  no-reply address. The personal address and its domain are in 0 commit messages and 0 tracked files.
+- **Email addresses in the tracked files:** only those already accepted in section 5, plus `noreply@anthropic.com` in
+  the contributor docs (accepted as a vendor no-reply address).
+- **Commit messages since the sign-off:** all 28 read. No address but the `Co-Authored-By` trailers, and no URLs,
+  hostnames, server paths or secrets. The `@` hits are npm package names.
+- **Files deleted since the sign-off:** 141, in two commits. `39a391f2` removes the Playwright end-to-end suite and
+  `5fd5ead1` removes billing and plans. Every one was in the tree at the sign-off, so it went through that audit's
+  scans. Their last versions were searched again for home paths, the runner and server names, IP addresses and hosts.
+  They hold only `localhost`, `127.0.0.1`, documentation addresses, Paddle's public and `.test` hosts, and public
+  sites.
+- **Binary files added or changed since the sign-off:** none.
+- **The deploy poller as built** (`scripts/deploy/*`): it names the deploy script, the systemd credential name
+  `github_token` and the `folio-deploy` user. This is accepted ahead of time in "Accepted as public".
