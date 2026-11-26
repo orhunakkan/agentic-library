@@ -1,0 +1,256 @@
+# Tasks: publish-audit
+
+Plan: [tasks/publish-audit-plan.md](publish-audit-plan.md) · Spec: [spec/SPEC-publish-audit.md](../spec/SPEC-publish-audit.md)
+
+`$SCRATCH` means this session's scratchpad. Boundaries that apply to every task: use `:ro` mounts and `--redact`, never
+print a secret value, never write the personal email into a tracked file, never push, and never rewrite history in the
+working repo.
+
+---
+
+## Task 1: Pin the scanner images and take a baseline gitleaks run
+
+**Description:** Pull gitleaks and an exiftool image, pinned by digest, and confirm both run against the repo mounted
+read-only. Run gitleaks with the default rules and no config over `main`'s history and the tracked files. Save the
+redacted findings to `$SCRATCH/baseline-*.json`. This is the input for the allowlist.
+
+**Acceptance criteria:**
+- [ ] Both images are pinned by `@sha256:` digest, and the exact `docker run` lines are written down for the report
+- [ ] The baseline history and tree scans finish, and every finding is sorted as either a fake test key or needing a look
+
+**Verification:**
+- [ ] `docker run … gitleaks version` and `… exiftool -ver` print versions
+- [ ] Manual check: the baseline JSON has `"Secret": "REDACTED"` everywhere
+
+**Dependencies:** None
+
+**Files likely touched:** none tracked (scratchpad only)
+
+**Estimated scope:** XS
+
+---
+
+## Task 2: Write `.gitleaks.toml` with a narrow allowlist
+
+**Description:** Create `.gitleaks.toml` with `[extend] useDefault = true`, plus an allowlist of exact values or narrow
+patterns for the fake keys found in Task 1, and a comment on each entry saying why. Never allow by path.
+
+**Acceptance criteria:**
+- [ ] Every allowlist entry matches at least one fake key found in history or the tree, and unused entries are removed
+- [ ] There are no `paths` and no directory allowlists. Each regex is anchored to a fake-looking stem, not to a bare
+      prefix like `sk-ant-api03-`
+- [ ] With the config, both scans report 0 findings for the fakes sorted in Task 1
+
+**Verification:**
+- [ ] Re-run both scans with `--config /repo/.gitleaks.toml`, and only the "needs a look" findings remain
+- [ ] Manual check: owner reviews the allowlist entries
+
+**Dependencies:** Task 1
+
+**Files likely touched:** `.gitleaks.toml`
+
+**Estimated scope:** XS
+
+---
+
+## Task 3: Canary check and report skeleton
+
+**Description:** In a `--no-local` scratch clone, commit two canaries: a real-shaped key in a new file, and a
+real-shaped key in a test file next to the existing fakes. Generate both randomly, with no `test` or `fake` stem. Run
+gitleaks with the real config and confirm both are caught. Then create `spec/publish-audit-report.md` with the scope
+(path A, the `main` SHA and commit count), the tools and digests, the exact commands, and the canary result.
+
+**Acceptance criteria:**
+- [ ] Both canaries are reported, by rule ID, with the real `.gitleaks.toml`
+- [ ] The report skeleton has a section for each of the spec's 9 checks, plus "Accepted as public" and "Sign-off"
+- [ ] The scratch clone is deleted afterwards. The working repo's `git status` shows only the two new files
+
+**Verification:**
+- [ ] The scan's JSON output lists both canary findings
+- [ ] Manual check: the report contains no canary values
+
+**Dependencies:** Task 2
+
+**Files likely touched:** `spec/publish-audit-report.md`
+
+**Estimated scope:** S
+
+---
+
+## Checkpoint: Scanner (after Tasks 1–3)
+- [ ] Canary caught, allowlist narrow and fully used
+- [ ] Owner reviews `.gitleaks.toml` before any audit result counts
+
+---
+
+## Task 4: Secrets scan of history and tree
+
+**Description:** Run gitleaks with the config over every commit on `main` (the commit diffs, including the deleted
+files) and over the tracked files. Record the results in the report. If anything real turns up, **stop**: rotate it
+first, then ask about removing it from history.
+
+**Acceptance criteria:**
+- [ ] History scan: 0 unallowed findings, or each one is rotated and recorded by file, commit and kind, with no value
+- [ ] Tree scan: 0 unallowed findings
+- [ ] The report records the commit count, the SHA and the exit codes
+
+**Verification:**
+- [ ] Both commands exit 0, and the output is saved to `$SCRATCH`
+
+**Dependencies:** Checkpoint: Scanner
+
+**Files likely touched:** `spec/publish-audit-report.md`
+
+**Estimated scope:** XS
+
+---
+
+## Task 5: File metadata audit
+
+**Description:** Run exiftool (`-G1 -a -s`) on all 27 tracked binaries, including the `*.zip` files the spec's command
+leaves out. Unzip each EPUB and ZIP into `$SCRATCH` and check its inner images and the OPF metadata (`dc:creator`,
+`dc:publisher`, `dc:contributor`). Look for GPS, camera serials, author or owner names, and software paths such as
+`/home/…`. Pay most attention to the 4 files in `public/`.
+
+**Acceptance criteria:**
+- [ ] The report has a table of all 27 files, each marked "no personal metadata" or with what was found
+- [ ] Anything found is raised with the owner. Stripping is ask-first, and if approved it's one commit per file type
+
+**Verification:**
+- [ ] `git ls-files` count of those extensions matches the table's row count (27)
+
+**Dependencies:** Task 1
+
+**Files likely touched:** `spec/publish-audit-report.md` (plus binaries only if stripping is approved)
+
+**Estimated scope:** S
+
+---
+
+## Task 6: Personal data and infrastructure scan
+
+**Description:** Run the spec's grep commands over the tracked files and commit messages for email addresses, names,
+phone numbers, postal addresses, hostnames, server paths, runner names and sudo or deploy commands. Sort every hit into
+fine (test domains), accepted as public, or needing action. Draft the "Accepted as public" list.
+
+**Acceptance criteria:**
+- [ ] Every email hit outside `example.com`, `example.org`, `folio.test` and `resend.dev` is sorted
+- [ ] "Accepted as public" covers at least: the owner's name, `agenticlibrary.app` and `dev.agenticlibrary.app`,
+      `/usr/local/bin/agentic-library-deploy` with `sudo -n`, the deploy poller's install path and systemd units (or a
+      note that `repo-security` adds them later), `LINUX-LAPTOP`, the no-reply author address, the
+      `GitHub <noreply@github.com>` committer on one commit, and the `#N` references
+- [ ] The personal address is mentioned only as "the personal address" and never written out
+
+**Verification:**
+- [ ] Grepping the report for the personal address (and its domain) finds nothing
+
+**Dependencies:** Task 3
+
+**Files likely touched:** `spec/publish-audit-report.md`
+
+**Estimated scope:** S
+
+---
+
+## Task 7: Read deleted files and commit messages
+
+**Description:** Use `git show <last commit where it existed>:<path>` to read all 21 files deleted from `main`'s
+history, focusing on `scripts/issue-loop/*-settings.json` and `docs/agents/*`. Read every commit subject and body on
+`main`. Record anything private, embarrassing or revealing.
+
+**Acceptance criteria:**
+- [ ] All 21 deleted paths are listed in the report, each marked "nothing notable" or with a note
+- [ ] All commit messages have been read, and anything notable is listed with its short SHA
+
+**Verification:**
+- [ ] `git log main --diff-filter=D --name-only --format= | sort -u | wc -l` matches the report's list (21)
+
+**Dependencies:** Task 3
+
+**Files likely touched:** `spec/publish-audit-report.md`
+
+**Estimated scope:** S
+
+---
+
+## Checkpoint: Audit (after Tasks 4–7)
+- [ ] 0 unallowed secrets; metadata, personal data, deleted files and messages all reviewed
+- [ ] Owner decides on anything flagged (strip, remove, or accept as public)
+
+---
+
+## Task 8: Email rewrite dry run
+
+**Description:** Check that `git filter-repo --version` works. If it doesn't, stop and ask the owner to run
+`sudo pacman -S git-filter-repo` (decided 2026-11-25; you can't run it yourself, because it needs sudo). Clone `main`
+with `--no-local` into `$SCRATCH/rewrite`. Write `$SCRATCH/mailmap`, the one file that holds the personal address, with
+a single line that maps it to the no-reply address. Run `filter-repo --mailmap`, then compare the before and after
+listings (`%T %an %ad %cn %cd %B`) with `cmp`. The one commit with committer `GitHub <noreply@github.com>` is left as
+it is (decided 2026-11-25), so it doesn't get a mailmap line.
+
+**Acceptance criteria:**
+- [ ] `cmp before after` reports no difference
+- [ ] `log --format='%ae%n%ce' | sort -u` shows exactly two addresses: the no-reply address and `noreply@github.com`,
+      which the report lists under "Accepted as public"
+- [ ] `git -C $SCRATCH/rewrite log --all -p` and `git cat-file -p` on every commit contain no trace of the personal
+      address
+- [ ] The report records the exact rewrite command for `go-public`, with the personal address shown as a placeholder
+
+**Verification:**
+- [ ] Run the commands above. Delete the scratch clone and the mailmap afterwards
+
+**Dependencies:** Checkpoint: Audit
+
+**Files likely touched:** `spec/publish-audit-report.md`
+
+**Estimated scope:** S
+
+---
+
+## Task 9: Finish the report and run `pnpm check`
+
+**Description:** Fill in the summary: path A, the no-reply address, the rewrite command, the owner's manual steps (set
+`git config --global user.email` to the no-reply address, and turn on GitHub's "Block command line pushes that expose
+my email"), and the final "Accepted as public" list. Run `pnpm check`. Commit `.gitleaks.toml` and the report only when
+the owner asks.
+
+**Acceptance criteria:**
+- [ ] Every success criterion in the spec maps to a section of the report that has evidence
+- [ ] `pnpm check` passes
+- [ ] The staged diff contains no personal address and no secret values
+
+**Verification:**
+- [ ] `pnpm check`
+- [ ] Grepping `git diff --cached` for the personal address (and its domain) finds nothing
+
+**Dependencies:** Task 8
+
+**Files likely touched:** `spec/publish-audit-report.md`
+
+**Estimated scope:** XS
+
+---
+
+## Task 10: Owner sign-off and progress update
+
+**Description:** The owner reads the report and adds a dated sign-off line at the bottom. Then set the capability map's
+`publish-audit` row to planned and built.
+
+**Acceptance criteria:**
+- [ ] The report ends with the owner's dated sign-off line
+- [ ] The Progress table in `spec/capability-map.md` is updated
+
+**Verification:**
+- [ ] Manual check: owner confirms
+
+**Dependencies:** Task 9
+
+**Files likely touched:** `spec/publish-audit-report.md`, `spec/capability-map.md`
+
+**Estimated scope:** XS
+
+---
+
+## Checkpoint: Complete
+- [ ] All 10 success criteria in the spec are ticked
+- [ ] Owner signed off; ready for `repo-security` to reuse `.gitleaks.toml`

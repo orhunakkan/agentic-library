@@ -208,8 +208,8 @@ config.
       script path, the deploy poller's install path and systemd units, the no-reply author address, and the `#N`
       references.
 - [ ] **Email rewrite dry run:** in a scratch clone, every rewritten commit matches its original in tree, names,
-      dates and message (`cmp` reports no difference). The only author and committer email left is the no-reply
-      address. `git log --all -p` and the metadata of every commit contain no trace of the personal address.
+      dates and message (`cmp` reports no difference). The only author and committer emails left are the no-reply
+      address and `noreply@github.com`, the committer of one commit made on GitHub. `git log --all -p` and the metadata of every commit contain no trace of the personal address.
 - [ ] The report records path A, the no-reply address, and the exact rewrite command for `go-public` to run.
 - [ ] The owner has read the report and signed it off with a dated line at the bottom.
 
@@ -227,6 +227,10 @@ config.
 - **Publishing path:** A, a new public repo with `main` only. *(2026-11-25)*
 - **Author email:** rewritten to `70279053+orhunakkan@users.noreply.github.com` before the first push. *(2026-11-25)*
 - **`#N` references:** left as they are. *(2026-11-25)*
+- **`GitHub <noreply@github.com>` committer:** the one commit made on GitHub keeps it, and it's accepted as public.
+  *(2026-11-25)*
+- **git-filter-repo:** installed by the owner with `sudo pacman -S git-filter-repo`, because `go-public` needs it
+  again. *(2026-11-25)*
 
 ## Open questions
 
