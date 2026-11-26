@@ -306,6 +306,12 @@ export interface BookChapterRow {
   pageCount: number
 }
 
+const chapterRowOf = (chapter: { slug: string; title: string; page_count: number }): BookChapterRow => ({
+  slug: chapter.slug,
+  title: chapter.title,
+  pageCount: chapter.page_count,
+})
+
 export interface ReaderBook {
   title: string
   author: string
@@ -342,7 +348,7 @@ export async function loadReaderBook(
     language: book.language,
     description: book.description,
     cover: coverMetaOf(book),
-    chapters: rows.map((r) => ({ slug: r.slug, title: r.title, pageCount: r.page_count })),
+    chapters: rows.map(chapterRowOf),
     html: rows.find((r) => r.slug === chapterSlug)?.html ?? null,
   }
 }
@@ -396,7 +402,7 @@ export async function loadBookPage(db: Db, userId: number, bookId: string): Prom
     openLibraryWork: book.open_library_work,
     cover: coverMetaOf(book),
     readyAt: book.ready_at,
-    chapters: rows.map((r) => ({ slug: r.slug, title: r.title, pageCount: r.page_count })),
+    chapters: rows.map(chapterRowOf),
     imageCount: book.image_count ?? 0,
     articleUrl: book.article_url,
     articleWords: book.article_url === null ? null : (book.article_words ?? 0),

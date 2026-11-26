@@ -32,37 +32,38 @@ export interface SyncItems {
 
 export async function saveBatch(pool: Pool, userId: number, device: string, items: SyncItems): Promise<void> {
   await pool.begin(async (tx) => {
-    for (const readingItem of items.reading) {
+    for (const { ref, chapter, page, at } of items.reading) {
       await tx`
         insert into reading_places (user_id, book_slug, user_book_id, chapter, page, at, device)
-        select ${userId}::bigint, ${readingItem.ref.slug}::text, ${readingItem.ref.userBookId}::uuid, ${readingItem.chapter}::text, ${readingItem.page}::int,
-          ${new Date(readingItem.at)}::timestamptz, ${device}::text
-        where ${ownedBook(tx, userId, readingItem.ref)}
-        on conflict ${onBookConflict(tx, readingItem.ref)}
+        select ${userId}::bigint, ${ref.slug}::text, ${ref.userBookId}::uuid, ${chapter}::text, ${page}::int,
+          ${new Date(at)}::timestamptz, ${device}::text
+        where ${ownedBook(tx, userId, ref)}
+        on conflict ${onBookConflict(tx, ref)}
         do update set chapter = excluded.chapter, page = excluded.page, at = excluded.at, device = excluded.device
         where reading_places.at < excluded.at`
     }
     for (const listeningItem of items.listening) {
       if (listeningItem.kind === 'episode') {
+        const { ref, episode, positionMs, at } = listeningItem
         await tx`
           insert into listening_places (user_id, book_slug, user_book_id, kind, episode, position_ms, at, device)
-          select ${userId}::bigint, ${listeningItem.ref.slug}::text, ${listeningItem.ref.userBookId}::uuid, 'episode', ${listeningItem.episode}::text,
-            ${listeningItem.positionMs}::int, ${new Date(listeningItem.at)}::timestamptz, ${device}::text
-          where ${ownedBook(tx, userId, listeningItem.ref)}
-          on conflict ${onBookConflict(tx, listeningItem.ref, { keys: ['episode'], where: tx`kind = 'episode'` })}
+          select ${userId}::bigint, ${ref.slug}::text, ${ref.userBookId}::uuid, 'episode', ${episode}::text,
+            ${positionMs}::int, ${new Date(at)}::timestamptz, ${device}::text
+          where ${ownedBook(tx, userId, ref)}
+          on conflict ${onBookConflict(tx, ref, { keys: ['episode'], where: tx`kind = 'episode'` })}
           do update set position_ms = excluded.position_ms, at = excluded.at, device = excluded.device
           where listening_places.at < excluded.at`
         continue
       }
-      const place = listeningItem.place
+      const { ref, place, at } = listeningItem
       await tx`
         insert into listening_places
           (user_id, book_slug, user_book_id, kind, chapter_index, chapter, page, start_offset, at, device)
-        select ${userId}::bigint, ${listeningItem.ref.slug}::text, ${listeningItem.ref.userBookId}::uuid, 'voice', ${place?.chapterIndex ?? null}::int,
-          ${place?.chapter ?? null}::text, ${place?.page ?? null}::int, ${place?.offset ?? null}::int, ${new Date(listeningItem.at)}::timestamptz,
+        select ${userId}::bigint, ${ref.slug}::text, ${ref.userBookId}::uuid, 'voice', ${place?.chapterIndex ?? null}::int,
+          ${place?.chapter ?? null}::text, ${place?.page ?? null}::int, ${place?.offset ?? null}::int, ${new Date(at)}::timestamptz,
           ${device}::text
-        where ${ownedBook(tx, userId, listeningItem.ref)}
-        on conflict ${onBookConflict(tx, listeningItem.ref, { where: tx`kind = 'voice'` })}
+        where ${ownedBook(tx, userId, ref)}
+        on conflict ${onBookConflict(tx, ref, { where: tx`kind = 'voice'` })}
         do update set chapter_index = excluded.chapter_index, chapter = excluded.chapter, page = excluded.page,
           start_offset = excluded.start_offset, at = excluded.at, device = excluded.device
         where listening_places.at < excluded.at`

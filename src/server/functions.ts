@@ -149,23 +149,11 @@ export const getSearchIndex = createServerFn({ method: 'GET' }).handler(async ()
     entries.push({ kind: 'book', title: book.title, context: book.author, href: bookHref(book) })
     const content = await loadBook(book.slug)
     if (!content) continue
-    if (content.kind === 'paged') {
-      for (const chapter of content.chapters)
-        entries.push({
-          kind: 'chapter',
-          title: chapter.title,
-          context: book.title,
-          href: pagedHref(book.slug, chapter.startPage),
-        })
-    } else {
-      for (const chapter of content.chapters)
-        entries.push({
-          kind: 'chapter',
-          title: chapter.title,
-          context: book.title,
-          href: chapterPageHref(book.slug, chapter.slug, 1),
-        })
-    }
+    const chapters =
+      content.kind === 'paged'
+        ? content.chapters.map((c) => ({ title: c.title, href: pagedHref(book.slug, c.startPage) }))
+        : content.chapters.map((c) => ({ title: c.title, href: chapterPageHref(book.slug, c.slug, 1) }))
+    for (const { title, href } of chapters) entries.push({ kind: 'chapter', title, context: book.title, href })
   }
   return entries
 })
