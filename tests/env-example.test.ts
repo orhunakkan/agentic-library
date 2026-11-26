@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
  * the server reads, every secret in it is empty, and no line holds a value shaped like a real key.
  */
 
-/** Where the server and its operator scripts read settings. Tests, stubs and CI read others, which don't belong here. */
+/** Where the server and its operator scripts read settings. Tests and stubs read others, which don't belong here. */
 const SETTING_SOURCES = ['src/server/**/*.ts', 'scripts/serve.ts', 'scripts/db/*.ts']
 /** `env.NAME` and `env['NAME']`, which is how the server reads settings, from process.env or the env it's given. */
 const READ = /\benv(?:\.([A-Z][A-Z0-9_]*)\b|\[\s*['"]([A-Z][A-Z0-9_]*)['"]\s*\])/g

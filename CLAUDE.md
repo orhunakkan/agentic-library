@@ -21,6 +21,12 @@ docker compose up -d --wait   Local Postgres for dev and tests
 
 The pre-commit hook in `.githooks/pre-commit` runs Biome on staged files, the typecheck, and the tests in `tests/`.
 
+There's no CI, so these local gates are the only checks. Before a push, run `pnpm check`, `pnpm test:db` and
+`pnpm test:browser`.
+
+Deploys run by hand on the server: `sudo /usr/local/bin/agentic-library-deploy dev [<sha>]` builds and deploys to dev
+(origin/main by default), then `sudo /usr/local/bin/agentic-library-deploy prod <sha>` promotes the same release.
+
 ## Testing
 
 Vitest is the only test tool. Playwright is installed only because Vitest's browser mode drives Chromium through it

@@ -94,20 +94,15 @@ one release, then drop it in a later one.
 
 - One change per pull request.
 - The pull request’s title uses [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
-  `docs:`, `refactor:`, `test:`, `chore:`, `ci:`, `style:`), because it becomes the squash commit’s message.
+  `docs:`, `refactor:`, `test:`, `chore:`, `style:`), because it becomes the squash commit’s message.
 - Update the docs and `.env.example` in the same pull request as the change they describe.
 - Never put API keys, real user data or a book’s text in code, fixtures, issues or logs.
 
 ## How your pull request is tested and merged
 
-- Every pull request, from a fork or not, runs the full suite on GitHub-hosted runners, with no secrets and a read-only
-  token.
-- A first-time contributor’s run waits until the maintainer approves it.
-- The required checks are the five jobs in [ci.yml](.github/workflows/ci.yml): Lint, types, unit tests, build, audit;
-  Component tests; Database tests; Secrets scan; and Workflow lint. See
-  [SPEC-repo-security.md](spec/SPEC-repo-security.md) for why.
+- There’s no CI. The maintainer checks out your pull request and runs `pnpm check`, `pnpm test:db` and
+  `pnpm test:browser` before merging, so run them yourself first.
 - Only the maintainer merges, as a squash.
-- Dependabot’s pull requests follow the same path.
 
 ## AI-assisted pull requests
 

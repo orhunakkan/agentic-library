@@ -1,5 +1,5 @@
 # Local Postgres 18 for development and the database tests: agentic_dev for pnpm dev, agentic_test for pnpm test:db.
-# The image is pinned by the same digest as the postgres service in .github/workflows/ci.yml, and is bumped with it.
+# The image is pinned by digest, so every machine runs the same Postgres. Bump the digest by hand.
 # The port is bound to 127.0.0.1 only, so the well-known password is never reachable from the network. If 5432 is
 # taken, start it with FOLIO_DB_PORT=55432 (see CONTRIBUTING.md).
 name: folio

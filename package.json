@@ -21,7 +21,6 @@
     "coverage:changed": "node scripts/coverage/changed-lines.ts coverage/unit/lcov.info origin/main..HEAD unit && node scripts/coverage/changed-lines.ts coverage/server/lcov.info origin/main..HEAD server",
     "coverage:ratchet": "node scripts/coverage/ratchet.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
-    "ci:watch": "node scripts/ci/watch.ts",
     "voices:fetch": "node --env-file-if-exists=.env scripts/voices/fetch.ts",
     "db:migrate": "node --env-file-if-exists=.env scripts/db/migrate.ts",
     "db:users": "node --env-file-if-exists=.env scripts/db/users.ts",

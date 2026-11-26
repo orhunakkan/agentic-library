@@ -63,18 +63,14 @@ describe('checkSettings', () => {
       'dependabot-alerts': 'differs',
       'dependabot-security-updates': 'differs',
       'actions-permissions': 'differs',
-      'allowed-actions': 'unreadable',
-      'fork-pr-approval': 'unreadable',
       'self-hosted-runners': 'differs',
       variables: 'differs',
       'wiki-projects': 'differs',
     })
     const { lines, differences } = report(verdicts)
-    expect(differences).toBe(12)
-    expect(lines.at(-1)).toBe('12 difference(s), 5 of them in rows applied by go-public')
-    expect(lines).toContain(
-      'differs    Actions: only selected actions, pinned by SHA: allowed_actions: "all"; sha_pinning_required: false',
-    )
+    expect(differences).toBe(10)
+    expect(lines.at(-1)).toBe('10 difference(s), 4 of them in rows applied by go-public')
+    expect(lines).toContain('differs    Actions off: enabled: true')
   })
 
   it('reports a ruleset that’s missing, or that differs from its file, and offers the fix', () => {
@@ -98,23 +94,8 @@ describe('checkSettings', () => {
     ])
   })
 
-  it('reports a missing environment, a wrong or extra branch policy, paused updates, a writable deploy key, another collaborator and an invitation', () => {
+  it('reports paused updates, a writable deploy key, another collaborator and an invitation', () => {
     const answers = answersFrom('public-matching.json')
-    answers.set('/repos/example/folio/environments/dev', { status: 404, body: { message: 'Not Found' } })
-    answers.set('/repos/example/folio/environments/production/deployment-branch-policies', {
-      status: 200,
-      body: {
-        total_count: 2,
-        branch_policies: [
-          { name: 'main', type: 'branch' },
-          { name: 'release', type: 'branch' },
-        ],
-      },
-    })
-    answers.set('/repos/example/folio/environments/dev/deployment-branch-policies', {
-      status: 200,
-      body: { total_count: 1, branch_policies: [{ name: 'main', type: 'tag' }] },
-    })
     answers.set('/repos/example/folio/automated-security-fixes', { status: 200, body: { enabled: true, paused: true } })
     answers.set('/repos/example/folio/invitations?per_page=100', { status: 200, body: [{ id: 7 }] })
     answers.set('/repos/example/folio/keys?per_page=100', {
@@ -129,9 +110,6 @@ describe('checkSettings', () => {
       body: [{ login: 'example' }, { login: 'someone' }],
     })
     const verdicts = checkSettings(DESIRED, answers, RULESETS, TARGET)
-    expect(stateOf(verdicts, 'environment-dev')).toBe('missing')
-    expect(stateOf(verdicts, 'environment-production-branches')).toBe('differs')
-    expect(stateOf(verdicts, 'environment-dev-branches')).toBe('differs')
     expect(stateOf(verdicts, 'dependabot-security-updates')).toBe('differs')
     expect(stateOf(verdicts, 'invitations')).toBe('differs')
     expect(verdicts.find((v) => v.setting.id === 'deploy-keys')?.found).toBe('1 of 2 don\'t have {"read_only":true}')
@@ -154,7 +132,7 @@ describe('checkSettings', () => {
 })
 
 describe('the desired state', () => {
-  it('has one row per setting in the spec, with each row applied by go-public marked', () => {
+  it('has one row per setting, with each row applied by go-public marked', () => {
     expect(DESIRED.map((setting) => setting.id)).toEqual([
       'ruleset-main-history',
       'ruleset-main-changes',
@@ -163,9 +141,6 @@ describe('the desired state', () => {
       'dependabot-alerts',
       'dependabot-security-updates',
       'actions-permissions',
-      'allowed-actions',
-      'workflow-token',
-      'fork-pr-approval',
       'self-hosted-runners',
       'variables',
       'secrets',
@@ -174,14 +149,6 @@ describe('the desired state', () => {
       'collaborators',
       'invitations',
       'deploy-keys',
-      'environment-dev',
-      'environment-dev-secrets',
-      'environment-dev-variables',
-      'environment-dev-branches',
-      'environment-production',
-      'environment-production-secrets',
-      'environment-production-variables',
-      'environment-production-branches',
       'wiki-projects',
     ])
     expect(DESIRED.filter((setting) => setting.needsPublic).map((setting) => setting.id)).toEqual([
@@ -189,23 +156,13 @@ describe('the desired state', () => {
       'ruleset-main-changes',
       'secret-scanning',
       'private-vulnerability-reporting',
-      'fork-pr-approval',
     ])
   })
 
-  it('requires the five CI jobs as checks, from the GitHub Actions app, with only the admin bypass on main-changes', () => {
-    const ci = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8')
+  it('requires a squash PR on main-changes, with no status checks and only the admin bypass', () => {
     const changes = JSON.stringify(RULESETS['main-changes'])
-    for (const name of [
-      'Lint, types, unit tests, build, audit',
-      'Component tests',
-      'Database tests',
-      'Secrets scan',
-      'Workflow lint',
-    ]) {
-      expect(ci, name).toContain(`name: ${name}\n`)
-      expect(changes, name).toContain(`{"context":"${name}","integration_id":15368}`)
-    }
+    expect(changes).toContain('"allowed_merge_methods":["squash"]')
+    expect(changes).not.toContain('required_status_checks')
     expect(changes).toContain('"bypass_actors":[{"actor_id":5,"actor_type":"RepositoryRole","bypass_mode":"always"}]')
     expect(JSON.stringify(RULESETS['main-history'])).toContain('"bypass_actors":[]')
   })
