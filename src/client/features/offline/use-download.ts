@@ -13,20 +13,21 @@ export function useDownload(slug: string, nav: unknown) {
   const [state, setState] = useState<DownloadState>({ kind: 'unavailable' })
   const { viewer } = useRouteContext({ from: '__root__' })
   const controller = useRef<AbortController | null>(null)
-  const live = useRef(true)
+  /** The book whose answers may still change the state: none once unmounted, so a late answer for another is dropped. */
+  const shown = useRef<string | null>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the viewer's name is what should trigger the read.
   useEffect(() => {
-    live.current = true
+    shown.current = slug
     if (typeof caches === 'undefined' || document.documentElement.dataset.embed === 'on') return
     void listDownloads()
       .then((list) => {
         const found = list.find((d) => d.slug === slug)
-        if (live.current) setState(found ? { kind: 'downloaded', bytes: found.bytes } : { kind: 'idle' })
+        if (shown.current === slug) setState(found ? { kind: 'downloaded', bytes: found.bytes } : { kind: 'idle' })
       })
-      .catch(() => live.current && setState({ kind: 'idle' }))
+      .catch(() => shown.current === slug && setState({ kind: 'idle' }))
     return () => {
-      live.current = false
+      shown.current = null
     }
   }, [slug, viewer?.username])
 
@@ -37,10 +38,10 @@ export function useDownload(slug: string, nav: unknown) {
     const result = await downloadBook(slug, {
       nav,
       signal: abort.signal,
-      onProgress: (percent) => live.current && setState({ kind: 'downloading', percent }),
+      onProgress: (percent) => shown.current === slug && setState({ kind: 'downloading', percent }),
     })
     controller.current = null
-    if (live.current)
+    if (shown.current === slug)
       setState(result.result === 'ok' ? { kind: 'downloaded', bytes: result.book.bytes } : { kind: 'idle' })
     return result
   }, [slug, nav])
@@ -49,7 +50,7 @@ export function useDownload(slug: string, nav: unknown) {
 
   const remove = useCallback(async () => {
     await removeDownload(slug).catch(() => {})
-    if (live.current) setState({ kind: 'idle' })
+    if (shown.current === slug) setState({ kind: 'idle' })
   }, [slug])
 
   return { state, download, cancel, remove }
