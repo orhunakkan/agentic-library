@@ -117,9 +117,12 @@ function loadLanguage(core: HighlighterCore, lang: string): Promise<boolean> {
 
 const splitLines = (text: string) => text.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n')
 
+/** The themes' plain text colours, light then dark. */
+const foreground = (core: HighlighterCore): [string, string] => [core.getTheme(LIGHT).fg, core.getTheme(DARK).fg]
+
 async function plain(text: string): Promise<CodeTokens> {
   const core = await getHighlighter()
-  const palette: [string, string][] = [[core.getTheme(LIGHT).fg, core.getTheme(DARK).fg]]
+  const palette = [foreground(core)]
   return { palette, lines: splitLines(text).map((line) => (line ? [[line, 0, 0]] : [])), highlighted: false }
 }
 
@@ -152,7 +155,7 @@ export async function highlight(text: string, lang: string | null): Promise<Code
     }
     return at
   }
-  const fallback: [string, string] = [core.getTheme(LIGHT).fg, core.getTheme(DARK).fg]
+  const fallback = foreground(core)
   const lines = tokens.map((line) => {
     const runs: [string, number, number][] = []
     for (const token of line) {

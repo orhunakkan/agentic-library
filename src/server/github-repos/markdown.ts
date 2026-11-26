@@ -442,40 +442,38 @@ const isBlank = (node: MdNode) => node.t === 'text' && node.v.trim() === ''
 
 const isTablePart = (tag: string) => tag === 'table' || tag === 'tr' || TABLE_SECTIONS.has(tag)
 
-function tableChildren(tag: MdTag, children: MdNode[]): MdNode[] {
-  if (tag === 'tr') return children.filter((c) => c.t === 'el' && (c.tag === 'td' || c.tag === 'th'))
-  if (TABLE_SECTIONS.has(tag)) {
-    const rows: MdNode[] = []
-    let loose: MdNode[] = []
-    const flush = () => {
-      if (loose.length) rows.push({ t: 'el', tag: 'tr', c: loose })
-      loose = []
-    }
-    for (const child of children) {
-      if (child.t !== 'el') continue
-      if (child.tag === 'tr') {
-        flush()
-        rows.push(child)
-      } else if (child.tag === 'td' || child.tag === 'th') loose.push(child)
-    }
-    flush()
-    return rows
-  }
-  const sections: MdNode[] = []
-  let rows: MdNode[] = []
+/** The `kept` elements of `children`, with each run of `loose` ones wrapped in a `wrapper`; the rest are dropped. */
+function wrapLooseRuns(
+  children: readonly MdNode[],
+  kept: (tag: MdTag) => boolean,
+  loose: (tag: MdTag) => boolean,
+  wrapper: MdTag,
+): MdNode[] {
+  const out: MdNode[] = []
+  let run: MdNode[] = []
   const flush = () => {
-    if (rows.length) sections.push({ t: 'el', tag: 'tbody', c: rows })
-    rows = []
+    if (run.length) out.push({ t: 'el', tag: wrapper, c: run })
+    run = []
   }
   for (const child of children) {
     if (child.t !== 'el') continue
-    if (TABLE_SECTIONS.has(child.tag)) {
+    if (kept(child.tag)) {
       flush()
-      sections.push(child)
-    } else if (child.tag === 'tr') rows.push(child)
+      out.push(child)
+    } else if (loose(child.tag)) run.push(child)
   }
   flush()
-  return sections
+  return out
+}
+
+const isRow = (tag: string) => tag === 'tr'
+const isCell = (tag: string) => tag === 'td' || tag === 'th'
+const isSection = (tag: string) => TABLE_SECTIONS.has(tag)
+
+function tableChildren(tag: MdTag, children: MdNode[]): MdNode[] {
+  if (tag === 'tr') return children.filter((c) => c.t === 'el' && isCell(c.tag))
+  if (isSection(tag)) return wrapLooseRuns(children, isRow, isCell, 'tr')
+  return wrapLooseRuns(children, isSection, isRow, 'tbody')
 }
 
 const TABLE_PARENT: Partial<Record<MdTag, (parent: string) => boolean>> = {
@@ -487,7 +485,7 @@ const TABLE_PARENT: Partial<Record<MdTag, (parent: string) => boolean>> = {
   tfoot: (p) => p === 'table',
 }
 
-function straighten(nodes: MdNode[], parent: string, inParagraph: boolean): MdNode[] {
+function straighten(nodes: MdNode[], parent: string): MdNode[] {
   const out: MdNode[] = []
   for (const node of nodes) {
     if (node.t === 'text' || node.t === 'img' || node.t === 'task' || node.t === 'code') {
@@ -495,22 +493,21 @@ function straighten(nodes: MdNode[], parent: string, inParagraph: boolean): MdNo
       continue
     }
     if (node.t === 'alert') {
-      out.push({ ...node, c: straighten(node.c, 'div', false) })
+      out.push({ ...node, c: straighten(node.c, 'div') })
       continue
     }
     if (node.t === 'link') {
-      out.push({ ...node, c: straighten(node.c, 'a', inParagraph) })
+      out.push({ ...node, c: straighten(node.c, 'a') })
       continue
     }
     const fitsHere = TABLE_PARENT[node.tag]?.(parent) ?? true
     if (!fitsHere) {
-      out.push(...straighten(node.c, parent, inParagraph))
+      out.push(...straighten(node.c, parent))
       continue
     }
     let tag = node.tag
     if (tag === 'p' && containsBlock(node.c)) tag = 'div'
-    const nowInParagraph = inParagraph || tag === 'p'
-    let children = straighten(node.c, tag, nowInParagraph)
+    let children = straighten(node.c, tag)
     if (isTablePart(tag)) children = tableChildren(tag, children)
     out.push({ ...node, tag, c: children })
   }
@@ -533,7 +530,7 @@ export async function renderMarkdown(text: string, context: MarkdownContext): Pr
     inDefinition: false,
     literal: false,
   }
-  const nodes = straighten(walkChildren(root, scope, walk), 'div', false)
+  const nodes = straighten(walkChildren(root, scope, walk), 'div')
   await Promise.all(
     walk.codes.map(async (pending) => {
       pending.node.code = await highlight(pending.text, pending.lang)

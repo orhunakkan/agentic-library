@@ -9,23 +9,20 @@ import { logError } from '../redact.ts'
 
 let checked: { dir: string; ok: Promise<boolean> } | null = null
 
+/** Whether `dir` is a directory Folio can read, write and enter; when it isn't, that is logged. */
+async function isUsableDir(dir: string): Promise<boolean> {
+  const usable = await access(dir, constants.W_OK | constants.R_OK | constants.X_OK).then(
+    async () => (await stat(dir)).isDirectory(),
+    () => false,
+  )
+  if (!usable) logError('audiobooks', new Error('AUDIOBOOKS_DIR is missing or not writable; audiobook import is off'))
+  return usable
+}
+
 export async function audiobooksDir(): Promise<string | null> {
   const dir = getConfig().audiobooksDir
   if (!dir) return null
-  if (checked?.dir !== dir) {
-    const ok = access(dir, constants.W_OK | constants.R_OK | constants.X_OK).then(
-      async () => (await stat(dir)).isDirectory(),
-      () => false,
-    )
-    checked = {
-      dir,
-      ok: ok.then((usable) => {
-        if (!usable)
-          logError('audiobooks', new Error('AUDIOBOOKS_DIR is missing or not writable; audiobook import is off'))
-        return usable
-      }),
-    }
-  }
+  if (checked?.dir !== dir) checked = { dir, ok: isUsableDir(dir) }
   return (await checked.ok) ? dir : null
 }
 

@@ -11,7 +11,7 @@ import { readBytesBody } from '../json-body.ts'
 import { take } from '../quota.ts'
 import { logError } from '../redact.ts'
 import { signedInEndpoints, signedInForm } from '../signed-in.ts'
-import { parseApply, parseDetailsForm, parseLookup } from './input.ts'
+import { type ApplyInput, parseApply, parseDetailsForm, parseLookup } from './input.ts'
 import {
   cover as fetchCover,
   type OpenLibraryOptions,
@@ -181,6 +181,32 @@ export const handleLookup = (request: Request, options: OpenLibraryOptions = {})
 
 export type CoverProblem = 'cover-too-large' | 'cover-failed'
 
+/** The work's description when the reader asked for it, or why Open Library couldn't give it. */
+async function matchDescription(
+  input: ApplyInput,
+  options: OpenLibraryOptions,
+): Promise<{ description: string | null; workProblem: OpenLibraryProblem | null }> {
+  if (!input.useDescription) return { description: null, workProblem: null }
+  const found = await work(input.work, options)
+  if (!found.ok) return { description: null, workProblem: found.problem }
+  return { description: found.value.description, workProblem: null }
+}
+
+/** The match's cover when the reader asked for it and it is a usable image, or why it isn't. */
+async function matchCover(
+  input: ApplyInput,
+  options: OpenLibraryOptions,
+): Promise<{ cover: NewCover | null; coverProblem?: CoverProblem }> {
+  if (!input.useCover || input.coverId === null) return { cover: null }
+  const fetched = await fetchCover(input.coverId, options)
+  if (!fetched.ok)
+    return { cover: null, coverProblem: fetched.problem === 'too-large' ? 'cover-too-large' : 'cover-failed' }
+  const checked = checkCoverImage(fetched.value)
+  if (!checked.ok)
+    return { cover: null, coverProblem: checked.problem === 'large' ? 'cover-too-large' : 'cover-failed' }
+  return { cover: newCover(fetched.value, checked.info, 'open-library') }
+}
+
 export const handleApply = (request: Request, id: string, options: OpenLibraryOptions = {}) =>
   details.post(
     request,
@@ -196,23 +222,8 @@ export const handleApply = (request: Request, id: string, options: OpenLibraryOp
       const taken = await take(db, userId, 'book-lookup', { ip, detail: { bookId: id, kind: 'apply' } })
       if (!taken.ok) return fail(429, 'rate', { retryAt: taken.retryAt.toISOString() })
 
-      let description: string | null = null
-      let workProblem: OpenLibraryProblem | null = null
-      if (input.useDescription) {
-        const found = await work(input.work, options)
-        if (found.ok) description = found.value.description
-        else workProblem = found.problem
-      }
-      let cover: NewCover | null = null
-      let coverProblem: CoverProblem | undefined
-      if (input.useCover && input.coverId !== null) {
-        const fetched = await fetchCover(input.coverId, options)
-        if (fetched.ok) {
-          const checked = checkCoverImage(fetched.value)
-          if (checked.ok) cover = newCover(fetched.value, checked.info, 'open-library')
-          else coverProblem = checked.problem === 'large' ? 'cover-too-large' : 'cover-failed'
-        } else coverProblem = fetched.problem === 'too-large' ? 'cover-too-large' : 'cover-failed'
-      }
+      const { description, workProblem } = await matchDescription(input, options)
+      const { cover, coverProblem } = await matchCover(input, options)
 
       const audit = { userId, ip }
       if (workProblem && !cover) {

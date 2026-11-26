@@ -344,6 +344,27 @@ async function targetOf(
   return { ok: true, value: { kind: 'file', file: file.value } }
 }
 
+/** The root and each folder down to `path` (or to its folder when it isn't one), top first, until one fails to load. */
+async function foldersAlong(
+  row: RepoRow,
+  tree: RenderTarget['tree'],
+  path: string,
+  isFolder: boolean,
+  options: GitHubOptions,
+): Promise<{ path: string; entries: RepoEntry[] }[]> {
+  const parts = path ? path.split('/') : []
+  const depth = isFolder ? parts.length : parts.length - 1
+  const folders: { path: string; entries: RepoEntry[] }[] = []
+  for (let i = 0; i <= Math.max(0, depth); i++) {
+    const folder = parts.slice(0, i).join('/')
+    const loaded = await loadFolder(treeKey(row), tree, folder, options)
+    const entries = loaded.ok ? childrenOf(tree, folder) : null
+    if (!entries) break
+    folders.push({ path: folder, entries })
+  }
+  return folders
+}
+
 export function repoViewState(
   request: Request,
   id: string,
@@ -377,16 +398,7 @@ export function repoViewState(
     }
     const target = await targetOf(row, tree.value, path, view, options)
     if (!target.ok) return readProblem(target)
-    const parts = path ? path.split('/') : []
-    const depth = target.value.kind === 'folder' ? parts.length : parts.length - 1
-    const folders: { path: string; entries: RepoEntry[] }[] = []
-    for (let i = 0; i <= Math.max(0, depth); i++) {
-      const folder = parts.slice(0, i).join('/')
-      const loaded = await loadFolder(treeKey(row), tree.value, folder, options)
-      const entries = loaded.ok ? childrenOf(tree.value, folder) : null
-      if (!entries) break
-      folders.push({ path: folder, entries })
-    }
+    const folders = await foldersAlong(row, tree.value, path, target.value.kind === 'folder', options)
     return { state: 'ready', repo, folders, target: target.value, refreshed }
   })
 }

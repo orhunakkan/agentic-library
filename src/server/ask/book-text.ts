@@ -1,6 +1,6 @@
 import { htmlTextBlocks } from '~/shared/content/html-text'
 import { chapterPageHref, pagedHref, pageLabel } from '~/shared/content/navigation'
-import type { BookContent, Inline, PagedBook } from '~/shared/content/schema'
+import type { BookContent, Inline, PagedBook, PagedPage } from '~/shared/content/schema'
 
 export interface PageText {
   href: string
@@ -27,6 +27,28 @@ export interface BookText {
 const inlineText = (content: readonly Inline[]) =>
   content.map((i) => (i.type === 'footnoteRef' ? `[${i.text}]` : i.text)).join('')
 
+/** A printed page's text blocks: each heading joined to the block after it, then its footnotes as one block. */
+function pagedPageBlocks(page: PagedPage): string[] {
+  const blocks: string[] = []
+  let heading = ''
+  for (const block of page.blocks) {
+    const text = inlineText(block.content).trim()
+    if (!text) continue
+    if (block.type === 'heading') heading = heading ? `${heading}\n${text}` : text
+    else {
+      blocks.push(heading ? `${heading}\n\n${text}` : text)
+      heading = ''
+    }
+  }
+  if (heading) blocks.push(heading)
+  const notes = page.footnotes.flatMap((f) => {
+    const text = inlineText(f.content).trim()
+    return text ? [`[${f.id.split('_').at(-1)}] ${text}`] : []
+  })
+  if (notes.length) blocks.push(`Footnotes:\n${notes.join('\n')}`)
+  return blocks
+}
+
 function pagedBookText(book: PagedBook): BookText {
   const chapters: ChapterText[] = book.chapters.map((c) => ({ title: c.title, slug: null, firstPage: 0, pageCount: 0 }))
   if (!chapters.length) chapters.push({ title: '', slug: null, firstPage: 0, pageCount: 0 })
@@ -40,24 +62,6 @@ function pagedBookText(book: PagedBook): BookText {
     if (entry.pageCount === 0) entry.firstPage = pages.length
     entry.pageCount++
 
-    const blocks: string[] = []
-    let heading = ''
-    for (const block of page.blocks) {
-      const text = inlineText(block.content).trim()
-      if (!text) continue
-      if (block.type === 'heading') heading = heading ? `${heading}\n${text}` : text
-      else {
-        blocks.push(heading ? `${heading}\n\n${text}` : text)
-        heading = ''
-      }
-    }
-    if (heading) blocks.push(heading)
-    const notes = page.footnotes.flatMap((f) => {
-      const text = inlineText(f.content).trim()
-      return text ? [`[${f.id.split('_').at(-1)}] ${text}`] : []
-    })
-    if (notes.length) blocks.push(`Footnotes:\n${notes.join('\n')}`)
-
     const title = book.chapters[chapterIndex]?.title
     pages.push({
       href: pagedHref(book.slug, page.pageNumber),
@@ -65,7 +69,7 @@ function pagedBookText(book: PagedBook): BookText {
       heading: title ? `Chapter ${chapterIndex + 1}: ${title}, page ${page.pageNumber}` : `Page ${page.pageNumber}`,
       chapterIndex,
       printedPage: page.pageNumber,
-      blocks,
+      blocks: pagedPageBlocks(page),
     })
   }
   return { kind: 'paged', chapters, pages }

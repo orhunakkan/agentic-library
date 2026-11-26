@@ -29,16 +29,21 @@ export function elevenLabsKeyProblem(key: string): 'shape' | 'anthropic' | null 
 
 export type KeyCheck = 'valid' | 'rejected' | 'permission' | 'unavailable'
 
+/** The account's voices, at most `pageSize` of them: the key check asks for one, the voice list for a page. */
+function getVoices(key: string, pageSize: number, options: ElevenLabsOptions): Promise<Response> {
+  return (options.fetch ?? fetch)(`${baseOf(options)}/v2/voices?page_size=${pageSize}`, {
+    headers: { 'xi-api-key': key },
+    signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
+    redirect: 'error',
+  })
+}
+
 export async function checkKey(
   key: string,
   options: ElevenLabsOptions = {},
 ): Promise<{ result: KeyCheck; status?: number }> {
   try {
-    const response = await (options.fetch ?? fetch)(`${baseOf(options)}/v2/voices?page_size=1`, {
-      headers: { 'xi-api-key': key },
-      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
-      redirect: 'error',
-    })
+    const response = await getVoices(key, 1, options)
     await response.body?.cancel().catch(() => {})
     if (response.status === 200) return { result: 'valid', status: 200 }
     if (response.status === 401) return { result: 'rejected', status: 401 }
@@ -112,11 +117,7 @@ export type VoicesResult =
 
 export async function listVoices(key: string, options: ElevenLabsOptions = {}): Promise<VoicesResult> {
   try {
-    const response = await (options.fetch ?? fetch)(`${baseOf(options)}/v2/voices?page_size=${VOICES_PAGE}`, {
-      headers: { 'xi-api-key': key },
-      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
-      redirect: 'error',
-    })
+    const response = await getVoices(key, VOICES_PAGE, options)
     if (response.status !== 200) {
       await response.body?.cancel().catch(() => {})
       const status = response.status
