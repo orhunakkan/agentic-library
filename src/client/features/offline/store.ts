@@ -42,7 +42,7 @@ const pathOf = (request: Request) => {
   return { pathname: url.pathname, key: url.pathname + url.search }
 }
 
-export function siteRequest(path: string, signal?: AbortSignal): Request {
+function siteRequest(path: string, signal?: AbortSignal): Request {
   const base = typeof location === 'undefined' ? 'http://localhost' : location.href
   return new Request(new URL(path, base), { credentials: 'same-origin', signal })
 }
@@ -104,20 +104,25 @@ export interface SaveOptions {
   onFile?: () => void
 }
 
+/** Fetches each file into `cache`, `limit` at a time, calling `onFile` after each; throws if one fails or `signal` aborts. */
+export async function addFiles(cache: Cache, files: readonly string[], limit: number, options: SaveOptions = {}) {
+  const { signal, onFile } = options
+  await inBatches(files, limit, async (file) => {
+    signal?.throwIfAborted()
+    await cache.add(siteRequest(file, signal))
+    onFile?.()
+  })
+  signal?.throwIfAborted()
+}
+
 export async function saveBook(book: OfflineBook, options: SaveOptions = {}, env: OfflineEnv = offlineEnv()) {
   if (!env.caches) throw new Error('Cache Storage is not available')
-  const { signal, onFile } = options
   const cache = await env.caches.open(BOOKS_CACHE)
   const bookUrl = offlineBookUrl(book.slug)
   const had = (await cache.match(bookUrl)) !== undefined
   const files = bookFiles(book)
   try {
-    await inBatches(files, FILE_CONCURRENCY, async (url) => {
-      signal?.throwIfAborted()
-      await cache.add(siteRequest(url, signal))
-      onFile?.()
-    })
-    signal?.throwIfAborted()
+    await addFiles(cache, files, FILE_CONCURRENCY, options)
     const summary: OfflineSummary = {
       slug: book.slug,
       title: book.title,

@@ -4,8 +4,9 @@ import { dayLabel, dayName } from './stats-copy'
 
 export function WeekBars({ week, today, goalMinutes }: { week: DayStats[]; today: string; goalMinutes: number }) {
   const totalOf = (d: DayStats) => d.readingSeconds + d.listeningSeconds
-  const scale = Math.max(goalMinutes * 60, ...week.map(totalOf), 1)
-  const goalAt = Math.min(100, ((goalMinutes * 60) / scale) * 100)
+  const goalSeconds = goalMinutes * 60
+  const scale = Math.max(goalSeconds, ...week.map(totalOf), 1)
+  const goalAt = Math.min(100, (goalSeconds / scale) * 100)
   return (
     <ol data-testid="stats-week" className="grid grid-cols-7 gap-1.5 sm:gap-3">
       {week.map((dayStats) => {

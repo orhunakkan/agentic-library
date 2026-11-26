@@ -8,6 +8,11 @@ export function post(path: string, body: unknown): Promise<Response> {
   return fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 }
 
+/** The response's JSON body, `{}` when it has none or it isn't JSON. */
+function jsonBody(response: Response): Promise<Record<string, unknown>> {
+  return response.json().catch(() => ({})) as Promise<Record<string, unknown>>
+}
+
 type PostAnswer =
   | { ok: true; data: Record<string, unknown> }
   | { ok: false; status: number; data: Record<string, unknown> }
@@ -20,14 +25,14 @@ export async function postBody(url: string, body: BodyInit, type: string): Promi
   } catch {
     return null
   }
-  const data = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  const data = await jsonBody(response)
   return response.ok ? { ok: true, data } : { ok: false, status: response.status, data }
 }
 
 const fail = (problem: AnswerProblem) => ({ ok: false, problem }) as const
 
 export async function readAnswer<T>(response: Response, pick: (body: Record<string, unknown>) => T | undefined) {
-  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  const body = await jsonBody(response)
   if (response.ok) {
     const value = pick(body)
     return value === undefined ? fail('failed') : ({ ok: true, value } as const)
@@ -46,7 +51,7 @@ export async function readChange<T, P extends string>(
   pick: (body: Record<string, unknown>) => T | undefined,
   codes: readonly P[],
 ): Promise<ChangeResult<T, P | 'failed'>> {
-  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  const body = await jsonBody(response)
   if (response.ok) {
     const value = pick(body)
     return value === undefined ? { ok: false, problem: 'failed' } : { ok: true, value }

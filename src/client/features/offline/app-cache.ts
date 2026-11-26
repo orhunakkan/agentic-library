@@ -1,13 +1,5 @@
 import { isObject } from '~/shared/lib/json-shape'
-import {
-  APP_CACHE_PREFIX,
-  clearAppCache,
-  hasDownloads,
-  inBatches,
-  type OfflineEnv,
-  offlineEnv,
-  siteRequest,
-} from './store'
+import { APP_CACHE_PREFIX, addFiles, clearAppCache, hasDownloads, type OfflineEnv, offlineEnv } from './store'
 
 export const APP_FILES_URL = '/app-files.json'
 const FILE_CONCURRENCY = 6
@@ -65,12 +57,7 @@ export async function refreshAppCache(options: RefreshOptions = {}, env: Offline
   if (!plan) return
   const cache = await env.caches.open(plan.name)
   if (plan.missing.length > 0 || !(await cache.match(APP_FILES_URL))) {
-    await inBatches(plan.missing, FILE_CONCURRENCY, async (file) => {
-      options.signal?.throwIfAborted()
-      await cache.add(siteRequest(file, options.signal))
-      options.onFile?.()
-    })
-    options.signal?.throwIfAborted()
+    await addFiles(cache, plan.missing, FILE_CONCURRENCY, options)
     await cache.put(APP_FILES_URL, Response.json(plan.manifest))
   }
   for (const name of await env.caches.keys())

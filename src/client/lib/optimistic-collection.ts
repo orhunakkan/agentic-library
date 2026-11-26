@@ -128,8 +128,8 @@ export class OptimisticCollection<
   }
 
   private set(next: Partial<CollectionSnapshot<T>>) {
-    const { order } = this.rules
-    const items = next.items ? (order ? order(next.items) : next.items) : this.snapshot.items
+    const { order = (unordered: Entry<T>[]) => unordered } = this.rules
+    const items = next.items ? order(next.items) : this.snapshot.items
     this.snapshot = { ...this.snapshot, ...next, items }
     this.notify()
   }
@@ -314,7 +314,10 @@ export class OptimisticCollection<
     if (!this.rules.confirmRemoves) {
       this.rules.removed?.()
       await Promise.all(removing)
-    } else if ((await Promise.all(removing)).includes(true)) this.rules.removed?.()
+      return
+    }
+    const takenAway = await Promise.all(removing)
+    if (takenAway.includes(true)) this.rules.removed?.()
   }
 
   /** Whether the item was taken away. */

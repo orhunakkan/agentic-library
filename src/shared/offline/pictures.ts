@@ -35,6 +35,6 @@ export function bookOfUrl(pathname: string): string | null {
   if (match) return own(match[1])
   match = /^\/covers\/(.+)\.svg$/.exec(pathname) ?? /^\/covers\/(.+)-[0-9a-f]{8}\.[a-z]+$/.exec(pathname)
   if (match) return own(match[1])
-  match = /^\/account\/books\/([0-9a-f-]{36})\//.exec(pathname)
-  return match && isUuid(match[1] as string) ? privateBookSlug(match[1] as string) : null
+  const id = /^\/account\/books\/([0-9a-f-]{36})\//.exec(pathname)?.[1]
+  return id && isUuid(id) ? privateBookSlug(id) : null
 }
