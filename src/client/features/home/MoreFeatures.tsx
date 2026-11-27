@@ -57,7 +57,7 @@ const TILES: readonly Tile[] = [
     icon: WifiOff,
     hue: 'coral',
     title: 'Read offline',
-    text: 'Download a book to read it without a connection.',
+    text: 'Download a book, or a GitHub repository you’ve added, to read it without a connection.',
   },
   {
     icon: MonitorDown,

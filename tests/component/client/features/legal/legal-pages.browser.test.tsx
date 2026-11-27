@@ -125,6 +125,14 @@ describe('Privacy', () => {
     await expectContactAndNoBilling()
   })
 
+  it('says how long downloaded repositories stay in the browser', async () => {
+    await mountRoute(PrivacyRoute, '/privacy', { sourceUrl: null })
+    /** Plain text in a part, with no role or name of its own to check. */
+    await expect
+      .element(main.getByText(/GitHub repositories you download stay in this browser until you remove them/))
+      .toMatchTextContent('deleted when you sign out')
+  })
+
   it('says searches and removals for notices are logged with the reason', async () => {
     await mountRoute(PrivacyRoute, '/privacy', { sourceUrl: null })
     /** Plain text in a part, with no role or name of its own to check. */

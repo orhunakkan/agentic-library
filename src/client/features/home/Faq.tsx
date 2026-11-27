@@ -24,7 +24,7 @@ function questions(sourceUrl: string | null): { q: string; a: ReactNode }[] {
     },
     {
       q: 'Does Folio work offline?',
-      a: 'With an account, download a book to read it with no connection. Downloads are removed when you sign out.',
+      a: 'With an account, download a book, or a GitHub repository you’ve added, to read it with no connection. Downloads are removed when you sign out.',
     },
     {
       q: 'Is Folio open source?',

@@ -3,7 +3,7 @@ export const SITE_TAGLINE = 'A quiet place to read and listen.'
 export const SITE_CREDIT =
   'Books you upload stay private to your account. A book without its own cover gets a generated one.'
 
-export const PRIVACY_UPDATED = '2026-11-26'
+export const PRIVACY_UPDATED = '2026-11-27'
 
 export const TERMS_UPDATED = '2026-11-26'
 

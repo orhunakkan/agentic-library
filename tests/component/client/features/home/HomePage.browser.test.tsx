@@ -98,6 +98,7 @@ describe.each([
     await mountHome(viewer)
     await expect.element(more.getByText('With your account.', { exact: true })).toBeVisible()
     await expect.element(tile('Install it as an app')).not.toMatchTextContent('No account needed')
+    await expect.element(tile('Read offline')).toMatchTextContent('a GitHub repository you’ve added')
   })
 
   it('says reading needs an account, since Folio doesn’t come with books, and what else it adds', async () => {
@@ -111,7 +112,9 @@ describe.each([
   it('answers whether Folio works offline', async () => {
     await mountHome(viewer)
     await openQuestion('Does Folio work offline?')
-    await expect.element(faq.getByText(/Downloads are removed when you sign out\./)).toBeVisible()
+    const answer = faq.getByText(/Downloads are removed when you sign out\./)
+    await expect.element(answer).toBeVisible()
+    await expect.element(answer).toMatchTextContent('a GitHub repository you’ve added')
   })
 
   it('links the source code from the open-source question', async () => {

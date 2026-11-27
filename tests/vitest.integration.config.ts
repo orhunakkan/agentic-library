@@ -61,7 +61,7 @@ export default defineConfig({
       exclude: ['**/*.test.ts'],
       thresholds: {
         statements: 94,
-        branches: 92,
+        branches: 93,
         functions: 90,
         lines: 94,
         'src/server/auth.ts': FULL,

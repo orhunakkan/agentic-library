@@ -34,7 +34,8 @@ It’s free to use at [agenticlibrary.app](https://agenticlibrary.app), and open
     anything on GitHub.
   - **Reading goals and streaks**: a daily goal, your streak, and the books you finished this year.
   - **Shelves and ratings** for your books.
-  - **Read offline**: download a book to read without a connection. Downloads are removed when you sign out.
+  - **Read offline**: download a book, or a GitHub repository you’ve added, to read without a connection. Downloads
+    are removed when you sign out.
   - **Pick up on any device**: Folio offers the place you reached on another device.
   - **Sign in with a passkey.**
 - **Install it as an app** on your home screen or desktop, with or without an account.

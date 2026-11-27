@@ -34,6 +34,10 @@ function PrivacyPage() {
           sign out, and after 30 days without a connection.
         </p>
         <p>
+          GitHub repositories you download stay in this browser until you remove them. They’re deleted when you sign
+          out, when you remove the repository from your account, and after 30 days without a connection.
+        </p>
+        <p>
           If you download the Folio voice, its files come from Folio’s own server and stay in this browser until you
           remove them from the Voice menu. It speaks on your device: the text of the book you open isn’t sent anywhere.
         </p>
