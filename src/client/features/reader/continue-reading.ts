@@ -76,7 +76,7 @@ export function resetVisits(): void {
   loaded = null
 }
 
-export function entryFor(view: ReaderView, at: number): RecentReading {
+function entryFor(view: ReaderView, at: number): RecentReading {
   return {
     bookSlug: view.book.slug,
     bookTitle: view.book.title,

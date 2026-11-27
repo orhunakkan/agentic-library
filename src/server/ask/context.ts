@@ -7,8 +7,6 @@ import type { BookText, PageText } from './book-text'
 import type { AskAction } from './input'
 import { CARDS_COUNT, QUIZ_COUNT, type StudyCitation } from './study-format'
 
-export type { CitationLink }
-
 export const MAX_BOOK_TOKENS = 800_000
 export const CHARS_PER_TOKEN = 2.5
 export const CITED_TEXT_MAX = 500

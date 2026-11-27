@@ -33,7 +33,7 @@ const FROM_TEXT: Record<AudiobookDraft['from'], string> = {
 }
 
 function summary(draft: AudiobookDraft): string {
-  const kind = draft.type === 'mp4' ? 'M4B' : `${draft.files.length} MP3 ${draft.files.length === 1 ? 'file' : 'files'}`
+  const kind = draft.type === 'mp4' ? 'M4B' : plural(draft.files.length, 'MP3 file')
   return `${formatLength(draft.totalMs)} · ${plural(draft.chapters.length, 'chapter')} · ${fileSize(draft.bytes)} · ${kind}`
 }
 

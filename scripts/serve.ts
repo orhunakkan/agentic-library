@@ -34,7 +34,7 @@ const voices =
   (request, next) =>
     new URL(request.url).pathname.startsWith(VOICES_PREFIX) ? voiceResponse(request, dir) : next()
 
-export async function startServer(middleware: ServerMiddleware[] = []) {
+async function startServer() {
   let voicesDir: string
   try {
     voicesDir = parseConfig(process.env).voicesDir
@@ -49,7 +49,7 @@ export async function startServer(middleware: ServerMiddleware[] = []) {
   return serve({
     port: Number(process.env.PORT ?? 3000),
     hostname: process.env.HOST ?? '127.0.0.1',
-    middleware: [staticCacheHeaders, ...middleware, voices(voicesDir), staticMiddleware({ dir: `${root}dist/client` })],
+    middleware: [staticCacheHeaders, voices(voicesDir), staticMiddleware({ dir: `${root}dist/client` })],
     fetch: (request) => entry.default.fetch(request),
   })
 }

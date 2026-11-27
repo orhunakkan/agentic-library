@@ -214,12 +214,7 @@ const runsText = (runs: readonly Run[]) => runs.reduce((n, r) => n + ('text' in 
 function checkImage(value: Record<string, unknown>): ImageBlock {
   const block = shape(value, ['type', 'image', 'alt'], ['caption'])
   const pictureNumber = block.image
-  if (
-    typeof pictureNumber !== 'number' ||
-    !Number.isInteger(pictureNumber) ||
-    pictureNumber < 0 ||
-    pictureNumber > MAX_BOOK_IMAGES
-  )
+  if (!isCount(pictureNumber, MAX_BOOK_IMAGES))
     throw invalid(`image must be a picture number from 0 to ${MAX_BOOK_IMAGES}`)
   if (typeof block.alt !== 'string') throw invalid('alt must be text')
   const alt = cleanAlt(block.alt)

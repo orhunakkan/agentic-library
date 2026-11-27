@@ -208,15 +208,16 @@ type OutlineNode = Awaited<ReturnType<PDFDocumentProxy['getOutline']>>[number]
 
 function destinationTop(dest: readonly unknown[]): { x: number; y: number } | null {
   const kind = (dest[1] as { name?: string } | undefined)?.name
-  const num = (i: number) => (typeof dest[i] === 'number' ? (dest[i] as number) : null)
+  const num = (i: number) => (typeof dest[i] === 'number' ? dest[i] : null)
+  const point = (x: number | null, y: number | null) => (y === null ? null : { x: x ?? 0, y })
   switch (kind) {
     case 'XYZ':
-      return num(3) === null ? null : { x: num(2) ?? 0, y: num(3) as number }
+      return point(num(2), num(3))
     case 'FitH':
     case 'FitBH':
-      return num(2) === null ? null : { x: 0, y: num(2) as number }
+      return point(0, num(2))
     case 'FitR':
-      return num(5) === null ? null : { x: num(2) ?? 0, y: num(5) as number }
+      return point(num(2), num(5))
     default:
       return null
   }

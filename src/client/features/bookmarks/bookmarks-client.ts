@@ -15,11 +15,7 @@ export async function send<T>(
     const response = await post(path, body)
     const result = await readAnswer(response, (b) => pick(b, response.status))
     if (result.ok) return result
-    const { problem } = result
-    return {
-      ok: false,
-      problem: problem === 'stale' ? 'failed' : problem,
-    }
+    return { ok: false, problem: result.problem === 'stale' ? 'failed' : result.problem }
   } catch {
     return { ok: false, problem: 'failed' }
   }

@@ -64,8 +64,8 @@ export function createAside(deps: AsideDeps): Aside {
 
   const voiceFor = async (lang: string, privateBook: boolean): Promise<AsideVoice> => {
     const [voices, downloaded] = await Promise.all([
-      deps.loadVoices().catch(() => [] as VoiceLike[]),
-      deps.localSpeaker ? deps.downloaded().catch(() => [] as FolioVoice[]) : Promise.resolve([] as FolioVoice[]),
+      deps.loadVoices().catch((): VoiceLike[] => []),
+      deps.localSpeaker ? deps.downloaded().catch((): FolioVoice[] => []) : Promise.resolve([]),
     ])
     const { voice, cloudChoice } = resolveVoice({
       voices,

@@ -745,12 +745,12 @@ export function createReadAloud(deps: ControllerDeps): ReadAloud {
         if (!finished) return
         const { voice, outcome, bytes } = finished
         const like = folioVoiceLike(voice)
+        const lang = state.book?.language
         if (outcome === 'ok') {
-          const base = primarySubtag(state.book?.language ?? voice.lang)
+          const base = primarySubtag(lang ?? voice.lang)
           rememberVoice(deps.storage, voiceChoiceKey(base, false), like.voiceURI)
           rememberVoice(deps.storage, voiceChoiceKey(base, true), like.voiceURI)
         }
-        const lang = state.book?.language
         const local = lang ? localFor(lang) : null
         if (local?.voices.some((v) => v.id === voice.id)) {
           const patch: Partial<ReadAloudState> = { local }

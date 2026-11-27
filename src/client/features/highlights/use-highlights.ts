@@ -6,7 +6,7 @@ import type { HighlightColor } from '~/shared/highlights/colors'
 import { HighlightList, type NewHighlight } from './highlight-list'
 import * as client from './highlights-client'
 
-export type { HighlightItem, HighlightsState, NewHighlight } from './highlight-list'
+export type { HighlightItem, NewHighlight } from './highlight-list'
 
 export function useHighlights(book: string, { signedIn, embedded }: { signedIn: boolean; embedded: boolean }) {
   const toast = useToast()

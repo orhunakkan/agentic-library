@@ -22,37 +22,16 @@ export type Suggestion =
     }
   | { kind: 'start'; id: 'remind'; label: string; text: string }
 
-const summary = (wholeBook: boolean, label: string): Suggestion => ({
-  kind: 'ask',
-  id: 'summary',
-  label,
-  question: summaryQuestion(wholeBook),
-  action: 'summary',
-})
+const withAction = (
+  action: 'summary' | 'recap' | 'quiz' | 'flashcards',
+  label: string,
+  question: string,
+): Suggestion => ({ kind: 'ask', id: action, label, question, action })
 
-const recap = (label: string): Suggestion => ({
-  kind: 'ask',
-  id: 'recap',
-  label,
-  question: RECAP_QUESTION,
-  action: 'recap',
-})
-
-const quiz = (label: string): Suggestion => ({
-  kind: 'ask',
-  id: 'quiz',
-  label,
-  question: QUIZ_QUESTION,
-  action: 'quiz',
-})
-
-const flashcards = (label: string): Suggestion => ({
-  kind: 'ask',
-  id: 'flashcards',
-  label,
-  question: FLASHCARDS_QUESTION,
-  action: 'flashcards',
-})
+const summary = (wholeBook: boolean, label: string) => withAction('summary', label, summaryQuestion(wholeBook))
+const recap = (label: string) => withAction('recap', label, RECAP_QUESTION)
+const quiz = (label: string) => withAction('quiz', label, QUIZ_QUESTION)
+const flashcards = (label: string) => withAction('flashcards', label, FLASHCARDS_QUESTION)
 
 export function suggestions(at: {
   chapterIndex: number

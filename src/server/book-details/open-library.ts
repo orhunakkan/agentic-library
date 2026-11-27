@@ -20,7 +20,7 @@ const MAX_WAIT_MS = 5000
 const CACHE_MS = 60 * 60_000
 const CACHE_MAX = 200
 
-export const spacing = () => (getConfig().openLibraryContact ? 334 : 1000)
+const spacing = () => (getConfig().openLibraryContact ? 334 : 1000)
 
 let nextStart = 0
 const cache = answerCache(CACHE_MS, CACHE_MAX)

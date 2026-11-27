@@ -5,6 +5,14 @@ import { SITE_CREDIT, SITE_NAME } from '~/shared/lib/site'
 
 const link = 'font-medium text-accent hover:text-accent-strong hover:underline'
 
+const PAGES = [
+  { to: '/library', key: 'library', label: 'The library' },
+  { to: '/privacy', key: 'privacy', label: 'Privacy' },
+  { to: '/terms', key: 'terms', label: 'Terms' },
+  { to: '/copyright', key: 'copyright', label: 'Copyright' },
+  { to: '/credits', key: 'credits', label: 'Credits' },
+] as const
+
 /** The home page's footer. `sourceUrl` is null when the code isn't linked. */
 export function HomeFooter({ viewer, sourceUrl }: { viewer: Viewer | null; sourceUrl: string | null }) {
   return (
@@ -24,31 +32,13 @@ export function HomeFooter({ viewer, sourceUrl }: { viewer: Viewer | null; sourc
         <p className="max-w-md">{SITE_CREDIT}</p>
         <nav aria-label="Footer">
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
-            <li>
-              <Link to="/library" className={link} data-testid="home-footer-link" data-key="library">
-                The library
-              </Link>
-            </li>
-            <li>
-              <Link to="/privacy" className={link} data-testid="home-footer-link" data-key="privacy">
-                Privacy
-              </Link>
-            </li>
-            <li>
-              <Link to="/terms" className={link} data-testid="home-footer-link" data-key="terms">
-                Terms
-              </Link>
-            </li>
-            <li>
-              <Link to="/copyright" className={link} data-testid="home-footer-link" data-key="copyright">
-                Copyright
-              </Link>
-            </li>
-            <li>
-              <Link to="/credits" className={link} data-testid="home-footer-link" data-key="credits">
-                Credits
-              </Link>
-            </li>
+            {PAGES.map((page) => (
+              <li key={page.key}>
+                <Link to={page.to} className={link} data-testid="home-footer-link" data-key={page.key}>
+                  {page.label}
+                </Link>
+              </li>
+            ))}
             {sourceUrl && (
               <li>
                 <a href={sourceUrl} rel="noopener" className={link} data-testid="home-footer-link" data-key="source">

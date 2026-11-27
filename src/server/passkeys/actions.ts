@@ -44,15 +44,15 @@ export function passkeyName(userAgent: string | null): string {
 
 export const handleAddOptions = (request: Request) =>
   passkeys.post(request, { log: 'passkey options', parse: parseAddOptions }, async ({ session, db, input }) => {
-    if (!(await checkCurrentPassword(db, session, input.password, requestIp(request), 'passkey')))
-      return fail(400, 'password')
+    const ip = requestIp(request)
+    if (!(await checkCurrentPassword(db, session, input.password, ip, 'passkey'))) return fail(400, 'password')
     if ((await countPasskeys(db, session.userId)) >= MAX_PASSKEYS) return quota()
     const handle = await userHandle(db, session.userId)
     const exclude = (await listPasskeys(db, session.userId)).map((p) => ({
       id: p.credentialId.toString('base64url'),
       transports: p.transports,
     }))
-    const challenge = await makeChallenge(db, { kind: 'register', userId: session.userId, ip: requestIp(request) })
+    const challenge = await makeChallenge(db, { kind: 'register', userId: session.userId, ip })
     const options = await registrationOptions({
       rp: rpFor(getConfig().appOrigin),
       userHandle: handle,

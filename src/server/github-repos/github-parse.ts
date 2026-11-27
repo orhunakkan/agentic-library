@@ -24,7 +24,7 @@ export interface ParsedTree {
   entries: TreeEntry[]
 }
 
-export const DESCRIPTION_MAX = 350
+const DESCRIPTION_MAX = 350
 
 const SHA = /^[0-9a-f]{40}$/
 export const isSha = (value: unknown): value is string => typeof value === 'string' && SHA.test(value)

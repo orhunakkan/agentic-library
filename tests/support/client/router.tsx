@@ -31,11 +31,16 @@ async function mountRouterAt(
 ): Promise<{ router: AnyRouter; mounted: Mounted }> {
   const root = createRootRouteWithContext<TestRouteContext>()()
   const anyPath = createRoute({ getParentRoute: () => root, path: '$', component: () => ui })
-  const router = createRouter({
-    routeTree: root.addChildren([anyPath]),
-    history: createMemoryHistory({ initialEntries: [url] }),
-    context,
-  })
+  return mountRouter(root.addChildren([anyPath]), url, context)
+}
+
+/** Loads a router for `routeTree` on memory history at `url`, then puts it on the page. */
+async function mountRouter(
+  routeTree: AnyRoute,
+  url: string,
+  context: TestRouteContext,
+): Promise<{ router: AnyRouter; mounted: Mounted }> {
+  const router = createRouter({ routeTree, history: createMemoryHistory({ initialEntries: [url] }), context })
   await router.load()
   return { router, mounted: mount(<RouterProvider router={router} />) }
 }
@@ -71,12 +76,5 @@ export async function mountRoute(route: AnyRoute, path: string, nav: TestNavData
   const root = createRootRouteWithContext<TestRouteContext>()({ loader: () => nav })
   /** The generated tree attaches each file route this way; its types only fit inside that tree. */
   const attached = route.update({ id: path, path, getParentRoute: () => root } as never)
-  const router = createRouter({
-    routeTree: root.addChildren([attached]),
-    history: createMemoryHistory({ initialEntries: [path] }),
-    context: {},
-  })
-  await router.load()
-  mount(<RouterProvider router={router} />)
-  return router
+  return (await mountRouter(root.addChildren([attached]), path, {})).router
 }

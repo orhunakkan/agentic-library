@@ -96,10 +96,10 @@ export const handleAudioChunk = (request: Request, id: string, number: string, o
         if (!isUuid(id) || fileNumber === null || !root) return notFound()
         const offset = new URL(request.url).searchParams.get('offset') ?? ''
         if (!/^\d{1,10}$/.test(offset)) return fail(400, 'invalid')
-        return { n: fileNumber, root, offset: Number(offset) }
+        return { fileNumber, root, offset: Number(offset) }
       },
     },
-    async ({ session, db, pre: { n: fileNumber, root, offset }, input: body }) => {
+    async ({ session, db, pre: { fileNumber, root, offset }, input: body }) => {
       const { userId } = session
       const file = await uploadingFile(db, userId, id, fileNumber)
       if (!file) {

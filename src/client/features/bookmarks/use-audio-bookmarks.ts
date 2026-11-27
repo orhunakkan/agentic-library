@@ -6,7 +6,7 @@ import { getAudioBookmarks } from '~/server/account-functions'
 import { AudioBookmarkRegistry, type NewAudioBookmark } from './audio-bookmark-list'
 import * as client from './audio-bookmarks-client'
 
-export type { AudioBookmarkItem, AudioBookmarksState, NewAudioBookmark } from './audio-bookmark-list'
+export type { AudioBookmarkItem } from './audio-bookmark-list'
 
 let toastNow: (text: string) => void = () => {}
 

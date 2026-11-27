@@ -71,9 +71,10 @@ function translateProblem(request: Request, body: Body): string | null {
 }
 
 function seenLine(body: Body): string {
-  const first = String(inputOf(body)[0]?.content ?? '')
+  const input = inputOf(body)
+  const first = String(input[0]?.content ?? '')
   const pages = first.match(/(?:^|\n)(Chapter \d+: [^\n]+, page \d+|Page \d+)\n\n/g)?.length ?? 0
-  return `GPT can see ${pages} pages of the book${sentBesidesTheBook(inputOf(body).at(-1)?.content)}`
+  return `GPT can see ${pages} pages of the book${sentBesidesTheBook(input.at(-1)?.content)}`
 }
 
 const usage = (output: number) => ({

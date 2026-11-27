@@ -39,21 +39,15 @@ export const handleCreate = (request: Request) =>
       if (!page || input.end > page.text.length) return fail(400, 'invalid')
       const context = contextAt(page.text, input.start, input.end)
       if (context.exact !== input.text) return fail(409, 'stale')
-      const result = await createHighlight(
-        db,
-        userId,
-        book.ref,
-        {
-          chapter: page.chapterSlug,
-          page: page.page,
-          start: input.start,
-          end: input.end,
-          ...context,
-          color: input.color,
-          note: input.note,
-        },
-        { perBook: MAX_HIGHLIGHTS_PER_BOOK, perUser: MAX_HIGHLIGHTS_PER_USER },
-      )
+      const result = await createHighlight(db, userId, book.ref, {
+        chapter: page.chapterSlug,
+        page: page.page,
+        start: input.start,
+        end: input.end,
+        ...context,
+        color: input.color,
+        note: input.note,
+      })
       if (result === 'missing') return fail(404, 'not_found')
       if (result === 'limit-book') return fail(409, 'quota', { scope: 'book', max: MAX_HIGHLIGHTS_PER_BOOK })
       if (result === 'limit-user') return fail(409, 'quota', { scope: 'user', max: MAX_HIGHLIGHTS_PER_USER })

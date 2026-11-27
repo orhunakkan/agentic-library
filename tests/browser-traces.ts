@@ -44,7 +44,8 @@ export default function keepFailedTracesOnly(): () => void {
   mkdirSync(TRACES_DIR, { recursive: true })
   return () => {
     const names = readdirSync(TRACES_DIR)
-    for (const name of leftovers(names)) rmSync(join(TRACES_DIR, name), { recursive: true, force: true })
-    if (leftovers(names).length === names.length) rmdirSync(TRACES_DIR)
+    const unwanted = leftovers(names)
+    for (const name of unwanted) rmSync(join(TRACES_DIR, name), { recursive: true, force: true })
+    if (unwanted.length === names.length) rmdirSync(TRACES_DIR)
   }
 }

@@ -9,9 +9,7 @@ import { pdfMetadata } from '~/shared/import/pdf/metadata'
 import type { Box, PdfLayoutReport, PdfOverrides, PdfSource, PdfStyle, Region } from '~/shared/import/pdf/types'
 import { type Canvas, canvasBlob, canvasOf } from './picture-draw'
 
-export type PdfProgress =
-  | { stage: 'reading'; done: number; total: number }
-  | { stage: 'drawing'; done: number; total: number }
+export type PdfProgress = { stage: 'reading' | 'drawing'; done: number; total: number }
 
 export interface PdfRead {
   draft: DraftBook

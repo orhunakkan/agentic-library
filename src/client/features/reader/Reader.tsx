@@ -83,11 +83,12 @@ export function Reader({
   const [askQuote, setAskQuote] = useState<string | null>(null)
   const readingArea = useRef<HTMLDivElement>(null)
   const panelOpen = desktop && prefs.askOpen
+  const sheetOpen = askSheetOpen && !desktop
   const askVoice = useAskVoice({
     ask,
     lang: view.book.language,
     privateBook: isPrivateBookSlug(view.book.slug),
-    active: panelOpen || (askSheetOpen && !desktop),
+    active: panelOpen || sheetOpen,
     send: (text) => {
       void ask.ask(text, askQuote, { spoken: true })
       setAskQuote(null)
@@ -679,13 +680,13 @@ export function Reader({
         }}
       />
       <FootnoteSheet tone={view.book.tone} footnote={footnote} onClose={() => setFootnoteAt(null)} />
-      <AskSheet open={askSheetOpen && !desktop && !offline} onOpenChange={setAskSheetOpen} tone={view.book.tone}>
+      <AskSheet open={sheetOpen && !offline} onOpenChange={setAskSheetOpen} tone={view.book.tone}>
         <AskPanel
           view={view}
           signedIn={signedIn}
           ask={ask}
           voice={askVoice}
-          active={askSheetOpen && !desktop}
+          active={sheetOpen}
           heading={<Drawer.Title className="font-display text-[16px] font-semibold">Ask this book</Drawer.Title>}
           onClose={() => setAskSheetOpen(false)}
           onNavigate={() => setAskSheetOpen(false)}

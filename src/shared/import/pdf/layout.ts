@@ -106,17 +106,16 @@ function pageFrames(
   return (line) => frames[side(line)] as Frame
 }
 
-function lineRuns(line: PdfLine, code = false): TextRun[] {
+function lineRuns(line: PdfLine): TextRun[] {
   const baseFont = line.runs.find((r) => r.style === line.style)?.font
   return line.runs.map((r) => {
-    const style = runStyle(r, baseFont, code)
+    const style = runStyle(r, baseFont)
     return style ? { text: r.text, style } : { text: r.text }
   })
 }
 
-function runStyle(run: LineRun, baseFont: string | undefined, code: boolean): InlineStyle | undefined {
+function runStyle(run: LineRun, baseFont: string | undefined): InlineStyle | undefined {
   if (run.sup) return 'sup'
-  if (code) return undefined
   if (run.mono && run.font !== baseFont) return 'code'
   if (run.font === baseFont) return undefined
   if (run.bold) return 'strong'
