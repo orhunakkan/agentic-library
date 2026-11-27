@@ -10,12 +10,13 @@ import {
   REPOS_CACHE,
   type RepoCopy,
   type RepoCopySummary,
+  repoCheckKey,
   repoCopyUrl,
   repoFileUrl,
   repoKeyOf,
   summaryOf,
 } from '~/shared/offline/repo'
-import { afterRemoval, type OfflineEnv, offlineEnv } from './store'
+import { afterRemoval, checkedLately, forgetChecked, type OfflineEnv, offlineEnv, stampChecked } from './store'
 
 async function reposCache(env: OfflineEnv): Promise<Cache | null> {
   if (!env.caches || !(await env.caches.has(REPOS_CACHE))) return null
@@ -133,12 +134,17 @@ export async function saveRepoCopy(
     throw error
   }
   await removeKeys(cache, id, (key) => key.kind === 'file' && key.commit !== commit)
+  stampChecked([repoCheckKey(id)], env)
   return saved
 }
+
+/** Whether copy `id` may open: the server confirmed it belongs to the signed-in account within the check window. */
+export const mayOpenRepo = (id: string, env: OfflineEnv = offlineEnv()) => checkedLately(repoCheckKey(id), env)
 
 export async function removeRepoCopy(id: string, env: OfflineEnv = offlineEnv()): Promise<void> {
   const cache = await reposCache(env)
   if (cache) await removeKeys(cache, id, () => true)
+  forgetChecked([repoCheckKey(id)], env)
   await afterRemoval(env)
 }
 

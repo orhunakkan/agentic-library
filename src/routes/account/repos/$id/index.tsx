@@ -1,6 +1,9 @@
 import { createFileRoute, ErrorComponent, type ErrorComponentProps, notFound, redirect } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { NotFound } from '~/client/components/NotFound'
 import { RepoOffline, RepoUnavailable, RepoViewer } from '~/client/features/github-repos/RepoViewer'
 import { isNetworkFailure } from '~/client/features/offline/network'
+import { forgetGoneRepoCopy } from '~/client/features/offline/reconcile'
 import { isRepoOfflineMissing, repoViewFromCopy } from '~/client/features/offline/repo-reader'
 import { getRepoView } from '~/server/account-functions'
 import { handleRepoAction } from '~/server/github-repos/actions'
@@ -44,6 +47,7 @@ export const Route = createFileRoute('/account/repos/$id/')({
   server: { handlers: { POST: ({ request, params }) => handleRepoAction(request, params.id) } },
   component: RepoScreen,
   errorComponent: RepoError,
+  notFoundComponent: RepoNotFound,
 })
 
 function RepoScreen() {
@@ -56,4 +60,13 @@ function RepoScreen() {
 function RepoError(props: ErrorComponentProps) {
   if (!isRepoOfflineMissing(props.error)) return <ErrorComponent {...props} />
   return <RepoOffline />
+}
+
+/** The server says this account has no such repository, so a copy of it on this device goes too. */
+function RepoNotFound() {
+  const { id } = Route.useParams()
+  useEffect(() => {
+    void forgetGoneRepoCopy(id)
+  }, [id])
+  return <NotFound />
 }

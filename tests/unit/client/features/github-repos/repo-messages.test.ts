@@ -9,6 +9,7 @@ import {
   linesText,
   noRoomText,
   noticeText,
+  olderDownloadText,
   REPO_TEXT,
   type RepoProblem,
   refLabel,
@@ -146,5 +147,8 @@ describe('the download lines', () => {
     expect(noRoomText(6 * 1024 * 1024)).toBe('There isn’t room on this device for this repository (about 6 MB).')
     expect(downloadedText(1536 * 1024)).toBe('Downloaded · 1.5 MB')
     expect(downloadingLabel({ owner: 'folio-test', name: 'sample' })).toBe('Downloading folio-test/sample')
+    expect(olderDownloadText('a'.repeat(40))).toBe(
+      'The download is of an older version (aaaaaaa). It still opens offline until you update it.',
+    )
   })
 })

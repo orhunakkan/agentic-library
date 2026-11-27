@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
-import { saveRepoCopy } from '~/client/features/offline/repo-store'
+import { readRepoCopy, saveRepoCopy } from '~/client/features/offline/repo-store'
 import { APP_CACHE_PREFIX, BOOKS_CACHE } from '~/client/features/offline/store'
 import { Route } from '~/routes/account/repos/$id/index'
+import { Route as ReposRoute } from '~/routes/account/repos/index'
 import type { RepoFile } from '~/shared/github-repos/contract'
 import type { RepoOfflineFolder } from '~/shared/github-repos/offline'
 import { REPOS_CACHE } from '~/shared/offline/repo'
@@ -14,8 +15,9 @@ import { mountRoute } from '../../../../support/client/router'
  * copy kept for real in Chromium's Cache Storage. Opening a folder in the tree must never ask the server.
  */
 const server = vi.hoisted(() => ({
-  getRepoView: vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))),
+  getRepoView: vi.fn(async (): Promise<unknown> => Promise.reject(new TypeError('Failed to fetch'))),
   getRepoFolder: vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))),
+  getRepos: vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))),
 }))
 vi.mock('~/server/account-functions', () => server)
 /** The route file also serves the page's POST; that handler is server code, which never runs in the browser. */
@@ -83,6 +85,7 @@ async function keepCopy() {
 
 beforeEach(async () => {
   server.getRepoFolder.mockClear()
+  server.getRepoView.mockImplementation(async () => Promise.reject(new TypeError('Failed to fetch')))
   for (const name of await caches.keys())
     if (name === REPOS_CACHE || name === BOOKS_CACHE || name.startsWith(APP_CACHE_PREFIX)) await caches.delete(name)
 })
@@ -160,5 +163,47 @@ describe('the repository page offline', () => {
     await expect.element(title).toHaveAccessibleName('You’re offline')
     await expect.element(page.getByText('This repository isn’t downloaded on this device.')).toBeVisible()
     await expect.element(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+  })
+})
+
+describe('the repositories list offline', () => {
+  const openList = () =>
+    mountRoute(ReposRoute, '/account/repos', { sourceUrl: null }, { context: { viewer: null, offline: true } })
+
+  it('lists the downloaded copies, with an offline note and no add or remove controls', async () => {
+    await keepCopy()
+    await openList()
+    await expect
+      .element(page.getByRole('status'))
+      .toHaveTextContent('You’re offline. These repositories are downloaded on this device.')
+    await expect.element(page.getByRole('link', { name: 'folio-test/sample' })).toBeVisible()
+    expect(page.getByRole('textbox', { name: 'Repository address' }).query()).toBeNull()
+    expect(page.getByRole('button', { name: 'Remove' }).query()).toBeNull()
+    expect(page.getByRole('button', { name: 'Refresh' }).query()).toBeNull()
+  })
+
+  it('says when no repository is downloaded', async () => {
+    await openList()
+    /** The empty line is plain text, with no role of its own. */
+    await expect
+      .element(page.getByTestId('repos-empty'))
+      .toHaveTextContent('No repository is downloaded on this device.')
+  })
+})
+
+describe('the repository page online', () => {
+  it('deletes this device’s copy when the server says the account has no such repository', async () => {
+    await keepCopy()
+    server.getRepoView.mockImplementation(async () => ({ state: 'not_found' }))
+    await mountRoute(
+      Route,
+      '/account/repos/$id',
+      { sourceUrl: null },
+      {
+        url: `/account/repos/${REPO_ID}`,
+        context: { viewer: { username: 'ada' } },
+      },
+    )
+    await expect.poll(() => readRepoCopy(REPO_ID)).toBeNull()
   })
 })

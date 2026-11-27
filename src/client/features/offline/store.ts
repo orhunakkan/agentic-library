@@ -10,7 +10,7 @@ import {
   parseOfflineBook,
 } from '~/shared/offline/book'
 import { bookOfUrl } from '~/shared/offline/pictures'
-import { REPOS_CACHE, repoKeyOf } from '~/shared/offline/repo'
+import { REPO_CHECK_PREFIX, REPOS_CACHE, repoKeyOf } from '~/shared/offline/repo'
 import { decodeSummary, encodeSummary, type OfflineSummary, SUMMARY_HEADER } from '~/shared/offline/summary'
 
 export const BOOKS_CACHE = 'folio-books-v1'
@@ -190,6 +190,7 @@ export async function removeDownload(slug: string, env: OfflineEnv = offlineEnv(
   await afterRemoval(env)
 }
 
+/** Deletes every download tied to an account: private books, and every repository copy, which always is. */
 export async function forgetPrivateDownloads(env: OfflineEnv = offlineEnv()): Promise<void> {
   const cache = await booksCache(env)
   const slugs = new Set<string>()
@@ -202,7 +203,11 @@ export async function forgetPrivateDownloads(env: OfflineEnv = offlineEnv()): Pr
       }
     }
   }
-  forgetChecked([...slugs, ...Object.keys(readChecked(env.storage)).filter(isPrivateBookSlug)], env)
+  await env.caches?.delete(REPOS_CACHE)
+  const stale = Object.keys(readChecked(env.storage)).filter(
+    (key) => key.startsWith(REPO_CHECK_PREFIX) || isPrivateBookSlug(key),
+  )
+  forgetChecked([...slugs, ...stale], env)
   await afterRemoval(env)
 }
 
@@ -242,15 +247,19 @@ export function stampChecked(slugs: readonly string[], env: OfflineEnv = offline
   writeChecked(env.storage, checked)
 }
 
-function forgetChecked(slugs: readonly string[], env: OfflineEnv) {
+export function forgetChecked(slugs: readonly string[], env: OfflineEnv = offlineEnv()) {
   const checked = readChecked(env.storage)
   if (!slugs.some((slug) => slug in checked)) return
   for (const slug of slugs) delete checked[slug]
   writeChecked(env.storage, checked)
 }
 
-export function mayOpen(slug: string, env: OfflineEnv = offlineEnv()): boolean {
-  if (!isPrivateBookSlug(slug)) return true
-  const at = readChecked(env.storage)[slug]
+/** Whether a stamp is within the check window: a private download the server hasn't confirmed for longer won't open. */
+export function checkedLately(key: string, env: OfflineEnv = offlineEnv()): boolean {
+  const at = readChecked(env.storage)[key]
   return at !== undefined && env.now() - at <= CHECK_WINDOW_MS
+}
+
+export function mayOpen(slug: string, env: OfflineEnv = offlineEnv()): boolean {
+  return !isPrivateBookSlug(slug) || checkedLately(slug, env)
 }

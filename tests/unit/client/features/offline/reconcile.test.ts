@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { forgetGoneCopy, forgetUnlistedCopies, reconcileDownloads } from '~/client/features/offline/reconcile'
+import {
+  forgetGoneCopy,
+  forgetGoneRepoCopy,
+  forgetUnlistedCopies,
+  forgetUnlistedRepoCopies,
+  reconcileDownloads,
+} from '~/client/features/offline/reconcile'
 import { readRepoCopy, saveRepoCopy } from '~/client/features/offline/repo-store'
 import { type OfflineEnv, readChecked, readCopy, saveBook } from '~/client/features/offline/store'
-import { REPOS_CACHE, repoFileUrl } from '~/shared/offline/repo'
+import { REPOS_CACHE, repoCheckKey, repoFileUrl } from '~/shared/offline/repo'
 import { FakeCacheStorage, memoryStorage } from '../../../../fixtures/cache-storage'
 import { catalogueCopy, fileServer, PRIVATE_ID, PRIVATE_SLUG, privateCopy } from '../../../../fixtures/offline-books'
 import {
@@ -67,6 +73,53 @@ describe('reconcileDownloads', () => {
     await reconcileDownloads({ username: 'ada' }, env, deps())
     expect(repos.paths().some((p) => p.includes(NEW_COMMIT))).toBe(false)
     expect((await readRepoCopy(REPO_ID, env))?.commit).toBe(OLD_COMMIT)
+  })
+
+  describe('repository copies', () => {
+    const keep = async (account: string, id = REPO_ID) => {
+      async function* files() {
+        yield REPO_FILES.map((p) => repoFile(p))
+      }
+      const repo = repoView({ id })
+      await saveRepoCopy({ id, account, repo, folders: REPO_FOLDERS, files: REPO_FILES }, files(), {}, env)
+    }
+
+    it('signed out, deletes every one', async () => {
+      await keep('ada')
+      await reconcileDownloads(null, env, deps())
+      expect(await readRepoCopy(REPO_ID, env)).toBeNull()
+      expect(readChecked(env.storage)[repoCheckKey(REPO_ID)]).toBeUndefined()
+    })
+
+    it('signed in, deletes another account’s, and stamps this account’s as checked', async () => {
+      const other = '0f8fad5b-d9cb-469f-a165-70867728950e'
+      await keep('ada')
+      await keep('grace', other)
+      now = 9000
+      await reconcileDownloads({ username: 'ada' }, env, deps())
+      expect(await readRepoCopy(other, env)).toBeNull()
+      expect((await readRepoCopy(REPO_ID, env))?.account).toBe('ada')
+      expect(readChecked(env.storage)[repoCheckKey(REPO_ID)]).toBe(9000)
+      expect(readChecked(env.storage)[repoCheckKey(other)]).toBeUndefined()
+    })
+
+    it('forgetUnlistedRepoCopies keeps the ones the list shows, and forgetGoneRepoCopy deletes one', async () => {
+      const other = '0f8fad5b-d9cb-469f-a165-70867728950e'
+      await keep('ada')
+      await keep('ada', other)
+      await forgetUnlistedRepoCopies([REPO_ID], env)
+      expect(await readRepoCopy(other, env)).toBeNull()
+      expect(await readRepoCopy(REPO_ID, env)).not.toBeNull()
+      await forgetGoneRepoCopy(REPO_ID, env)
+      expect(await readRepoCopy(REPO_ID, env)).toBeNull()
+      await expect(forgetUnlistedRepoCopies([], { ...env, caches: null })).resolves.toBeUndefined()
+      await expect(forgetGoneRepoCopy(REPO_ID, { ...env, caches: null })).resolves.toBeUndefined()
+      const refusing = {
+        has: async () => Promise.reject(new DOMException('blocked', 'SecurityError')),
+      } as unknown as CacheStorage
+      await expect(forgetGoneRepoCopy(REPO_ID, { ...env, caches: refusing })).resolves.toBeUndefined()
+      await expect(forgetGoneCopy(PRIVATE_SLUG, { ...env, caches: refusing })).resolves.toBeUndefined()
+    })
   })
 
   it('swallows a failure, and does nothing without Cache Storage', async () => {

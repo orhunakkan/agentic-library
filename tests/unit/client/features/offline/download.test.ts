@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { downloadBook, hasRoom, PERSIST_ASKED_KEY, refreshCopy } from '~/client/features/offline/download'
+import {
+  askPersistOnce,
+  defaultStorageManager,
+  downloadBook,
+  hasRoom,
+  PERSIST_ASKED_KEY,
+  refreshCopy,
+} from '~/client/features/offline/download'
 import { BOOKS_CACHE, type OfflineEnv, readCopy, readNav, saveBook } from '~/client/features/offline/store'
 import { FakeCacheStorage, memoryStorage } from '../../../../fixtures/cache-storage'
 import { catalogueCopy, fileServer } from '../../../../fixtures/offline-books'
@@ -99,6 +106,30 @@ describe('downloadBook', () => {
     expect(result).toEqual({ result: 'cancelled' })
     expect(await readCopy('essays', env)).toBeNull()
     expect(await storage.keys()).toEqual([])
+  })
+})
+
+/** Cache Storage that refuses every call, as when the browser has blocked it. */
+const refusing = {
+  has: async () => Promise.reject(new DOMException('blocked', 'SecurityError')),
+  open: async () => Promise.reject(new DOMException('blocked', 'SecurityError')),
+  keys: async () => Promise.reject(new DOMException('blocked', 'SecurityError')),
+  delete: async () => Promise.reject(new DOMException('blocked', 'SecurityError')),
+} as unknown as CacheStorage
+
+describe('askPersistOnce and defaultStorageManager', () => {
+  it('shrugs off a refused persist, and uses the browser’s storage manager when there is one', async () => {
+    const manager = { estimate: async () => ({}), persist: vi.fn(async () => Promise.reject(new Error('no'))) }
+    await expect(askPersistOnce(env, manager)).resolves.toBeUndefined()
+    expect(manager.persist).toHaveBeenCalledOnce()
+    expect(defaultStorageManager()).toBe(navigator.storage ?? null)
+  })
+
+  it('a failed download still answers failed when the clean-up fails too', async () => {
+    const fetcher = server(() => new Response('Not found', { status: 404 }))
+    expect(await downloadBook('essays', { fetcher, storageManager: null }, { ...env, caches: refusing })).toEqual({
+      result: 'failed',
+    })
   })
 })
 

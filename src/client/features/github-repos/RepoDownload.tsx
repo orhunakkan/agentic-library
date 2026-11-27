@@ -10,11 +10,14 @@ import {
   DOWNLOAD_REMOVED_TOAST,
   DOWNLOAD_SIGN_OUT_NOTE,
   DOWNLOAD_TEXT,
+  DOWNLOAD_UPDATED_TOAST,
   DOWNLOADED_TOAST,
   downloadedText,
   downloadingLabel,
   noRoomText,
+  olderDownloadText,
   tooLargeText,
+  UPDATE_DOWNLOAD_TEXT,
 } from './repo-messages'
 
 const SECONDARY =
@@ -39,7 +42,10 @@ function Problem({ problem }: { problem: RepoDownloadProblem | null }) {
   )
 }
 
-/** Downloads a saved repository for offline browsing, shows the download's progress, and removes it. */
+/**
+ * Downloads a saved repository for offline browsing, shows the download's progress, and removes it. When the
+ * repository has moved on since, it says the copy is older and offers to update it, by hand: a repository can be large.
+ */
 export function RepoDownload({ repo }: { repo: RepoView }) {
   const nav = useLoaderData({ from: '__root__' })
   const { state, download, cancel, remove } = useRepoDownload(repo.id, nav)
@@ -60,11 +66,12 @@ export function RepoDownload({ repo }: { repo: RepoView }) {
 
   if (state.kind === 'unavailable') return null
 
-  const start = async () => {
+  /** Downloads the copy, or updates the one kept here, which stays until the new one is whole. */
+  const start = async (update: boolean) => {
     focusNext.current = 'cancel'
     const outcome = await download()
-    focusNext.current = outcome?.result === 'ok' ? 'remove' : 'download'
-    if (outcome?.result === 'ok') toast(DOWNLOADED_TOAST)
+    focusNext.current = outcome?.result === 'ok' || update ? 'remove' : 'download'
+    if (outcome?.result === 'ok') toast(update ? DOWNLOAD_UPDATED_TOAST : DOWNLOADED_TOAST)
   }
 
   if (state.kind === 'idle')
@@ -73,7 +80,7 @@ export function RepoDownload({ repo }: { repo: RepoView }) {
         <button
           ref={downloadRef}
           type="button"
-          onClick={() => void start()}
+          onClick={() => void start(false)}
           className={SECONDARY}
           data-testid="repo-download-offline"
         >
@@ -108,8 +115,15 @@ export function RepoDownload({ repo }: { repo: RepoView }) {
       </div>
     )
 
+  const older = state.commit !== repo.commit
   return (
     <div className="flex basis-full flex-wrap items-center gap-x-4 gap-y-2">
+      {older && (
+        <button type="button" onClick={() => void start(true)} className={SECONDARY} data-testid="repo-download-update">
+          <ArrowDownToLine className="size-4" aria-hidden />
+          {UPDATE_DOWNLOAD_TEXT}
+        </button>
+      )}
       <span
         className="inline-flex items-center gap-2 text-[15px] font-semibold text-ink"
         data-testid="repo-download-done"
@@ -130,6 +144,11 @@ export function RepoDownload({ repo }: { repo: RepoView }) {
       >
         Remove download
       </button>
+      {older && (
+        <p className="basis-full text-[14px] text-body" data-testid="repo-download-older">
+          {olderDownloadText(state.commit)}
+        </p>
+      )}
       <p className="basis-full text-[14px] text-muted" data-testid="repo-download-note">
         {DOWNLOAD_SIGN_OUT_NOTE}
       </p>

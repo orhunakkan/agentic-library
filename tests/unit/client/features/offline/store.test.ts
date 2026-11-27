@@ -23,7 +23,7 @@ import {
 } from '~/client/features/offline/store'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { OFFLINE_NAV_URL } from '~/shared/offline/book'
-import { REPOS_CACHE, repoCopyUrl } from '~/shared/offline/repo'
+import { REPOS_CACHE, repoCheckKey, repoCopyUrl } from '~/shared/offline/repo'
 import { FakeCacheStorage, memoryStorage } from '../../../../fixtures/cache-storage'
 import {
   CATALOGUE_PICTURE,
@@ -193,6 +193,17 @@ describe('forgetPrivateDownloads', () => {
     await forgetPrivateDownloads(env)
     expect(books()?.paths()).toEqual([CATALOGUE_PICTURE, '/covers/essays.svg', '/offline/essays.json'].sort())
     expect(env.storage?.getItem(CHECKED_KEY)).toBeNull()
+  })
+
+  it('removes every repository copy, which always belongs to an account, and its check stamp', async () => {
+    await saveBook(catalogueCopy(), {}, env)
+    const repos = await storage.open(REPOS_CACHE)
+    await repos.put(repoCopyUrl(REPO_ID), Response.json({}))
+    stampChecked([repoCheckKey(REPO_ID)], env)
+    await forgetPrivateDownloads(env)
+    expect(await storage.has(REPOS_CACHE)).toBe(false)
+    expect(readChecked(env.storage)).toEqual({})
+    expect(await readCopy('essays', env)).not.toBeNull()
   })
 
   it('does nothing harmful when nothing is downloaded', async () => {

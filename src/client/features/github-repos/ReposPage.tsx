@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppLink } from '~/client/components/AppLink'
 import { AccountPage, Button, Notice, TextField } from '~/client/features/account/ui'
 import { Modal } from '~/client/features/admin/ConfirmDialog'
+import { forgetUnlistedRepoCopies } from '~/client/features/offline/reconcile'
 import type { ReposState, RepoView } from '~/shared/github-repos/contract'
 import { parseRepoUrl } from '~/shared/github-repos/github-url'
 import {
@@ -10,6 +11,8 @@ import {
   countText,
   EMPTY_LIST_TEXT,
   GONE_TEXT,
+  OFFLINE_EMPTY_LIST_TEXT,
+  OFFLINE_LIST_TEXT,
   type RepoProblem,
   refLabel,
   refName,
@@ -146,11 +149,13 @@ function AddForm({ onAdd }: { onAdd: ReturnType<typeof useRepos>['add'] }) {
 function RepoCard({
   repo,
   path,
+  offline,
   onRefresh,
   onRemove,
 }: {
   repo: RepoView
   path: string | undefined
+  offline: boolean
   onRefresh: ReturnType<typeof useRepos>['refresh']
   onRemove: (repo: RepoView) => void
 }) {
@@ -201,21 +206,23 @@ function RepoCard({
           {repoProblemText(error.problem, error.retryAt)}
         </Notice>
       )}
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={refreshing}
-          aria-busy={refreshing || undefined}
-          onClick={() => void refresh()}
-          data-testid="repo-refresh"
-        >
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </Button>
-        <Button type="button" variant="danger" onClick={() => onRemove(repo)} data-testid="repo-remove">
-          Remove
-        </Button>
-      </div>
+      {!offline && (
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={refreshing}
+            aria-busy={refreshing || undefined}
+            onClick={() => void refresh()}
+            data-testid="repo-refresh"
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </Button>
+          <Button type="button" variant="danger" onClick={() => onRemove(repo)} data-testid="repo-remove">
+            Remove
+          </Button>
+        </div>
+      )}
     </li>
   )
 }
@@ -281,23 +288,42 @@ function RemoveDialog({
   )
 }
 
-function ReposList({ initial }: { initial: readonly RepoView[] }) {
+function ReposList({ initial, offline }: { initial: readonly RepoView[]; offline: boolean }) {
   const { repos, paths, add, refresh, remove } = useRepos(initial)
   const [removing, setRemoving] = useState<RepoView | null>(null)
+  const listed = repos.map((r) => r.id).join(' ')
+  useEffect(() => {
+    if (!offline) void forgetUnlistedRepoCopies(listed ? listed.split(' ') : [])
+  }, [listed, offline])
   return (
     <>
-      <AddForm onAdd={add} />
-      <p className="mt-10 text-[14px] font-medium text-muted" data-testid="repos-count">
-        {countText(repos.length)}
-      </p>
+      {offline ? (
+        <Notice kind="warning" data-testid="repos-offline">
+          {OFFLINE_LIST_TEXT}
+        </Notice>
+      ) : (
+        <>
+          <AddForm onAdd={add} />
+          <p className="mt-10 text-[14px] font-medium text-muted" data-testid="repos-count">
+            {countText(repos.length)}
+          </p>
+        </>
+      )}
       {repos.length === 0 ? (
         <p className="mt-4 text-[15px] text-body" data-testid="repos-empty">
-          {EMPTY_LIST_TEXT}
+          {offline ? OFFLINE_EMPTY_LIST_TEXT : EMPTY_LIST_TEXT}
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-4">
           {repos.map((repo) => (
-            <RepoCard key={repo.id} repo={repo} path={paths[repo.id]} onRefresh={refresh} onRemove={setRemoving} />
+            <RepoCard
+              key={repo.id}
+              repo={repo}
+              path={paths[repo.id]}
+              offline={offline}
+              onRefresh={refresh}
+              onRemove={setRemoving}
+            />
           ))}
         </ul>
       )}
@@ -306,11 +332,15 @@ function ReposList({ initial }: { initial: readonly RepoView[] }) {
   )
 }
 
-export function ReposPage({ state }: { state: ReposState }) {
+export function ReposPage({ state, offline = false }: { state: ReposState; offline?: boolean }) {
   return (
     <AccountPage eyebrow="Account" title="Repositories" titleTestId="repos-title" lead={INTRO}>
       {state.state === 'ready' ? (
-        <ReposList key={state.repos.map((r) => `${r.id}@${r.checkedAt}`).join()} initial={state.repos} />
+        <ReposList
+          key={state.repos.map((r) => `${r.id}@${r.checkedAt}`).join()}
+          initial={state.repos}
+          offline={offline}
+        />
       ) : (
         <Notice kind="error" data-testid="repos-error">
           {repoProblemText(state.state === 'signed_out' ? 'signed_out' : 'failed')}

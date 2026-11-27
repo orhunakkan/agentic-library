@@ -266,6 +266,21 @@ describe('downloadRepo', () => {
   })
 })
 
+describe('a failed download whose clean-up fails too', () => {
+  it('still answers failed', async () => {
+    const { fetcher } = server({ plan: () => new Response('Not found', { status: 404 }) })
+    const refusing = {
+      has: async () => Promise.reject(new DOMException('blocked', 'SecurityError')),
+    } as unknown as CacheStorage
+    const result = await downloadRepo(
+      REPO_ID,
+      { account: 'ada', fetcher, storageManager: null, wait },
+      { ...env, caches: refusing },
+    )
+    expect(result).toEqual({ result: 'failed' })
+  })
+})
+
 describe('problemOf', () => {
   it('says why a download saved nothing, and nothing for one that did or was cancelled', () => {
     const tooLarge = { files: null, bytes: null, maxFiles: MAX_OFFLINE_FILES, maxBytes: MAX_OFFLINE_BYTES }

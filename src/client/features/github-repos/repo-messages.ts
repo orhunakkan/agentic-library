@@ -122,3 +122,10 @@ export const OFFLINE_CHIP_TEXT = 'Offline'
 export const PICTURES_OFFLINE_TEXT = 'Pictures show when you’re back online'
 export const OFFLINE_TITLE = 'You’re offline'
 export const OFFLINE_MISSING_TEXT = 'This repository isn’t downloaded on this device.'
+export const OFFLINE_LIST_TEXT = 'You’re offline. These repositories are downloaded on this device.'
+export const OFFLINE_EMPTY_LIST_TEXT = 'No repository is downloaded on this device.'
+
+export const UPDATE_DOWNLOAD_TEXT = 'Update download'
+export const DOWNLOAD_UPDATED_TOAST = 'Download updated.'
+export const olderDownloadText = (commit: string) =>
+  `The download is of an older version (${shortSha(commit)}). It still opens offline until you update it.`

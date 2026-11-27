@@ -125,6 +125,11 @@
         <p>These open without a connection.</p>
         <ul id="downloads-list"></ul>
       </section>
+      <section id="repos" aria-labelledby="repos-heading" hidden>
+        <h2 id="repos-heading">Downloaded repositories</h2>
+        <p>These open without a connection.</p>
+        <ul id="repos-list"></ul>
+      </section>
     </main>
     <script>
       ;(async () => {
@@ -172,6 +177,46 @@
             list.append(item)
           }
           document.getElementById('downloads').hidden = false
+        } catch {
+        }
+      })()
+      ;(async () => {
+        try {
+          if (typeof caches === 'undefined' || !(await caches.has('folio-repos-v1'))) return
+          const cache = await caches.open('folio-repos-v1')
+          let checked = {}
+          try {
+            checked = JSON.parse(localStorage.getItem('offline-checked') || 'null') || {}
+          } catch {
+          }
+          const repos = []
+          for (const request of await cache.keys()) {
+            const id = /^\/offline-repos\/([0-9a-f-]{36})\.json$/.exec(new URL(request.url).pathname)?.[1]
+            if (!id) continue
+            let summary
+            try {
+              summary = JSON.parse(decodeURIComponent((await cache.match(request)).headers.get('x-folio-repo')))
+            } catch {
+              continue
+            }
+            if (!summary || summary.id !== id || typeof summary.owner !== 'string' || typeof summary.name !== 'string')
+              continue
+            const at = checked[`repo:${id}`]
+            if (!(typeof at === 'number' && Date.now() - at <= 30 * 24 * 60 * 60 * 1000)) continue
+            repos.push(summary)
+          }
+          if (repos.length === 0) return
+          repos.sort((a, b) => b.savedAt - a.savedAt)
+          const list = document.getElementById('repos-list')
+          for (const repo of repos) {
+            const item = document.createElement('li')
+            const link = document.createElement('a')
+            link.href = `/account/repos/${repo.id}`
+            link.textContent = `${repo.owner}/${repo.name}`
+            item.append(link)
+            list.append(item)
+          }
+          document.getElementById('repos').hidden = false
         } catch {
         }
       })()

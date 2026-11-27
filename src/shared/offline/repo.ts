@@ -35,6 +35,10 @@ export interface RepoCopySummary {
 
 export const repoCopyUrl = (id: string) => `${ROOT}${id}.json`
 
+/** A copy's key in the offline-checked stamps, beside the private books' slugs. */
+export const REPO_CHECK_PREFIX = 'repo:'
+export const repoCheckKey = (id: string) => `${REPO_CHECK_PREFIX}${id}`
+
 /** Each commit's files sit under a prefix of their own, so an update never writes over the copy it replaces. */
 export const repoCommitPrefix = (id: string, commit: string) => `${ROOT}${id}/${commit}/`
 

@@ -14,7 +14,15 @@ import {
   type RepoOfflineRefusal,
 } from '~/shared/github-repos/offline'
 import { REPOS_CACHE } from '~/shared/offline/repo'
-import { REPO_FILES, REPO_ID, repoFile, repoPlan, repoView } from '../../../../fixtures/offline-repos'
+import {
+  NEW_COMMIT,
+  OLD_COMMIT,
+  REPO_FILES,
+  REPO_ID,
+  repoFile,
+  repoPlan,
+  repoView,
+} from '../../../../fixtures/offline-repos'
 import { mountAt, type TestRouteContext } from '../../../../support/client/router'
 
 const SIGNED_IN: TestRouteContext = { viewer: { username: 'ada' } }
@@ -156,6 +164,41 @@ describe('RepoDownload', () => {
     await userEvent.click(downloadButton)
     await expect.element(removeButton).toBeVisible()
     expect(problem.query()).toBeNull()
+  })
+
+  it('offers to update a copy of an older version, and keeps that copy when the update fails', async () => {
+    serve()
+    await mountControl()
+    await userEvent.click(downloadButton)
+    await expect.element(removeButton).toBeVisible()
+    document.body.replaceChildren()
+
+    const newer = repoView({ commit: NEW_COMMIT })
+    const newPlan = () => answer(200, repoPlan({ repo: newer }))
+    serve({ plan: newPlan, batch: () => answer(502, { error: 'unavailable' }) })
+    await mountControl(newer)
+    const update = page.getByRole('button', { name: 'Update download' })
+    await expect.element(update).toBeVisible()
+    /** The line about the older version is plain text, with no role of its own. */
+    await expect
+      .element(page.getByTestId('repo-download-older'))
+      .toHaveTextContent('The download is of an older version (1111111). It still opens offline until you update it.')
+    await userEvent.click(update)
+    await expect
+      .element(page.getByRole('alert'))
+      .toHaveTextContent('Couldn’t download this repository. Check your connection and try again.')
+    await expect.element(update).toBeVisible()
+    await expect.element(removeButton).toHaveFocus()
+    expect((await readRepoCopy(REPO_ID))?.commit).toBe(OLD_COMMIT)
+
+    serve({ plan: newPlan, batch: (body) => answer(200, { files: body.paths.map((p) => repoFile(p, 'new')) }) })
+    await userEvent.click(update)
+    await expect.element(page.getByText('Download updated.')).toBeVisible()
+    expect(update.query()).toBeNull()
+    expect(page.getByTestId('repo-download-older').query()).toBeNull()
+    const copy = await readRepoCopy(REPO_ID)
+    expect(copy?.commit).toBe(NEW_COMMIT)
+    expect(copy && (await readRepoFile(copy, 'README.md'))).toEqual(repoFile('README.md', 'new'))
   })
 
   it('isn’t offered when no one is signed in', async () => {

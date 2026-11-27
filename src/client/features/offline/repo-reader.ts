@@ -1,6 +1,6 @@
-import type { RepoFolder, RepoTarget, RepoViewState } from '~/shared/github-repos/contract'
+import type { RepoFolder, RepoTarget, RepoView, RepoViewState } from '~/shared/github-repos/contract'
 import type { RepoCopy } from '~/shared/offline/repo'
-import { readRepoCopy, readRepoFile } from './repo-store'
+import { listRepoCopies, mayOpenRepo, readRepoCopy, readRepoFile, removeRepoCopy } from './repo-store'
 import { type OfflineEnv, offlineEnv } from './store'
 
 export class RepoOfflineMissing extends Error {
@@ -39,7 +39,8 @@ async function targetOf(copy: RepoCopy, path: string, env: OfflineEnv): Promise<
 
 /**
  * The repository page for `path`, put together from this device's copy, as the server would answer it online: every
- * folder, so the tree never asks for one, and the folder or file at `path`, or `missing` when the copy hasn't it.
+ * folder, so the tree never asks for one, and the folder or file at `path`, or `missing` when the copy hasn't it. A
+ * copy the server hasn't confirmed within the check window is deleted rather than opened.
  */
 export async function repoViewFromCopy(
   id: string,
@@ -48,6 +49,10 @@ export async function repoViewFromCopy(
 ): Promise<OfflineRepoView> {
   const copy = await readRepoCopy(id, env)
   if (!copy) throw new RepoOfflineMissing(id)
+  if (!mayOpenRepo(id, env)) {
+    await removeRepoCopy(id, env)
+    throw new RepoOfflineMissing(id)
+  }
   return {
     state: 'ready',
     repo: copy.repo,
@@ -56,4 +61,17 @@ export async function repoViewFromCopy(
     refreshed: null,
     offline: true,
   }
+}
+
+/** The repositories list offline: the copies on this device that may open, newest first. */
+export async function reposFromCopies(
+  env: OfflineEnv = offlineEnv(),
+): Promise<{ state: 'ready'; repos: RepoView[]; offline: true }> {
+  const repos: RepoView[] = []
+  for (const summary of await listRepoCopies(env)) {
+    if (!mayOpenRepo(summary.id, env)) continue
+    const copy = await readRepoCopy(summary.id, env)
+    if (copy) repos.push(copy.repo)
+  }
+  return { state: 'ready', repos, offline: true }
 }

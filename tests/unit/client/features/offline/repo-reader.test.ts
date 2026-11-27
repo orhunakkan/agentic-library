@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { isRepoOfflineMissing, RepoOfflineMissing, repoViewFromCopy } from '~/client/features/offline/repo-reader'
-import { saveRepoCopy } from '~/client/features/offline/repo-store'
-import type { OfflineEnv } from '~/client/features/offline/store'
+import {
+  isRepoOfflineMissing,
+  RepoOfflineMissing,
+  reposFromCopies,
+  repoViewFromCopy,
+} from '~/client/features/offline/repo-reader'
+import { readRepoCopy, saveRepoCopy } from '~/client/features/offline/repo-store'
+import { CHECK_WINDOW_MS, type OfflineEnv } from '~/client/features/offline/store'
 import type { RepoFile } from '~/shared/github-repos/contract'
 import { REPOS_CACHE, repoFileUrl } from '~/shared/offline/repo'
 import { FakeCacheStorage, memoryStorage } from '../../../../fixtures/cache-storage'
@@ -9,10 +14,12 @@ import { OLD_COMMIT, REPO_FILES, REPO_FOLDERS, REPO_ID, repoFile, repoView } fro
 
 let storage: FakeCacheStorage
 let env: OfflineEnv
+let now: number
 
 beforeEach(async () => {
   storage = new FakeCacheStorage()
-  env = { caches: storage.api, storage: memoryStorage(), now: () => 1000 }
+  now = 1000
+  env = { caches: storage.api, storage: memoryStorage(), now: () => now }
 })
 
 async function keepCopy(files: readonly string[] = REPO_FILES) {
@@ -85,11 +92,30 @@ describe('repoViewFromCopy', () => {
     })
   })
 
+  it('won’t open a copy unchecked for more than 30 days, and deletes it', async () => {
+    await keepCopy()
+    now += CHECK_WINDOW_MS
+    expect((await repoViewFromCopy(REPO_ID, '', env)).offline).toBe(true)
+    now += 1
+    await expect(repoViewFromCopy(REPO_ID, '', env)).rejects.toBeInstanceOf(RepoOfflineMissing)
+    expect(await readRepoCopy(REPO_ID, env)).toBeNull()
+  })
+
   it('throws RepoOfflineMissing when this device has no copy', async () => {
     const opening = repoViewFromCopy(REPO_ID, '', env)
     await expect(opening).rejects.toBeInstanceOf(RepoOfflineMissing)
     const error = await opening.catch((e: unknown) => e)
     expect(isRepoOfflineMissing(error)).toBe(true)
     expect(isRepoOfflineMissing(new Error('other'))).toBe(false)
+  })
+})
+
+describe('reposFromCopies', () => {
+  it('lists the copies that may open, newest first, as the list page’s ready state', async () => {
+    expect(await reposFromCopies(env)).toEqual({ state: 'ready', repos: [], offline: true })
+    await keepCopy()
+    expect(await reposFromCopies(env)).toEqual({ state: 'ready', repos: [repoView()], offline: true })
+    now += CHECK_WINDOW_MS + 1
+    expect(await reposFromCopies(env)).toEqual({ state: 'ready', repos: [], offline: true })
   })
 })
