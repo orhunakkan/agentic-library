@@ -20,6 +20,12 @@ describe.each([
     await expect.element(page.getByText(HERO_LINE)).toBeVisible()
     expect(page.getByRole('heading', { level: 1 }).elements()).toHaveLength(1)
   })
+
+  it('doesn’t mention Storybook', async () => {
+    await mountHome(viewer)
+    await expect.element(page.getByRole('main')).toBeVisible()
+    expect(document.body.textContent).not.toMatch(/storybook/i)
+  })
 })
 
 describe('HERO_LINE', () => {
