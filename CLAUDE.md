@@ -15,6 +15,7 @@ pnpm dev                Dev server
 pnpm check              Lint, typecheck and unit tests (run before calling a change done)
 pnpm test:integration   Integration tests (*.integration.test.ts), against Postgres
 pnpm test:browser       Component tests (*.browser.test.tsx) in headless Chromium
+pnpm test:all           Unit, integration and component tests, one after another (needs Postgres)
 pnpm lint:fix           Apply Biome fixes and formatting
 docker compose up -d --wait   Local Postgres for dev and tests
 ```

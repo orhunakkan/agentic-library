@@ -61,6 +61,7 @@ integration tests run eight files at once, each against its own `agentic_w<n>_te
 | `pnpm check` | Lint, typecheck and unit tests. Run it before you push |
 | `pnpm test:browser` | Component tests, in headless Chromium |
 | `pnpm test:integration` | Integration tests, against `agentic_test` |
+| `pnpm test:all` | Unit, integration and component tests, one after another |
 | `pnpm lint:fix` | Apply Biome’s fixes and formatting |
 | `pnpm db:migrate` | Apply the migrations in `db/migrations/` |
 | `docker compose down -v` | Stop the local Postgres and delete both databases, to start again from nothing |
