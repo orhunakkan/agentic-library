@@ -151,7 +151,10 @@ export async function downloadRepo(
 ): Promise<RepoDownloadResult> {
   const { signal, onProgress, nav, account } = options
   const manager = options.storageManager === undefined ? defaultStorageManager() : options.storageManager
-  const context: Context = { id, fetcher: options.fetcher ?? fetch, signal, wait: options.wait ?? sleep, env }
+  /** Called on its own, never as `context.fetcher(…)`: the browser's fetch throws "Illegal invocation" on any `this`. */
+  const given = options.fetcher ?? fetch
+  const fetcher: typeof fetch = (input, init) => given(input, init)
+  const context: Context = { id, fetcher, signal, wait: options.wait ?? sleep, env }
   let needed = 0
   const attempt = async (): Promise<RepoDownloadResult> => {
     let done = 0

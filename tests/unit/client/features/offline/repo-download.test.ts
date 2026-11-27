@@ -327,6 +327,17 @@ describe('pictures', () => {
     })
   })
 
+  it('calls fetch on its own, as the browser’s fetch must be, never as a method of another object', async () => {
+    const { fetcher } = server({ plan: () => Response.json(withPictures(1)) })
+    /** The browser's fetch throws "Illegal invocation" when called with any `this` but the window. */
+    function strictFetch(this: unknown, input: RequestInfo | URL, init?: RequestInit) {
+      if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation')
+      return fetcher(input, init)
+    }
+    const result = await download(strictFetch as typeof fetch)
+    expect(result).toMatchObject({ result: 'ok', copy: { pictures: ['img/p0.png', 'logo.png'] } })
+  })
+
   it('keeps none past 200 pictures, and says so in the copy', async () => {
     const { fetcher, raw } = server({ plan: () => Response.json(withPictures(200)) })
     expect(await download(fetcher)).toMatchObject({ result: 'ok', copy: { pictures: [], picturesSkipped: true } })
