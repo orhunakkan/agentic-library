@@ -40,6 +40,8 @@ const copyFor = (account: string, bytes = 4096): RepoCopy => ({
   commit: OLD_COMMIT,
   bytes,
   savedAt: 1,
+  pictures: [],
+  picturesSkipped: false,
 })
 
 /** Keeps a copy in the repositories cache the way a finished download leaves its entry. */
@@ -77,7 +79,7 @@ describe('useRepoDownload', () => {
     expect(mine.current.state).toEqual({ kind: 'unavailable' })
     await expect
       .poll(() => mine.current.state)
-      .toEqual({ kind: 'downloaded', bytes: 4096, commit: OLD_COMMIT, problem: null })
+      .toEqual({ kind: 'downloaded', bytes: 4096, commit: OLD_COMMIT, picturesSkipped: false, problem: null })
     mine.unmount()
     await keepCopy(copyFor('grace'))
     const theirs = await mountHookAt('/', useDownloadOf, { id: REPO_ID }, { context: SIGNED_IN })
@@ -119,7 +121,13 @@ describe('useRepoDownload', () => {
     await running
     await expect
       .poll(() => hook.current.state)
-      .toEqual({ kind: 'downloaded', bytes: 4096, commit: OLD_COMMIT, problem: { kind: 'no_room', bytes: 9000 } })
+      .toEqual({
+        kind: 'downloaded',
+        bytes: 4096,
+        commit: OLD_COMMIT,
+        picturesSkipped: false,
+        problem: { kind: 'no_room', bytes: 9000 },
+      })
   })
 
   it('drops an answer that arrives after it unmounts', async () => {

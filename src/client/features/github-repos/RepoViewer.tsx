@@ -155,6 +155,9 @@ function Breadcrumbs({ repo, path }: { repo: RepoView; path: string }) {
   )
 }
 
+/** Offline, the pictures the copy kept, which are the only ones that show; null online, when every picture does. */
+type Offline = { pictures: ReadonlySet<string> } | null
+
 function Rendered({
   repoId,
   markdown,
@@ -164,7 +167,7 @@ function Rendered({
   repoId: string
   markdown: RenderedMarkdown
   testId: string
-  offline: boolean
+  offline: Offline
 }) {
   const [showExternal, setShowExternal] = useState(false)
   return (
@@ -189,7 +192,7 @@ function Rendered({
           nodes={markdown.nodes}
           frontMatter={markdown.frontMatter}
           showExternal={showExternal}
-          offline={offline}
+          pictureShows={(picture) => !offline || offline.pictures.has(picture)}
         />
       </div>
     </>
@@ -213,7 +216,7 @@ const tab = (active: boolean) =>
     active ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
   )
 
-function FileBody({ repo, file, offline }: { repo: RepoView; file: RepoFile; offline: boolean }) {
+function FileBody({ repo, file, offline }: { repo: RepoView; file: RepoFile; offline: Offline }) {
   const { content } = file
   if (content.kind === 'markdown' && content.view === 'preview')
     return (
@@ -230,7 +233,8 @@ function FileBody({ repo, file, offline }: { repo: RepoView; file: RepoFile; off
         <CodeLines code={content.code} data-testid="repo-file" />
       </>
     )
-  if (content.kind === 'picture' && offline) return <FileNotice>{PICTURES_OFFLINE_TEXT}.</FileNotice>
+  if (content.kind === 'picture' && offline && !offline.pictures.has(file.path))
+    return <FileNotice>{PICTURES_OFFLINE_TEXT}.</FileNotice>
   if (content.kind === 'picture')
     return (
       <div className="flex justify-center rounded-xl border border-line bg-inset p-4" data-testid="repo-file">
@@ -257,7 +261,7 @@ function FileBody({ repo, file, offline }: { repo: RepoView; file: RepoFile; off
   return <FileNotice>{noticeText(content)}</FileNotice>
 }
 
-function FileView({ repo, file, offline }: { repo: RepoView; file: RepoFile; offline: boolean }) {
+function FileView({ repo, file, offline }: { repo: RepoView; file: RepoFile; offline: Offline }) {
   const { content } = file
   const markdown = content.kind === 'markdown'
   const info = [sizeText(file.size), file.lines !== null ? linesText(file.lines) : null].filter(Boolean).join(' · ')
@@ -310,7 +314,7 @@ function FileView({ repo, file, offline }: { repo: RepoView; file: RepoFile; off
   )
 }
 
-function FolderView({ repo, folder, offline }: { repo: RepoView; folder: RepoFolder; offline: boolean }) {
+function FolderView({ repo, folder, offline }: { repo: RepoView; folder: RepoFolder; offline: Offline }) {
   return (
     <div>
       <ul className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line bg-surface">
@@ -348,7 +352,7 @@ function FolderView({ repo, folder, offline }: { repo: RepoView; folder: RepoFol
   )
 }
 
-function Target({ data, repo, offline }: { data: Ready; repo: RepoView; offline: boolean }) {
+function Target({ data, repo, offline }: { data: Ready; repo: RepoView; offline: Offline }) {
   const { target } = data
   if (target.kind === 'folder') return <FolderView repo={repo} folder={target.folder} offline={offline} />
   if (target.kind === 'file') return <FileView repo={repo} file={target.file} offline={offline} />
@@ -385,8 +389,17 @@ function useRefresh(repoId: string, loaded: Ready['refreshed']) {
   return { refreshing, refreshed, error, refresh }
 }
 
-export function RepoViewer({ data, path, offline = false }: { data: Ready; path: string; offline?: boolean }) {
+export function RepoViewer({
+  data,
+  path,
+  offline: copy = null,
+}: {
+  data: Ready
+  path: string
+  offline?: { pictures: readonly string[] } | null
+}) {
   const repo = data.repo
+  const offline: Offline = useMemo(() => (copy ? { pictures: new Set(copy.pictures) } : null), [copy])
   const { state, toggle } = useTree(repo.id, data, path)
   const [drawer, setDrawer] = useState(false)
   const { refreshing, refreshed, error, refresh } = useRefresh(repo.id, data.refreshed)

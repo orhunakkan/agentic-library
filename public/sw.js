@@ -26,7 +26,29 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-const REPO_PAGE = /^\/account\/repos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+const REPO_PAGE = new RegExp(`^/account/repos/(${UUID})/?$`)
+const REPO_PICTURE = new RegExp(`^/account/repos/(${UUID})/raw$`)
+
+/**
+ * A picture of a downloaded repository, from the commit its copy is at: each commit's pictures sit under a prefix of
+ * their own, as `repoPictureUrl` in src/shared/offline/repo.ts names them, so the copy's entry says which to use.
+ */
+async function keptPicture(url) {
+  const id = REPO_PICTURE.exec(url.pathname)?.[1]
+  const path = url.searchParams.get('path')
+  if (!id || !path || !(await caches.has(REPOS))) return null
+  const repos = await caches.open(REPOS)
+  const entry = await repos.match(`/offline-repos/${id}.json`)
+  let commit = null
+  try {
+    commit = JSON.parse(decodeURIComponent(entry?.headers.get('x-folio-repo') ?? '')).commit
+  } catch {
+    return null
+  }
+  if (typeof commit !== 'string' || !/^[0-9a-f]{40}$/.test(commit)) return null
+  return (await repos.match(`/offline-repos/${id}/${commit}/raw/${encodeURIComponent(path)}`)) || null
+}
 
 /** The key of the download a page opens from: a book's copy, or a repository's, or null for any other page. */
 function downloadFor(url) {
@@ -76,6 +98,21 @@ self.addEventListener('fetch', (event) => {
 
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith((async () => (await caches.match(request)) || fetch(request))())
+    return
+  }
+
+  if (REPO_PICTURE.test(url.pathname)) {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(request)
+        } catch (error) {
+          const kept = await keptPicture(url)
+          if (kept) return kept
+          throw error
+        }
+      })(),
+    )
     return
   }
 

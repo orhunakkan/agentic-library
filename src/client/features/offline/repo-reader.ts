@@ -13,7 +13,8 @@ export class RepoOfflineMissing extends Error {
 export const isRepoOfflineMissing = (error: unknown): error is RepoOfflineMissing =>
   error instanceof Error && error.name === 'RepoOfflineMissing'
 
-export type OfflineRepoView = Extract<RepoViewState, { state: 'ready' }> & { offline: true }
+/** The page's ready state from a copy, with the pictures it kept, which are the only ones that show offline. */
+export type OfflineRepoView = Extract<RepoViewState, { state: 'ready' }> & { offline: true; pictures: string[] }
 
 async function folderOf(copy: RepoCopy, path: string, env: OfflineEnv): Promise<RepoFolder | null> {
   const folder = copy.folders.find((f) => f.path === path)
@@ -60,6 +61,7 @@ export async function repoViewFromCopy(
     target: await targetOf(copy, path, env),
     refreshed: null,
     offline: true,
+    pictures: copy.pictures,
   }
 }
 

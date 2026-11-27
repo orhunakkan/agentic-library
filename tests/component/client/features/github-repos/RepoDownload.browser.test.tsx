@@ -36,8 +36,8 @@ const answer = (status: number, body: RepoOfflinePlan | RepoOfflineBatch | RepoO
 let fetchSpy: MockInstance<typeof fetch>
 
 /**
- * The network: the app's files (none to fetch), the plan, and each batch rendered as the server would. A test can
- * swap the plan's answer, or hold the batches back to cancel while one is in flight.
+ * The network: the app's files (none to fetch), the plan, each batch rendered as the server would, and the pictures
+ * from the raw route. A test can swap the plan's answer, or hold the batches back to cancel while one is in flight.
  */
 function serve({
   plan = () => answer(200, repoPlan()),
@@ -47,6 +47,8 @@ function serve({
   fetchSpy.mockImplementation(async (input, init) => {
     const path = new URL(String(input), location.href).pathname
     if (path === '/app-files.json') return Response.json(MANIFEST)
+    if (path === `/account/repos/${REPO_ID}/raw`)
+      return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png' } })
     if (path !== OFFLINE_URL) throw new TypeError('Failed to fetch')
     if (init?.method !== 'POST') return plan()
     return batch(JSON.parse(String(init.body)) as RepoOfflineBatchBody)
@@ -199,6 +201,26 @@ describe('RepoDownload', () => {
     const copy = await readRepoCopy(REPO_ID)
     expect(copy?.commit).toBe(NEW_COMMIT)
     expect(copy && (await readRepoFile(copy, 'README.md'))).toEqual(repoFile('README.md', 'new'))
+  })
+
+  it('says when a download kept no pictures, past the caps', async () => {
+    const entries = Array.from({ length: 201 }, (_, i) => ({
+      name: `p${i}.png`,
+      path: `img/p${i}.png`,
+      kind: 'file' as const,
+      size: 10,
+    }))
+    serve({
+      plan: () => answer(200, repoPlan({ folders: [{ path: 'img', entries, readme: null }], files: REPO_FILES })),
+    })
+    await mountControl()
+    await userEvent.click(downloadButton)
+    /** The note is plain text, with no role of its own. */
+    await expect
+      .element(page.getByTestId('repo-download-no-pictures'))
+      .toHaveTextContent(
+        'This download has no pictures: the repository has more than 200 of them, or more than 30 MB. They show when you’re online.',
+      )
   })
 
   it('isn’t offered when no one is signed in', async () => {

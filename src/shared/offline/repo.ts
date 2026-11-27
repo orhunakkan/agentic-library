@@ -1,5 +1,11 @@
 import type { RepoFile, RepoView } from '../github-repos/contract'
 import type { RepoOfflineFolder, RepoOfflinePlan, RepoTooLarge } from '../github-repos/offline'
+import {
+  isPictureName,
+  MAX_OFFLINE_PICTURE_BYTES,
+  MAX_OFFLINE_PICTURES,
+  PICTURE_MAX_BYTES,
+} from '../github-repos/pictures'
 import { isObject } from '../lib/json-shape'
 import { isUuid } from '../uuid'
 
@@ -20,6 +26,10 @@ export interface RepoCopy {
   commit: string
   bytes: number
   savedAt: number
+  /** The pictures kept with the copy, which show offline. */
+  pictures: string[]
+  /** True when the repository had more pictures than a download keeps, so it kept none. */
+  picturesSkipped: boolean
 }
 
 /** What a list of copies shows, kept in the copy entry's header so listing never reads the folders. */
@@ -31,6 +41,7 @@ export interface RepoCopySummary {
   commit: string
   bytes: number
   savedAt: number
+  picturesSkipped: boolean
 }
 
 export const repoCopyUrl = (id: string) => `${ROOT}${id}.json`
@@ -44,6 +55,10 @@ export const repoCommitPrefix = (id: string, commit: string) => `${ROOT}${id}/${
 
 export const repoFileUrl = (id: string, commit: string, path: string) =>
   `${repoCommitPrefix(id, commit)}files/${encodeURIComponent(path)}.json`
+
+/** A picture of one commit, kept as the raw route answered it. */
+export const repoPictureUrl = (id: string, commit: string, path: string) =>
+  `${repoCommitPrefix(id, commit)}raw/${encodeURIComponent(path)}`
 
 /** What a key in the repositories cache holds: a copy entry, a file of one commit, or neither. */
 export type RepoKey = { kind: 'copy'; id: string } | { kind: 'file'; id: string; commit: string } | null
@@ -65,8 +80,8 @@ const isCount = (value: unknown): value is number =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 
 export function summaryOf(copy: RepoCopy): RepoCopySummary {
-  const { id, account, repo, commit, bytes, savedAt } = copy
-  return { id, account, owner: repo.owner, name: repo.name, commit, bytes, savedAt }
+  const { id, account, repo, commit, bytes, savedAt, picturesSkipped } = copy
+  return { id, account, owner: repo.owner, name: repo.name, commit, bytes, savedAt, picturesSkipped }
 }
 
 export const encodeRepoSummary = (summary: RepoCopySummary) => encodeURIComponent(JSON.stringify(summary))
@@ -84,7 +99,7 @@ export function decodeRepoSummary(value: string | null): RepoCopySummary | null 
   if (!isId(id) || typeof account !== 'string' || account === '') return null
   if (typeof owner !== 'string' || typeof name !== 'string') return null
   if (typeof commit !== 'string' || !COMMIT.test(commit) || !isCount(bytes) || !isCount(savedAt)) return null
-  return { id, account, owner, name, commit, bytes, savedAt }
+  return { id, account, owner, name, commit, bytes, savedAt, picturesSkipped: parsed.picturesSkipped === true }
 }
 
 const isEntry = (value: unknown) =>
@@ -108,7 +123,10 @@ export function parseRepoCopy(value: unknown): RepoCopy | null {
   if (!isObject(repo) || repo.id !== id || repo.commit !== commit) return null
   if (typeof repo.owner !== 'string' || typeof repo.name !== 'string') return null
   if (!Array.isArray(folders) || !folders.every(isFolder)) return null
-  return value as unknown as RepoCopy
+  /** A copy saved before downloads kept pictures has neither field, and keeps no pictures. */
+  const { pictures = [], picturesSkipped = false } = value
+  if (!Array.isArray(pictures) || !pictures.every((p) => typeof p === 'string')) return null
+  return { ...(value as unknown as RepoCopy), pictures, picturesSkipped: picturesSkipped === true }
 }
 
 const CONTENT_KINDS = ['markdown', 'code', 'picture', 'notice']
@@ -157,4 +175,27 @@ export function parseBatchFiles(value: unknown, paths: readonly string[]): RepoF
     files.push(file)
   }
   return files
+}
+
+/**
+ * The pictures a download keeps: each file the page shows as a picture, unless there are more than 200 of them or
+ * more than 30 MB, when it keeps none.
+ */
+export function planPictures(plan: Pick<RepoOfflinePlan, 'folders'>): {
+  paths: string[]
+  bytes: number
+  skipped: boolean
+} {
+  const paths: string[] = []
+  let bytes = 0
+  for (const folder of plan.folders)
+    for (const entry of folder.entries) {
+      const size = entry.size ?? 0
+      if (entry.kind !== 'file' || !isPictureName(entry.name) || size > PICTURE_MAX_BYTES) continue
+      paths.push(entry.path)
+      bytes += size
+    }
+  if (paths.length > MAX_OFFLINE_PICTURES || bytes > MAX_OFFLINE_PICTURE_BYTES)
+    return { paths: [], bytes: 0, skipped: true }
+  return { paths, bytes, skipped: false }
 }

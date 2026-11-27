@@ -1,3 +1,4 @@
+import { repoRawHref } from '~/client/features/github-repos/repos-client'
 import type { RepoFile } from '~/shared/github-repos/contract'
 import {
   OFFLINE_BATCH_MAX,
@@ -7,7 +8,7 @@ import {
   repoOfflineHref,
 } from '~/shared/github-repos/offline'
 import { isObject } from '~/shared/lib/json-shape'
-import { parseBatchFiles, parseOfflinePlan, parseTooLarge, type RepoCopy } from '~/shared/offline/repo'
+import { parseBatchFiles, parseOfflinePlan, parseTooLarge, planPictures, type RepoCopy } from '~/shared/offline/repo'
 import { planAppCache, refreshAppCache } from './app-cache'
 import { askPersistOnce, type DownloadOptions, defaultStorageManager, hasRoom } from './download'
 import { saveRepoCopy, sweepRepoOrphans } from './repo-store'
@@ -138,9 +139,10 @@ async function* batchesOf(context: Context, plan: RepoOfflinePlan, step: () => v
 const isQuotaError = (error: unknown) => error instanceof DOMException && error.name === 'QuotaExceededError'
 
 /**
- * Downloads saved repository `id` at its pinned commit: the plan, the app's files, then each batch in turn, saved
- * through `saveRepoCopy`, so a copy already here keeps opening until the new one is whole. When the repository moves
- * to another commit partway, it starts again once.
+ * Downloads saved repository `id` at its pinned commit: the plan, the app's files, each batch in turn, then its
+ * pictures through the raw route, saved through `saveRepoCopy`, so a copy already here keeps opening until the new one
+ * is whole. Past 200 pictures or 30 MB of them it keeps none. When the repository moves to another commit partway, it
+ * starts again once.
  */
 export async function downloadRepo(
   id: string,
@@ -160,17 +162,28 @@ export async function downloadRepo(
     }
     onProgress?.(0)
     const plan = await fetchPlan(context)
-    needed = plan.bytes * RENDER_RATIO
+    const pictures = planPictures(plan)
+    needed = plan.bytes * RENDER_RATIO + pictures.bytes
     if (!(await hasRoom(needed, manager))) return { result: 'no_room', bytes: needed }
     await askPersistOnce(env, manager)
     const appPlan = await planAppCache(env, context.fetcher)
-    total = 1 + (appPlan?.missing.length ?? 0) + Math.ceil(plan.files.length / OFFLINE_BATCH_MAX)
+    const batches = Math.ceil(plan.files.length / OFFLINE_BATCH_MAX)
+    total = 1 + (appPlan?.missing.length ?? 0) + batches + pictures.paths.length
     step()
     await refreshAppCache({ force: true, plan: appPlan, signal, onFile: step, fetcher: context.fetcher }, env)
+    const fetchPicture = (path: string) =>
+      context.fetcher(repoRawHref(id, path), { cache: 'no-store', credentials: 'same-origin', signal })
     const copy = await saveRepoCopy(
-      { id, account, repo: plan.repo, folders: plan.folders, files: plan.files },
+      {
+        id,
+        account,
+        repo: plan.repo,
+        folders: plan.folders,
+        files: plan.files,
+        picturesSkipped: pictures.skipped,
+      },
       batchesOf(context, plan, step),
-      { signal },
+      { signal, pictures: { paths: pictures.paths, fetch: fetchPicture, onPicture: step } },
       env,
     )
     if (nav !== undefined) await saveNav(nav, env)

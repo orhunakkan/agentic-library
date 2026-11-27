@@ -32,9 +32,14 @@ type Answer = (batch: Batch, asked: number) => Response | undefined
 /** The site: the app's files, the plan and each batch, rendered with `version` in their text. */
 function server({ plan = () => Response.json(repoPlan()), batch = (() => undefined) as Answer, version = 'old' } = {}) {
   const batches: Batch[] = []
+  const raw: string[] = []
   const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input instanceof Request ? input.url : input), 'http://localhost')
     if (url.pathname === '/app-files.json') return Response.json(MANIFEST)
+    if (url.pathname === `/account/repos/${REPO_ID}/raw`) {
+      raw.push(url.searchParams.get('path') ?? '')
+      return new Response(new Uint8Array(300), { headers: { 'content-type': 'image/png', 'content-length': '300' } })
+    }
     if (MANIFEST.files.includes(url.pathname)) return new Response('app file')
     if (url.pathname !== OFFLINE_URL) return new Response('Not found', { status: 404 })
     if (init?.method !== 'POST') return plan()
@@ -43,7 +48,7 @@ function server({ plan = () => Response.json(repoPlan()), batch = (() => undefin
     return batch(body, batches.length) ?? Response.json({ files: body.paths.map((p) => repoFile(p, version)) })
   }) as unknown as typeof fetch
   storage.fetcher = (url) => fetcher(url)
-  return { fetcher, batches }
+  return { fetcher, batches, raw }
 }
 
 const roomy = () => ({
@@ -91,12 +96,12 @@ describe('downloadRepo', () => {
     expect(copy && (await readRepoFile(copy, 'src/f80.ts', env))).toEqual(repoFile('src/f80.ts'))
     expect(await readNav(env)).toEqual({ stats: 1 })
     expect(await storage.has('folio-app-aaaaaaaaaaaa')).toBe(true)
-    /** The plan, two app files and three batches: six steps. */
-    expect(progress).toEqual([0, 17, 33, 50, 67, 83, 100, 100])
+    /** The plan, two app files, three batches and the logo: seven steps. */
+    expect(progress).toEqual([0, 14, 29, 43, 57, 71, 86, 100, 100])
   })
 
   it('checks for room for the rendered size, which is bigger than the source, and asks to persist once', async () => {
-    const { fetcher } = server({ plan: () => Response.json(repoPlan({ bytes: 1000 })) })
+    const { fetcher } = server({ plan: () => Response.json(repoPlan({ bytes: 1000, folders: [] })) })
     const tight = { estimate: async () => ({ quota: 1000 * RENDER_RATIO, usage: 0 }), persist: vi.fn(async () => true) }
     expect(RENDER_RATIO).toBe(6)
     expect(await download(fetcher, { storageManager: tight })).toEqual({
@@ -193,7 +198,7 @@ describe('downloadRepo', () => {
     cache.put = async () => {
       throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
     }
-    expect(await download(fetcher)).toEqual({ result: 'no_room', bytes: 360 * RENDER_RATIO })
+    expect(await download(fetcher)).toEqual({ result: 'no_room', bytes: 360 * RENDER_RATIO + 300 })
   })
 
   it('leaves no app files behind when one of them fails', async () => {
@@ -278,6 +283,54 @@ describe('a failed download whose clean-up fails too', () => {
       { ...env, caches: refusing },
     )
     expect(result).toEqual({ result: 'failed' })
+  })
+})
+
+describe('pictures', () => {
+  const pictureEntry = (i: number, size = 300) => ({
+    name: `p${i}.png`,
+    path: `img/p${i}.png`,
+    kind: 'file' as const,
+    size,
+  })
+  const withPictures = (count: number, size = 300) =>
+    repoPlan({
+      folders: [
+        ...REPO_FOLDERS,
+        { path: 'img', entries: Array.from({ length: count }, (_, i) => pictureEntry(i, size)), readme: null },
+      ],
+    })
+
+  it('keeps the logo and each picture through the raw route, and counts them in the progress and the room', async () => {
+    const { fetcher, raw } = server({ plan: () => Response.json(withPictures(2)) })
+    const progress: number[] = []
+    const result = await download(fetcher, { onProgress: (p) => progress.push(p) })
+    expect(result).toMatchObject({
+      result: 'ok',
+      copy: { pictures: ['img/p0.png', 'img/p1.png', 'logo.png'], picturesSkipped: false },
+    })
+    expect(raw.sort()).toEqual(['img/p0.png', 'img/p1.png', 'logo.png'])
+    /** The plan, two app files, one batch and three pictures: seven steps. */
+    expect(progress).toEqual([0, 14, 29, 43, 57, 71, 86, 100, 100])
+    const tight = {
+      estimate: async () => ({ quota: (360 * RENDER_RATIO + 900) * 1.2, usage: 0 }),
+      persist: async () => true,
+    }
+    expect((await download(fetcher, { storageManager: tight })).result).toBe('ok')
+    const tighter = {
+      estimate: async () => ({ quota: (360 * RENDER_RATIO + 900) * 1.2 - 1, usage: 0 }),
+      persist: async () => true,
+    }
+    expect(await download(fetcher, { storageManager: tighter })).toEqual({
+      result: 'no_room',
+      bytes: 360 * RENDER_RATIO + 900,
+    })
+  })
+
+  it('keeps none past 200 pictures, and says so in the copy', async () => {
+    const { fetcher, raw } = server({ plan: () => Response.json(withPictures(200)) })
+    expect(await download(fetcher)).toMatchObject({ result: 'ok', copy: { pictures: [], picturesSkipped: true } })
+    expect(raw).toEqual([])
   })
 })
 

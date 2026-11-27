@@ -16,6 +16,7 @@ import {
   downloadingLabel,
   noRoomText,
   olderDownloadText,
+  PICTURES_SKIPPED_TEXT,
   tooLargeText,
   UPDATE_DOWNLOAD_TEXT,
 } from './repo-messages'
@@ -147,6 +148,11 @@ export function RepoDownload({ repo }: { repo: RepoView }) {
       {older && (
         <p className="basis-full text-[14px] text-body" data-testid="repo-download-older">
           {olderDownloadText(state.commit)}
+        </p>
+      )}
+      {state.picturesSkipped && (
+        <p className="basis-full text-[14px] text-body" data-testid="repo-download-no-pictures">
+          {PICTURES_SKIPPED_TEXT}
         </p>
       )}
       <p className="basis-full text-[14px] text-muted" data-testid="repo-download-note">

@@ -33,7 +33,7 @@ export const Route = createFileRoute('/account/repos/$id/')({
     try {
       const state = await getRepoView({ data: { id: params.id, path: deps.path, view: deps.view } })
       if (state.state === 'not_found') throw notFound()
-      return { ...state, offline: false }
+      return { ...state, offline: false, pictures: [] }
     } catch (error) {
       if (typeof window === 'undefined' || !isNetworkFailure(error)) throw error
       return repoViewFromCopy(params.id, deps.path)
@@ -54,7 +54,8 @@ function RepoScreen() {
   const state = Route.useLoaderData()
   const { path = '' } = Route.useSearch()
   if (state.state !== 'ready') return <RepoUnavailable state={state} />
-  return <RepoViewer key={state.repo.id} data={state} path={path} offline={state.offline} />
+  const offline = state.offline ? { pictures: state.pictures } : null
+  return <RepoViewer key={state.repo.id} data={state} path={path} offline={offline} />
 }
 
 function RepoError(props: ErrorComponentProps) {

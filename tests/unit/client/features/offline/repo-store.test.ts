@@ -10,7 +10,7 @@ import {
 } from '~/client/features/offline/repo-store'
 import { APP_CACHE_PREFIX, hasDownloads, type OfflineEnv, saveBook } from '~/client/features/offline/store'
 import type { RepoFile } from '~/shared/github-repos/contract'
-import { REPOS_CACHE, repoCopyUrl, repoFileUrl } from '~/shared/offline/repo'
+import { REPOS_CACHE, repoCopyUrl, repoFileUrl, repoPictureUrl } from '~/shared/offline/repo'
 import { FakeCacheStorage, memoryStorage } from '../../../../fixtures/cache-storage'
 import { catalogueCopy, fileServer } from '../../../../fixtures/offline-books'
 import {
@@ -93,6 +93,7 @@ describe('saveRepoCopy', () => {
         commit: OLD_COMMIT,
         bytes: saved.bytes,
         savedAt: now,
+        picturesSkipped: false,
       },
     ])
   })
@@ -201,6 +202,57 @@ describe('saveRepoCopy', () => {
 
   it('refuses without Cache Storage', async () => {
     await expect(saveRepoCopy(newCopy(), batchesOf(), {}, { ...env, caches: null })).rejects.toThrow('not available')
+  })
+})
+
+describe('pictures', () => {
+  const picture = () => new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png' } })
+
+  it('keeps each picture under its commit, two at a time, and lists them in the copy', async () => {
+    let inFlight = 0
+    let most = 0
+    const asked: string[] = []
+    const fetchPicture = async (path: string) => {
+      asked.push(path)
+      inFlight++
+      most = Math.max(most, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      inFlight--
+      return path === 'broken.png' ? new Response('Not found', { status: 404 }) : picture()
+    }
+    const paths = ['logo.png', 'a.png', 'b.png', 'broken.png']
+    let steps = 0
+    const saved = await saveRepoCopy(
+      newCopy(),
+      batchesOf(),
+      { pictures: { paths, fetch: fetchPicture, onPicture: () => steps++ } },
+      env,
+    )
+    expect(most).toBe(2)
+    expect(asked.sort()).toEqual([...paths].sort())
+    expect(steps).toBe(4)
+    expect(saved.pictures).toEqual(['a.png', 'b.png', 'logo.png'])
+    expect(saved.picturesSkipped).toBe(false)
+    const kept = await (await storage.open(REPOS_CACHE)).match(repoPictureUrl(REPO_ID, OLD_COMMIT, 'logo.png'))
+    expect(kept?.headers.get('content-type')).toBe('image/png')
+    expect(
+      await (await storage.open(REPOS_CACHE)).match(repoPictureUrl(REPO_ID, OLD_COMMIT, 'broken.png')),
+    ).toBeUndefined()
+  })
+
+  it('fails the copy when a picture fails otherwise, keeping the old copy’s pictures', async () => {
+    await saveRepoCopy(newCopy(), batchesOf(), { pictures: { paths: ['logo.png'], fetch: async () => picture() } }, env)
+    const failing = { paths: ['logo.png'], fetch: async () => new Response('', { status: 503 }) }
+    await expect(saveRepoCopy(newCopy(NEW_COMMIT), batchesOf('new'), { pictures: failing }, env)).rejects.toThrow('503')
+    await readsInFull('old', OLD_COMMIT)
+    expect(await (await storage.open(REPOS_CACHE)).match(repoPictureUrl(REPO_ID, OLD_COMMIT, 'logo.png'))).toBeDefined()
+    expect(filesOf(NEW_COMMIT)).toEqual([])
+  })
+
+  it('records a copy saved without its pictures, past the caps', async () => {
+    const saved = await saveRepoCopy(newCopy(OLD_COMMIT, { picturesSkipped: true }), batchesOf(), {}, env)
+    expect(saved).toMatchObject({ pictures: [], picturesSkipped: true })
+    expect((await listRepoCopies(env))[0]?.picturesSkipped).toBe(true)
   })
 })
 

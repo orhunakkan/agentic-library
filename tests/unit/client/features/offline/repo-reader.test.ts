@@ -56,6 +56,7 @@ describe('repoViewFromCopy', () => {
       },
       refreshed: null,
       offline: true,
+      pictures: [],
     })
     const docs = await repoViewFromCopy(REPO_ID, 'docs', env)
     expect(docs.target).toEqual({

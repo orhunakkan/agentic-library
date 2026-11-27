@@ -73,13 +73,17 @@ const FILES = [
   repoFile('docs/deep/a.ts'),
 ]
 
-async function keepCopy() {
+/** Keeps the copy, with `pictures` saved as the raw route would answer them. */
+async function keepCopy(pictures: string[] = []) {
   async function* batches() {
     yield FILES
   }
+  const fetch = async () =>
+    new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png' } })
   await saveRepoCopy(
     { id: REPO_ID, account: 'ada', repo: repoView(), folders: FOLDERS, files: FILES.map((f) => f.path) },
     batches(),
+    { pictures: { paths: pictures, fetch } },
   )
 }
 
@@ -144,6 +148,18 @@ describe('the repository page offline', () => {
     await expect
       .element(page.getByTestId('repo-file-notice'))
       .toHaveTextContent('Pictures show when you’re back online.')
+  })
+
+  it('shows the pictures the copy kept, from the raw route the service worker answers offline', async () => {
+    await keepCopy(['logo.png'])
+    await openOffline()
+    const readme = page.getByRole('region', { name: 'README.md' })
+    const logo = readme.getByRole('img', { name: 'The logo' })
+    await expect.element(logo).toHaveAttribute('src', `/account/repos/${REPO_ID}/raw?path=logo.png`)
+    expect(readme.getByTestId('repo-offline-picture').query()).toBeNull()
+    document.body.replaceChildren()
+    await openOffline('?path=logo.png')
+    await expect.element(page.getByRole('img', { name: 'logo.png' })).toBeVisible()
   })
 
   it('says a path the copy hasn’t is missing', async () => {

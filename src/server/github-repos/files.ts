@@ -7,17 +7,18 @@ import type {
   RepoFolder,
 } from '../../shared/github-repos/contract.ts'
 import type { RenderedMarkdown } from '../../shared/github-repos/md-node.ts'
+import { isPictureName, PICTURE_MAX_BYTES } from '../../shared/github-repos/pictures.ts'
 import { MB } from '../../shared/import/limits.ts'
 import type { ParsedTree, TreeEntry } from './github-parse.ts'
 import { highlight, languageFor, withinHighlightCaps } from './highlight.ts'
 import { renderMarkdown, resolvePath } from './markdown.ts'
 
 export const VIEW_MAX_BYTES = 1 * MB
-export const PICTURE_MAX_BYTES = 5 * MB
+export { isPictureName, PICTURE_MAX_BYTES }
+
 const BINARY_SNIFF_BYTES = 8000
 const LFS_POINTER = 'version https://git-lfs.github.com/spec/v1'
 export const LINK_MODE = '120000'
-const PICTURE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp', 'ico', 'svg'])
 const README = /^readme\.(md|markdown)$/i
 
 export interface RepoTree {
@@ -92,8 +93,6 @@ const isMarkdownName = (name: string) => {
   const extension = extensionOf(name)
   return extension === 'md' || extension === 'markdown'
 }
-
-export const isPictureName = (name: string) => PICTURE_EXTENSIONS.has(extensionOf(name))
 
 export type EntryClass =
   | { kind: 'submodule' }

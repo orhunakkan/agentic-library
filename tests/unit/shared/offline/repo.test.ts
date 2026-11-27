@@ -8,11 +8,13 @@ import {
   parseRepoCopy,
   parseRepoFile,
   parseTooLarge,
+  planPictures,
   type RepoCopy,
   repoCommitPrefix,
   repoCopyUrl,
   repoFileUrl,
   repoKeyOf,
+  repoPictureUrl,
   summaryOf,
 } from '~/shared/offline/repo'
 import { OLD_COMMIT, REPO_FOLDERS, REPO_ID, repoFile, repoPlan, repoView } from '../../../fixtures/offline-repos'
@@ -26,6 +28,8 @@ const copy = (patch: Partial<RepoCopy> = {}): RepoCopy => ({
   commit: OLD_COMMIT,
   bytes: 1234,
   savedAt: 99,
+  pictures: ['logo.png'],
+  picturesSkipped: false,
   ...patch,
 })
 
@@ -36,6 +40,14 @@ describe('the keys', () => {
     expect(repoFileUrl(REPO_ID, OLD_COMMIT, 'docs/a b.md')).toBe(
       `/offline-repos/${REPO_ID}/${OLD_COMMIT}/files/docs%2Fa%20b.md.json`,
     )
+    expect(repoPictureUrl(REPO_ID, OLD_COMMIT, 'docs/a b.png')).toBe(
+      `/offline-repos/${REPO_ID}/${OLD_COMMIT}/raw/docs%2Fa%20b.png`,
+    )
+    expect(repoKeyOf(repoPictureUrl(REPO_ID, OLD_COMMIT, 'a.png'))).toEqual({
+      kind: 'file',
+      id: REPO_ID,
+      commit: OLD_COMMIT,
+    })
     expect(repoOfflineHref(REPO_ID)).toBe(`/account/repos/${REPO_ID}/offline`)
     expect(repoOfflineBatch(REPO_ID)).toEqual({ path: repoOfflineHref(REPO_ID), parse: parseOfflineBatch })
   })
@@ -63,8 +75,11 @@ describe('the summary', () => {
       commit: OLD_COMMIT,
       bytes: 1234,
       savedAt: 99,
+      picturesSkipped: false,
     })
     expect(decodeRepoSummary(encodeRepoSummary(summary))).toEqual(summary)
+    const { picturesSkipped: _, ...older } = summary
+    expect(decodeRepoSummary(encodeRepoSummary(older as never))).toEqual(summary)
     expect(decodeRepoSummary(null)).toBeNull()
     expect(decodeRepoSummary('%E0%A4%A')).toBeNull()
     expect(decodeRepoSummary(encodeURIComponent('[]'))).toBeNull()
@@ -83,6 +98,8 @@ describe('the summary', () => {
 describe('parseRepoCopy', () => {
   it('takes a whole copy, and refuses one of another version, repository or commit', () => {
     expect(parseRepoCopy(copy())).toEqual(copy())
+    const { pictures: _, picturesSkipped: __, ...beforePictures } = copy()
+    expect(parseRepoCopy(beforePictures)).toEqual(copy({ pictures: [] }))
     expect(parseRepoCopy(null)).toBeNull()
     for (const patch of [
       { v: 2 },
@@ -96,6 +113,8 @@ describe('parseRepoCopy', () => {
       { folders: [{ path: '', entries: [{ name: 'a', path: 'a', kind: 'door' }], readme: null }] },
       { folders: [{ path: '', entries: [], readme: 4 }] },
       { folders: {} },
+      { pictures: [3] },
+      { pictures: 'logo.png' },
     ])
       expect(parseRepoCopy(copy(patch as never))).toBeNull()
   })
@@ -179,5 +198,31 @@ describe('parseOfflineBatch', () => {
       { commit, paths: ['a'], more: true },
     ])
       expect(parseOfflineBatch(body)).toBeNull()
+  })
+})
+
+describe('planPictures', () => {
+  const entry = (path: string, size: number) => ({
+    name: path.slice(path.lastIndexOf('/') + 1),
+    path,
+    kind: 'file' as const,
+    size,
+  })
+  const plan = (entries: ReturnType<typeof entry>[]) => repoPlan({ folders: [{ path: '', entries, readme: null }] })
+
+  it('lists the pictures the page shows, with their bytes', () => {
+    const planned = planPictures(
+      plan([entry('a.png', 10), entry('b.SVG', 20), entry('notes.txt', 5), entry('huge.png', 5 * 1024 * 1024 + 1)]),
+    )
+    expect(planned).toEqual({ paths: ['a.png', 'b.SVG'], bytes: 30, skipped: false })
+  })
+
+  it('keeps none past 200 pictures or 30 MB of them', () => {
+    const many = Array.from({ length: 201 }, (_, i) => entry(`p${i}.png`, 1))
+    expect(planPictures(plan(many.slice(0, 200)))).toMatchObject({ skipped: false })
+    expect(planPictures(plan(many))).toEqual({ paths: [], bytes: 0, skipped: true })
+    const heavy = Array.from({ length: 7 }, (_, i) => entry(`p${i}.png`, 5 * 1024 * 1024))
+    expect(planPictures(plan(heavy.slice(0, 6)))).toMatchObject({ skipped: false })
+    expect(planPictures(plan(heavy))).toEqual({ paths: [], bytes: 0, skipped: true })
   })
 })

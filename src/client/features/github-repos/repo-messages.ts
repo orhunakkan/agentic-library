@@ -125,6 +125,9 @@ export const OFFLINE_MISSING_TEXT = 'This repository isn’t downloaded on this 
 export const OFFLINE_LIST_TEXT = 'You’re offline. These repositories are downloaded on this device.'
 export const OFFLINE_EMPTY_LIST_TEXT = 'No repository is downloaded on this device.'
 
+export const PICTURES_SKIPPED_TEXT =
+  'This download has no pictures: the repository has more than 200 of them, or more than 30 MB. They show when you’re online.'
+
 export const UPDATE_DOWNLOAD_TEXT = 'Update download'
 export const DOWNLOAD_UPDATED_TOAST = 'Download updated.'
 export const olderDownloadText = (commit: string) =>

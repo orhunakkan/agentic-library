@@ -20,8 +20,8 @@ const ALERT_TITLE: Record<AlertKind, string> = {
 interface Context {
   repoId: string
   showExternal: boolean
-  /** Whether a repository picture can show: offline, the copy keeps none, so its place says so. */
-  picturesOffline: boolean
+  /** Whether a repository picture can show: offline, only the ones the copy kept do, and the rest's place says so. */
+  pictureShows: (path: string) => boolean
   run: RunCode | null
   fences: { count: number }
 }
@@ -96,7 +96,7 @@ function renderNode(node: MdNode, context: Context): ReactNode {
     }
     case 'img': {
       const size = { width: node.width, height: node.height, align: node.align }
-      if (node.source.kind === 'repo' && context.picturesOffline)
+      if (node.source.kind === 'repo' && !context.pictureShows(node.source.path))
         return (
           <span
             className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-dashed border-line px-2 py-1 align-middle text-[13px] text-muted"
@@ -175,24 +175,26 @@ function FrontMatter({ fields }: { fields: readonly FrontMatterField[] }) {
   )
 }
 
+const always = () => true
+
 export function MdView({
   repoId,
   nodes,
   frontMatter,
   showExternal,
-  offline = false,
+  pictureShows = always,
 }: {
   repoId: string
   nodes: readonly MdNode[]
   frontMatter: readonly FrontMatterField[]
   showExternal: boolean
-  offline?: boolean
+  pictureShows?: (path: string) => boolean
 }) {
   const run = useContext(RunCodeContext)
   return (
     <div className="repo-md">
       {frontMatter.length > 0 && <FrontMatter fields={frontMatter} />}
-      {render(nodes, { repoId, showExternal, picturesOffline: offline, run, fences: { count: 0 } })}
+      {render(nodes, { repoId, showExternal, pictureShows, run, fences: { count: 0 } })}
     </div>
   )
 }

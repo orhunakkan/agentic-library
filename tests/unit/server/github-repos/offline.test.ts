@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { buildTree, type RawFetch, type RenderTarget, resetRendered, VIEW_MAX_BYTES } from '~/server/github-repos/files'
 import type { TreeEntry } from '~/server/github-repos/github-parse'
 import { batchEntries, OFFLINE_RENDERS, planOffline, renderBatch } from '~/server/github-repos/offline'
-import { MAX_OFFLINE_BYTES, MAX_OFFLINE_FILES } from '~/shared/github-repos/offline'
+import { REPO_VIEW_LIMIT } from '~/server/rate-limit'
+import { MAX_OFFLINE_BYTES, MAX_OFFLINE_FILES, OFFLINE_BATCH_MAX } from '~/shared/github-repos/offline'
+import { MAX_OFFLINE_PICTURES } from '~/shared/github-repos/pictures'
 
 const SHA = 'a'.repeat(40)
 const blob = (path: string, size = 10, mode = '100644'): TreeEntry => ({ path, mode, type: 'blob', sha: SHA, size })
@@ -154,5 +156,13 @@ describe('renderBatch', () => {
     )
     expect(rendered).toEqual({ ok: false, problem: 'busy', retryAt: new Date(0) })
     expect(asked).toBeLessThan(entries.length)
+  })
+})
+
+describe('the view budget', () => {
+  it('keeps a download at the caps, its plan, batches and pictures, well under the 600 views an hour', () => {
+    const views = 1 + Math.ceil(MAX_OFFLINE_FILES / OFFLINE_BATCH_MAX) + MAX_OFFLINE_PICTURES
+    expect(views).toBe(251)
+    expect(views).toBeLessThanOrEqual(REPO_VIEW_LIMIT.max / 2)
   })
 })

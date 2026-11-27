@@ -9,14 +9,21 @@ export type RepoDownloadState =
   | { kind: 'unavailable' }
   | { kind: 'idle'; problem: RepoDownloadProblem | null }
   | { kind: 'downloading'; percent: number }
-  | { kind: 'downloaded'; bytes: number; commit: string; problem: RepoDownloadProblem | null }
+  | ({ kind: 'downloaded'; problem: RepoDownloadProblem | null } & Kept)
+
+/** What the control shows of the copy kept on this device. */
+interface Kept {
+  bytes: number
+  commit: string
+  picturesSkipped: boolean
+}
 
 export function useRepoDownload(id: string, nav: unknown) {
   const [state, setState] = useState<RepoDownloadState>({ kind: 'unavailable' })
   const account = useRouteContext({ from: '__root__' }).viewer?.username ?? null
   const controller = useRef<AbortController | null>(null)
   /** The copy kept before a download started, which a failed or cancelled update leaves in place. */
-  const kept = useRef<{ bytes: number; commit: string } | null>(null)
+  const kept = useRef<Kept | null>(null)
   /** The repository whose answers may still change the state: none once unmounted, so a late answer is dropped. */
   const shown = useRef<string | null>(null)
 
@@ -26,7 +33,9 @@ export function useRepoDownload(id: string, nav: unknown) {
     void listRepoCopies()
       .then((list) => {
         const found = list.find((c) => c.id === id && c.account === account)
-        kept.current = found ? { bytes: found.bytes, commit: found.commit } : null
+        kept.current = found
+          ? { bytes: found.bytes, commit: found.commit, picturesSkipped: found.picturesSkipped }
+          : null
         if (shown.current !== id) return
         setState(
           kept.current ? { kind: 'downloaded', ...kept.current, problem: null } : { kind: 'idle', problem: null },
@@ -50,7 +59,10 @@ export function useRepoDownload(id: string, nav: unknown) {
       onProgress: (percent) => shown.current === id && setState({ kind: 'downloading', percent }),
     })
     controller.current = null
-    if (result.result === 'ok') kept.current = { bytes: result.copy.bytes, commit: result.copy.commit }
+    if (result.result === 'ok') {
+      const { bytes, commit, picturesSkipped } = result.copy
+      kept.current = { bytes, commit, picturesSkipped }
+    }
     if (shown.current === id) {
       const problem = problemOf(result)
       setState(kept.current ? { kind: 'downloaded', ...kept.current, problem } : { kind: 'idle', problem })
