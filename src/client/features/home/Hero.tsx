@@ -3,13 +3,13 @@ import type { Viewer } from '~/server/auth'
 import { primaryButton, secondaryButton } from './buttons'
 
 export const HERO_LINE =
-  'Folio is a calm place to read on any screen. Have any page read aloud, keep your highlights in one place, and ask questions that only see the pages you’ve read.'
+  'Folio is a calm place to read on any screen. Ask the AI about what you’re reading and it answers from the book, using only the pages you’ve read. Have any page read aloud, and keep your highlights in one place.'
 
 export function Hero({ viewer }: { viewer: Viewer | null }) {
   return (
     <section aria-labelledby="home-title" className="flex flex-col items-center pt-12 text-center sm:pt-16 lg:pt-20">
       <p className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13.5px] font-medium text-body">
-        A reading app for every kind of book
+        A reading app with AI that won’t spoil the ending
       </p>
       <h1
         id="home-title"
