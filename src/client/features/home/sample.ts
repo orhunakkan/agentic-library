@@ -53,6 +53,9 @@ export const FEATURE_ASK = {
   quote: at(3, 1, 'discovered to be proud, to be above his company, and above being pleased'),
 } as const
 
+/** Darcy’s slight at the assembly, highlighted in the Remember preview and the source of its flashcard. */
+const TOLERABLE = at(3, 2, 'She is tolerable; but not handsome enough to tempt me')
+
 export const HIGHLIGHTS = {
   count: 12,
   items: [
@@ -62,9 +65,14 @@ export const HIGHLIGHTS = {
       note: 'The whole plot in one sentence, said with a straight face.',
     },
     {
-      passage: at(3, 2, 'She is tolerable; but not handsome enough to tempt me'),
+      passage: TOLERABLE,
       color: 'pink',
       note: null,
     },
   ],
+} as const
+
+export const FLASHCARD = {
+  question: 'Who says Elizabeth is only “tolerable”?',
+  source: TOLERABLE,
 } as const

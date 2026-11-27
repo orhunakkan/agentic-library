@@ -1,8 +1,8 @@
-import { BookUp, Download, Minus, Plus } from 'lucide-react'
+import { BookUp, Download, Layers, Minus, Plus } from 'lucide-react'
 import { cn } from '~/client/lib/cn'
 import { DEFAULT_PREFS, FONT_SIZES, LEADING_OPTIONS, THEME_OPTIONS } from '../reader/prefs'
 import { Chip, PreviewCard } from './previews'
-import { BOOK_FILE, CHAPTER_COUNT, HIGHLIGHTS, label } from './sample'
+import { BOOK_FILE, CHAPTER_COUNT, FLASHCARD, HIGHLIGHTS, label } from './sample'
 
 const DOT = { yellow: 'bg-r-hl-yellow', pink: 'bg-r-hl-pink' } as const
 
@@ -27,6 +27,20 @@ export function HighlightsPreview() {
           </li>
         ))}
       </ul>
+      <div className="mt-5 rounded-xl bg-inset px-4 py-3">
+        <p className="flex items-center justify-between gap-3 text-[12.5px] text-muted">
+          <span className="flex items-center gap-1.5 font-semibold">
+            <Layers className="size-3.5" />
+            Flashcard
+          </span>
+          Due now
+        </p>
+        <p className="mt-2 font-medium text-ink">{FLASHCARD.question}</p>
+        <p className="mt-3 flex flex-wrap items-center gap-2">
+          <Chip>Show answer</Chip>
+          <Chip accent>{label(FLASHCARD.source)}</Chip>
+        </p>
+      </div>
       <div className="mt-5 flex flex-wrap gap-2 border-t border-line-soft pt-4">
         <Chip>
           <Download className="size-3.5" />
@@ -44,7 +58,7 @@ export function ImportPreview() {
       <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-line px-4 py-6 text-center">
         <BookUp className="size-6 text-hue-pink-ink" />
         <p className="font-semibold text-ink">Drop a book here</p>
-        <p className="text-[13px] text-muted">EPUB, .md, or a ZIP of Markdown</p>
+        <p className="text-[13px] text-muted">EPUB, PDF, Markdown, M4B or MP3</p>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-inset px-4 py-3">
         <div className="min-w-0 flex-1">

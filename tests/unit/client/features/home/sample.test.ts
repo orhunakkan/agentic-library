@@ -4,6 +4,7 @@ import {
   BOOK_TITLE,
   CHAPTER_COUNT,
   FEATURE_ASK,
+  FLASHCARD,
   HIGHLIGHTS,
   label,
   OPENING,
@@ -26,7 +27,13 @@ const pages = bookPages(book)
 
 const pageAt = (p: Place) => pages.find((x) => x.chapterIndex === p.chapter - 1 && x.page === p.page)
 
-const passages: Passage[] = [...OPENING, READER_ASK.quote, FEATURE_ASK.quote, ...HIGHLIGHTS.items.map((h) => h.passage)]
+const passages: Passage[] = [
+  ...OPENING,
+  READER_ASK.quote,
+  FEATURE_ASK.quote,
+  ...HIGHLIGHTS.items.map((h) => h.passage),
+  FLASHCARD.source,
+]
 
 describe('the home page sample', () => {
   it('names the book the library holds, with its real chapter count', () => {

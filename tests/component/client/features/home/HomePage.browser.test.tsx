@@ -7,6 +7,12 @@ import { mountAt } from '../../../../support/client/router'
 
 const SIGNED_IN: Viewer = { username: 'reader', role: 'member' }
 
+const features = page.getByRole('region', { name: 'One app for reading, listening and remembering.' })
+const featureRows = features.getByRole('article')
+/** A row's label is the coloured line above its title, the row's first paragraph. */
+const rowLabel = (row: Element) => row.querySelector('p')?.textContent
+const featureRow = (label: string) => featureRows.filter({ has: page.getByText(label, { exact: true }) })
+
 const mountHome = (viewer: Viewer | null, sourceUrl: string | null = null) =>
   mountAt('/', <HomePage viewer={viewer} sourceUrl={sourceUrl} />, { viewer })
 
@@ -19,6 +25,31 @@ describe.each([
     await expect.element(page.getByText('A reading app with AI that won’t spoil the ending')).toBeVisible()
     await expect.element(page.getByText(HERO_LINE)).toBeVisible()
     expect(page.getByRole('heading', { level: 1 }).elements()).toHaveLength(1)
+  })
+
+  it('shows the five feature rows in order, with Ask the AI first', async () => {
+    await mountHome(viewer)
+    await expect.element(featureRows.first()).toBeVisible()
+    expect(featureRows.elements().map(rowLabel)).toEqual([
+      'Ask the AI',
+      'Listen',
+      'Remember',
+      'Your own books',
+      'Read your way',
+    ])
+    expect(features.getByRole('heading', { level: 3 }).elements()).toHaveLength(5)
+  })
+
+  it('says where the AI helps in the Listen and Remember rows', async () => {
+    await mountHome(viewer)
+    await expect.element(featureRow('Listen')).toMatchTextContent(/ask .* out loud/i)
+    await expect.element(featureRow('Remember')).toMatchTextContent('Ask makes the cards')
+  })
+
+  it('names PDF and audiobooks among your own books', async () => {
+    await mountHome(viewer)
+    await expect.element(featureRow('Your own books')).toMatchTextContent('PDF')
+    await expect.element(featureRow('Your own books')).toMatchTextContent('M4B')
   })
 
   it('doesn’t mention Storybook', async () => {

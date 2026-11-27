@@ -1,4 +1,4 @@
-import { Moon, Pause, SkipBack, SkipForward } from 'lucide-react'
+import { ListOrdered, Mic, Moon, Pause, SkipBack, SkipForward } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { timeLeft } from '~/client/features/read-aloud/messages'
 import { BOOK_TITLE, FEATURE_ASK, label, READ_ALOUD } from './sample'
@@ -48,6 +48,10 @@ export function ReadAloudPreview() {
         <Chip>Speed 1.0x</Chip>
         <Chip>Voice</Chip>
         <Chip>
+          <ListOrdered className="size-3.5" />
+          Chapters
+        </Chip>
+        <Chip>
           <Moon className="size-3.5" />
           Sleep
         </Chip>
@@ -75,6 +79,12 @@ export function AskPreview() {
       <blockquote className="border-l-2 border-hue-violet pl-3 font-serif text-[14.5px] leading-relaxed text-muted">
         …{FEATURE_ASK.quote.text}…
       </blockquote>
+      <div className="flex items-center gap-3 rounded-full border border-line px-4 py-2">
+        <span className="flex-1 truncate text-muted">Ask a question about the book</span>
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-hue-violet/15 text-hue-violet-ink">
+          <Mic className="size-4" />
+        </span>
+      </div>
     </PreviewCard>
   )
 }
