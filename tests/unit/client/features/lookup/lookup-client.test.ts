@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import { lookUpWord, translate, wordAnswerOf } from '~/client/features/lookup/lookup-client'
+import type {
+  DictionaryEntry,
+  TranslateAnswer,
+  TranslateErrorCode,
+  WikipediaSummary,
+  WordAnswer,
+  WordErrorCode,
+} from '~/shared/lookup/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 
 const WORD = { book: 'pride-and-prejudice', term: 'chaise', source: 'dictionary' } as const
 const TEXT = { book: 'pride-and-prejudice', text: 'chaise', context: 'In a chaise and four.', to: 'tr' } as const
@@ -13,7 +22,7 @@ const ENTRY = {
   otherLanguage: false,
   senses: [{ partOfSpeech: 'Noun', definitions: [{ text: 'A carriage.' }, { text: 'of x', lemma: 'x' }] }],
   url: 'https://en.wiktionary.org/wiki/chaise',
-}
+} satisfies DictionaryEntry
 const SUMMARY = {
   state: 'found',
   source: 'wikipedia',
@@ -21,7 +30,7 @@ const SUMMARY = {
   description: null,
   extract: 'A chaise is a carriage.',
   url: 'https://en.wikipedia.org/wiki/Chaise',
-}
+} satisfies WikipediaSummary
 
 function answer(status: number, body: unknown) {
   const fetch = vi.fn(async () => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status }))
@@ -47,7 +56,7 @@ describe('lookUpWord', () => {
       { state: 'not-found' },
       { state: 'not-found', searchUrl: 'https://en.wikipedia.org/w/index.php?search=x' },
       { state: 'ambiguous', title: 'Bennet', url: 'https://en.wikipedia.org/wiki/Bennet' },
-    ]) {
+    ] satisfies WordAnswer[]) {
       answer(200, body)
       expect(await lookUpWord(WORD)).toEqual({ ok: true, value: body })
     }
@@ -59,20 +68,21 @@ describe('lookUpWord', () => {
       [404, 'not_found'],
       [503, 'busy'],
       [502, 'unavailable'],
-    ] as const) {
+    ] as const satisfies readonly (readonly [number, WordErrorCode])[]) {
       answer(status, { error })
       expect(await lookUpWord(WORD)).toEqual({ ok: false, problem: error })
     }
-    answer(429, { error: 'rate', retryAt: '2026-11-06T14:05:00.000Z' })
+    answer(429, { error: 'rate', retryAt: '2026-11-06T14:05:00.000Z' } satisfies ErrorAnswer<WordErrorCode>)
     expect(await lookUpWord(WORD)).toEqual({
       ok: false,
       problem: 'rate',
       retryAt: new Date('2026-11-06T14:05:00.000Z'),
     })
-    answer(429, { error: 'rate', retryAt: 'soon' })
+    answer(429, { error: 'rate', retryAt: 'soon' } satisfies ErrorAnswer<WordErrorCode>)
     expect(await lookUpWord(WORD)).toEqual({ ok: false, problem: 'rate' })
-    answer(400, { error: 'invalid' })
+    answer(400, { error: 'invalid' } satisfies ErrorAnswer<WordErrorCode>)
     expect(await lookUpWord(WORD)).toEqual({ ok: false, problem: 'failed' })
+    /** A proxy's error page, not JSON. */
     answer(500, 'Internal error')
     expect(await lookUpWord(WORD)).toEqual({ ok: false, problem: 'failed' })
   })
@@ -88,6 +98,7 @@ describe('lookUpWord', () => {
   })
 
   it('treats a malformed answer as a failure', async () => {
+    /** Answers that break the contract on purpose, so they're left untyped. */
     for (const body of [
       [],
       { state: 'found' },
@@ -112,7 +123,7 @@ describe('lookUpWord', () => {
 
 describe('translate', () => {
   it('posts the text, its sentence, the book and the target, and reads the translation and the model', async () => {
-    const fetch = answer(200, { translation: '[tr] chaise', model: 'claude-sonnet-5-5' })
+    const fetch = answer(200, { translation: '[tr] chaise', model: 'claude-sonnet-5-5' } satisfies TranslateAnswer)
     expect(await translate(TEXT)).toEqual({
       ok: true,
       value: { translation: '[tr] chaise', model: 'claude-sonnet-5-5' },
@@ -129,17 +140,18 @@ describe('translate', () => {
       [502, 'billing'],
       [502, 'refused'],
       [503, 'busy'],
-    ] as const) {
+    ] as const satisfies readonly (readonly [number, TranslateErrorCode])[]) {
       answer(status, { error })
       expect(await translate(TEXT)).toEqual({ ok: false, problem: error })
     }
-    answer(502, { error: 'failed' })
+    answer(502, { error: 'failed' } satisfies ErrorAnswer<TranslateErrorCode>)
     expect(await translate(TEXT)).toEqual({ ok: false, problem: 'failed' })
-    answer(429, { error: 'rate', retryAt: '2026-11-06T14:05:00.000Z' })
+    answer(429, { error: 'rate', retryAt: '2026-11-06T14:05:00.000Z' } satisfies ErrorAnswer<TranslateErrorCode>)
     expect(await translate(TEXT)).toMatchObject({ problem: 'rate', retryAt: new Date('2026-11-06T14:05:00.000Z') })
   })
 
   it('treats a malformed answer as a failure', async () => {
+    /** Breaks the contract on purpose, so it's left untyped. */
     answer(200, { translation: 1, model: 'x' })
     expect(await translate(TEXT)).toEqual({ ok: false, problem: 'failed' })
   })

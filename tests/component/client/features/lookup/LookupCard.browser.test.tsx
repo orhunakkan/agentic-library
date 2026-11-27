@@ -13,7 +13,15 @@ import {
 import { LOOKUP_PREFS_KEY } from '~/client/features/lookup/lookup-prefs'
 import { type LookupTarget, type Setup, useLookup } from '~/client/features/lookup/use-lookup'
 import { isObject } from '~/shared/lib/json-shape'
-import type { DictionaryEntry, WikipediaSummary } from '~/shared/lookup/contract'
+import type {
+  DictionaryEntry,
+  TranslateAnswer,
+  TranslateErrorCode,
+  WikipediaSummary,
+  WordAnswer,
+  WordErrorCode,
+} from '~/shared/lookup/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 import { mountAt } from '../../../../support/client/router'
 
 /** Which model and key the reader has, as the server function reports it. The card asks for it when it first opens. */
@@ -64,12 +72,16 @@ const WIKIPEDIA: WikipediaSummary = {
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+/** The word route's answers, typed by its contract so a renamed code or field fails the typecheck. */
+const wordJson = (status: number, body: WordAnswer | ErrorAnswer<WordErrorCode>) => json(status, body)
+/** The translate route's answers, typed the same way. */
+const translateJson = (status: number, body: TranslateAnswer | ErrorAnswer<TranslateErrorCode>) => json(status, body)
 
 type Sent = Record<string, unknown>
 type Reply = (request: Sent) => Response | Promise<Response>
 
-const wordReply: Reply = (request) => json(200, request.source === 'wikipedia' ? WIKIPEDIA : DICTIONARY)
-const translateReply: Reply = () => json(200, { translation: 'sérendipité', model: 'claude-opus-5-5' })
+const wordReply: Reply = (request) => wordJson(200, request.source === 'wikipedia' ? WIKIPEDIA : DICTIONARY)
+const translateReply: Reply = () => translateJson(200, { translation: 'sérendipité', model: 'claude-opus-5-5' })
 /** How the stand-in server answers each lookup route; a test swaps one to answer otherwise. */
 const replies: { word: Reply; translate: Reply } = { word: wordReply, translate: translateReply }
 
@@ -195,7 +207,7 @@ describe('LookupCard', () => {
     await expect.element(panel.getByText('Looking it up…')).toBeVisible()
     expect(sentTo(WORD_URL)).toEqual([{ book: BOOK, term: 'serendipity', source: 'dictionary' }])
 
-    pending.resolve(json(200, DICTIONARY))
+    pending.resolve(wordJson(200, DICTIONARY))
     await expect.element(panel.getByRole('heading', { name: 'Noun', level: 3 })).toBeVisible()
     const senses = panel.getByRole('listitem')
     await expect.element(senses.nth(0)).toHaveTextContent('A happy accident.')
@@ -260,7 +272,7 @@ describe('LookupCard', () => {
 
   it('looks up the word a definition points to', async () => {
     replies.word = (request) =>
-      json(
+      wordJson(
         200,
         request.term === 'run'
           ? { ...DICTIONARY, term: 'run', senses: [{ partOfSpeech: 'Verb', definitions: [{ text: 'To move fast.' }] }] }
@@ -281,7 +293,7 @@ describe('LookupCard', () => {
   })
 
   it('says the dictionary has no entry, and points to the other tabs', async () => {
-    replies.word = () => json(200, { state: 'not-found' })
+    replies.word = () => wordJson(200, { state: 'not-found' })
     await openCard()
     /** The not-found lines are plain text in the panel. */
     await expect.element(panel.getByText(noEntryText('serendipity'))).toBeVisible()
@@ -290,7 +302,7 @@ describe('LookupCard', () => {
 
   it('offers a Wikipedia search when there is no article', async () => {
     const searchUrl = 'https://en.wikipedia.org/w/index.php?search=serendipity'
-    replies.word = () => json(200, { state: 'not-found', searchUrl })
+    replies.word = () => wordJson(200, { state: 'not-found', searchUrl })
     await openCard()
     await tab('Wikipedia').click()
     /** The not-found line is plain text in the panel. */
@@ -299,7 +311,7 @@ describe('LookupCard', () => {
   })
 
   it('links to Wikipedia’s choices when the title is ambiguous', async () => {
-    replies.word = () => json(200, { state: 'ambiguous', title: 'Run', url: 'https://en.wikipedia.org/wiki/Run' })
+    replies.word = () => wordJson(200, { state: 'ambiguous', title: 'Run', url: 'https://en.wikipedia.org/wiki/Run' })
     await openCard({ target: { kind: 'term', text: 'run', term: 'run', context: null } })
     await card('run').getByRole('tab', { name: 'Wikipedia' }).click()
     /** The ambiguous line is plain text in the panel. */
@@ -311,7 +323,7 @@ describe('LookupCard', () => {
 
   describe('errors', () => {
     it('says the dictionary is busy, and Retry looks the word up again', async () => {
-      replies.word = () => json(503, { error: 'busy' })
+      replies.word = () => wordJson(503, { error: 'busy' })
       await openCard()
       await expectNotice(wordNotice('dictionary', 'busy').text)
       replies.word = wordReply
@@ -329,7 +341,7 @@ describe('LookupCard', () => {
 
     it('says the hourly limit is reached and when to try again, with no Retry', async () => {
       const retryAt = '2026-11-26T15:30:00.000Z'
-      replies.word = () => json(429, { error: 'rate', retryAt })
+      replies.word = () => wordJson(429, { error: 'rate', retryAt })
       await openCard()
       await expectNotice(wordNotice('dictionary', 'rate', new Date(retryAt)).text)
       await expect.element(retry).not.toBeInTheDocument()
@@ -347,7 +359,7 @@ describe('LookupCard', () => {
 
     it('points to the API keys page when the key is rejected', async () => {
       localStorage.setItem(LOOKUP_PREFS_KEY, JSON.stringify({ to: 'de' }))
-      replies.translate = () => json(401, { error: 'key_rejected' })
+      replies.translate = () => translateJson(401, { error: 'key_rejected' })
       await openCard()
       await tab('Translate').click()
       await expect.element(notice).toHaveRole('status')
@@ -360,20 +372,20 @@ describe('LookupCard', () => {
 
     it('says when a translation is refused or the account needs credit, with no Retry', async () => {
       localStorage.setItem(LOOKUP_PREFS_KEY, JSON.stringify({ to: 'de' }))
-      replies.translate = () => json(422, { error: 'refused' })
+      replies.translate = () => translateJson(422, { error: 'refused' })
       await openCard()
       await tab('Translate').click()
       await expectNotice('Claude didn’t translate this.')
       await expect.element(retry).not.toBeInTheDocument()
 
-      replies.translate = () => json(402, { error: 'billing' })
+      replies.translate = () => translateJson(402, { error: 'billing' })
       await panel.getByRole('combobox', { name: 'Translate to' }).selectOptions('es')
       await expectNotice('Your Anthropic account needs credit.')
     })
 
     it('says a translation failed, and Retry asks again', async () => {
       localStorage.setItem(LOOKUP_PREFS_KEY, JSON.stringify({ to: 'de' }))
-      replies.translate = () => json(500, { error: 'failed' })
+      replies.translate = () => translateJson(500, { error: 'failed' })
       await openCard()
       await tab('Translate').click()
       await expectNotice('Couldn’t translate that.')
@@ -398,7 +410,7 @@ describe('LookupCard', () => {
 
   it('opens a passage on Translate, with the passage folded until Show more', async () => {
     localStorage.setItem(LOOKUP_PREFS_KEY, JSON.stringify({ to: 'de' }))
-    replies.translate = () => json(200, { translation: 'Es gibt einen Geist.', model: 'claude-opus-5-5' })
+    replies.translate = () => translateJson(200, { translation: 'Es gibt einen Geist.', model: 'claude-opus-5-5' })
     await openCard({ target: PASSAGE })
     const passageCard = card('Translate passage')
     await expect.element(passageCard).toBeVisible()

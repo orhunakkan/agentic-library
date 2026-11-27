@@ -5,6 +5,8 @@ import {
   readArticleAnswer,
   startArticle,
 } from '~/client/features/articles/articles-client'
+import type { ArticleErrorCode, ArticleFetch } from '~/shared/articles/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status })
 
@@ -16,6 +18,8 @@ function answering(response: Response | Error) {
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
+
+const PAGE = { fetch: 'f1', finalUrl: 'https://a.test/x', html: '<p>' } satisfies ArticleFetch
 
 const START = {
   title: 'T',
@@ -32,11 +36,8 @@ const START = {
 
 describe('the requests', () => {
   it('fetches a page', async () => {
-    const fetchMock = answering(json(200, { fetch: 'f1', finalUrl: 'https://a.test/x', html: '<p>' }))
-    expect(await fetchArticle('a.test/x')).toEqual({
-      ok: true,
-      value: { fetch: 'f1', finalUrl: 'https://a.test/x', html: '<p>' },
-    })
+    const fetchMock = answering(json(200, PAGE))
+    expect(await fetchArticle('a.test/x')).toEqual({ ok: true, value: PAGE })
     expect(fetchMock).toHaveBeenCalledWith('/account/articles/fetch', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -47,7 +48,7 @@ describe('the requests', () => {
   it('fetches a picture’s bytes, or null', async () => {
     answering(new Response(new Uint8Array([1, 2])))
     expect(await fetchArticlePicture('f1', 'https://a.test/p.png')).toEqual(new Uint8Array([1, 2]))
-    answering(json(404, { error: 'not_found' }))
+    answering(json(404, { error: 'not_found' } satisfies ErrorAnswer<ArticleErrorCode>))
     expect(await fetchArticlePicture('f1', 'https://a.test/p.png')).toBeNull()
     answering(new TypeError('offline'))
     expect(await fetchArticlePicture('f1', 'https://a.test/p.png')).toBeNull()
@@ -68,7 +69,10 @@ describe('the requests', () => {
 })
 
 describe('readArticleAnswer', () => {
-  const read = (status: number, body: unknown) => readArticleAnswer(json(status, body), () => true)
+  const read = (status: number, body: ErrorAnswer<ArticleErrorCode>) =>
+    readArticleAnswer(json(status, body), () => true)
+  /** For answers no server sends, such as a code from a newer one: left untyped on purpose. */
+  const readOdd = (status: number, body: unknown) => readArticleAnswer(json(status, body), () => true)
   it('names each problem', async () => {
     expect(await read(400, { error: 'invalid', reason: 'private_host' })).toMatchObject({ problem: 'private_host' })
     expect(await read(400, { error: 'invalid', reason: 'odd' })).toMatchObject({ problem: 'failed' })
@@ -84,10 +88,10 @@ describe('readArticleAnswer', () => {
       'expired',
       'busy',
       'signed_out',
-    ])
+    ] satisfies ArticleErrorCode[])
       expect(await read(422, { error: code }), code).toMatchObject({ problem: code })
-    expect(await read(401, { error: 'signed-out' })).toMatchObject({ problem: 'signed_out' })
-    expect(await read(500, { error: 'what' })).toMatchObject({ problem: 'failed' })
+    expect(await readOdd(401, { error: 'signed-out' })).toMatchObject({ problem: 'signed_out' })
+    expect(await readOdd(500, { error: 'what' })).toMatchObject({ problem: 'failed' })
     expect(await readArticleAnswer(new Response('nope', { status: 502 }), () => true)).toMatchObject({
       problem: 'failed',
     })

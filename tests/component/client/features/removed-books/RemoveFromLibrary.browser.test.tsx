@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { RemoveFromLibrary } from '~/client/features/removed-books/RemoveFromLibrary'
+import type { RemovedBookErrorCode } from '~/shared/removed-books/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 import { mountAt } from '../../../../support/client/router'
 
 /** The command palette's search index is a server function; nothing here searches, so it is never called. */
@@ -9,7 +11,7 @@ vi.mock('~/server/functions', () => ({ getSearchIndex: vi.fn() }))
 const BOOK_PAGE = '/library/poetry-of-the-spirit/the-prophet'
 
 /** The server's answer to the change. */
-const answer = (status: number, body: unknown) =>
+const answer = (status: number, body: ErrorAnswer<RemovedBookErrorCode> | { book: string; removed: boolean }) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
 const removeButton = page.getByRole('button', { name: 'Remove from library' })

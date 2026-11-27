@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { forgetFinished, noteFinished } from '~/client/features/reading-stats/finish'
+import type { FinishedErrorCode } from '~/shared/reading-stats/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 
 let embed: string | undefined
 let onLine = true
@@ -58,7 +60,7 @@ describe('noteFinished', () => {
   })
 
   it('tries again after a failure, or after the mark was taken off', async () => {
-    answer({ error: 'failed' }, 500)
+    answer({ error: 'failed' } satisfies ErrorAnswer<FinishedErrorCode>, 500)
     const toast = vi.fn()
     await noteFinished('mansfield-park', 'Mansfield Park', { signedIn: true, toast })
     expect(toast).not.toHaveBeenCalled()

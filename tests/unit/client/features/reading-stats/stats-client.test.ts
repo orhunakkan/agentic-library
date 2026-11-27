@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { saveGoal, setFinished } from '~/client/features/reading-stats/stats-client'
+import type { FinishedErrorCode, GoalErrorCode } from '~/shared/reading-stats/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 
 function answer(status: number, body: unknown) {
   const fetch = vi.fn(async () => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status }))
@@ -19,12 +21,13 @@ describe('saveGoal', () => {
   })
 
   it('maps each refusal, a garbled answer and a network failure', async () => {
-    answer(400, { error: 'invalid' })
+    answer(400, { error: 'invalid' } satisfies ErrorAnswer<GoalErrorCode>)
     expect(await saveGoal(25, 'UTC')).toEqual({ ok: false, problem: 'invalid' })
-    answer(401, { error: 'signed_out' })
+    answer(401, { error: 'signed_out' } satisfies ErrorAnswer<GoalErrorCode>)
     expect(await saveGoal(30, 'UTC')).toEqual({ ok: false, problem: 'signed_out' })
-    answer(500, { error: 'failed' })
+    answer(500, { error: 'failed' } satisfies ErrorAnswer<GoalErrorCode>)
     expect(await saveGoal(30, 'UTC')).toEqual({ ok: false, problem: 'failed' })
+    /** A proxy's error page and a garbled goal, both left untyped on purpose. */
     answer(502, 'Bad gateway')
     expect(await saveGoal(30, 'UTC')).toEqual({ ok: false, problem: 'failed' })
     answer(200, { goal: { minutes: '30' } })
@@ -51,10 +54,11 @@ describe('setFinished', () => {
   })
 
   it('maps each refusal, a garbled answer and a network failure', async () => {
-    for (const code of ['invalid', 'signed_out', 'not_found', 'failed'] as const) {
+    for (const code of ['invalid', 'signed_out', 'not_found', 'failed'] as const satisfies FinishedErrorCode[]) {
       answer(code === 'not_found' ? 404 : 400, { error: code })
       expect(await setFinished('emma', false)).toEqual({ ok: false, problem: code })
     }
+    /** A code no server sends and an answer missing its fields, both left untyped on purpose. */
     answer(418, { error: 'teapot' })
     expect(await setFinished('emma', false)).toEqual({ ok: false, problem: 'failed' })
     answer(200, { book: 'emma' })

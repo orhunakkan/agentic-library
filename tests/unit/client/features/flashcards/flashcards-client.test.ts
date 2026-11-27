@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { deleteCard, reviewCard, saveCard } from '~/client/features/flashcards/flashcards-client'
+import type { FlashcardView } from '~/shared/flashcards/contract'
 
 const CARD = {
   id: '6f1c0000-0000-4000-8000-000000000001',
@@ -9,7 +10,7 @@ const CARD = {
   box: 0,
   dueAt: '2026-11-09T10:00:00Z',
   createdAt: '2026-11-09T10:00:00Z',
-}
+} satisfies FlashcardView
 const request = {
   book: 'pride-and-prejudice',
   front: 'Who?',

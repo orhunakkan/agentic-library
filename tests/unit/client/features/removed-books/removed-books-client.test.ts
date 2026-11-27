@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { problemText, readRemovedAnswer, setRemoved } from '~/client/features/removed-books/removed-books-client'
+import type { RemovedBookErrorCode } from '~/shared/removed-books/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 
 function answer(status: number, body: unknown) {
   const fetch = vi.fn(async () => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status }))
@@ -33,20 +35,22 @@ describe('setRemoved', () => {
 })
 
 describe('readRemovedAnswer', () => {
-  const read = (status: number, body: unknown) =>
-    readRemovedAnswer(new Response(typeof body === 'string' ? body : JSON.stringify(body), { status }))
+  const read = (status: number, body: ErrorAnswer<RemovedBookErrorCode> | Record<string, never>) =>
+    readRemovedAnswer(new Response(JSON.stringify(body), { status }))
+  /** A body that isn't JSON at all, as a proxy's error page is: untyped on purpose. */
+  const readText = (status: number, body: string) => readRemovedAnswer(new Response(body, { status }))
 
   it('names the problems it knows, and fails for anything else', async () => {
     expect(await read(401, { error: 'signed_out' })).toEqual({ ok: false, problem: 'signed_out' })
     expect(await read(404, { error: 'not_found' })).toEqual({ ok: false, problem: 'not_found' })
     expect(await read(400, { error: 'invalid' })).toEqual({ ok: false, problem: 'failed' })
     expect(await read(500, { error: 'failed' })).toEqual({ ok: false, problem: 'failed' })
-    expect(await read(403, 'Forbidden')).toEqual({ ok: false, problem: 'failed' })
+    expect(await readText(403, 'Forbidden')).toEqual({ ok: false, problem: 'failed' })
   })
 
   it('fails on a success that carries no state', async () => {
     expect(await read(200, {})).toEqual({ ok: false, problem: 'failed' })
-    expect(await read(200, 'not json')).toEqual({ ok: false, problem: 'failed' })
+    expect(await readText(200, 'not json')).toEqual({ ok: false, problem: 'failed' })
   })
 })
 
