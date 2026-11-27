@@ -5,6 +5,7 @@ import { HomePage } from '~/client/features/home/HomePage'
 import type { Viewer } from '~/server/auth'
 import { mountAt } from '../../../../support/client/router'
 
+const SOURCE = 'https://github.com/example/folio'
 const SIGNED_IN: Viewer = { username: 'reader', role: 'member' }
 
 const features = page.getByRole('region', { name: 'One app for reading, listening and remembering.' })
@@ -15,6 +16,12 @@ const featureRow = (label: string) => featureRows.filter({ has: page.getByText(l
 
 const more = page.getByRole('region', { name: 'And everything around the reading.' })
 const tile = (title: string) => more.getByRole('listitem').filter({ has: page.getByRole('heading', { name: title }) })
+
+const faq = page.getByRole('region', { name: 'Questions' })
+/** Opens a FAQ answer, which sits closed in its `<details>` until the question is clicked. */
+async function openQuestion(question: string) {
+  await faq.getByText(question, { exact: true }).click()
+}
 
 const mountHome = (viewer: Viewer | null, sourceUrl: string | null = null) =>
   mountAt('/', <HomePage viewer={viewer} sourceUrl={sourceUrl} />, { viewer })
@@ -83,6 +90,33 @@ describe.each([
     await mountHome(viewer)
     await expect.element(more.getByText('With an account, except installing Folio as an app.')).toBeVisible()
     await expect.element(tile('Install it as an app')).toMatchTextContent('No account needed.')
+  })
+
+  it('says what an account adds, matching the page', async () => {
+    await mountHome(viewer)
+    await openQuestion('Do I need an account to read?')
+    const answer = faq.getByText(/^No\. /)
+    for (const feature of ['Ask the AI', 'audiobooks', 'flashcards', 'offline reading', 'passkeys'])
+      await expect.element(answer).toMatchTextContent(feature)
+  })
+
+  it('answers whether Folio works offline', async () => {
+    await mountHome(viewer)
+    await openQuestion('Does Folio work offline?')
+    await expect.element(faq.getByText(/Downloads are removed when you sign out\./)).toBeVisible()
+  })
+
+  it('links the source code from the open-source question', async () => {
+    await mountHome(viewer, SOURCE)
+    await openQuestion('Is Folio open source?')
+    await expect.element(faq.getByRole('link', { name: 'source code' })).toHaveAttribute('href', SOURCE)
+  })
+
+  it('still answers the open-source question with no link when SOURCE_URL is unset', async () => {
+    await mountHome(viewer, null)
+    await openQuestion('Is Folio open source?')
+    await expect.element(faq.getByText(/MIT licence/)).toBeVisible()
+    expect(faq.getByRole('link').elements()).toHaveLength(0)
   })
 
   it('doesn’t mention Storybook', async () => {

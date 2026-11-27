@@ -17,7 +17,7 @@ export function HomePage({ viewer, sourceUrl }: { viewer: Viewer | null; sourceU
         <ReaderPreview />
         <Features />
         <MoreFeatures />
-        <Faq />
+        <Faq sourceUrl={sourceUrl} />
         <ClosingCall viewer={viewer} />
       </main>
       <HomeFooter viewer={viewer} sourceUrl={sourceUrl} />
