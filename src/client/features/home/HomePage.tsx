@@ -5,6 +5,7 @@ import { Features } from './Features'
 import { Hero } from './Hero'
 import { HomeFooter } from './HomeFooter'
 import { HomeHeader } from './HomeHeader'
+import { MoreFeatures } from './MoreFeatures'
 import { ReaderPreview } from './ReaderPreview'
 
 export function HomePage({ viewer, sourceUrl }: { viewer: Viewer | null; sourceUrl: string | null }) {
@@ -15,6 +16,7 @@ export function HomePage({ viewer, sourceUrl }: { viewer: Viewer | null; sourceU
         <Hero viewer={viewer} />
         <ReaderPreview />
         <Features />
+        <MoreFeatures />
         <Faq />
         <ClosingCall viewer={viewer} />
       </main>

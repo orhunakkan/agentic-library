@@ -13,6 +13,9 @@ const featureRows = features.getByRole('article')
 const rowLabel = (row: Element) => row.querySelector('p')?.textContent
 const featureRow = (label: string) => featureRows.filter({ has: page.getByText(label, { exact: true }) })
 
+const more = page.getByRole('region', { name: 'And everything around the reading.' })
+const tile = (title: string) => more.getByRole('listitem').filter({ has: page.getByRole('heading', { name: title }) })
+
 const mountHome = (viewer: Viewer | null, sourceUrl: string | null = null) =>
   mountAt('/', <HomePage viewer={viewer} sourceUrl={sourceUrl} />, { viewer })
 
@@ -50,6 +53,36 @@ describe.each([
     await mountHome(viewer)
     await expect.element(featureRow('Your own books')).toMatchTextContent('PDF')
     await expect.element(featureRow('Your own books')).toMatchTextContent('M4B')
+  })
+
+  it('shows the nine smaller features in order, after the rows', async () => {
+    await mountHome(viewer)
+    await expect.element(more).toBeVisible()
+    expect(
+      more
+        .getByRole('heading', { level: 3 })
+        .elements()
+        .map((h) => h.textContent),
+    ).toEqual([
+      'Look up any word',
+      'Run the code in a book',
+      'Read GitHub repositories',
+      'Reading goals and streaks',
+      'Shelves and ratings',
+      'Read offline',
+      'Install it as an app',
+      'Pick up on any device',
+      'Sign in with a passkey',
+    ])
+    const sections = page.getByRole('main').getByRole('heading', { level: 2 }).elements()
+    expect(sections.map((h) => h.textContent)).toContain('And everything around the reading.')
+    expect(features.element().compareDocumentPosition(more.element())).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('says which of them need an account, and that installing doesn’t', async () => {
+    await mountHome(viewer)
+    await expect.element(more.getByText('With an account, except installing Folio as an app.')).toBeVisible()
+    await expect.element(tile('Install it as an app')).toMatchTextContent('No account needed.')
   })
 
   it('doesn’t mention Storybook', async () => {
