@@ -25,9 +25,11 @@ and merged.
 
    `--with-deps` installs the system libraries Chromium needs, which may ask for your password. Leave it out if they’re
    already there.
-3. Optionally, turn on the pre-commit hook. It scans the staged changes for secrets, then runs Biome, the typecheck,
-   the repo checks in `tests/repo/`, and the unit tests related to the staged `.ts` and `.tsx` files (a second or two;
-   a commit of docs alone runs none):
+3. Optionally, turn on the git hooks. The pre-commit hook scans the staged changes for secrets, then runs Biome, the
+   typecheck, the repo checks in `tests/repo/`, and the unit tests related to the staged `.ts` and `.tsx` files (a
+   second or two; a commit of docs alone runs none). The pre-push hook runs `pnpm check`, `pnpm test:integration` and
+   `pnpm test:browser` in full, so it needs Postgres running and a working tree with no uncommitted changes to tracked
+   files. `git push --no-verify` skips it.
 
    ```sh
    git config core.hooksPath .githooks
@@ -140,7 +142,8 @@ Each command measures coverage on its own side: `pnpm check` the shared and clie
 `pnpm test:integration` the server (`coverage/server`), and `pnpm test:browser` the components and React hooks
 (`coverage/browser`). Coverage floors only go up (`pnpm coverage:ratchet` raises all three). Run `pnpm check` before
 you push, and also `pnpm test:integration` when your change touches the server, or `pnpm test:browser` when it
-touches the UI.
+touches the UI. With the hooks turned on, the pre-push hook runs all three for you, and `git push --no-verify` skips
+it.
 
 ## Migrations
 

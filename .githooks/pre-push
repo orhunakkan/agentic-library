@@ -1,0 +1,60 @@
+#!/bin/sh
+set -e
+
+# Runs the three gates CI runs, before the push leaves this machine: pnpm check, then the integration tests, then the
+# component tests, stopping at the first failure. Each runs as its pnpm script, with its own reporters and coverage, so
+# the coverage floors hold and the reports in .vitest/reports/ are refreshed. Skip it with git push --no-verify.
+
+# Git passes one line per ref on stdin: <local ref> <local sha> <remote ref> <remote sha>. A deleted ref has a local
+# sha of all zeros, and a push of nothing but deletions has nothing to test.
+zero=0000000000000000000000000000000000000000
+pushes_commits=false
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  [ "$local_sha" = "$zero" ] || pushes_commits=true
+done
+if [ "$pushes_commits" = false ]; then
+  exit 0
+fi
+
+# The tests run on the working tree, not on the commits being pushed, so the two have to match. Untracked files don't
+# count: they're rarely imported, and blocking on them would make every scratch file a reason to stash.
+if ! git diff --quiet HEAD; then
+  echo "pre-push: tracked files differ from HEAD, so the tests wouldn't be testing what you push." >&2
+  echo "pre-push: commit or stash those changes first, or push with --no-verify to skip the tests." >&2
+  exit 1
+fi
+
+timings=""
+run_step() {
+  name=$1
+  shift
+  started=$(date +%s)
+  "$@"
+  timings="$timings
+  $name: $(($(date +%s) - started))s"
+}
+
+# Without Postgres, pnpm test:integration fails with ECONNREFUSED under a screenful of coverage errors, which doesn't
+# say what to do. Check for it first, at the same address the integration config uses.
+check_postgres() {
+  if ! node --input-type=module -e "
+    import { connect } from 'node:net'
+    import { testDatabaseUrl } from './tests/test-databases.ts'
+    const url = new URL(testDatabaseUrl())
+    const socket = connect({ host: url.hostname, port: Number(url.port || 5432) })
+    socket.setTimeout(3000, () => process.exit(1))
+    socket.on('connect', () => process.exit(0))
+    socket.on('error', () => process.exit(1))
+  "; then
+    echo "pre-push: Postgres isn't reachable, so the integration tests can't run." >&2
+    echo "pre-push: start it with docker compose up -d --wait, or push with --no-verify to skip the tests." >&2
+    exit 1
+  fi
+}
+
+run_step "pnpm check" pnpm check
+check_postgres
+run_step "pnpm test:integration" pnpm test:integration
+run_step "pnpm test:browser" pnpm test:browser
+
+echo "pre-push: all three gates passed.$timings"

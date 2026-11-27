@@ -22,11 +22,14 @@ docker compose up -d --wait   Local Postgres for dev and tests
 
 The pre-commit hook in `.githooks/pre-commit` runs Biome on staged files, the typecheck, the repo checks in
 `tests/repo/`, and the unit tests related to the staged `.ts` and `.tsx` files (`vitest related`, which needs no
-Postgres or Chromium).
+Postgres or Chromium). The pre-push hook in `.githooks/pre-push` runs `pnpm check`, `pnpm test:integration` and
+`pnpm test:browser` in full, stopping at the first failure. It refuses a push while tracked files differ from `HEAD`
+(the tests run on the working tree) or Postgres is down, and skips a push of ref deletions alone. `git push
+--no-verify` skips it.
 
 CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the same gates on GitHub-hosted runners for every push
-to main and every PR, as three parallel jobs. Still run `pnpm check`, `pnpm test:integration` and `pnpm test:browser`
-before a push: CI confirms, it isn't where failures should first show up. Watch a run with `gh run watch --exit-status`.
+to main and every PR, as three parallel jobs. Let the pre-push hook run before a push rather than skipping it: CI
+confirms, it isn't where failures should first show up. Watch a run with `gh run watch --exit-status`.
 
 Deploys: when CI passes on main, its last job creates a GitHub Deployment for dev. The poller on the server
 ([scripts/deploy/poll.ts](scripts/deploy/poll.ts), every 30 seconds) checks the commit for itself and runs
