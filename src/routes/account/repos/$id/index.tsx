@@ -20,7 +20,11 @@ export const Route = createFileRoute('/account/repos/$id/')({
     view: search.view === 'code' ? 'code' : undefined,
   }),
   beforeLoad: ({ context, params, search }) => {
-    if (!context.viewer && !context.offline) {
+    /**
+     * Offline there's no viewer to check: the root says so, or the page started from the prerendered app shell, whose
+     * context is the prerender's. The loader then opens this device's copy, if it has one.
+     */
+    if (!context.viewer && !context.offline && !context.shell) {
       const query = new URLSearchParams()
       if (search.path) query.set('path', search.path)
       if (search.view) query.set('view', search.view)

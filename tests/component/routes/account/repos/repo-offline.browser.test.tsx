@@ -124,6 +124,21 @@ describe('the repository page offline', () => {
     expect(page.getByRole('button', { name: 'Download for offline' }).query()).toBeNull()
   })
 
+  it('opens from the copy when the page starts from the offline app shell, without sending it to sign in', async () => {
+    await keepCopy()
+    const router = await mountRoute(
+      Route,
+      '/account/repos/$id',
+      { sourceUrl: null },
+      {
+        url: `/account/repos/${REPO_ID}`,
+        context: { viewer: null, offline: false, shell: true },
+      },
+    )
+    await expect.element(page.getByTestId('repo-offline')).toHaveTextContent('Offline')
+    expect(router.state.location.pathname).toBe(`/account/repos/${REPO_ID}`)
+  })
+
   it('browses a folder, a file and a folder deep in the tree without asking the server', async () => {
     await keepCopy()
     await openOffline()
@@ -196,6 +211,12 @@ describe('the repositories list offline', () => {
     expect(page.getByRole('textbox', { name: 'Repository address' }).query()).toBeNull()
     expect(page.getByRole('button', { name: 'Remove' }).query()).toBeNull()
     expect(page.getByRole('button', { name: 'Refresh' }).query()).toBeNull()
+  })
+
+  it('lists them when the page starts from the offline app shell', async () => {
+    await keepCopy()
+    await mountRoute(ReposRoute, '/account/repos', { sourceUrl: null }, { context: { viewer: null, shell: true } })
+    await expect.element(page.getByRole('link', { name: 'folio-test/sample' })).toBeVisible()
   })
 
   it('says when no repository is downloaded', async () => {

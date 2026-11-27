@@ -15,6 +15,11 @@ export interface TestRouteContext {
   viewer?: { username: string } | null
   /** True when the root route found no network, as `__root.tsx` sets it. */
   offline?: boolean
+  /**
+   * True when the page started from the prerendered app shell, which the service worker serves offline: its root
+   * context is the prerender's, so it says neither offline nor signed in.
+   */
+  shell?: boolean
 }
 
 /**

@@ -7,7 +7,9 @@ import { SITE_NAME } from '~/shared/lib/site'
 
 export const Route = createFileRoute('/account/repos/')({
   beforeLoad: ({ context }) => {
-    if (!context.viewer && !context.offline) throw redirect({ to: '/login', search: { next: '/account/repos' } })
+    /** Offline, from the root or the prerendered app shell, the loader lists this device's copies instead. */
+    if (!context.viewer && !context.offline && !context.shell)
+      throw redirect({ to: '/login', search: { next: '/account/repos' } })
   },
   loader: async () => {
     try {
