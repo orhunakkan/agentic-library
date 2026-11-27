@@ -268,7 +268,7 @@ export function sniffPicture(bytes: Uint8Array): string | null {
   return null
 }
 
-const treeKey = (row: RepoRow): TreeKey => ({
+export const treeKey = (row: RepoRow): TreeKey => ({
   githubId: row.githubId,
   owner: row.owner,
   name: row.name,

@@ -183,4 +183,21 @@ export const FIXTURE_REPOS: FixtureRepo[] = [
     ],
     truncated: true,
   },
+  {
+    id: 1008,
+    owner: 'folio-test',
+    name: 'bulky',
+    defaultBranch: 'main',
+    description: 'More source than a download may fetch.',
+    refs: { main: 0 },
+    commits: [
+      {
+        sha: hex('9'),
+        files: {
+          'README.md': { content: '# Bulky\n' },
+          ...Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`data/part${i}.txt`, { size: 1024 * 1024 }])),
+        },
+      },
+    ],
+  },
 ]

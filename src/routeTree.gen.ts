@@ -84,6 +84,7 @@ import { Route as AccountBooksIdOpenLibraryRouteImport } from './routes/account/
 import { Route as AccountHighlightsExportIndexRouteImport } from './routes/account/highlights/export/index'
 import { Route as AccountHighlightsExportBookRouteImport } from './routes/account/highlights/export/$book'
 import { Route as AccountReposIdIndexRouteImport } from './routes/account/repos/$id/index'
+import { Route as AccountReposIdOfflineRouteImport } from './routes/account/repos/$id/offline'
 import { Route as AccountReposIdRawRouteImport } from './routes/account/repos/$id/raw'
 import { Route as AccountShelvesIdIndexRouteImport } from './routes/account/shelves/$id/index'
 import { Route as AccountShelvesIdBooksRouteImport } from './routes/account/shelves/$id/books'
@@ -475,6 +476,11 @@ const AccountReposIdIndexRoute = AccountReposIdIndexRouteImport.update({
   path: '/account/repos/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountReposIdOfflineRoute = AccountReposIdOfflineRouteImport.update({
+  id: '/account/repos/$id/offline',
+  path: '/account/repos/$id/offline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountReposIdRawRoute = AccountReposIdRawRouteImport.update({
   id: '/account/repos/$id/raw',
   path: '/account/repos/$id/raw',
@@ -602,6 +608,7 @@ export interface FileRoutesByFullPath {
   '/account/books/$id/finish': typeof AccountBooksIdFinishRoute
   '/account/books/$id/open-library': typeof AccountBooksIdOpenLibraryRoute
   '/account/highlights/export/$book': typeof AccountHighlightsExportBookRoute
+  '/account/repos/$id/offline': typeof AccountReposIdOfflineRoute
   '/account/repos/$id/raw': typeof AccountReposIdRawRoute
   '/account/shelves/$id/books': typeof AccountShelvesIdBooksRoute
   '/account/users/invites/$id': typeof AccountUsersInvitesIdRoute
@@ -689,6 +696,7 @@ export interface FileRoutesByTo {
   '/account/books/$id/finish': typeof AccountBooksIdFinishRoute
   '/account/books/$id/open-library': typeof AccountBooksIdOpenLibraryRoute
   '/account/highlights/export/$book': typeof AccountHighlightsExportBookRoute
+  '/account/repos/$id/offline': typeof AccountReposIdOfflineRoute
   '/account/repos/$id/raw': typeof AccountReposIdRawRoute
   '/account/shelves/$id/books': typeof AccountShelvesIdBooksRoute
   '/account/users/invites/$id': typeof AccountUsersInvitesIdRoute
@@ -777,6 +785,7 @@ export interface FileRoutesById {
   '/account/books/$id/finish': typeof AccountBooksIdFinishRoute
   '/account/books/$id/open-library': typeof AccountBooksIdOpenLibraryRoute
   '/account/highlights/export/$book': typeof AccountHighlightsExportBookRoute
+  '/account/repos/$id/offline': typeof AccountReposIdOfflineRoute
   '/account/repos/$id/raw': typeof AccountReposIdRawRoute
   '/account/shelves/$id/books': typeof AccountShelvesIdBooksRoute
   '/account/users/invites/$id': typeof AccountUsersInvitesIdRoute
@@ -866,6 +875,7 @@ export interface FileRouteTypes {
     | '/account/books/$id/finish'
     | '/account/books/$id/open-library'
     | '/account/highlights/export/$book'
+    | '/account/repos/$id/offline'
     | '/account/repos/$id/raw'
     | '/account/shelves/$id/books'
     | '/account/users/invites/$id'
@@ -953,6 +963,7 @@ export interface FileRouteTypes {
     | '/account/books/$id/finish'
     | '/account/books/$id/open-library'
     | '/account/highlights/export/$book'
+    | '/account/repos/$id/offline'
     | '/account/repos/$id/raw'
     | '/account/shelves/$id/books'
     | '/account/users/invites/$id'
@@ -1040,6 +1051,7 @@ export interface FileRouteTypes {
     | '/account/books/$id/finish'
     | '/account/books/$id/open-library'
     | '/account/highlights/export/$book'
+    | '/account/repos/$id/offline'
     | '/account/repos/$id/raw'
     | '/account/shelves/$id/books'
     | '/account/users/invites/$id'
@@ -1128,6 +1140,7 @@ export interface RootRouteChildren {
   AccountBooksIdFinishRoute: typeof AccountBooksIdFinishRoute
   AccountBooksIdOpenLibraryRoute: typeof AccountBooksIdOpenLibraryRoute
   AccountHighlightsExportBookRoute: typeof AccountHighlightsExportBookRoute
+  AccountReposIdOfflineRoute: typeof AccountReposIdOfflineRoute
   AccountReposIdRawRoute: typeof AccountReposIdRawRoute
   AccountShelvesIdBooksRoute: typeof AccountShelvesIdBooksRoute
   AccountUsersInvitesIdRoute: typeof AccountUsersInvitesIdRoute
@@ -1670,6 +1683,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountReposIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/repos/$id/offline': {
+      id: '/account/repos/$id/offline'
+      path: '/account/repos/$id/offline'
+      fullPath: '/account/repos/$id/offline'
+      preLoaderRoute: typeof AccountReposIdOfflineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account/repos/$id/raw': {
       id: '/account/repos/$id/raw'
       path: '/account/repos/$id/raw'
@@ -1816,6 +1836,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountBooksIdFinishRoute: AccountBooksIdFinishRoute,
   AccountBooksIdOpenLibraryRoute: AccountBooksIdOpenLibraryRoute,
   AccountHighlightsExportBookRoute: AccountHighlightsExportBookRoute,
+  AccountReposIdOfflineRoute: AccountReposIdOfflineRoute,
   AccountReposIdRawRoute: AccountReposIdRawRoute,
   AccountShelvesIdBooksRoute: AccountShelvesIdBooksRoute,
   AccountUsersInvitesIdRoute: AccountUsersInvitesIdRoute,
