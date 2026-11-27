@@ -63,7 +63,7 @@ export default defineConfig({
       /** Components, the React hooks beside them, and the route pages, which only a browser test can run. */
       include: ['src/client/**/*.tsx', 'src/client/**/use-*.ts', 'src/routes/**/*.tsx'],
       exclude: ['**/*.test.ts', '**/*.test.tsx'],
-      thresholds: { statements: 44, branches: 34, functions: 39, lines: 45 },
+      thresholds: { statements: 58, branches: 47, functions: 51, lines: 59 },
     },
   },
 })
