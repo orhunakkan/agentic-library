@@ -63,7 +63,7 @@ const TILES: readonly Tile[] = [
     icon: MonitorDown,
     hue: 'cyan',
     title: 'Install it as an app',
-    text: 'Add Folio to your home screen or desktop. No account needed.',
+    text: 'Add Folio to your home screen or desktop.',
   },
   {
     icon: MonitorSmartphone,
@@ -88,7 +88,7 @@ export function MoreFeatures() {
       >
         And everything around the reading.
       </h2>
-      <p className="mt-3 text-[17px] leading-relaxed text-body">With an account, except installing Folio as an app.</p>
+      <p className="mt-3 text-[17px] leading-relaxed text-body">With your account.</p>
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {TILES.map(({ icon: Icon, hue, title, text }) => (
           <li key={title} className="rounded-2xl border border-line bg-surface p-5 sm:p-6">

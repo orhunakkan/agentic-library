@@ -8,7 +8,7 @@ function questions(sourceUrl: string | null): { q: string; a: ReactNode }[] {
   return [
     {
       q: 'Do I need an account to read?',
-      a: 'No. The whole library and read aloud are open to everyone, and so is installing Folio as an app. An account adds Ask the AI, your own books, audiobooks and articles, highlights, notes and flashcards, word lookup, running code, GitHub repositories, reading goals, shelves, offline reading, sync across devices and passkeys; the Sign in page says how to get one.',
+      a: 'Yes. Folio doesn’t come with books: you bring your own, and they’re kept in your account. An account is free, and it also gives you Ask the AI, audiobooks and articles, highlights, notes and flashcards, word lookup, running code, GitHub repositories, reading goals, shelves, offline reading, sync across devices and passkeys. The Sign in page says how to get one.',
     },
     {
       q: 'What do the AI features cost?',

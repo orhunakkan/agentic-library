@@ -93,8 +93,8 @@ export function Features() {
         >
           <p>
             Pick the page’s colours, one of five reading fonts, the size of the type, the line spacing, the width of the
-            column, and whether pages turn or scroll. Folio remembers them, and with an account your theme, font,
-            spacing and width follow you to every device.
+            column, and whether pages turn or scroll. Folio remembers them, and your theme, font, spacing and width
+            follow you to every device.
           </p>
         </FeatureRow>
       </div>

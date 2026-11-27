@@ -62,6 +62,14 @@ describe.each([
     await expect.element(featureRow('Your own books')).toMatchTextContent('M4B')
   })
 
+  it('doesn’t suggest reading settings work without an account', async () => {
+    await mountHome(viewer)
+    await expect
+      .element(featureRow('Read your way'))
+      .toMatchTextContent('your theme, font, spacing and width follow you to every device')
+    await expect.element(featureRow('Read your way')).not.toMatchTextContent('with an account')
+  })
+
   it('shows the nine smaller features in order, after the rows', async () => {
     await mountHome(viewer)
     await expect.element(more).toBeVisible()
@@ -86,16 +94,16 @@ describe.each([
     expect(features.element().compareDocumentPosition(more.element())).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
-  it('says which of them need an account, and that installing doesn’t', async () => {
+  it('says they come with an account', async () => {
     await mountHome(viewer)
-    await expect.element(more.getByText('With an account, except installing Folio as an app.')).toBeVisible()
-    await expect.element(tile('Install it as an app')).toMatchTextContent('No account needed.')
+    await expect.element(more.getByText('With your account.', { exact: true })).toBeVisible()
+    await expect.element(tile('Install it as an app')).not.toMatchTextContent('No account needed')
   })
 
-  it('says what an account adds, matching the page', async () => {
+  it('says reading needs an account, since Folio doesn’t come with books, and what else it adds', async () => {
     await mountHome(viewer)
     await openQuestion('Do I need an account to read?')
-    const answer = faq.getByText(/^No\. /)
+    const answer = faq.getByText(/^Yes\. Folio doesn’t come with books: you bring your own/)
     for (const feature of ['Ask the AI', 'audiobooks', 'flashcards', 'offline reading', 'passkeys'])
       await expect.element(answer).toMatchTextContent(feature)
   })
