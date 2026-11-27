@@ -1,26 +1,36 @@
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { ToastProvider } from '~/client/components/Toast'
 import { type HighlightLoadAnswer, PROBLEM_TEXT } from '~/client/features/highlights/highlight-list'
-import type { HighlightProblem } from '~/client/features/highlights/highlights-client'
 import { useHighlights } from '~/client/features/highlights/use-highlights'
-import type { ChangeResult } from '~/client/lib/post'
+import type { HighlightErrorCode } from '~/server/highlights/actions'
 import type { HighlightColor } from '~/shared/highlights/colors'
 import type { HighlightView } from '~/shared/highlights/group'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 import { mountHook } from '../../../../support/client/mount'
 
 /** The book's highlights, as the server function loads them; each test says what it answers. */
 const server = vi.hoisted(() => ({ getBookHighlights: vi.fn() }))
 vi.mock('~/server/account-functions', () => server)
 
-/** The highlight endpoints, answered per test. */
-const requests = vi.hoisted(() => ({
-  createHighlight: vi.fn(),
-  updateHighlight: vi.fn(),
-  deleteHighlight: vi.fn(),
-}))
-vi.mock('~/client/features/highlights/highlights-client', () => requests)
+/**
+ * A highlight endpoint's answer, as `src/server/highlights/actions.ts` sends it. The refusal codes are the handler's
+ * own type; the success body has no shared type, so it is written to match the handler.
+ */
+const highlightJson = (status: number, body: { highlight: HighlightView } | ErrorAnswer<HighlightErrorCode>) =>
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+/** The network: each test says what the highlight endpoints answer, and a request it didn't expect gets no answer. */
+let fetchSpy: MockInstance<typeof fetch>
+
+/** Each request sent to the network, as its path, method and JSON body. */
+const sent = () =>
+  fetchSpy.mock.calls.map(([path, init]) => ({
+    path: String(path),
+    method: init?.method,
+    body: JSON.parse(String(init?.body)) as unknown,
+  }))
 
 function highlight(id: string, color: HighlightColor = 'yellow'): HighlightView {
   return {
@@ -89,6 +99,7 @@ beforeEach(() => {
   time = 1_000_000
   vi.spyOn(Date, 'now').mockImplementation(() => time)
   server.getBookHighlights.mockResolvedValue(ready())
+  fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No answer for this request'))
 })
 
 describe('useHighlights', () => {
@@ -146,15 +157,18 @@ describe('useHighlights', () => {
 
   it('shows a new color at once, and puts the old one back and says why when the server refuses it', async () => {
     server.getBookHighlights.mockResolvedValue(ready(highlight('h1', 'yellow')))
-    const answer = Promise.withResolvers<ChangeResult<HighlightView, HighlightProblem>>()
-    requests.updateHighlight.mockReturnValue(answer.promise)
+    const answer = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValue(answer.promise)
     const hook = mountHighlights(signedInTo('moby-dick'))
     await vi.waitFor(() => expect(hook.current.state).toBe('ready'))
 
     hook.current.recolor('h1', 'blue')
     await vi.waitFor(() => expect(hook.current.items[0]?.color).toBe('blue'))
     expect(hook.current.color).toBe('blue')
-    answer.resolve({ ok: false, problem: 'failed' })
+    expect(sent()).toEqual([
+      { path: '/account/highlights/h1', method: 'POST', body: { intent: 'update', color: 'blue' } },
+    ])
+    answer.resolve(highlightJson(500, { error: 'failed' }))
 
     await vi.waitFor(() => expect(hook.current.items[0]?.color).toBe('yellow'))
     await expect.element(page.getByRole('status')).toHaveTextContent(PROBLEM_TEXT.failed)
@@ -162,7 +176,7 @@ describe('useHighlights', () => {
 
   it('says so when a note is saved', async () => {
     server.getBookHighlights.mockResolvedValue(ready(highlight('h1')))
-    requests.updateHighlight.mockResolvedValue({ ok: true, value: { ...highlight('h1'), note: 'Call me Ishmael' } })
+    fetchSpy.mockResolvedValue(highlightJson(200, { highlight: { ...highlight('h1'), note: 'Call me Ishmael' } }))
     const hook = mountHighlights(signedInTo('moby-dick'))
     await vi.waitFor(() => expect(hook.current.state).toBe('ready'))
 

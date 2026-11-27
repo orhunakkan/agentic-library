@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { DownloadOptions, DownloadResult } from '~/client/features/offline/download'
-import { APP_CACHE_PREFIX, BOOKS_CACHE, CHECKED_KEY, listDownloads } from '~/client/features/offline/store'
+import { APP_CACHE_PREFIX, BOOKS_CACHE, CHECKED_KEY } from '~/client/features/offline/store'
 import { useDownload } from '~/client/features/offline/use-download'
 import { offlineBookUrl } from '~/shared/offline/book'
 import { encodeSummary, type OfflineSummary, SUMMARY_HEADER } from '~/shared/offline/summary'
@@ -9,18 +9,15 @@ import { mountHookAt, type TestRouteContext } from '../../../../support/client/r
 
 /**
  * Downloading fetches the app's files and the book's into Cache Storage; that pipeline is `download.ts`'s, and its own
- * tests cover it. Here it is a stand-in each test drives, while the list of downloads and removing one run for real
- * against Chromium's Cache Storage. `listDownloads` can be held back by a test to answer late.
+ * tests cover it. It saves each file with `Cache.add`, which fetches on its own rather than through `fetch`, so a
+ * stubbed `fetch` can't answer or hold those requests. Here it is a stand-in each test drives, while the list of
+ * downloads and removing one run for real against Chromium's Cache Storage, which a test can hold back to answer late.
  */
 const downloads = vi.hoisted(() => ({ downloadBook: vi.fn() }))
 vi.mock('~/client/features/offline/download', async (importOriginal) => ({
   ...(await importOriginal<typeof import('~/client/features/offline/download')>()),
   downloadBook: downloads.downloadBook,
 }))
-vi.mock('~/client/features/offline/store', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('~/client/features/offline/store')>()
-  return { ...actual, listDownloads: vi.fn(actual.listDownloads) }
-})
 
 const SIGNED_IN: TestRouteContext = { viewer: { username: 'ada' } }
 const NAV = { stats: 1 }
@@ -73,7 +70,6 @@ async function clearCaches() {
 describe('useDownload', () => {
   beforeEach(async () => {
     downloads.downloadBook.mockReset()
-    vi.mocked(listDownloads).mockClear()
     await clearCaches()
   })
 
@@ -94,8 +90,9 @@ describe('useDownload', () => {
     onTestFinished(() => {
       delete document.documentElement.dataset.embed
     })
+    const looked = vi.spyOn(caches, 'has')
     const hook = await mountHookAt('/books/essays', useDownloadOf, { slug: 'essays', nav: NAV }, { context: SIGNED_IN })
-    expect(listDownloads).not.toHaveBeenCalled()
+    expect(looked).not.toHaveBeenCalled()
     expect(hook.current.state).toEqual({ kind: 'unavailable' })
   })
 
@@ -157,16 +154,20 @@ describe('useDownload', () => {
   })
 
   it('ignores the list for the previous book when it answers after the book changed', async () => {
-    let answer: (list: OfflineSummary[]) => void = () => {}
-    const late = new Promise<OfflineSummary[]>((resolve) => {
-      answer = resolve
-    })
-    vi.mocked(listDownloads).mockImplementationOnce(() => late)
+    await keepDownloaded('essays', 4_096)
+    /** The first look in Cache Storage, for the first book, answers only when the test says. */
+    const late = Promise.withResolvers<boolean>()
+    vi.spyOn(caches, 'has').mockReturnValueOnce(late.promise)
+    const read = vi.spyOn(Cache.prototype, 'match')
     const hook = await mountHookAt('/books/essays', useDownloadOf, { slug: 'essays', nav: NAV }, { context: SIGNED_IN })
     hook.rerender({ slug: 'poems', nav: NAV })
     await expect.poll(() => hook.current.state).toEqual({ kind: 'idle' })
-    answer([summaryOf('essays', 4_096)])
-    await late
+    const readsBefore = read.mock.calls.length
+    late.resolve(true)
+    /** The late list finds the first book's copy once it reads that entry; the next task sees what it answered. */
+    await vi.waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(readsBefore))
+    await read.mock.results[readsBefore]?.value
+    await new Promise((resolve) => setTimeout(resolve, 0))
     /** Rendering again at once flushes any state the late answer set, so the check below sees it. */
     hook.rerender({ slug: 'poems', nav: NAV })
     expect(hook.current.state).toEqual({ kind: 'idle' })

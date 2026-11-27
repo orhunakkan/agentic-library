@@ -1,12 +1,37 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import type { RepoResult } from '~/client/features/github-repos/repos-client'
 import { useRepos } from '~/client/features/github-repos/use-repos'
-import type { RepoView } from '~/shared/github-repos/contract'
+import type { RepoErrorCode, RepoView } from '~/shared/github-repos/contract'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 import { mountHook } from '../../../../support/client/mount'
 
-/** The requests the hook sends, answered by each test. Their own reading of the server's answer is unit-tested. */
-const requests = vi.hoisted(() => ({ addRepo: vi.fn(), refreshRepo: vi.fn(), removeRepo: vi.fn() }))
-vi.mock('~/client/features/github-repos/repos-client', () => requests)
+/**
+ * A repo endpoint's answer, as `src/server/github-repos/actions.ts` sends it. The refusal codes are the contract's;
+ * the success bodies have no shared type, so they are written to match the handler.
+ */
+const repoJson = (
+  status: number,
+  body:
+    | { repo: RepoView; path: string }
+    | { repo: RepoView; changed: boolean }
+    | { removed: true }
+    | ErrorAnswer<RepoErrorCode>,
+) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+/** The network: each test says what the repo endpoints answer, and a request it didn't expect gets no answer. */
+let fetchSpy: MockInstance<typeof fetch>
+
+/** Each request sent to the network, as its path, method and JSON body. */
+const sent = () =>
+  fetchSpy.mock.calls.map(([path, init]) => ({
+    path: String(path),
+    method: init?.method,
+    body: JSON.parse(String(init?.body)) as unknown,
+  }))
+
+beforeEach(() => {
+  fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No answer for this request'))
+})
 
 const repo = (id: string, commit = 'aaaaaaa'): RepoView => ({
   id,
@@ -35,20 +60,22 @@ describe('useRepos', () => {
 
   it('puts an added repo first, once, and remembers the path it opens at', async () => {
     const readded = repo('two', 'bbbbbbb')
-    requests.addRepo.mockResolvedValue({ ok: true, value: { repo: readded, path: 'docs/README.md' } })
+    fetchSpy.mockResolvedValue(repoJson(201, { repo: readded, path: 'docs/README.md' }))
     const hook = mountHook(useRepos, [repo('one'), repo('two')])
 
     const result = await hook.current.add('https://github.com/example/repo-two')
 
     expect(result.ok).toBe(true)
-    expect(requests.addRepo).toHaveBeenCalledWith('https://github.com/example/repo-two')
+    expect(sent()).toEqual([
+      { path: '/account/repos/new', method: 'POST', body: { url: 'https://github.com/example/repo-two' } },
+    ])
     await vi.waitFor(() => expect(ids(hook.current.repos)).toEqual(['two', 'one']))
     expect(hook.current.repos[0]?.commit).toBe('bbbbbbb')
     expect(hook.current.paths).toEqual({ two: 'docs/README.md' })
   })
 
   it('records no path for a repo added at its root', async () => {
-    requests.addRepo.mockResolvedValue({ ok: true, value: { repo: repo('new'), path: '' } })
+    fetchSpy.mockResolvedValue(repoJson(201, { repo: repo('new'), path: '' }))
     const hook = mountHook(useRepos, [])
     await hook.current.add('https://github.com/example/repo-new')
     await vi.waitFor(() => expect(ids(hook.current.repos)).toEqual(['new']))
@@ -56,14 +83,14 @@ describe('useRepos', () => {
   })
 
   it('keeps both of two adds that finish out of order', async () => {
-    const first = Promise.withResolvers<RepoResult<{ repo: RepoView; path: string }>>()
-    const second = Promise.withResolvers<RepoResult<{ repo: RepoView; path: string }>>()
-    requests.addRepo.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const first = Promise.withResolvers<Response>()
+    const second = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
     const hook = mountHook(useRepos, [repo('old')])
 
     const adding = [hook.current.add('first'), hook.current.add('second')]
-    second.resolve({ ok: true, value: { repo: repo('second'), path: 'b' } })
-    first.resolve({ ok: true, value: { repo: repo('first'), path: 'a' } })
+    second.resolve(repoJson(201, { repo: repo('second'), path: 'b' }))
+    first.resolve(repoJson(201, { repo: repo('first'), path: 'a' }))
     await Promise.all(adding)
 
     await vi.waitFor(() => expect(ids(hook.current.repos)).toEqual(['first', 'second', 'old']))
@@ -71,30 +98,29 @@ describe('useRepos', () => {
   })
 
   it('replaces a refreshed repo where it is', async () => {
-    requests.refreshRepo.mockResolvedValue({ ok: true, value: { repo: repo('two', 'ccccccc'), changed: true } })
+    fetchSpy.mockResolvedValue(repoJson(200, { repo: repo('two', 'ccccccc'), changed: true }))
     const hook = mountHook(useRepos, [repo('one'), repo('two'), repo('three')])
 
     await hook.current.refresh('two')
 
-    expect(requests.refreshRepo).toHaveBeenCalledWith('two')
+    expect(sent()).toEqual([{ path: '/account/repos/two', method: 'POST', body: { intent: 'refresh' } }])
     await vi.waitFor(() => expect(hook.current.repos[1]?.commit).toBe('ccccccc'))
     expect(ids(hook.current.repos)).toEqual(['one', 'two', 'three'])
   })
 
   it('drops a removed repo', async () => {
-    requests.removeRepo.mockResolvedValue({ ok: true, value: true })
+    fetchSpy.mockResolvedValue(repoJson(200, { removed: true }))
     const hook = mountHook(useRepos, [repo('one'), repo('two')])
 
     await hook.current.remove('one')
 
-    expect(requests.removeRepo).toHaveBeenCalledWith('one')
+    expect(sent()).toEqual([{ path: '/account/repos/one', method: 'POST', body: { intent: 'remove' } }])
     await vi.waitFor(() => expect(ids(hook.current.repos)).toEqual(['two']))
   })
 
   it('changes nothing when the server refuses, and hands back why', async () => {
-    requests.addRepo.mockResolvedValue(refused)
-    requests.refreshRepo.mockResolvedValue(refused)
-    requests.removeRepo.mockResolvedValue(refused)
+    /** A fresh answer for each request, as a body can be read only once. */
+    fetchSpy.mockImplementation(async () => repoJson(503, { error: 'busy', retryAt: null }))
     const start = [repo('one'), repo('two')]
     const hook = mountHook(useRepos, start)
 

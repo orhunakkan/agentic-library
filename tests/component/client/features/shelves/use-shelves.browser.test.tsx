@@ -1,21 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ShelfResult } from '~/client/features/shelves/shelves-client'
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { useShelves } from '~/client/features/shelves/use-shelves'
-import type { ShelfView, ShelvesState } from '~/shared/shelves/contract'
+import type { ShelfAnswer, ShelfErrorAnswer, ShelfView, ShelvesState } from '~/shared/shelves/contract'
 import { mountHookAt } from '../../../../support/client/router'
 
 /** The shelf list the hook loads itself when the page has none; each test says what the server answers. */
 const server = vi.hoisted(() => ({ getShelves: vi.fn() }))
 vi.mock('~/server/account-functions', () => server)
 
-/** The shelf endpoints, answered per test. */
-const requests = vi.hoisted(() => ({
-  createShelf: vi.fn(),
-  renameShelf: vi.fn(),
-  deleteShelf: vi.fn(),
-  setShelfBook: vi.fn(),
-}))
-vi.mock('~/client/features/shelves/shelves-client', () => requests)
+/** The shelf endpoints' answers, typed by their contract so a renamed code or field fails the typecheck. */
+const shelfJson = (status: number, body: ShelfAnswer | ShelfErrorAnswer) =>
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+/** The network: each test says what the shelf endpoints answer, and a request it didn't expect gets no answer. */
+let fetchSpy: MockInstance<typeof fetch>
+
+/** Each request sent to the network, as its path, method and JSON body. */
+const sent = () =>
+  fetchSpy.mock.calls.map(([path, init]) => ({
+    path: String(path),
+    method: init?.method,
+    body: JSON.parse(String(init?.body)) as unknown,
+  }))
 
 const favourites: ShelfView = { id: 's1', name: 'Favourites', books: ['moby-dick'] }
 const toRead: ShelfView = { id: 's2', name: 'To read', books: [] }
@@ -34,6 +39,7 @@ const mountShelves = (props: { initial?: readonly ShelfView[] } = {}) =>
 
 beforeEach(() => {
   server.getShelves.mockReturnValue(new Promise<ShelvesState>(() => {}))
+  fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No answer for this request'))
 })
 
 describe('useShelves', () => {
@@ -84,14 +90,15 @@ describe('useShelves', () => {
   })
 
   it('ticks a book on a shelf at once, and takes it off again when the server refuses', async () => {
-    const answer = Promise.withResolvers<ShelfResult<ShelfView>>()
-    requests.setShelfBook.mockReturnValue(answer.promise)
+    const answer = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValue(answer.promise)
     const hook = await mountShelves({ initial: [toRead] })
     const invalidate = vi.spyOn(hook.router, 'invalidate')
 
     const result = hook.current.toggle('s2', 'emma', true)
     await vi.waitFor(() => expect(hook.current.shelves[0]?.books).toEqual(['emma']))
-    answer.resolve({ ok: false, problem: 'limit_books' })
+    expect(sent()).toEqual([{ path: '/account/shelves/s2/books', method: 'POST', body: { book: 'emma', on: true } }])
+    answer.resolve(shelfJson(409, { error: 'quota', scope: 'shelf_books', max: 2000 }))
 
     expect(await result).toBe('limit_books')
     await vi.waitFor(() => expect(hook.current.shelves[0]?.books).toEqual([]))
@@ -99,11 +106,12 @@ describe('useShelves', () => {
   })
 
   it('has the library page load its shelves again once the server keeps a change', async () => {
-    requests.renameShelf.mockResolvedValue({ ok: true, value: { ...toRead, name: 'Next up' } })
+    fetchSpy.mockResolvedValue(shelfJson(200, { shelf: { ...toRead, name: 'Next up' } }))
     const hook = await mountShelves({ initial: [toRead] })
     const invalidate = vi.spyOn(hook.router, 'invalidate').mockResolvedValue()
 
     expect(await hook.current.rename('s2', 'Next up')).toBeNull()
+    expect(sent()).toEqual([{ path: '/account/shelves/s2', method: 'POST', body: { name: 'Next up' } }])
 
     await vi.waitFor(() => expect(names(hook.current.shelves)).toEqual(['Next up']))
     expect(invalidate).toHaveBeenCalledOnce()

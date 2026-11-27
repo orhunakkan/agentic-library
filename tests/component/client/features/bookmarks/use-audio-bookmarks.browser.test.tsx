@@ -1,6 +1,6 @@
 import type { AnyRouter } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { ToastProvider } from '~/client/components/Toast'
 import {
@@ -8,18 +8,35 @@ import {
   type AudioLoadAnswer,
   type NewAudioBookmark,
 } from '~/client/features/bookmarks/audio-bookmark-list'
-import type { BookmarkResult } from '~/client/features/bookmarks/bookmarks-client'
 import { useAudioBookmarks } from '~/client/features/bookmarks/use-audio-bookmarks'
-import type { AudioBookmarkView, EpisodeRef } from '~/shared/bookmarks/audio'
+import type { BookmarkErrorCode } from '~/server/bookmarks/actions'
+import { type AudioBookmarkView, type EpisodeRef, MAX_AUDIO_BOOKMARKS_PER_USER } from '~/shared/bookmarks/audio'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 import { mountHookAt } from '../../../../support/client/router'
 
 /** The book's audio bookmarks, as the server function loads them; each test says what it answers. */
 const server = vi.hoisted(() => ({ getAudioBookmarks: vi.fn() }))
 vi.mock('~/server/account-functions', () => server)
 
-/** The audio bookmark endpoints, answered per test. */
-const requests = vi.hoisted(() => ({ createAudioBookmark: vi.fn(), deleteAudioBookmark: vi.fn() }))
-vi.mock('~/client/features/bookmarks/audio-bookmarks-client', () => requests)
+/**
+ * An audio bookmark endpoint's answer, as `src/server/bookmarks/audio-actions.ts` sends it. The refusal codes are the
+ * handler's own type; the success bodies have no shared type, so they are written to match the handler.
+ */
+const audioBookmarkJson = (
+  status: number,
+  body: { bookmark: AudioBookmarkView } | { ok: true } | ErrorAnswer<BookmarkErrorCode>,
+) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+/** The network: each test says what the audio bookmark endpoints answer, and an unexpected request gets no answer. */
+let fetchSpy: MockInstance<typeof fetch>
+
+/** Each request sent to the network, as its path, method and JSON body. */
+const sent = () =>
+  fetchSpy.mock.calls.map(([path, init]) => ({
+    path: String(path),
+    method: init?.method,
+    body: JSON.parse(String(init?.body)) as unknown,
+  }))
 
 /**
  * The hook keeps one list per book for the whole page, as the player outlives the pages it plays on, so a list made
@@ -84,6 +101,7 @@ beforeEach(() => {
   time = 1_000_000
   vi.spyOn(Date, 'now').mockImplementation(() => time)
   server.getAudioBookmarks.mockResolvedValue(ready())
+  fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No answer for this request'))
 })
 
 describe('useAudioBookmarks', () => {
@@ -157,18 +175,20 @@ describe('useAudioBookmarks', () => {
 
   it('bookmarks the moment at once, and takes it away and says why when the server refuses', async () => {
     const book = nextBook()
-    const answer = Promise.withResolvers<BookmarkResult<{ bookmark: AudioBookmarkView; created: boolean }>>()
-    requests.createAudioBookmark.mockReturnValue(answer.promise)
+    const answer = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValue(answer.promise)
     const hook = await mountAudioBookmarks(book)
     await vi.waitFor(() => expect(hook.current.state).toBe('ready'))
 
     hook.current.add(newMoment(book, 65_000))
     await vi.waitFor(() => expect(hook.current.items).toHaveLength(1))
     expect(hook.current.items[0]).toMatchObject({ kind: 'episode', positionMs: 65_000, pending: true })
-    expect(requests.createAudioBookmark).toHaveBeenCalledExactlyOnceWith(newMoment(book, 65_000).request)
+    expect(sent()).toEqual([
+      { path: '/account/bookmarks/audio/new', method: 'POST', body: newMoment(book, 65_000).request },
+    ])
     await expect.element(page.getByRole('status')).toHaveTextContent('Moment bookmarked · Pilot · 1:05')
 
-    answer.resolve({ ok: false, problem: 'quota-user' })
+    answer.resolve(audioBookmarkJson(409, { error: 'quota', scope: 'user', max: MAX_AUDIO_BOOKMARKS_PER_USER }))
     await vi.waitFor(() => expect(hook.current.items).toEqual([]))
     await expect.element(page.getByRole('status')).toHaveTextContent(AUDIO_PROBLEM_TEXT['quota-user'])
   })
@@ -176,8 +196,8 @@ describe('useAudioBookmarks', () => {
   it('puts a removed bookmark back and says why when the server refuses', async () => {
     const book = nextBook()
     server.getAudioBookmarks.mockResolvedValue(ready(moment('a1', 65_000)))
-    const answer = Promise.withResolvers<BookmarkResult<true>>()
-    requests.deleteAudioBookmark.mockReturnValue(answer.promise)
+    const answer = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValue(answer.promise)
     const hook = await mountAudioBookmarks(book)
     await vi.waitFor(() => expect(ids(hook.current.items)).toEqual(['a1']))
 
@@ -185,7 +205,8 @@ describe('useAudioBookmarks', () => {
     await vi.waitFor(() => expect(hook.current.items).toEqual([]))
     await expect.element(page.getByRole('status')).toHaveTextContent('Bookmark removed')
 
-    answer.resolve({ ok: false, problem: 'failed' })
+    expect(sent()).toEqual([{ path: '/account/bookmarks/audio/a1', method: 'POST', body: { intent: 'delete' } }])
+    answer.resolve(audioBookmarkJson(500, { error: 'failed' }))
     await vi.waitFor(() => expect(ids(hook.current.items)).toEqual(['a1']))
     await expect.element(page.getByRole('status')).toHaveTextContent(AUDIO_PROBLEM_TEXT.failed)
   })

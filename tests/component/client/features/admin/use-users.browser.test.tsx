@@ -1,22 +1,32 @@
-import { describe, expect, it, vi } from 'vitest'
-import type * as client from '~/client/features/admin/admin-client'
-import type { AdminResult, ChangedUser } from '~/client/features/admin/admin-client'
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { useUsers } from '~/client/features/admin/use-users'
-import type { AdminUserView, InviteView } from '~/shared/admin/users'
+import type { AdminProblem, AdminUserView, InviteView } from '~/shared/admin/users'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 import { mountHook } from '../../../../support/client/mount'
 
-/** The requests the hook's store sends, answered by each test; the wording helpers stay real. */
-const requests = vi.hoisted(() => ({
-  addUser: vi.fn(),
-  changeUser: vi.fn(),
-  deleteUser: vi.fn(),
-  createInvite: vi.fn(),
-  revokeInvite: vi.fn(),
-}))
-vi.mock('~/client/features/admin/admin-client', async (importOriginal) => ({
-  ...(await importOriginal<typeof client>()),
-  ...requests,
-}))
+/**
+ * A user or invite endpoint's answer, as `src/server/admin/actions.ts` and `invites.ts` send it. The refusal codes are
+ * the shared `AdminProblem`; the success bodies have no shared type, so they are written to match the handlers.
+ */
+const adminJson = (
+  status: number,
+  body: { user: AdminUserView } | { deleted: string } | { revoked: string } | ErrorAnswer<AdminProblem>,
+) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+/** The network: each test says what the admin endpoints answer, and a request it didn't expect gets no answer. */
+let fetchSpy: MockInstance<typeof fetch>
+
+/** Each request sent to the network, as its path, method and JSON body. */
+const sent = () =>
+  fetchSpy.mock.calls.map(([path, init]) => ({
+    path: String(path),
+    method: init?.method,
+    body: JSON.parse(String(init?.body)) as unknown,
+  }))
+
+beforeEach(() => {
+  fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No answer for this request'))
+})
 
 const user = (username: string, change: Partial<AdminUserView> = {}): AdminUserView => ({
   username,
@@ -61,15 +71,15 @@ describe('useUsers', () => {
   })
 
   it('shows a row as busy while its change is sent, then the changed user', async () => {
-    const answer = Promise.withResolvers<AdminResult<ChangedUser>>()
-    requests.changeUser.mockReturnValue(answer.promise)
+    const answer = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValue(answer.promise)
     const hook = mountHook(useUsersOf, props([user('ada')]))
 
     const choosing = hook.current.choose('ada', 'make-admin')
     await vi.waitFor(() => expect(hook.current.busy.has('ada')).toBe(true))
-    expect(requests.changeUser).toHaveBeenCalledWith('ada', { intent: 'role', role: 'admin' })
+    expect(sent()).toEqual([{ path: '/account/users/ada', method: 'POST', body: { intent: 'role', role: 'admin' } }])
 
-    answer.resolve({ ok: true, value: { user: user('ada', { role: 'admin' }), password: null } })
+    answer.resolve(adminJson(200, { user: user('ada', { role: 'admin' }) }))
     await choosing
     await vi.waitFor(() => expect(hook.current.busy.has('ada')).toBe(false))
     expect(hook.current.users[0]?.role).toBe('admin')
@@ -77,7 +87,7 @@ describe('useUsers', () => {
   })
 
   it('keeps the user as they were when the server refuses a change', async () => {
-    requests.changeUser.mockResolvedValue({ ok: false, problem: 'last_admin' })
+    fetchSpy.mockResolvedValue(adminJson(409, { error: 'last_admin' }))
     const ada = user('ada', { role: 'admin' })
     const hook = mountHook(useUsersOf, props([ada]))
 
@@ -99,8 +109,8 @@ describe('useUsers', () => {
   })
 
   it('shows the invite gone at once, and back when the server refuses to revoke it', async () => {
-    const answer = Promise.withResolvers<AdminResult<string>>()
-    requests.revokeInvite.mockReturnValue(answer.promise)
+    const answer = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValue(answer.promise)
     const hook = mountHook(useUsersOf, props([], [invite('one', '2026-11-01T00:00:00.000Z')]))
 
     hook.current.chooseRevoke('one')
@@ -109,14 +119,14 @@ describe('useUsers', () => {
     await expect.poll(() => hook.current.invites).toEqual([])
     expect(hook.current.dialog).toBeNull()
 
-    answer.resolve({ ok: false, problem: 'failed' })
+    answer.resolve(adminJson(500, { error: 'failed' }))
     await revoking
     await vi.waitFor(() => expect(hook.current.invites.map((made) => made.id)).toEqual(['one']))
     expect(hook.current.status?.kind).toBe('error')
   })
 
   it('keeps its own users when it is rendered again with another list', async () => {
-    requests.deleteUser.mockResolvedValue({ ok: true, value: 'ada' })
+    fetchSpy.mockResolvedValue(adminJson(200, { deleted: 'ada' }))
     const hook = mountHook(useUsersOf, props([user('ada'), user('bea')]))
     await hook.current.choose('ada', 'delete')
     await hook.current.remove()

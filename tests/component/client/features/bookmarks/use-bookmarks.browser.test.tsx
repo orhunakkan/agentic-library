@@ -1,21 +1,38 @@
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { ToastProvider } from '~/client/components/Toast'
 import { type LoadAnswer, PROBLEM_TEXT } from '~/client/features/bookmarks/bookmark-list'
-import type { BookmarkResult } from '~/client/features/bookmarks/bookmarks-client'
 import { useBookmarks } from '~/client/features/bookmarks/use-bookmarks'
-import type { BookmarkView } from '~/shared/bookmarks/bookmarks'
+import type { BookmarkErrorCode } from '~/server/bookmarks/actions'
+import { type BookmarkView, MAX_BOOKMARKS_PER_BOOK } from '~/shared/bookmarks/bookmarks'
 import type { ReaderView } from '~/shared/content/reader-view'
+import type { ErrorAnswer } from '../../../../support/client/answers'
 import { mountHook } from '../../../../support/client/mount'
 
 /** The book's bookmarks, as the server function loads them; each test says what it answers. */
 const server = vi.hoisted(() => ({ getBookBookmarks: vi.fn() }))
 vi.mock('~/server/account-functions', () => server)
 
-/** The bookmark endpoints, answered per test. */
-const requests = vi.hoisted(() => ({ createBookmark: vi.fn(), deleteBookmark: vi.fn() }))
-vi.mock('~/client/features/bookmarks/bookmarks-client', () => requests)
+/**
+ * A bookmark endpoint's answer, as `src/server/bookmarks/actions.ts` sends it. The refusal codes are the handler's own
+ * type; the success bodies have no shared type, so they are written to match the handler.
+ */
+const bookmarkJson = (
+  status: number,
+  body: { bookmark: BookmarkView } | { ok: true } | ErrorAnswer<BookmarkErrorCode>,
+) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+/** The network: each test says what the bookmark endpoints answer, and a request it didn't expect gets no answer. */
+let fetchSpy: MockInstance<typeof fetch>
+
+/** Each request sent to the network, as its path, method and JSON body. */
+const sent = () =>
+  fetchSpy.mock.calls.map(([path, init]) => ({
+    path: String(path),
+    method: init?.method,
+    body: JSON.parse(String(init?.body)) as unknown,
+  }))
 
 const pageHref = (printedPage: number) => `/read/moby-dick/${printedPage}`
 
@@ -113,6 +130,7 @@ beforeEach(() => {
   time = 1_000_000
   vi.spyOn(Date, 'now').mockImplementation(() => time)
   server.getBookBookmarks.mockResolvedValue(ready())
+  fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No answer for this request'))
 })
 
 describe('useBookmarks', () => {
@@ -170,28 +188,27 @@ describe('useBookmarks', () => {
   })
 
   it('bookmarks the page at once, and takes it away and says why when the server refuses', async () => {
-    const answer = Promise.withResolvers<BookmarkResult<{ bookmark: BookmarkView; created: boolean }>>()
-    requests.createBookmark.mockReturnValue(answer.promise)
+    const answer = Promise.withResolvers<Response>()
+    fetchSpy.mockReturnValue(answer.promise)
     const hook = mountBookmarks(signedInTo('moby-dick'))
     await vi.waitFor(() => expect(hook.current.state).toBe('ready'))
 
     hook.current.toggle(viewOf(12))
     await vi.waitFor(() => expect(hook.current.onPage(pageHref(12))).toHaveLength(1))
     expect(hook.current.items[0]).toMatchObject({ pending: true, place: { page: 12, label: 'p. 12', position: 11 } })
-    expect(requests.createBookmark).toHaveBeenCalledExactlyOnceWith({
-      book: 'moby-dick',
-      position: { printedPage: 12 },
-    })
+    expect(sent()).toEqual([
+      { path: '/account/bookmarks/new', method: 'POST', body: { book: 'moby-dick', position: { printedPage: 12 } } },
+    ])
     await expect.element(page.getByRole('status')).toHaveTextContent('Page bookmarked')
 
-    answer.resolve({ ok: false, problem: 'quota-book' })
+    answer.resolve(bookmarkJson(409, { error: 'quota', scope: 'book', max: MAX_BOOKMARKS_PER_BOOK }))
     await vi.waitFor(() => expect(hook.current.items).toEqual([]))
     await expect.element(page.getByRole('status')).toHaveTextContent(PROBLEM_TEXT['quota-book'])
   })
 
   it('takes away the bookmark on the page when the page is toggled again', async () => {
     server.getBookBookmarks.mockResolvedValue(ready(bookmark('b1', 3), bookmark('b2', 9)))
-    requests.deleteBookmark.mockResolvedValue({ ok: true, value: true })
+    fetchSpy.mockResolvedValue(bookmarkJson(200, { ok: true }))
     const hook = mountBookmarks(signedInTo('moby-dick'))
     await vi.waitFor(() => expect(hook.current.state).toBe('ready'))
     expect(ids(hook.current.onPage(pageHref(9)))).toEqual(['b2'])
@@ -200,7 +217,7 @@ describe('useBookmarks', () => {
 
     await vi.waitFor(() => expect(ids(hook.current.items)).toEqual(['b1']))
     expect(hook.current.onPage(pageHref(9))).toEqual([])
-    expect(requests.deleteBookmark).toHaveBeenCalledExactlyOnceWith('b2')
+    expect(sent()).toEqual([{ path: '/account/bookmarks/b2', method: 'POST', body: { intent: 'delete' } }])
     await expect.element(page.getByRole('status')).toHaveTextContent('Bookmark removed')
   })
 
