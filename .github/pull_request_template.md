@@ -7,7 +7,7 @@
 ## Checklist
 
 - [ ] `pnpm check` passes
-- [ ] Tests added or updated
+- [ ] Tests added or updated, in their folder in `tests/`
 - [ ] `pnpm test:integration` or `pnpm test:browser` run, if the server or the UI changed
 - [ ] Docs and `.env.example` updated, if behaviour or settings changed
 - [ ] Migrations only added, never edited

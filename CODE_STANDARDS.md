@@ -23,4 +23,4 @@ The only exceptions are generated files such as `src/routeTree.gen.ts`, and test
 
 ## Comments
 
-Write every comment as a `/** … */` block, including one-line notes, and don't use `//` or `/* */`. Tool directives keep the form their tool reads: `// biome-ignore`, `{/* biome-ignore */}` in JSX, `// @ts-expect-error`, `/// <reference>` and `/* @vite-ignore */`. Generated files are left alone. [tests/comments.test.ts](tests/comments.test.ts) enforces this rule.
+Write every comment as a `/** … */` block, including one-line notes, and don't use `//` or `/* */`. Tool directives keep the form their tool reads: `// biome-ignore`, `{/* biome-ignore */}` in JSX, `// @ts-expect-error`, `/// <reference>` and `/* @vite-ignore */`. Generated files are left alone. [tests/repo/comments.test.ts](tests/repo/comments.test.ts) enforces this rule.

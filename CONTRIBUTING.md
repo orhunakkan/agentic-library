@@ -26,8 +26,8 @@ and merged.
    `--with-deps` installs the system libraries Chromium needs, which may ask for your password. Leave it out if they’re
    already there.
 3. Optionally, turn on the pre-commit hook. It scans the staged changes for secrets, then runs Biome, the typecheck,
-   the tests in `tests/`, and the unit tests related to the staged `.ts` and `.tsx` files (a second or two; a commit of
-   docs alone runs none):
+   the repo checks in `tests/repo/`, and the unit tests related to the staged `.ts` and `.tsx` files (a second or two;
+   a commit of docs alone runs none):
 
    ```sh
    git config core.hooksPath .githooks
@@ -71,23 +71,40 @@ Follow [CODE_STANDARDS.md](CODE_STANDARDS.md). In short:
 
 - descriptive names: a one-letter name only next to where it’s used, or for the few meanings the file lists;
 - no `any`: use a specific type, or `unknown` narrowed before use;
-- comments are `/** … */` blocks, never `//` or `/* */`, apart from tool directives. `tests/comments.test.ts`
+- comments are `/** … */` blocks, never `//` or `/* */`, apart from tool directives. `tests/repo/comments.test.ts`
   enforces this.
 
 Coding agents read [AGENTS.md](AGENTS.md), which points them to the same rules.
 
 ## Tests
 
-Vitest runs all three kinds of test, and there’s no other test tool:
+Vitest runs all three kinds of test, and there’s no other test tool. Every test lives in `tests/`, never beside the
+code in `src/` or `scripts/`, at its module’s path without `src/`, in the folder for its kind:
 
-- **Unit tests** sit next to their module, as `*.test.ts`. `pnpm check` runs them.
-- **Integration tests** are `*.integration.test.ts`, run by `pnpm test:integration` against a real Postgres. Files run
-  in parallel, each worker against a database of its own whose schema the run drops and re-creates once. Write them
-  with `it` and `raw` from `src/server/testing/db-test.ts`, which starts every test with every table empty, so don’t
-  truncate tables or migrate in a test file.
-- **Component tests** are `*.browser.test.tsx`, run by `pnpm test:browser` in headless Chromium. Render with `mount`
-  from `src/client/testing/mount.ts`, or `mountAt` from `src/client/testing/router.tsx` inside a router; test a React
-  hook with `mountHook` (or `mountHookAt`), which hands back its latest result.
+- **Unit tests** are `*.test.ts` (or `*.test.tsx`) in `tests/unit/`, and need neither Postgres nor a browser. The test
+  for `src/server/auth.ts` is `tests/unit/server/auth.test.ts`, and the one for `scripts/coverage/ratchet.ts` is
+  `tests/unit/scripts/coverage/ratchet.test.ts`. `pnpm check` runs them.
+- **Integration tests** are `*.integration.test.ts` in `tests/integration/`, as in
+  `tests/integration/server/books/books.integration.test.ts`, run by `pnpm test:integration` against a real Postgres.
+  Files run in parallel, each worker against a database of its own whose schema the run drops and re-creates once.
+  Write them with `it` and `raw` from `tests/support/server/db-test.ts`, which starts every test with every table
+  empty, so don’t truncate tables or migrate in a test file.
+- **Component tests** are `*.browser.test.tsx` in `tests/component/`, as in
+  `tests/component/client/features/ask/AskPanel.browser.test.tsx`, run by `pnpm test:browser` in headless Chromium.
+  Render with `mount` from `tests/support/client/mount.ts`, or `mountAt` from `tests/support/client/router.tsx` inside
+  a router; test a React hook with `mountHook` (or `mountHookAt`), which hands back its latest result.
+- **Repo checks** in `tests/repo/` check the repo as a whole rather than one module, such as the comment rule and the
+  import boundaries. `pnpm check` runs them with the unit tests, and so does the pre-commit hook.
+
+Helpers that only tests import go in `tests/support/`, test data in `tests/fixtures/`, and stand-ins for outside
+services in `tests/stubs/`. Import app code as `~/…`, not by a relative path. `tests/repo/test-layout.test.ts` fails
+when a test or a test helper is anywhere else.
+
+The three Vitest configs are in `tests/` too. Run Vitest through the `pnpm` scripts, or name a config when you run it
+yourself, as in `pnpm exec vitest run --config tests/vitest.config.ts tests/unit/server/auth.test.ts` (or
+`tests/vitest.integration.config.ts`, or `tests/vitest.browser.config.ts`). With no config at the repo root, a bare
+`vitest` doesn’t fail: it quietly loads the app’s `vite.config.ts`, which has none of the test settings, so `.only`
+is allowed, the order isn’t shuffled and mocks aren’t restored.
 
 `.only` fails the run, so to focus a test, use a file path or `-t "<name>"`. Unit and integration tests run in a
 shuffled order; when one fails only sometimes, replay the order with the seed the run printed: `--sequence.seed=<seed>`.

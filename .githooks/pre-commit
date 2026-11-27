@@ -18,11 +18,11 @@ fi
 
 pnpm exec biome check --staged --no-errors-on-unmatched
 pnpm typecheck
-pnpm exec vitest run tests/ --coverage.enabled=false
+pnpm exec vitest run tests/repo/ --config tests/vitest.config.ts --coverage.enabled=false
 
 # The unit tests related to the staged source files, so a commit that breaks a changed module's test fails here. Only
 # the unit config, so it needs neither Postgres nor Chromium; a commit with no staged .ts or .tsx runs nothing. Names
 # go NUL-separated from git to xargs, so a file name with a space stays one argument.
 git diff --cached --name-only --diff-filter=ACMR -z -- \
   ':(glob)src/**/*.ts' ':(glob)src/**/*.tsx' ':(glob)scripts/**/*.ts' ':(glob)tests/**/*.ts' |
-  xargs -0 -r pnpm exec vitest related --run --coverage.enabled=false --passWithNoTests
+  xargs -0 -r pnpm exec vitest related --run --config tests/vitest.config.ts --coverage.enabled=false --passWithNoTests
