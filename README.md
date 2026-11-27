@@ -7,22 +7,37 @@ It’s free to use at [agenticlibrary.app](https://agenticlibrary.app), and open
 
 ## What Folio does
 
-- **Read aloud.** Any book can be read aloud by your device’s own voices, with each sentence marked as it’s spoken. The
-  page turns by itself, and the reading carries on while you browse the library.
-- **Ask the book.** With an account, ask about what you’re reading and get answers from the book itself, each with a
-  link to the page it came from (page links need a Claude model). It only sees the pages you’ve read, unless you ask
-  it to use the whole book.
-- **Explain and recap.** Select a passage to have it explained, or ask for a recap of the story so far.
-- **Highlights and notes.** With an account, highlight a passage in one of four colours and add a note to it. Highlights follow you to
-  every device and gather on one page, and every book’s highlights export as one Markdown file.
-- **Bookmarks**, with an account, for the pages you want to come back to.
-- **Your own books.** With an account, import an EPUB, a Markdown file or a ZIP of Markdown. Your browser reads the file, and the book is
-  yours alone: no one else can open it.
+- **Ask the AI.** With an account, ask about what you’re reading and get answers from the book itself, each with a link
+  to the page it came from (page links need a Claude model). It only sees the pages you’ve read, unless you ask it to
+  use the whole book. Select a passage to have it explained, or ask for a recap of the story so far. Ask out loud and
+  hear the answer spoken, have it quiz you or make flashcards, and save the prompts you use often.
+- **Listen.** Any book can be read aloud by your device’s own voices, with each sentence marked as it’s spoken. The page
+  turns by itself, and the reading carries on while you browse the library. With an account, import an M4B or MP3
+  audiobook and play it in the same player, with chapters, a sleep timer and listening bookmarks. Ask a question out
+  loud while you listen: the reading pauses, and you hear the answer.
+- **Remember.** With an account, highlight a passage in one of four colours and add a note to it. Highlights follow you
+  to every device and gather on one page, and every book’s highlights export as one Markdown file. Bookmark the pages
+  you want to come back to. Flashcards come back for review when they’re due, and Ask makes them from the book.
+- **Your own books.** With an account, import an EPUB, a PDF, a Markdown file or a ZIP of Markdown. Your browser reads
+  the file, so the file itself is never uploaded, and the book is yours alone: no one else can open it. Add an
+  audiobook as one M4B file or the MP3 files of one book (its audio is uploaded to your account), and save web
+  articles to read later.
 - **Read your way.** Light, sepia or dark pages, five reading fonts, and your own type size, line spacing, column width,
   and turning or scrolling pages. With an account, your theme, font, line spacing and column width follow you to every
   device.
-- **Your own API key.** The AI features (Ask the book, Explain, recaps) run on the reader’s own Anthropic or OpenAI key,
-  which they save in the app. Folio has no AI key of its own, and adds no charge.
+- **And everything around the reading**, with an account:
+  - **Look up any word** in Wiktionary and Wikipedia, or have the AI translate it or explain it in context.
+  - **Run the code in a book**: JavaScript, TypeScript, Python and SQL code blocks run in your browser.
+  - **Read GitHub repositories**: browse public repositories as they were at the last refresh. Folio never changes
+    anything on GitHub.
+  - **Reading goals and streaks**: a daily goal, your streak, and the books you finished this year.
+  - **Shelves and ratings** for your books.
+  - **Read offline**: download a book to read without a connection. Downloads are removed when you sign out.
+  - **Pick up on any device**: Folio offers the place you reached on another device.
+  - **Sign in with a passkey.**
+- **Install it as an app** on your home screen or desktop, with or without an account.
+- **Your own API key.** Every AI feature (Ask, explain, recaps, quizzes, flashcards, voice and word lookup) runs on the
+  reader’s own Anthropic or OpenAI key, which they save in the app. Folio has no AI key of its own, and adds no charge.
 
 ## Quick start
 
