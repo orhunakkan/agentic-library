@@ -129,6 +129,10 @@ When a component test fails, Vitest prints the path of the Playwright trace it k
 under `.vitest/traces/`. Open it with `pnpm exec playwright show-trace <path>`. A passing test keeps no trace, a new run
 clears the traces of runs that have ended, and git ignores `.vitest/`.
 
+Each test command also writes a report you can open in a browser, straight from disk: `.vitest/reports/unit/index.html`
+for `pnpm test`, and `integration/` and `browser/` beside it for the other two. It shows every test, its errors and the
+run's coverage, and the next run of that command replaces it.
+
 Each command measures coverage on its own side: `pnpm check` the shared and client modules (`coverage/unit`),
 `pnpm test:integration` the server (`coverage/server`), and `pnpm test:browser` the components and React hooks
 (`coverage/browser`). Coverage floors only go up (`pnpm coverage:ratchet` raises all three). Run `pnpm check` before

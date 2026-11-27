@@ -20,6 +20,12 @@ export default defineConfig({
   test: {
     include: ['tests/component/**/*.browser.test.tsx'],
     globalSetup: ['tests/browser-traces.ts'],
+    /**
+     * Besides the terminal output, each run writes a report to open in a browser: `.vitest/reports/browser/index.html`,
+     * one self-contained file, with this run's coverage beside it. The pre-commit hook passes `--reporter=default`, so
+     * its partial runs don't replace it.
+     */
+    reporters: ['default', ['html', { outputDir: '.vitest/reports/browser', singleFile: true }]],
     /** A stray `.only` fails the run instead of quietly skipping every other test; Vitest allows it unless CI is set. */
     allowOnly: false,
     /**

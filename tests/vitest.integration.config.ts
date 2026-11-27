@@ -24,6 +24,12 @@ export default defineConfig({
     maxWorkers: DATABASE_WORKERS,
     globalSetup: ['tests/support/server/db-global-setup.ts'],
     setupFiles: ['tests/support/server/db-worker.ts'],
+    /**
+     * Besides the terminal output, each run writes a report to open in a browser: `.vitest/reports/integration/index.html`,
+     * one self-contained file, with this run's coverage beside it. The pre-commit hook passes `--reporter=default`, so
+     * its partial runs don't replace it.
+     */
+    reporters: ['default', ['html', { outputDir: '.vitest/reports/integration', singleFile: true }]],
     /** A stray `.only` fails the run instead of quietly skipping every other test; Vitest allows it unless CI is set. */
     allowOnly: false,
     /**
