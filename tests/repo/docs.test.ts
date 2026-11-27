@@ -35,15 +35,15 @@ function scriptNames(): Set<string> {
   return new Set(isRecord(scripts) ? Object.keys(scripts) : [])
 }
 
-/** Relative links in a Markdown file that point to nothing, resolved from the file's own folder. */
+/** Relative links and `<img>` sources in a Markdown file that point to nothing, resolved from the file's own folder. */
 function brokenLinks(
   file: string,
   text: string,
   exists: (path: string) => boolean,
   readFile: (path: string) => string = read,
 ): string[] {
-  const targets = [...text.matchAll(/\]\(([^)\s]+)\)|^\[[^\]]+\]:\s*(\S+)/gm)].map(
-    ([, inline, reference]) => inline ?? reference ?? '',
+  const targets = [...text.matchAll(/\]\(([^)\s]+)\)|^\[[^\]]+\]:\s*(\S+)|<img\b[^>]*\ssrc="([^"]+)"/gm)].map(
+    ([, inline, reference, image]) => inline ?? reference ?? image ?? '',
   )
   return targets
     .filter((target) => target && !/^([a-z][a-z+.-]*:|#)/i.test(target))
@@ -155,6 +155,14 @@ describe('each check fails on a doc that drifted', () => {
     expect(brokenLinks('README.md', text, existsSync)).toEqual(["README.md links docs/missing.md, which doesn't exist"])
     expect(brokenLinks('.github/x.md', '[c](../CONTRIBUTING.md)\n[ref]: ../nowhere.md', existsSync)).toEqual([
       ".github/x.md links ../nowhere.md, which doesn't exist",
+    ])
+  })
+
+  it('names a missing image in an HTML img tag, as well as in Markdown', () => {
+    const text = '<img src=".github/assets/missing.png" alt="m"> <img alt="l" src="LICENSE"> ![x](nowhere.png)'
+    expect(brokenLinks('README.md', text, existsSync)).toEqual([
+      "README.md links .github/assets/missing.png, which doesn't exist",
+      "README.md links nowhere.png, which doesn't exist",
     ])
   })
 
