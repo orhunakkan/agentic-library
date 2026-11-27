@@ -12,7 +12,15 @@ interface ImportRef {
 const SERVER_FUNCTION_MODULES = ['src/server/functions', 'src/server/account-functions']
 
 /** Integration tests that drive a client module against the real handlers in-process, to check both sides agree (#92). */
-const AGREEMENT_TESTS = ['tests/integration/server/shelves/shelves-client.integration.test.ts']
+const AGREEMENT_TESTS = [
+  'tests/integration/server/articles/articles-client.integration.test.ts',
+  'tests/integration/server/flashcards/flashcards-client.integration.test.ts',
+  'tests/integration/server/github-repos/repos-client.integration.test.ts',
+  'tests/integration/server/lookup/lookup-client.integration.test.ts',
+  'tests/integration/server/reading-stats/stats-client.integration.test.ts',
+  'tests/integration/server/removed-books/removed-books-client.integration.test.ts',
+  'tests/integration/server/shelves/shelves-client.integration.test.ts',
+]
 
 /**
  * A side's code: its source in src/, and its tests and the helpers only tests use in tests/, at the same path without
