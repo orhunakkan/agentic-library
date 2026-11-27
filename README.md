@@ -5,6 +5,8 @@ questions that only see the pages you’ve read.
 
 It’s free to use at [agenticlibrary.app](https://agenticlibrary.app), and open source under the [MIT licence](LICENSE).
 
+![Folio's reader in the light theme, open at chapter 1 of Pride and Prejudice: the contents in a sidebar on the left, the page in a serif font in the middle, and Read aloud, Ask and Settings above it.](.github/assets/reader-light.png)
+
 ## What Folio does
 
 - **Ask the AI.** With an account, ask about what you’re reading and get answers from the book itself, each with a link
@@ -38,6 +40,12 @@ It’s free to use at [agenticlibrary.app](https://agenticlibrary.app), and open
 - **Install it as an app** on your home screen or desktop, with or without an account.
 - **Your own API key.** Every AI feature (Ask, explain, recaps, quizzes, flashcards, voice and word lookup) runs on the
   reader’s own Anthropic or OpenAI key, which they save in the app. Folio has no AI key of its own, and adds no charge.
+
+<p>
+  <img src=".github/assets/reader-phone-sepia.png" width="270" alt="The same page of Pride and Prejudice on a phone-sized screen, with sepia pages and the reader's controls in one row of icons above the text.">
+  &nbsp;
+  <img src=".github/assets/reader-phone-dark.png" width="270" alt="The same page on a phone-sized screen with dark pages: light text on deep blue, and a lime green chapter label.">
+</p>
 
 ## Quick start
 
