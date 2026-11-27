@@ -79,6 +79,9 @@ Coding agents read [AGENTS.md](AGENTS.md), which points them to the same rules.
 
 ## Tests
 
+Write the test before the code, and start a bug fix with a test that reproduces the bug, as
+[CODE_STANDARDS.md](CODE_STANDARDS.md#tests) says.
+
 Vitest runs all three kinds of test, and there’s no other test tool. Every test lives in `tests/`, never beside the
 code in `src/` or `scripts/`, at its module’s path without `src/`, in the folder for its kind:
 

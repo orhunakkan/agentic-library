@@ -24,3 +24,10 @@ The only exceptions are generated files such as `src/routeTree.gen.ts`, and test
 ## Comments
 
 Write every comment as a `/** … */` block, including one-line notes, and don't use `//` or `/* */`. Tool directives keep the form their tool reads: `// biome-ignore`, `{/* biome-ignore */}` in JSX, `// @ts-expect-error`, `/// <reference>` and `/* @vite-ignore */`. Generated files are left alone. [tests/repo/comments.test.ts](tests/repo/comments.test.ts) enforces this rule.
+
+## Tests
+
+- **New or changed behavior:** write the test first. Run it and see it fail for the reason you expect before you write the code. If a new test passes on its first run, find out why: either the behavior already exists, or the test doesn't check what its name says.
+- **Bug fix:** start with a test that reproduces the bug and fails, then fix the bug. The test lands in the same commit as the fix, and the commit message says in a few words how the test failed before the fix, such as the assertion that failed.
+- **Level:** test at the lowest level that shows the behavior. That's a unit test in `tests/unit/` (no Postgres, no browser) where possible, then an integration test in `tests/integration/`, then a component test in `tests/component/`.
+- **Exceptions:** docs, pure configuration and static content with no behavior need no new test.
