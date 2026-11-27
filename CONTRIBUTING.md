@@ -139,8 +139,8 @@ for `pnpm test`, and `integration/` and `browser/` beside it for the other two. 
 run's coverage, and the next run of that command replaces it.
 
 Each command measures coverage on its own side: `pnpm check` the shared and client modules (`coverage/unit`),
-`pnpm test:integration` the server (`coverage/server`), and `pnpm test:browser` the components and React hooks
-(`coverage/browser`). Coverage floors only go up (`pnpm coverage:ratchet` raises all three). Run `pnpm check` before
+`pnpm test:integration` the server and the routes' `.ts` files (`coverage/server`), and `pnpm test:browser` the
+components, React hooks and route pages (`coverage/browser`). Coverage floors only go up (`pnpm coverage:ratchet` raises all three). Run `pnpm check` before
 you push, and also `pnpm test:integration` when your change touches the server, or `pnpm test:browser` when it
 touches the UI. With the hooks turned on, the pre-push hook runs all three for you, and `git push --no-verify` skips
 it.

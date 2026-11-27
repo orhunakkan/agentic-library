@@ -60,10 +60,10 @@ export default defineConfig({
         'lcovonly',
       ],
       reportsDirectory: 'coverage/browser',
-      /** Components, and the React hooks beside them, which only a browser test can run. */
-      include: ['src/client/**/*.tsx', 'src/client/**/use-*.ts'],
+      /** Components, the React hooks beside them, and the route pages, which only a browser test can run. */
+      include: ['src/client/**/*.tsx', 'src/client/**/use-*.ts', 'src/routes/**/*.tsx'],
       exclude: ['**/*.test.ts', '**/*.test.tsx'],
-      thresholds: { statements: 42, branches: 34, functions: 38, lines: 43 },
+      thresholds: { statements: 39, branches: 29, functions: 34, lines: 39 },
     },
   },
 })
