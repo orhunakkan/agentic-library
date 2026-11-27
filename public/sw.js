@@ -29,6 +29,8 @@ self.addEventListener('activate', (event) => {
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const REPO_PAGE = new RegExp(`^/account/repos/(${UUID})/?$`)
 const REPO_PICTURE = new RegExp(`^/account/repos/(${UUID})/raw$`)
+const REPO_LIST = /^\/account\/repos\/?$/
+const REPO_COPY = new RegExp(`^/offline-repos/${UUID}\\.json$`)
 
 /**
  * A picture of a downloaded repository, from the commit its copy is at: each commit's pictures sit under a prefix of
@@ -50,12 +52,16 @@ async function keptPicture(url) {
   return (await repos.match(`/offline-repos/${id}/${commit}/raw/${encodeURIComponent(path)}`)) || null
 }
 
-/** The key of the download a page opens from: a book's copy, or a repository's, or null for any other page. */
+/**
+ * The key of the download a page opens from: a book's copy, or a repository's, or null for any other page. The list
+ * of repositories opens from any repository's copy, so its key is null.
+ */
 function downloadFor(url) {
   const slug = /^\/read\/([^/]+)\//.exec(url.pathname)?.[1]
   if (slug) return { cache: BOOKS, key: `/offline/${slug}.json` }
   const repo = REPO_PAGE.exec(url.pathname)?.[1]
   if (repo) return { cache: REPOS, key: `/offline-repos/${repo}.json` }
+  if (REPO_LIST.test(url.pathname)) return { cache: REPOS, key: null }
   return null
 }
 
@@ -63,7 +69,10 @@ async function shellFor(url) {
   const download = downloadFor(url)
   if (!download || !(await caches.has(download.cache))) return null
   const kept = await caches.open(download.cache)
-  if (!(await kept.match(download.key))) return null
+  const found = download.key
+    ? await kept.match(download.key)
+    : (await kept.keys()).some((request) => REPO_COPY.test(new URL(request.url).pathname))
+  if (!found) return null
   return (await caches.match(SHELL_URL)) || null
 }
 
