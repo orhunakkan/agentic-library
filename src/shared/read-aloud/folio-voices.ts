@@ -684,8 +684,8 @@ export const ENGINE_SOFTWARE = [
     name: 'onnxruntime-web',
     version: '1.31.1',
     what: 'runs the voice’s model, by Microsoft',
-    licence: { name: 'MIT', url: 'https://github.com/microsoft/onnxruntime/blob/v1.31.1/LICENSE' },
-    source: 'https://github.com/microsoft/onnxruntime/tree/v1.31.1',
+    licence: { name: 'MIT', url: '/third-party-licenses.txt' },
+    source: 'https://pypi.org/project/onnxruntime/1.31.1/',
     parts: [],
   },
 ] as const

@@ -20,7 +20,7 @@ const ONNXRUNTIME: LicenceOverride = {
   licence: 'MIT',
   note:
     'Its npm package ships no licence file. The text is the LICENSE in Microsoft’s onnxruntime 1.31.1 release on ' +
-    'PyPI. Source: https://github.com/microsoft/onnxruntime',
+    'PyPI. Source: https://pypi.org/project/onnxruntime/1.31.1/',
   texts: [{ file: 'LICENSE (from the onnxruntime 1.31.1 wheel on PyPI)', path: licenceText('onnxruntime-MIT.txt') }],
 }
 

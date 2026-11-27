@@ -73,6 +73,11 @@ describe('the engine’s software', () => {
     expect(byName['piper-wasm']).toBe(version('@diffusionstudio/piper-wasm'))
     expect(byName['onnxruntime-web']).toBe(version('onnxruntime-web'))
   })
+
+  it('links to no removed repository', () => {
+    const links = ENGINE_SOFTWARE.flatMap((s) => [s.licence.url, s.source])
+    expect(links.filter((link) => /github\.com\/microsoft\/onnxruntime/i.test(link))).toEqual([])
+  })
 })
 
 describe('folioVoicesFor', () => {
