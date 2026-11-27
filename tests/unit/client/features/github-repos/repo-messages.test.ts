@@ -3,8 +3,11 @@ import {
   agoText,
   canRetry,
   countText,
+  downloadedText,
+  downloadingLabel,
   externalImagesText,
   linesText,
+  noRoomText,
   noticeText,
   REPO_TEXT,
   type RepoProblem,
@@ -15,6 +18,7 @@ import {
   repoProblemText,
   shortSha,
   sizeText,
+  tooLargeText,
 } from '~/client/features/github-repos/repo-messages'
 
 describe('repoProblemText', () => {
@@ -122,5 +126,25 @@ describe('agoText', () => {
     expect(ago(3 * 60 * 60_000)).toBe('3 hours ago')
     expect(ago(24 * 60 * 60_000)).toBe('1 day ago')
     expect(ago(3 * 24 * 60 * 60_000)).toBe('3 days ago')
+  })
+})
+
+describe('the download lines', () => {
+  const caps = { maxFiles: 2000, maxBytes: 20 * 1024 * 1024 }
+
+  it('say what’s too big, with the numbers, or that GitHub listed only part of it', () => {
+    expect(tooLargeText({ files: 2500, bytes: 3 * 1024 * 1024, ...caps })).toBe(
+      'This repository is too big to download: 2,500 files, 3 MB of source. Downloads hold up to 2,000 files and 20 MB of source.',
+    )
+    expect(tooLargeText({ files: 1, bytes: 25 * 1024 * 1024, ...caps })).toContain('1 file, 25 MB of source.')
+    expect(tooLargeText({ files: null, bytes: null, ...caps })).toBe(
+      'This repository is too big to download: GitHub lists only part of its files. Downloads hold up to 2,000 files and 20 MB of source.',
+    )
+  })
+
+  it('say how much room a download needs, what it took, and what the progress is of', () => {
+    expect(noRoomText(6 * 1024 * 1024)).toBe('There isn’t room on this device for this repository (about 6 MB).')
+    expect(downloadedText(1536 * 1024)).toBe('Downloaded · 1.5 MB')
+    expect(downloadingLabel({ owner: 'folio-test', name: 'sample' })).toBe('Downloading folio-test/sample')
   })
 })

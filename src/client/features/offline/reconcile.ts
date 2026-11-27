@@ -1,5 +1,6 @@
 import { isPrivateBookSlug, privateBookSlug } from '~/shared/content/book-slug'
 import { refreshAppCache } from './app-cache'
+import { sweepRepoOrphans } from './repo-store'
 import {
   forgetPrivateDownloads,
   listDownloads,
@@ -32,6 +33,7 @@ export async function reconcileDownloads(
       stampChecked(own, env)
     }
     await sweepOrphans(env)
+    await sweepRepoOrphans(env)
     await deps.refreshAppCache({}, env)
   } catch {}
 }

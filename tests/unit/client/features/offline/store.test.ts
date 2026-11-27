@@ -6,6 +6,7 @@ import {
   clearAppCache,
   forgetPrivateDownloads,
   hasDownloads,
+  hasRepoCopies,
   inBatches,
   listDownloads,
   mayOpen,
@@ -22,6 +23,7 @@ import {
 } from '~/client/features/offline/store'
 import { privateBookSlug } from '~/shared/content/book-slug'
 import { OFFLINE_NAV_URL } from '~/shared/offline/book'
+import { REPOS_CACHE, repoCopyUrl } from '~/shared/offline/repo'
 import { FakeCacheStorage, memoryStorage } from '../../../../fixtures/cache-storage'
 import {
   CATALOGUE_PICTURE,
@@ -32,6 +34,7 @@ import {
   PRIVATE_SLUG,
   privateCopy,
 } from '../../../../fixtures/offline-books'
+import { REPO_ID } from '../../../../fixtures/offline-repos'
 
 let storage: FakeCacheStorage
 let env: OfflineEnv
@@ -148,6 +151,28 @@ describe('removeDownload', () => {
     await storage.open('folio-offline-v2')
     await removeDownload('essays', env)
     expect(await storage.keys()).toEqual(['folio-offline-v2'])
+  })
+
+  it('with the last book, keeps the app files and the sidebar’s data while a repository copy is saved', async () => {
+    await saveBook(catalogueCopy(), {}, env)
+    await saveNav({ stats: {} }, env)
+    await storage.open('folio-app-abc')
+    await (await storage.open(REPOS_CACHE)).put(repoCopyUrl(REPO_ID), Response.json({}))
+    expect(await hasRepoCopies(env)).toBe(true)
+    await removeDownload('essays', env)
+    expect(await listDownloads(env)).toEqual([])
+    expect(await hasDownloads(env)).toBe(true)
+    expect(await storage.has('folio-app-abc')).toBe(true)
+    expect(await readNav(env)).toEqual({ stats: {} })
+  })
+
+  it('counts a repository copy’s entry as a download, and not its files alone', async () => {
+    expect(await hasRepoCopies(env)).toBe(false)
+    const repos = await storage.open(REPOS_CACHE)
+    await repos.put(`/offline-repos/${REPO_ID}/${'1'.repeat(40)}/files/README.md.json`, Response.json({}))
+    expect(await hasDownloads(env)).toBe(false)
+    await repos.put(repoCopyUrl(REPO_ID), Response.json({}))
+    expect(await hasDownloads(env)).toBe(true)
   })
 
   it('reads a malformed sidebar copy as none', async () => {

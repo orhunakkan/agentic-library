@@ -1,8 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { forgetGoneCopy, forgetUnlistedCopies, reconcileDownloads } from '~/client/features/offline/reconcile'
+import { readRepoCopy, saveRepoCopy } from '~/client/features/offline/repo-store'
 import { type OfflineEnv, readChecked, readCopy, saveBook } from '~/client/features/offline/store'
+import { REPOS_CACHE, repoFileUrl } from '~/shared/offline/repo'
 import { FakeCacheStorage, memoryStorage } from '../../../../fixtures/cache-storage'
 import { catalogueCopy, fileServer, PRIVATE_ID, PRIVATE_SLUG, privateCopy } from '../../../../fixtures/offline-books'
+import {
+  NEW_COMMIT,
+  OLD_COMMIT,
+  REPO_FILES,
+  REPO_FOLDERS,
+  REPO_ID,
+  repoFile,
+  repoView,
+} from '../../../../fixtures/offline-repos'
 
 let storage: FakeCacheStorage
 let env: OfflineEnv
@@ -43,6 +54,19 @@ describe('reconcileDownloads', () => {
     await reconcileDownloads({ username: 'ada' }, env, deps())
     expect(await slugs()).toEqual(['essays', PRIVATE_SLUG])
     expect(readChecked(env.storage)).toEqual({ [PRIVATE_SLUG]: 9000 })
+  })
+
+  it('deletes the files a tab closed partway through a repository update left, and keeps the copy', async () => {
+    async function* files() {
+      yield REPO_FILES.map((p) => repoFile(p))
+    }
+    const copy = { id: REPO_ID, account: 'ada', repo: repoView(), folders: REPO_FOLDERS, files: REPO_FILES }
+    await saveRepoCopy(copy, files(), {}, env)
+    const repos = await storage.open(REPOS_CACHE)
+    await repos.put(repoFileUrl(REPO_ID, NEW_COMMIT, 'README.md'), Response.json(repoFile('README.md', 'new')))
+    await reconcileDownloads({ username: 'ada' }, env, deps())
+    expect(repos.paths().some((p) => p.includes(NEW_COMMIT))).toBe(false)
+    expect((await readRepoCopy(REPO_ID, env))?.commit).toBe(OLD_COMMIT)
   })
 
   it('swallows a failure, and does nothing without Cache Storage', async () => {

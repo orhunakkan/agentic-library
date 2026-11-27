@@ -10,6 +10,7 @@ import {
   parseOfflineBook,
 } from '~/shared/offline/book'
 import { bookOfUrl } from '~/shared/offline/pictures'
+import { REPOS_CACHE, repoKeyOf } from '~/shared/offline/repo'
 import { decodeSummary, encodeSummary, type OfflineSummary, SUMMARY_HEADER } from '~/shared/offline/summary'
 
 export const BOOKS_CACHE = 'folio-books-v1'
@@ -72,8 +73,16 @@ export async function listDownloads(env: OfflineEnv = offlineEnv()): Promise<Off
   return summaries.sort((a, b) => b.savedAt - a.savedAt)
 }
 
+/** Whether this browser holds a downloaded repository: a copy entry in the repositories cache. */
+export async function hasRepoCopies(env: OfflineEnv = offlineEnv()): Promise<boolean> {
+  if (!env.caches || !(await env.caches.has(REPOS_CACHE))) return false
+  const cache = await env.caches.open(REPOS_CACHE)
+  return (await cache.keys()).some((request) => repoKeyOf(pathOf(request).pathname)?.kind === 'copy')
+}
+
+/** Whether this browser holds any download, a book or a repository, and so needs the app's files offline. */
 export async function hasDownloads(env: OfflineEnv = offlineEnv()): Promise<boolean> {
-  return (await listDownloads(env)).length > 0
+  return (await listDownloads(env)).length > 0 || (await hasRepoCopies(env))
 }
 
 export async function readCopy(slug: string, env: OfflineEnv = offlineEnv()): Promise<OfflineBook | null> {
@@ -166,9 +175,11 @@ export async function clearAppCache(env: OfflineEnv = offlineEnv()): Promise<voi
   for (const name of await env.caches.keys()) if (name.startsWith(APP_CACHE_PREFIX)) await env.caches.delete(name)
 }
 
-async function afterRemoval(env: OfflineEnv) {
+/** Once the last download of either kind is gone, drops both download caches and the app's files. */
+export async function afterRemoval(env: OfflineEnv) {
   if (await hasDownloads(env)) return
   await env.caches?.delete(BOOKS_CACHE)
+  await env.caches?.delete(REPOS_CACHE)
   await clearAppCache(env)
 }
 

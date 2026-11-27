@@ -15,6 +15,7 @@ import type { RenderedMarkdown } from '~/shared/github-repos/md-node'
 import { fileLang } from '~/shared/run-code/langs'
 import { CodeLines, codeText } from './CodeView'
 import { MdView } from './MdView'
+import { RepoDownload } from './RepoDownload'
 import { RefLine, VersionLine } from './ReposPage'
 import { RepoTree, type TreeState } from './RepoTree'
 import {
@@ -437,6 +438,7 @@ export function RepoViewer({ data, path }: { data: Ready; path: string }) {
             </a>
           </div>
         </div>
+        {!repo.goneAt && data.target.kind !== 'empty' && data.target.kind !== 'gone' && <RepoDownload repo={repo} />}
         {refreshed && (
           <Notice kind="success" data-testid="repo-refreshed">
             {refreshedText(refreshed.changed, repo.commit)}

@@ -1,6 +1,8 @@
 import { timeOfDay } from '~/client/lib/format'
 import type { RepoErrorCode, RepoFileNotice, RepoUrlProblem, RepoView } from '~/shared/github-repos/contract'
 import { MAX_REPOS } from '~/shared/github-repos/contract'
+import type { RepoTooLarge } from '~/shared/github-repos/offline'
+import { formatBytes } from '~/shared/lib/format-bytes'
 
 export type RepoProblem = RepoUrlProblem | Exclude<RepoErrorCode, 'invalid' | 'signed_out'> | 'signed_out'
 
@@ -92,4 +94,26 @@ export function agoText(iso: string, now = Date.now()): string {
   if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`
   const days = Math.floor(hours / 24)
   return days === 1 ? '1 day ago' : `${days} days ago`
+}
+
+export const DOWNLOAD_TEXT = 'Download for offline'
+export const DOWNLOADED_TOAST = 'Downloaded for offline reading.'
+export const DOWNLOAD_REMOVED_TOAST = 'Download removed.'
+export const DOWNLOAD_SIGN_OUT_NOTE = 'Removed when you sign out.'
+export const DOWNLOAD_FAILED_TEXT = 'Couldn’t download this repository. Check your connection and try again.'
+
+export const downloadedText = (bytes: number) => `Downloaded · ${formatBytes(bytes)}`
+
+export const downloadingLabel = (repo: Pick<RepoView, 'owner' | 'name'>) => `Downloading ${repo.owner}/${repo.name}`
+
+export const noRoomText = (bytes: number) =>
+  `There isn’t room on this device for this repository (about ${formatBytes(bytes)}).`
+
+const filesText = (count: number) => (count === 1 ? '1 file' : `${count.toLocaleString('en-GB')} files`)
+
+export function tooLargeText({ files, bytes, maxFiles, maxBytes }: RepoTooLarge): string {
+  const most = `Downloads hold up to ${filesText(maxFiles)} and ${formatBytes(maxBytes)} of source.`
+  if (files === null || bytes === null)
+    return `This repository is too big to download: GitHub lists only part of its files. ${most}`
+  return `This repository is too big to download: ${filesText(files)}, ${formatBytes(bytes)} of source. ${most}`
 }
