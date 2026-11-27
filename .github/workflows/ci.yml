@@ -1,0 +1,140 @@
+name: CI
+
+# Every job runs on a GitHub-hosted runner, for every push, PR and fork PR alike: there are no secrets, the token is
+# read-only, and the runner is thrown away after the job, so a PR has nothing to reach. Deploys don't run here: the
+# last job only asks for one, and the server's poller (scripts/deploy/poll.ts) checks the request itself.
+#
+# The three gate jobs run side by side, so a run takes as long as the slowest one. Their names are the required checks
+# in .github/rulesets/main-changes.json, so rename them together.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A newer push to a PR cancels its older run. Runs on main are never cancelled, so every commit there gets a verdict.
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, unit tests, build, audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm exec biome ci .
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        env:
+          CHANGE_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: scripts/ci/coverage-summary.sh unit 'Unit coverage (src/shared, src/client)'
+      - run: pnpm build
+      - run: pnpm audit
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18@sha256:c699303802144847d238196173655dbbecf7a96aeca1565f2b02eb671a1f0b6b # 18.x, the same digest as compose.yaml
+        env:
+          POSTGRES_DB: agentic_test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agentic_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      # The default test database, postgres://postgres:postgres@127.0.0.1:5432/agentic_test, is the service above.
+      - run: pnpm test:integration
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        env:
+          CHANGE_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: scripts/ci/coverage-summary.sh server 'Server coverage (src/server)'
+
+  component:
+    name: Component tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Playwright's image already holds Chromium and its system libraries, so nothing is downloaded or apt-installed.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f # v1.64.1-noble, bumped with the playwright package
+      options: --ipc=host
+    env:
+      HOME: /root
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm test:browser
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        env:
+          CHANGE_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          scripts/ci/coverage-summary.sh browser 'Component coverage'
+
+  request-dev-deploy:
+    name: Request the dev deploy
+    needs: [checks, integration, component]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      deployments: write # to create the dev deployment that the server's poller picks up
+    concurrency:
+      group: request-dev-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Ask the server to deploy this commit to dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The server's poller picks this up, checks the commit for itself, and deploys it. It deploys nothing here.
+          printf '{"ref":"%s","environment":"dev","auto_merge":false,"required_contexts":[],"description":"CI passed on main"}' "$GITHUB_SHA" |
+            gh api --method POST "repos/$GITHUB_REPOSITORY/deployments" --input - --jq '"Deployment \(.id) requested for dev"'
+          echo "Dev deploy requested for $GITHUB_SHA: https://dev.agenticlibrary.app" >> "$GITHUB_STEP_SUMMARY"
+          echo "To promote it: gh workflow run deploy-prod.yml -f sha=$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

@@ -24,11 +24,16 @@ The pre-commit hook in `.githooks/pre-commit` runs Biome on staged files, the ty
 `tests/repo/`, and the unit tests related to the staged `.ts` and `.tsx` files (`vitest related`, which needs no
 Postgres or Chromium).
 
-There's no CI, so these local gates are the only checks. Before a push, run `pnpm check`, `pnpm test:integration` and
-`pnpm test:browser`.
+CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the same gates on GitHub-hosted runners for every push
+to main and every PR, as three parallel jobs. Still run `pnpm check`, `pnpm test:integration` and `pnpm test:browser`
+before a push: CI confirms, it isn't where failures should first show up. Watch a run with `gh run watch --exit-status`.
 
-Deploys run by hand on the server: `sudo /usr/local/bin/agentic-library-deploy dev [<sha>]` builds and deploys to dev
-(origin/main by default), then `sudo /usr/local/bin/agentic-library-deploy prod <sha>` promotes the same release.
+Deploys: when CI passes on main, its last job creates a GitHub Deployment for dev. The poller on the server
+([scripts/deploy/poll.ts](scripts/deploy/poll.ts), every 30 seconds) checks the commit for itself and runs
+`agentic-library-deploy dev <sha>`. Production is promoted by hand, from a commit dev has run:
+`gh workflow run deploy-prod.yml -f sha=<full sha>`, which the poller also checks before it deploys. No GitHub job can
+reach the server: don't add self-hosted runners, secrets, or `pull_request_target`/`workflow_run` triggers
+(`tests/repo/workflows.test.ts` enforces this).
 
 ## Testing
 

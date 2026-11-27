@@ -1,0 +1,14 @@
+# A workflow that breaks one rule of tests/repo/workflows.test.ts, and only that one: an action pinned by a moving tag.
+name: Fixture
+on:
+  push:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false

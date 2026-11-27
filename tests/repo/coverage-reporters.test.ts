@@ -34,7 +34,7 @@ describe.each([
     expect(terminalReporters(reporters)).toEqual([])
   })
 
-  it('still writes the coverage summary to summary.txt for the ratchet', () => {
+  it('still writes the coverage summary to summary.txt for the ratchet and CI', () => {
     expect(reporters).toContainEqual(['text-summary', { file: 'summary.txt' }])
   })
 

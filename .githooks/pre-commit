@@ -2,7 +2,8 @@
 set -e
 
 # The secrets scan of what's staged: gitleaks on PATH, or else the pinned image below. With neither, it says it skipped
-# and carries on, so a contributor without Docker can still commit. There's no CI, so this is the only scan of a change.
+# and carries on, so a contributor without Docker can still commit. CI doesn't scan for secrets: after this, GitHub's
+# own secret scanning and push protection are the checks.
 # The staged diff goes to gitleaks on stdin, so it works the same in a linked worktree, whose .git is elsewhere.
 GITLEAKS_IMAGE=ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f # v8.30.1
 repo=$(git rev-parse --show-toplevel)
@@ -13,7 +14,7 @@ elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     docker run -i --rm -v "$repo/.gitleaks.toml:/config.toml:ro" "$GITLEAKS_IMAGE" \
       stdin --redact --no-banner --config /config.toml
 else
-  echo "pre-commit: secrets scan skipped (no gitleaks on PATH and no Docker); nothing else scans this commit" >&2
+  echo "pre-commit: secrets scan skipped (no gitleaks on PATH and no Docker); only GitHub's push protection scans this commit" >&2
 fi
 
 pnpm exec biome check --staged --no-errors-on-unmatched

@@ -155,8 +155,10 @@ one release, then drop it in a later one.
 
 ## How your pull request is tested and merged
 
-- There’s no CI. The maintainer checks out your pull request and runs `pnpm check`, `pnpm test:integration` and
-  `pnpm test:browser` before merging, so run them yourself first.
+- Every pull request, from a fork or not, runs [CI](.github/workflows/ci.yml) on GitHub-hosted runners, with no
+  secrets and a read-only token. A first-time contributor’s run waits until the maintainer approves it.
+- The required checks are its three jobs, which run side by side: Lint, types, unit tests, build, audit; Integration
+  tests; and Component tests. Run `pnpm check`, `pnpm test:integration` and `pnpm test:browser` first, and they pass.
 - Only the maintainer merges, as a squash.
 
 ## AI-assisted pull requests

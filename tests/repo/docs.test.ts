@@ -5,7 +5,7 @@ import { parse } from 'yaml'
 
 /**
  * Keeps the contributor docs true to the repo: their relative links point to files that exist, every `pnpm <name>` they
- * show is a real script, the licence is MIT, the local Postgres is pinned by digest and bound to localhost, and no
+ * show is a real script, the licence is MIT, the local Postgres is pinned like CI's and bound to localhost, and no
  * billing word comes back.
  */
 
@@ -88,12 +88,14 @@ function billingWords(file: string, text: string): string[] {
     .map((line) => `${file} mentions billing: ${line.trim().slice(0, 60)}`)
 }
 
-/** The `@sha256:` digest of the postgres image in a compose file, or null. */
+/** The `@sha256:` digest of the postgres image in a compose file or in ci.yml's service, or null. */
 const postgresDigest = (text: string) => /image:\s*postgres:[\w.-]+@(sha256:[0-9a-f]{64})/.exec(text)?.[1] ?? null
 
-function composeProblems(composeText: string): string[] {
+function composeProblems(composeText: string, ciText: string): string[] {
   const problems: string[] = []
-  if (!postgresDigest(composeText)) problems.push('compose.yaml: postgres is not pinned by @sha256:')
+  const digest = postgresDigest(composeText)
+  if (!digest) problems.push('compose.yaml: postgres is not pinned by @sha256:')
+  else if (digest !== postgresDigest(ciText)) problems.push('compose.yaml: postgres is not pinned by ci.yml’s digest')
   const compose: unknown = parse(composeText)
   const services = isRecord(compose) && isRecord(compose.services) ? compose.services : {}
   for (const [name, service] of Object.entries(services)) {
@@ -126,8 +128,8 @@ describe('the contributor docs', () => {
     expect(licence).toContain('\nCopyright (c) 2026 Orhun Akkan\n')
   })
 
-  it('pin the local Postgres by digest, bound to 127.0.0.1 only', () => {
-    expect(composeProblems(read('compose.yaml'))).toEqual([])
+  it('pin the local Postgres like CI, bound to 127.0.0.1 only', () => {
+    expect(composeProblems(read('compose.yaml'), read('.github/workflows/ci.yml'))).toEqual([])
   })
 
   it.each(ISSUE_FORMS)('%s parses as YAML', (file) => {
@@ -171,11 +173,15 @@ describe('each check fails on a doc that drifted', () => {
   })
 
   it('names an unpinned or non-loopback compose file', () => {
-    expect(composeProblems('services:\n  postgres:\n    image: postgres:18\n')).toEqual([
+    const ci = read('.github/workflows/ci.yml')
+    expect(composeProblems('services:\n  postgres:\n    image: postgres:18\n', ci)).toEqual([
       'compose.yaml: postgres is not pinned by @sha256:',
     ])
-    const pinned = `services:\n  postgres:\n    image: postgres:18@sha256:${'0'.repeat(64)}\n    ports: ["5432:5432"]\n`
-    expect(composeProblems(pinned)).toEqual(['compose.yaml: postgres publishes "5432:5432", not on 127.0.0.1'])
+    const otherDigest = `services:\n  postgres:\n    image: postgres:18@sha256:${'0'.repeat(64)}\n    ports: ["5432:5432"]\n`
+    expect(composeProblems(otherDigest, ci)).toEqual([
+      'compose.yaml: postgres is not pinned by ci.yml’s digest',
+      'compose.yaml: postgres publishes "5432:5432", not on 127.0.0.1',
+    ])
   })
 
   it('names a billing word, and leaves words that only start like one alone', () => {

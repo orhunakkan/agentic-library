@@ -42,9 +42,58 @@ const SECURITY_AND_ANALYSIS = {
     secret_scanning_push_protection: { status: 'enabled' },
   },
 }
-/** There's no CI: the checks run locally, in the pre-commit hook and by hand, so Actions stays off. */
-const ACTIONS_PERMISSIONS = { enabled: false }
+const ACTIONS_PERMISSIONS = { enabled: true, allowed_actions: 'selected', sha_pinning_required: true }
+const SELECTED_ACTIONS = {
+  github_owned_allowed: true,
+  verified_allowed: false,
+  patterns_allowed: ['pnpm/action-setup@*'],
+}
+const WORKFLOW_TOKEN = { default_workflow_permissions: 'read', can_approve_pull_request_reviews: false }
+const MAIN_ONLY = { deployment_branch_policy: { protected_branches: false, custom_branch_policies: true } }
 const FEATURES_OFF = { has_wiki: false, has_projects: false }
+
+function environmentSettings(name: string): DesiredSetting[] {
+  return [
+    {
+      id: `environment-${name}`,
+      label: `Environment ${name}: deployments from chosen branches only`,
+      needsPublic: false,
+      read: `/repos/{repo}/environments/${name}`,
+      expect: { kind: 'fields', fields: MAIN_ONLY },
+      apply: [{ method: 'PUT', path: `/repos/{repo}/environments/${name}`, body: MAIN_ONLY }],
+    },
+    {
+      id: `environment-${name}-secrets`,
+      label: `Environment ${name}: no secrets or variables`,
+      needsPublic: false,
+      read: `/repos/{repo}/environments/${name}/secrets`,
+      expect: { kind: 'fields', fields: { total_count: 0 } },
+      apply: { byHand: `delete each secret of the ${name} environment (Settings, Environments)` },
+    },
+    {
+      id: `environment-${name}-variables`,
+      label: `Environment ${name}: no variables`,
+      needsPublic: false,
+      read: `/repos/{repo}/environments/${name}/variables`,
+      expect: { kind: 'fields', fields: { total_count: 0 } },
+      apply: { byHand: `delete each variable of the ${name} environment (Settings, Environments)` },
+    },
+    {
+      id: `environment-${name}-branches`,
+      label: `Environment ${name}: the chosen branch is main, and only main`,
+      needsPublic: false,
+      read: `/repos/{repo}/environments/${name}/deployment-branch-policies`,
+      expect: { kind: 'fields', fields: { branch_policies: [{ name: 'main', type: 'branch' }] } },
+      apply: [
+        {
+          method: 'POST',
+          path: `/repos/{repo}/environments/${name}/deployment-branch-policies`,
+          body: { name: 'main', type: 'branch' },
+        },
+      ],
+    },
+  ]
+}
 
 export const DESIRED: readonly DesiredSetting[] = [
   {
@@ -57,7 +106,7 @@ export const DESIRED: readonly DesiredSetting[] = [
   },
   {
     id: 'ruleset-main-changes',
-    label: 'Ruleset main-changes: a squash PR, admin bypass',
+    label: 'Ruleset main-changes: a squash PR and the three required checks, admin bypass',
     needsPublic: true,
     read: '/repos/{repo}/rulesets',
     expect: { kind: 'ruleset', name: 'main-changes' },
@@ -97,11 +146,41 @@ export const DESIRED: readonly DesiredSetting[] = [
   },
   {
     id: 'actions-permissions',
-    label: 'Actions off',
+    label: 'Actions: only selected actions, pinned by SHA',
     needsPublic: false,
     read: '/repos/{repo}/actions/permissions',
     expect: { kind: 'fields', fields: ACTIONS_PERMISSIONS },
     apply: [{ method: 'PUT', path: '/repos/{repo}/actions/permissions', body: ACTIONS_PERMISSIONS }],
+  },
+  {
+    id: 'allowed-actions',
+    label: 'Actions: GitHub-owned actions and pnpm/action-setup@* only',
+    needsPublic: false,
+    read: '/repos/{repo}/actions/permissions/selected-actions',
+    expect: { kind: 'fields', fields: SELECTED_ACTIONS },
+    apply: [{ method: 'PUT', path: '/repos/{repo}/actions/permissions/selected-actions', body: SELECTED_ACTIONS }],
+  },
+  {
+    id: 'workflow-token',
+    label: 'Workflow token read-only, and it can’t approve PRs',
+    needsPublic: false,
+    read: '/repos/{repo}/actions/permissions/workflow',
+    expect: { kind: 'fields', fields: WORKFLOW_TOKEN },
+    apply: [{ method: 'PUT', path: '/repos/{repo}/actions/permissions/workflow', body: WORKFLOW_TOKEN }],
+  },
+  {
+    id: 'fork-pr-approval',
+    label: 'Fork PR runs wait for approval for first-time contributors',
+    needsPublic: true,
+    read: '/repos/{repo}/actions/permissions/fork-pr-contributor-approval',
+    expect: { kind: 'fields', fields: { approval_policy: 'first_time_contributors' } },
+    apply: [
+      {
+        method: 'PUT',
+        path: '/repos/{repo}/actions/permissions/fork-pr-contributor-approval',
+        body: { approval_policy: 'first_time_contributors' },
+      },
+    ],
   },
   {
     id: 'self-hosted-runners',
@@ -167,6 +246,8 @@ export const DESIRED: readonly DesiredSetting[] = [
     expect: { kind: 'each', fields: { read_only: true } },
     apply: { byHand: 'delete each deploy key with write access, and add it back read-only (Settings, Deploy keys)' },
   },
+  ...environmentSettings('dev'),
+  ...environmentSettings('production'),
   {
     id: 'wiki-projects',
     label: 'Wiki and Projects off',
