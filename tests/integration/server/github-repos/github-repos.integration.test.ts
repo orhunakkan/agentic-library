@@ -20,7 +20,7 @@ import {
   sniffPicture,
 } from '~/server/github-repos/actions'
 import { resetRendered } from '~/server/github-repos/files'
-import { MAX_IN_FLIGHT, resetGitHub } from '~/server/github-repos/github'
+import { MAX_IN_FLIGHT, requestsInFlight, resetGitHub } from '~/server/github-repos/github'
 import { resetPacing, takeView } from '~/server/github-repos/pacing'
 import { addRepo, findRepo, listRepos, markOpened, removeRepo } from '~/server/github-repos/store'
 import { resetTrees } from '~/server/github-repos/trees'
@@ -254,8 +254,9 @@ describe('adding', () => {
         fetch: slow,
       }),
     )
-    await vi.waitFor(() => expect(githubStubState.requests.length).toBe(0))
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    /** Each add signs in and reads the database before it asks GitHub, which takes longer than any fixed wait on a slow runner. */
+    await vi.waitFor(() => expect(requestsInFlight()).toBe(MAX_IN_FLIGHT))
+    expect(asked()).toBe(0)
     expect(await answer(await add(cookie, 'https://github.com/folio-test/moving'))).toEqual([503, 'busy'])
     release()
     await Promise.all(waiting)
