@@ -1,5 +1,5 @@
 import { useRouteContext, useRouter } from '@tanstack/react-router'
-import { ExternalLink, FolderTree, Play, RefreshCw, X } from 'lucide-react'
+import { CloudOff, ExternalLink, FolderTree, Play, RefreshCw, X } from 'lucide-react'
 import { type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AppLink } from '~/client/components/AppLink'
 import { Button, Notice } from '~/client/features/account/ui'
@@ -26,6 +26,10 @@ import {
   linesText,
   MISSING_FILE_TEXT,
   noticeText,
+  OFFLINE_CHIP_TEXT,
+  OFFLINE_MISSING_TEXT,
+  OFFLINE_TITLE,
+  PICTURES_OFFLINE_TEXT,
   type RepoProblem,
   refreshedText,
   repoProblemText,
@@ -151,7 +155,17 @@ function Breadcrumbs({ repo, path }: { repo: RepoView; path: string }) {
   )
 }
 
-function Rendered({ repoId, markdown, testId }: { repoId: string; markdown: RenderedMarkdown; testId: string }) {
+function Rendered({
+  repoId,
+  markdown,
+  testId,
+  offline,
+}: {
+  repoId: string
+  markdown: RenderedMarkdown
+  testId: string
+  offline: boolean
+}) {
   const [showExternal, setShowExternal] = useState(false)
   return (
     <>
@@ -170,7 +184,13 @@ function Rendered({ repoId, markdown, testId }: { repoId: string; markdown: Rend
         </div>
       )}
       <div className="max-w-[60rem]" data-testid={testId}>
-        <MdView repoId={repoId} nodes={markdown.nodes} frontMatter={markdown.frontMatter} showExternal={showExternal} />
+        <MdView
+          repoId={repoId}
+          nodes={markdown.nodes}
+          frontMatter={markdown.frontMatter}
+          showExternal={showExternal}
+          offline={offline}
+        />
       </div>
     </>
   )
@@ -193,10 +213,12 @@ const tab = (active: boolean) =>
     active ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
   )
 
-function FileBody({ repo, file }: { repo: RepoView; file: RepoFile }) {
+function FileBody({ repo, file, offline }: { repo: RepoView; file: RepoFile; offline: boolean }) {
   const { content } = file
   if (content.kind === 'markdown' && content.view === 'preview')
-    return <Rendered key={file.path} repoId={repo.id} markdown={content.markdown} testId="repo-file" />
+    return (
+      <Rendered key={file.path} repoId={repo.id} markdown={content.markdown} testId="repo-file" offline={offline} />
+    )
   if (content.kind === 'markdown' || content.kind === 'code')
     return (
       <>
@@ -208,6 +230,7 @@ function FileBody({ repo, file }: { repo: RepoView; file: RepoFile }) {
         <CodeLines code={content.code} data-testid="repo-file" />
       </>
     )
+  if (content.kind === 'picture' && offline) return <FileNotice>{PICTURES_OFFLINE_TEXT}.</FileNotice>
   if (content.kind === 'picture')
     return (
       <div className="flex justify-center rounded-xl border border-line bg-inset p-4" data-testid="repo-file">
@@ -234,7 +257,7 @@ function FileBody({ repo, file }: { repo: RepoView; file: RepoFile }) {
   return <FileNotice>{noticeText(content)}</FileNotice>
 }
 
-function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
+function FileView({ repo, file, offline }: { repo: RepoView; file: RepoFile; offline: boolean }) {
   const { content } = file
   const markdown = content.kind === 'markdown'
   const info = [sizeText(file.size), file.lines !== null ? linesText(file.lines) : null].filter(Boolean).join(' · ')
@@ -261,7 +284,7 @@ function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
             Run
           </button>
         )}
-        {markdown && (
+        {markdown && !offline && (
           <nav className="flex gap-1 rounded-xl bg-inset p-1" aria-label="View">
             <AppLink
               href={repoHref(repo.id, file.path)}
@@ -282,12 +305,12 @@ function FileView({ repo, file }: { repo: RepoView; file: RepoFile }) {
           </nav>
         )}
       </div>
-      <FileBody repo={repo} file={file} />
+      <FileBody repo={repo} file={file} offline={offline} />
     </div>
   )
 }
 
-function FolderView({ repo, folder }: { repo: RepoView; folder: RepoFolder }) {
+function FolderView({ repo, folder, offline }: { repo: RepoView; folder: RepoFolder; offline: boolean }) {
   return (
     <div>
       <ul className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line bg-surface">
@@ -312,17 +335,23 @@ function FolderView({ repo, folder }: { repo: RepoView; folder: RepoFolder }) {
       </ul>
       {folder.readme && (
         <section className="mt-6 rounded-xl border border-line bg-surface p-5 md:p-8" aria-label={folder.readme.path}>
-          <Rendered key={folder.readme.path} repoId={repo.id} markdown={folder.readme.markdown} testId="repo-readme" />
+          <Rendered
+            key={folder.readme.path}
+            repoId={repo.id}
+            markdown={folder.readme.markdown}
+            testId="repo-readme"
+            offline={offline}
+          />
         </section>
       )}
     </div>
   )
 }
 
-function Target({ data, repo }: { data: Ready; repo: RepoView }) {
+function Target({ data, repo, offline }: { data: Ready; repo: RepoView; offline: boolean }) {
   const { target } = data
-  if (target.kind === 'folder') return <FolderView repo={repo} folder={target.folder} />
-  if (target.kind === 'file') return <FileView repo={repo} file={target.file} />
+  if (target.kind === 'folder') return <FolderView repo={repo} folder={target.folder} offline={offline} />
+  if (target.kind === 'file') return <FileView repo={repo} file={target.file} offline={offline} />
   if (target.kind === 'empty') return <FileNotice>{EMPTY_REPO_TEXT}</FileNotice>
   if (target.kind === 'gone') return <FileNotice>{GONE_TEXT}</FileNotice>
   return (
@@ -356,7 +385,7 @@ function useRefresh(repoId: string, loaded: Ready['refreshed']) {
   return { refreshing, refreshed, error, refresh }
 }
 
-export function RepoViewer({ data, path }: { data: Ready; path: string }) {
+export function RepoViewer({ data, path, offline = false }: { data: Ready; path: string; offline?: boolean }) {
   const repo = data.repo
   const { state, toggle } = useTree(repo.id, data, path)
   const [drawer, setDrawer] = useState(false)
@@ -396,6 +425,15 @@ export function RepoViewer({ data, path }: { data: Ready; path: string }) {
             >
               {repo.owner}/{repo.name}
             </h1>
+            {offline && (
+              <span
+                className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-inset px-3 text-[13px] font-medium text-muted"
+                data-testid="repo-offline"
+              >
+                <CloudOff className="size-4" aria-hidden />
+                {OFFLINE_CHIP_TEXT}
+              </span>
+            )}
             {repo.description && <p className="mt-2 max-w-[70ch] text-[15px] text-body">{repo.description}</p>}
             <p className="mt-2 text-[14px] text-muted">
               <RefLine repo={repo} />
@@ -415,17 +453,19 @@ export function RepoViewer({ data, path }: { data: Ready; path: string }) {
               <FolderTree className="size-4" aria-hidden />
               Files
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={refreshing}
-              aria-busy={refreshing || undefined}
-              onClick={() => void refresh()}
-              data-testid="repo-refresh"
-            >
-              <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} aria-hidden />
-              {refreshing ? 'Refreshing…' : 'Refresh'}
-            </Button>
+            {!offline && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={refreshing}
+                aria-busy={refreshing || undefined}
+                onClick={() => void refresh()}
+                data-testid="repo-refresh"
+              >
+                <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} aria-hidden />
+                {refreshing ? 'Refreshing…' : 'Refresh'}
+              </Button>
+            )}
             <a
               href={onGitHub}
               target="_blank"
@@ -438,7 +478,9 @@ export function RepoViewer({ data, path }: { data: Ready; path: string }) {
             </a>
           </div>
         </div>
-        {!repo.goneAt && data.target.kind !== 'empty' && data.target.kind !== 'gone' && <RepoDownload repo={repo} />}
+        {!offline && !repo.goneAt && data.target.kind !== 'empty' && data.target.kind !== 'gone' && (
+          <RepoDownload repo={repo} />
+        )}
         {refreshed && (
           <Notice kind="success" data-testid="repo-refreshed">
             {refreshedText(refreshed.changed, repo.commit)}
@@ -467,7 +509,7 @@ export function RepoViewer({ data, path }: { data: Ready; path: string }) {
             <Breadcrumbs repo={repo} path={path} />
           </div>
           <RunCodeContext.Provider value={runCode}>
-            <Target data={data} repo={repo} />
+            <Target data={data} repo={repo} offline={offline} />
           </RunCodeContext.Provider>
         </div>
       </div>
@@ -514,6 +556,42 @@ export function RepoUnavailable({ state }: { state: Exclude<RepoViewState, Ready
       >
         Retry
       </Button>
+    </main>
+  )
+}
+
+/** What the repository page shows offline when this device has no copy of it. */
+export function RepoOffline() {
+  return (
+    <main
+      id="main"
+      className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-6 text-center"
+      style={{ paddingBottom: 'var(--player-h)' }}
+    >
+      <h1
+        data-testid="repo-offline-title"
+        className="font-display text-[clamp(34px,4vw,48px)] leading-[1.05] font-bold tracking-[-0.03em] text-balance text-ink"
+      >
+        {OFFLINE_TITLE}
+      </h1>
+      <p className="mt-3 text-muted">{OFFLINE_MISSING_TEXT}</p>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+        <button
+          type="button"
+          data-testid="repo-offline-retry"
+          onClick={() => window.location.reload()}
+          className="inline-flex h-12 items-center rounded-xl bg-accent-fill px-6 text-[15px] font-semibold text-on-accent transition hover:brightness-105"
+        >
+          Try again
+        </button>
+        <a
+          href="/offline.html"
+          data-testid="repo-offline-downloads"
+          className="text-[15px] font-medium text-ink underline underline-offset-4"
+        >
+          Downloads
+        </a>
+      </div>
     </main>
   )
 }

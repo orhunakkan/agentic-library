@@ -1,5 +1,6 @@
 const CACHE = 'folio-offline-v2'
 const BOOKS = 'folio-books-v1'
+const REPOS = 'folio-repos-v1'
 const OFFLINE_URL = '/offline.html'
 const SHELL_URL = '/_shell.html'
 
@@ -25,11 +26,22 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-async function shellFor(url) {
+const REPO_PAGE = /^\/account\/repos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/
+
+/** The key of the download a page opens from: a book's copy, or a repository's, or null for any other page. */
+function downloadFor(url) {
   const slug = /^\/read\/([^/]+)\//.exec(url.pathname)?.[1]
-  if (!slug || !(await caches.has(BOOKS))) return null
-  const books = await caches.open(BOOKS)
-  if (!(await books.match(`/offline/${slug}.json`))) return null
+  if (slug) return { cache: BOOKS, key: `/offline/${slug}.json` }
+  const repo = REPO_PAGE.exec(url.pathname)?.[1]
+  if (repo) return { cache: REPOS, key: `/offline-repos/${repo}.json` }
+  return null
+}
+
+async function shellFor(url) {
+  const download = downloadFor(url)
+  if (!download || !(await caches.has(download.cache))) return null
+  const kept = await caches.open(download.cache)
+  if (!(await kept.match(download.key))) return null
   return (await caches.match(SHELL_URL)) || null
 }
 

@@ -6,6 +6,7 @@ import type { AlertKind, FrontMatterField, MdNode } from '~/shared/github-repos/
 import { isMdTag } from '~/shared/github-repos/md-node'
 import { fenceLang } from '~/shared/run-code/langs'
 import { CodeFence, codeText } from './CodeView'
+import { PICTURES_OFFLINE_TEXT } from './repo-messages'
 import { repoHref, repoRawHref } from './repos-client'
 
 const ALERT_TITLE: Record<AlertKind, string> = {
@@ -19,6 +20,8 @@ const ALERT_TITLE: Record<AlertKind, string> = {
 interface Context {
   repoId: string
   showExternal: boolean
+  /** Whether a repository picture can show: offline, the copy keeps none, so its place says so. */
+  picturesOffline: boolean
   run: RunCode | null
   fences: { count: number }
 }
@@ -93,6 +96,18 @@ function renderNode(node: MdNode, context: Context): ReactNode {
     }
     case 'img': {
       const size = { width: node.width, height: node.height, align: node.align }
+      if (node.source.kind === 'repo' && context.picturesOffline)
+        return (
+          <span
+            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-dashed border-line px-2 py-1 align-middle text-[13px] text-muted"
+            data-testid="repo-offline-picture"
+          >
+            <ImageOff className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate">
+              {node.alt || 'Picture'} <span className="text-subtle">({PICTURES_OFFLINE_TEXT})</span>
+            </span>
+          </span>
+        )
       if (node.source.kind === 'repo')
         return (
           <img
@@ -165,17 +180,19 @@ export function MdView({
   nodes,
   frontMatter,
   showExternal,
+  offline = false,
 }: {
   repoId: string
   nodes: readonly MdNode[]
   frontMatter: readonly FrontMatterField[]
   showExternal: boolean
+  offline?: boolean
 }) {
   const run = useContext(RunCodeContext)
   return (
     <div className="repo-md">
       {frontMatter.length > 0 && <FrontMatter fields={frontMatter} />}
-      {render(nodes, { repoId, showExternal, run, fences: { count: 0 } })}
+      {render(nodes, { repoId, showExternal, picturesOffline: offline, run, fences: { count: 0 } })}
     </div>
   )
 }

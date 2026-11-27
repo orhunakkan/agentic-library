@@ -117,3 +117,8 @@ export function tooLargeText({ files, bytes, maxFiles, maxBytes }: RepoTooLarge)
     return `This repository is too big to download: GitHub lists only part of its files. ${most}`
   return `This repository is too big to download: ${filesText(files)}, ${formatBytes(bytes)} of source. ${most}`
 }
+
+export const OFFLINE_CHIP_TEXT = 'Offline'
+export const PICTURES_OFFLINE_TEXT = 'Pictures show when you’re back online'
+export const OFFLINE_TITLE = 'You’re offline'
+export const OFFLINE_MISSING_TEXT = 'This repository isn’t downloaded on this device.'

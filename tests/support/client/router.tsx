@@ -13,6 +13,8 @@ import { hookElement, type Mounted, type MountedHook, mount } from './mount'
 /** What the app's root route puts in its context, as far as the components under test read it. */
 export interface TestRouteContext {
   viewer?: { username: string } | null
+  /** True when the root route found no network, as `__root.tsx` sets it. */
+  offline?: boolean
 }
 
 /**
@@ -70,11 +72,17 @@ export interface TestNavData {
 
 /**
  * Renders one of the app's own file routes at `path`, under a stand-in root whose loader returns `nav`, the way the
- * generated route tree attaches it. The route's own loader runs, so mock the server functions it calls.
+ * generated route tree attaches it. The route's own loader runs, so mock the server functions it calls. A route with
+ * a parameter gives its pattern as `path` and the address to open as `url`; `context` is the root route's context.
  */
-export async function mountRoute(route: AnyRoute, path: string, nav: TestNavData): Promise<AnyRouter> {
+export async function mountRoute(
+  route: AnyRoute,
+  path: string,
+  nav: TestNavData,
+  { url = path, context = {} }: { url?: string; context?: TestRouteContext } = {},
+): Promise<AnyRouter> {
   const root = createRootRouteWithContext<TestRouteContext>()({ loader: () => nav })
   /** The generated tree attaches each file route this way; its types only fit inside that tree. */
   const attached = route.update({ id: path, path, getParentRoute: () => root } as never)
-  return (await mountRouter(root.addChildren([attached]), path, {})).router
+  return (await mountRouter(root.addChildren([attached]), url, context)).router
 }
