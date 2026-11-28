@@ -13,6 +13,7 @@ import {
   handleCoverGet,
   handleCoverUpload,
   handleLookup,
+  resetRecentSearches,
 } from '~/server/book-details/actions'
 import { resetOpenLibrary, search } from '~/server/book-details/open-library'
 import { applyMatch, newCover, readCover, removeCover, saveDetails, setCover } from '~/server/book-details/store'
@@ -446,6 +447,7 @@ interface Match {
 describe('looking up a book', () => {
   beforeEach(() => {
     resetOpenLibrary()
+    resetRecentSearches()
     sent.length = 0
   })
 
@@ -543,6 +545,7 @@ describe('looking up a book', () => {
 describe('applying a match', () => {
   beforeEach(() => {
     resetOpenLibrary()
+    resetRecentSearches()
     sent.length = 0
   })
 
@@ -607,9 +610,11 @@ describe('applying a match', () => {
     expect(await res.json()).toMatchObject({
       coverProblem: 'cover-too-large',
       cover: null,
-      changed: { description: true },
+      changed: { description: true, year: false },
     })
-    expect((await loadBookPage(db(), user.id, bookId))?.cover).toBeNull()
+    const page = await loadBookPage(db(), user.id, bookId)
+    expect(page?.cover).toBeNull()
+    expect(page?.details.publishedYear).toBeNull()
     expect((await events('book.looked_up')).at(-1)?.detail).toMatchObject({ problem: 'cover-too-large' })
   })
 

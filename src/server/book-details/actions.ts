@@ -137,6 +137,11 @@ const recentSearches = new Map<number, { at: number; isbn: string | null; years:
 const RECENT_MS = 60 * 60_000
 const RECENT_MAX = 1000
 
+/** Forgets every reader's recent search, as a restart does. */
+export function resetRecentSearches(): void {
+  recentSearches.clear()
+}
+
 function rememberSearch(userId: number, isbn: string | null, matches: readonly OpenLibraryMatch[]): void {
   recentSearches.delete(userId)
   recentSearches.set(userId, { at: Date.now(), isbn, years: new Map(matches.map((m) => [m.work, m.year])) })
