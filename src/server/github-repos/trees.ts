@@ -44,9 +44,10 @@ export async function loadTree(key: TreeKey, options: GitHubOptions = {}): Promi
     return { ok: true, value: hit }
   }
   const whole = await getTree(key.owner, key.name, key.commit, { recursive: true }, options)
-  if (!whole.ok) return whole
+  if (!whole.ok && whole.problem !== 'too-large') return whole
   let tree: RepoTree
-  if (whole.value.truncated) {
+  /** A whole tree too large to read is opened as a truncated one is: its root now, each folder when it's opened. */
+  if (!whole.ok || whole.value.truncated) {
     const root = await getTree(key.owner, key.name, key.commit, { recursive: false }, options)
     if (!root.ok) return root
     tree = buildTree(root.value, true)
