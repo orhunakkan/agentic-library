@@ -21,6 +21,8 @@ export interface FixtureRepo {
   visibility?: 'private'
   rateLimited?: boolean
   truncated?: boolean
+  /** Its recursive tree is longer than the 8 MB Folio reads, and GitHub doesn't mark it truncated. */
+  oversized?: boolean
   empty?: boolean
   renamedFrom?: string[]
 }
@@ -199,5 +201,24 @@ export const FIXTURE_REPOS: FixtureRepo[] = [
         },
       },
     ],
+  },
+  {
+    id: 1009,
+    owner: 'folio-test',
+    name: 'oversized',
+    defaultBranch: 'main',
+    description: 'A whole tree longer than Folio reads.',
+    refs: { main: 0 },
+    commits: [
+      {
+        sha: hex('a'),
+        files: {
+          'README.md': { content: '# Oversized\n' },
+          'deep/a/b.md': { content: '# B\n' },
+          'deep/c.txt': { content: 'c' },
+        },
+      },
+    ],
+    oversized: true,
   },
 ]

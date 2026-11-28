@@ -498,6 +498,17 @@ describe('reading', () => {
     expect(folder.state === 'ready' && folder.entries.map((e) => e.name)).toEqual(['a', 'c.txt'])
   })
 
+  it('loads a tree too large to read whole one folder at a time, as it does a truncated one', async () => {
+    const { cookie } = await signedIn()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { repo } = await added(cookie, 'https://github.com/folio-test/oversized')
+    const state = (await view(cookie, repo.id, 'deep/a/b.md')) as Extract<RepoViewState, { state: 'ready' }>
+    expect(state.folders.map((f) => f.path)).toEqual(['', 'deep', 'deep/a'])
+    expect(state.target).toMatchObject({ kind: 'file', file: { path: 'deep/a/b.md' } })
+    const folder = await repoFolderState(get('/', cookie), repo.id, 'deep', options)
+    expect(folder.state === 'ready' && folder.entries.map((e) => e.name)).toEqual(['a', 'c.txt'])
+  })
+
   it('answers busy when GitHub is, and limited past 600 views an hour', async () => {
     const { user, cookie } = await signedIn()
     const { repo } = await added(cookie)

@@ -109,6 +109,7 @@ function treeAnswer(repo: FixtureRepo, sha: string, recursive: boolean): Respons
     const inside = all.filter((e) => (folder ? e.path.startsWith(`${folder}/`) : true))
     const relative = inside.map((e) => ({ ...e, path: folder ? e.path.slice(folder.length + 1) : e.path }))
     const direct = relative.filter((e) => !e.path.includes('/'))
+    if (recursive && repo.oversized) return new Response('x'.repeat(9 * 1024 * 1024), { headers: limitHeaders(59) })
     const truncated = recursive && !!repo.truncated
     const tree = !recursive ? direct : truncated ? relative.slice(0, 1) : relative
     return api({ sha, url: `https://api.github.com/repos/x/y/git/trees/${sha}`, truncated, tree })
